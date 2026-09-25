@@ -1,0 +1,10 @@
+services:
+  host2vec:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      N_WINDOWS: "5"
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
