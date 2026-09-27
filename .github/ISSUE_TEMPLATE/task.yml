@@ -1,0 +1,45 @@
+name: Task
+description: Create a team task
+title: "[Task] "
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What needs to be done and why?
+      placeholder: Describe the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What to do
+      description: Break the task into concrete steps.
+      placeholder: |
+        - [ ] Step 1
+        - [ ] Step 2
+        - [ ] Step 3
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: How do we know the task is finished?
+      placeholder: |
+        - [ ] Code/research is committed
+        - [ ] Results are documented
+        - [ ] PR is opened and linked to this issue
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Suggested branch
+      description: Optional branch name.
+      placeholder: dasha/research-node2vec
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / links
+      description: Datasets, papers, references, screenshots, or constraints.
