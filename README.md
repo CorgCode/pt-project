@@ -11,7 +11,7 @@ Build a system that learns representations of hosts in a corporate network from 
 - detect suspicious behavioural changes and anomalies;
 - explain why hosts are considered similar.
 
-The current project stage is **research**. Each team member performs research in a separate branch and submits the result through a Pull Request.
+The current project stage is **research**. Each team member performs research in a separate task branch and submits the result through a Pull Request.
 
 ## Team
 
@@ -37,8 +37,6 @@ Research tasks are tracked in **GitHub Issues** and grouped by milestone.
 
 ## Workflow
 
-We use the following workflow for all work:
-
 ```text
 Issue
   ↓
@@ -57,21 +55,23 @@ main
 
 Do not work directly in `main`.
 
-Create a branch for each task:
+Create one branch for each Issue using:
 
 ```text
-<name>/<type>-<short-task>
+<github-login>/<type>-<issue-number>-<short-task>
 ```
 
 Examples:
 
 ```text
-dasha/research-node2vec
-tikhon/research-graph-embeddings
-danya/data-lanl-eda
-dima/infra-repository
-daniil/research-architecture
+physcorgi/research-2-host-embedding
+DrMogger/infra-7-repository-setup
+Tikhon2783/research-4-graph-embeddings
+genshpaaack123-byte/data-5-lanl-eda
+ElliOrNora/research-6-structural-roles
 ```
+
+Task branches are temporary and should be deleted after merge.
 
 ### Pull Requests
 
