@@ -15,8 +15,8 @@ The current project stage is **research**. Each team member performs research in
 
 ## Team
 
-- **Daniil** — @physcorgi — project owner / CODEOWNER
-- **Dima** — @DrMogger — repository administrator
+- **Daniil** — @physcorgi
+- **Dima** — @DrMogger
 - **Tikhon** — @Tikhon2783
 - **Danya** — @genshpaaack123-byte
 - **Dasha** — @ElliOrNora
@@ -99,8 +99,6 @@ The `main` branch is protected:
 - stale approvals are dismissed after new pushes;
 - review conversations must be resolved;
 - force pushes and branch deletion are blocked.
-
-Emergency bypass is reserved for the project owner and repository administrator.
 
 ## Security
 
