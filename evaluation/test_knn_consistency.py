@@ -52,3 +52,40 @@ def test_good_beats_random():
     for k in (5, 10, 20):
         for metric in ("consistency", "jaccard", "ndcg"):
             assert g.loc[(k, metric), "mean"] > r.loc[(k, metric), "mean"]
+
+
+def _small(n=40, seed=0):
+    rng = np.random.default_rng(seed)
+    idx = [f"h{i}" for i in range(n)]
+    return (pd.DataFrame(rng.normal(size=(n, 4)), index=idx),
+            pd.DataFrame(rng.normal(size=(n, 6)), index=idx))
+
+
+@pytest.mark.parametrize("which", ["embedding", "reference"])
+def test_row_shuffle_does_not_change_result(which):
+    emb, ref = _small()
+    base = evaluate_embedding(emb, ref, ks=(5, 10))
+    shuffled = {"embedding": emb, "reference": ref}[which].sample(frac=1, random_state=3)
+    args = (shuffled, ref) if which == "embedding" else (emb, shuffled)
+    pd.testing.assert_frame_equal(evaluate_embedding(*args, ks=(5, 10)), base)
+
+
+@pytest.mark.parametrize("which", ["embedding", "reference"])
+def test_duplicate_host_ids_raise(which):
+    emb, ref = _small()
+    target = emb if which == "embedding" else ref
+    dup = pd.concat([target, target.iloc[[0]]])
+    args = (dup, ref) if which == "embedding" else (emb, dup)
+    with pytest.raises(ValueError, match=f"{which} contains duplicate host IDs"):
+        evaluate_embedding(*args)
+
+
+def test_missing_or_mismatched_host_ids_raise():
+    emb, ref = _small()
+    with pytest.raises(ValueError, match="different host IDs"):
+        evaluate_embedding(emb, ref.iloc[:-1])            # host missing in reference
+    with pytest.raises(ValueError, match="different host IDs"):
+        evaluate_embedding(emb.iloc[1:], ref)             # host missing in embedding
+    renamed = ref.rename(index={"h0": "other"})
+    with pytest.raises(ValueError, match="different host IDs"):
+        evaluate_embedding(emb, renamed)                  # same size, different IDs

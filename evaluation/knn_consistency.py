@@ -170,6 +170,15 @@ def evaluate_embedding(
     and optionally {k: per-host DataFrame}.
     """
     if isinstance(embedding, pd.DataFrame) and isinstance(reference, pd.DataFrame):
+        for name, df in (("embedding", embedding), ("reference", reference)):
+            if df.index.has_duplicates:
+                dups = df.index[df.index.duplicated()].unique().tolist()[:5]
+                raise ValueError(f"{name} contains duplicate host IDs, e.g. {dups}")
+        if set(embedding.index) != set(reference.index):
+            only_e = list(set(embedding.index) - set(reference.index))[:5]
+            only_r = list(set(reference.index) - set(embedding.index))[:5]
+            raise ValueError("embedding and reference contain different host IDs "
+                             f"(only in embedding: {only_e}, only in reference: {only_r})")
         reference = reference.loc[embedding.index]
         hosts = embedding.index
     else:
