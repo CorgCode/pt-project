@@ -19,6 +19,17 @@ C2,0.09,-0.77,0.39
 - пропуски и NaN запрещены;
 - порядок строк не важен: сопоставление идёт по `host_id`.
 
+## Единые reference data
+
+Все методы должны оцениваться на одинаковых reference artifacts и splits. Форматы зафиксированы в `benchmark/REFERENCE_DATA.md`:
+
+- `reference/features.csv` — независимые reference features для neighborhood metrics;
+- `reference/pairs.csv` — positive/negative пары для ROC-AUC / PR-AUC и retrieval;
+- `reference/triplets.csv` — `(anchor, positive, negative)` для Triplet Accuracy;
+- `reference/labels.csv` — targets/splits для Linear / Logistic Probe.
+
+Нельзя генерировать отдельную разметку или новый random split внутри каждого метода: иначе результаты разных embeddings не будут сопоставимы.
+
 ## Единые параметры
 
 Параметры лежат в `benchmark/config.json`.
@@ -46,8 +57,9 @@ Silhouette и Davies–Bouldin считаются вспомогательным
 1. Метод строит embeddings.
 2. Экспортирует их в общий CSV-формат.
 3. `benchmark/validate_submission.py` проверяет файл.
-4. После объединения реализаций метрик общий evaluator считает все метрики на одинаковых reference data / splits.
-5. Результаты сводятся в одну таблицу.
+4. Общий evaluator использует один и тот же набор reference data / splits из `benchmark/REFERENCE_DATA.md`.
+5. Все согласованные метрики считаются без специальных изменений под конкретный embedding-метод.
+6. Результаты сводятся в одну таблицу.
 
 ## Почему не Kaggle сейчас
 
