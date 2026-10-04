@@ -52,14 +52,43 @@ C2,0.09,-0.77,0.39
 
 Silhouette и Davies–Bouldin считаются вспомогательными: они оценивают геометрию кластеров, но не заменяют проверку правильности разделения хостов.
 
+## Запуск
+
+Сначала проверить submission:
+
+```bash
+python benchmark/validate_submission.py submissions/METHOD/embeddings.csv
+```
+
+Затем запустить общий evaluator:
+
+```bash
+python -m evaluation.evaluate \
+  --embeddings submissions/METHOD/embeddings.csv \
+  --reference-dir reference \
+  --method METHOD \
+  --output benchmark/results/METHOD.json
+```
+
+Сейчас общий CLI уже считает интегрированную k-NN consistency / Jaccard / nDCG оценку. Реализации из issues #22–#25 подключаются к этому же CLI по мере merge; отсутствующие метрики явно отмечаются как unavailable, а не подменяются фиктивными значениями.
+
+Итоговый leaderboard строится одной командой:
+
+```bash
+python benchmark/build_leaderboard.py
+```
+
+Она собирает `benchmark/results/*.json` в `benchmark/leaderboard.csv`.
+
 ## Workflow
 
 1. Метод строит embeddings.
 2. Экспортирует их в общий CSV-формат.
 3. `benchmark/validate_submission.py` проверяет файл.
 4. Общий evaluator использует один и тот же набор reference data / splits из `benchmark/REFERENCE_DATA.md`.
-5. Все согласованные метрики считаются без специальных изменений под конкретный embedding-метод.
-6. Результаты сводятся в одну таблицу.
+5. Все доступные согласованные метрики считаются без специальных изменений под конкретный embedding-метод.
+6. Результаты записываются в JSON и сводятся в один leaderboard.
+7. GitHub Actions проверяет submission format и запускает evaluation tests.
 
 ## Почему не Kaggle сейчас
 
