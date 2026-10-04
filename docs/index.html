@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Host Embedding Benchmark</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{--bg:#0b0d10;--card:#13171c;--muted:#8b96a5;--text:#f5f7fa;--line:#252b33;--accent:#fff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .wrap{max-width:1180px;margin:auto;padding:40px 20px 64px}.top{display:flex;gap:20px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+    h1{font-size:38px;letter-spacing:-.04em;margin:0 0 8px}h2{font-size:20px;margin:28px 0 12px}p{margin:0;color:var(--muted)}
+    .badge{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:#c7d0db;background:#101318}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}.metric b{display:block;font-size:30px;letter-spacing:-.03em}.metric span{color:var(--muted)}
+    .upload{margin-top:26px;padding:26px;border:1px dashed #38414d;border-radius:18px;background:#101318}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type=file]{max-width:100%}button,.btn{appearance:none;border:1px solid #39424e;border-radius:10px;background:#f4f6f8;color:#111;padding:9px 13px;font-weight:650;cursor:pointer;text-decoration:none}
+    button.secondary,.btn.secondary{background:#151a20;color:#f5f7fa}.status{margin-top:12px;color:var(--muted)}.ok{color:#78dba9}.err{color:#ff8f8f}
+    table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:#aeb8c5;font-weight:600}
+    .plot{height:410px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.note{padding:14px 16px;border:1px solid #29313a;background:#101419;border-radius:12px;color:#aab4c0}.hidden{display:none}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:31px}.plot{height:360px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Host Embedding Benchmark</h1><p>Upload <code>embeddings.csv</code> and evaluate it directly in your browser.</p></div>
+    <span class="badge">GitHub Pages · browser demo</span>
+  </div>
+
+  <div class="upload">
+    <div class="row">
+      <input id="file" type="file" accept=".csv,text/csv" />
+      <button id="run">Run evaluation</button>
+      <button class="secondary" id="sample">Download sample CSV</button>
+    </div>
+    <div id="status" class="status">Demo reference: 300 synthetic hosts (<code>h0…h299</code>). Files never leave your browser.</div>
+  </div>
+
+  <div id="results" class="hidden">
+    <h2>Your embedding</h2>
+    <div class="grid" id="cards"></div>
+
+    <h2>Comparison</h2>
+    <div id="metricPlot" class="plot"></div>
+
+    <h2>Leaderboard</h2>
+    <table id="leaderboard"></table>
+
+    <h2>2D preview</h2>
+    <div id="scatter" class="plot"></div>
+
+    <h2>Not available in the browser demo yet</h2>
+    <div class="note">Triplet Accuracy, Pairwise ROC-AUC / PR-AUC, Precision@k / Recall@k and Linear Probe stay unavailable until the shared implementations/reference artifacts from #22–#25 are ready. The Python/Streamlit version remains the source of truth for the full evaluator.</div>
+  </div>
+</div>
+<script>
+const N=300, REF_D=24, KS=[5,10,20];
+const statusEl=document.getElementById('status'), resultsEl=document.getElementById('results');
+function rng(seed=1){let s=seed>>>0;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296}}
+function normal(r){let u=Math.max(r(),1e-12),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function makeReference(){const r=rng(42), rows=[];for(let i=0;i<N;i++){const role=i%5,x=[];for(let j=0;j<5;j++)x.push(j===role?2.5:0);x.push(role/4);x.push((4-role)/4);x.push(Math.sin(role*1.2));x.push(Math.cos(role*1.2));while(x.length<REF_D)x.push(0.25*normal(r)+0.12*role);rows.push(x)}return rows}
+const REF=makeReference(), HOSTS=Array.from({length:N},(_,i)=>`h${i}`);
+function cosine(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}if(!na||!nb)return 0;return d/Math.sqrt(na*nb)}
+function topK(X,k){const out=[];for(let i=0;i<X.length;i++){const a=[];for(let j=0;j<X.length;j++)if(i!==j)a.push([j,cosine(X[i],X[j])]);a.sort((x,y)=>y[1]-x[1]);out.push(a.slice(0,k).map(z=>z[0]))}return out}
+const REF_NN={};for(const k of KS)REF_NN[k]=topK(REF,k);
+function metrics(X){const res={};for(const k of KS){const e=topK(X,k),cons=[],jac=[],nd=[];const discounts=Array.from({length:k},(_,i)=>1/Math.log2(i+2));const ideal=Array.from({length:k},(_,i)=>(k-i)*discounts[i]).reduce((a,b)=>a+b,0);for(let i=0;i<N;i++){const rr=REF_NN[k][i], map=new Map(rr.map((h,rank)=>[h,k-rank]));let inter=0,dcg=0;e[i].forEach((h,rank)=>{if(map.has(h)){inter++;dcg+=map.get(h)*discounts[rank]}});cons.push(inter/k);jac.push(inter/(2*k-inter));nd.push(dcg/ideal)}res[k]={consistency:avg(cons),jaccard:avg(jac),ndcg:avg(nd)}}return res}
+function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function randomEmbedding(d){const r=rng(7);return Array.from({length:N},()=>Array.from({length:d},()=>normal(r)))}
+function parseUpload(file){return new Promise((resolve,reject)=>Papa.parse(file,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:x=>x.errors.length?reject(new Error(x.errors[0].message)):resolve(x.data),error:reject}))}
+function validate(rows){if(!rows.length)throw Error('CSV is empty.');const cols=Object.keys(rows[0]);if(!cols.includes('host_id'))throw Error('Missing required host_id column.');const emb=cols.filter(c=>c.startsWith('emb_'));if(!emb.length)throw Error('No emb_* columns found.');const ids=rows.map(r=>String(r.host_id));if(new Set(ids).size!==ids.length)throw Error('Duplicate host_id values.');if(ids.length!==N||HOSTS.some(h=>!ids.includes(h)))throw Error(`Demo requires exactly ${N} hosts h0…h${N-1}.`);const by=new Map(rows.map(r=>[String(r.host_id),r]));const X=HOSTS.map(h=>emb.map(c=>Number(by.get(h)[c])));if(X.some(row=>row.some(v=>!Number.isFinite(v))))throw Error('Embedding contains missing, non-numeric, NaN or Inf values.');return {X,dim:emb.length}}
+function format(v){return Number(v).toFixed(3)}
+function renderCards(m){const labels=[['consistency','Consistency'],['jaccard','Jaccard'],['ndcg','nDCG']];document.getElementById('cards').innerHTML=labels.map(([key,name])=>`<div class="card metric"><span>${name}@10</span><b>${format(m[10][key])}</b><span>@5 ${format(m[5][key])} · @20 ${format(m[20][key])}</span></div>`).join('')}
+function renderBoard(items){items.sort((a,b)=>b.metrics[10].consistency-a.metrics[10].consistency);let h='<tr><th>Method</th><th>C@5</th><th>C@10</th><th>C@20</th><th>J@10</th><th>nDCG@10</th></tr>';for(const x of items)h+=`<tr><td>${x.name}</td><td>${format(x.metrics[5].consistency)}</td><td>${format(x.metrics[10].consistency)}</td><td>${format(x.metrics[20].consistency)}</td><td>${format(x.metrics[10].jaccard)}</td><td>${format(x.metrics[10].ndcg)}</td></tr>`;document.getElementById('leaderboard').innerHTML=h}
+function renderPlot(items){const traces=[];for(const x of items)traces.push({x:KS.map(String),y:KS.map(k=>x.metrics[k].consistency),name:x.name,type:'bar'});Plotly.newPlot('metricPlot',traces,{barmode:'group',paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},yaxis:{range:[0,1],title:'Consistency'},xaxis:{title:'k'}},{responsive:true,displaylogo:false})}
+function renderScatter(X){const x=X.map(v=>v[0]??0),y=X.map(v=>v[1]??0);Plotly.newPlot('scatter',[{x,y,text:HOSTS,mode:'markers',type:'scattergl',marker:{size:7,opacity:.72}}],{paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},xaxis:{title:'emb_0'},yaxis:{title:X[0].length>1?'emb_1':'0'}},{responsive:true,displaylogo:false})}
+async function run(){try{const f=document.getElementById('file').files[0];if(!f)throw Error('Choose embeddings.csv first.');statusEl.textContent='Evaluating in browser…';statusEl.className='status';const rows=await parseUpload(f),{X,dim}=validate(rows);const uploaded=metrics(X),rand=metrics(randomEmbedding(dim)),ceil=metrics(REF);const items=[{name:'Uploaded',metrics:uploaded},{name:'Reference ceiling',metrics:ceil},{name:'Random',metrics:rand}];renderCards(uploaded);renderBoard([...items]);renderPlot(items);renderScatter(X);resultsEl.classList.remove('hidden');statusEl.textContent=`✓ Valid: ${N} hosts × ${dim} dimensions`;statusEl.className='status ok'}catch(e){resultsEl.classList.add('hidden');statusEl.textContent='Error: '+e.message;statusEl.className='status err'}}
+function sample(){const r=rng(123),d=16,lines=['host_id,'+Array.from({length:d},(_,j)=>`emb_${j}`).join(',')];for(let i=0;i<N;i++){const role=i%5,row=Array.from({length:d},(_,j)=>((j<5?(j===role?2.2:0):0)+0.35*normal(r)).toFixed(6));lines.push(`h${i},${row.join(',')}`)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='embeddings.csv';a.click();URL.revokeObjectURL(a.href)}
+document.getElementById('run').addEventListener('click',run);document.getElementById('sample').addEventListener('click',sample);
+</script>
+</body>
+</html>
