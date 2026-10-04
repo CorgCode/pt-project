@@ -34,13 +34,24 @@ jobs:
         run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
 
       - name: Run evaluation tests
-        run: pytest -q evaluation/test_knn_consistency.py
+        run: python -m pytest -q evaluation benchmark
+
+      - name: Generate and validate baseline embeddings (synthetic reference)
+        run: |
+          python -m benchmark.baselines.make_synthetic_reference --output-dir "$RUNNER_TEMP/reference"
+          python -m benchmark.baselines.run_all --reference-dir "$RUNNER_TEMP/reference" \
+            --out-dir "$RUNNER_TEMP/baselines" --results-dir "$RUNNER_TEMP/results" --evaluate
+          for file in "$RUNNER_TEMP"/baselines/*/embeddings.csv; do
+            python benchmark/validate_submission.py "$file"
+          done
+          python benchmark/build_leaderboard.py --results-dir "$RUNNER_TEMP/results" --output "$RUNNER_TEMP/leaderboard.csv"
 
       - name: Validate team submissions
         shell: bash
         run: |
           shopt -s nullglob
-          files=(submissions/*/embeddings.csv)
+          shopt -s globstar
+          files=(submissions/**/embeddings.csv)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No team submissions found yet."
             exit 0

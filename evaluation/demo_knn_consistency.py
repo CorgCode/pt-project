@@ -3,7 +3,10 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from knn_consistency import build_reference_features, evaluate_embedding
+try:  # package import (python -m ...) or script run from evaluation/
+    from evaluation.knn_consistency import build_reference_features, evaluate_embedding
+except ModuleNotFoundError:
+    from knn_consistency import build_reference_features, evaluate_embedding
 
 
 def make_flows(n_hosts=300, n_roles=5, flows_per_host=200, seed=0):
