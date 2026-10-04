@@ -1,0 +1,20 @@
+{
+  "host_id_column": "host_id",
+  "embedding_prefix": "emb_",
+  "k_values": [5, 10, 20],
+  "embedding_distance": "cosine",
+  "reference_distance": "cosine",
+  "required_metrics": [
+    "triplet_accuracy",
+    "pairwise_roc_auc",
+    "pairwise_pr_auc",
+    "precision_at_k",
+    "recall_at_k",
+    "knn_consistency",
+    "linear_probe"
+  ],
+  "auxiliary_metrics": [
+    "silhouette",
+    "davies_bouldin"
+  ]
+}
