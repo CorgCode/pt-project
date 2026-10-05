@@ -1,0 +1,64 @@
+name: Benchmark validation
+
+on:
+  pull_request:
+    paths:
+      - "benchmark/**"
+      - "evaluation/**"
+      - "app/**"
+      - "submissions/**"
+      - ".github/workflows/benchmark.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "benchmark/**"
+      - "evaluation/**"
+      - "app/**"
+      - "submissions/**"
+
+jobs:
+  validate-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy scikit-learn pytest streamlit plotly
+
+      - name: Validate example submission
+        run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
+
+      - name: Run evaluation tests
+        run: python -m pytest -q evaluation benchmark app
+
+      - name: Generate and validate baseline embeddings (synthetic reference)
+        run: |
+          python -m benchmark.baselines.make_synthetic_reference --output-dir "$RUNNER_TEMP/reference"
+          python -m benchmark.baselines.run_all --reference-dir "$RUNNER_TEMP/reference" \
+            --out-dir "$RUNNER_TEMP/baselines" --results-dir "$RUNNER_TEMP/results" --evaluate
+          for file in "$RUNNER_TEMP"/baselines/*/embeddings.csv; do
+            python benchmark/validate_submission.py "$file"
+          done
+          python benchmark/build_leaderboard.py --results-dir "$RUNNER_TEMP/results" --output "$RUNNER_TEMP/leaderboard.csv"
+
+      - name: Validate team submissions
+        shell: bash
+        run: |
+          shopt -s nullglob
+          shopt -s globstar
+          files=(submissions/**/embeddings.csv)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No team submissions found yet."
+            exit 0
+          fi
+          for file in "${files[@]}"; do
+            echo "Validating $file"
+            python benchmark/validate_submission.py "$file"
+          done
