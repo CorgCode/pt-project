@@ -24,6 +24,7 @@ C2,0.09,-0.77,0.39
 Все методы должны оцениваться на одинаковых reference artifacts и splits. Форматы зафиксированы в `benchmark/REFERENCE_DATA.md`:
 
 - `reference/features.csv` — независимые reference features для neighborhood metrics;
+- `reference/neighbors.csv` — фиксированные reference-соседи по логам (предпочтительнее пересчёта для разных методов);
 - `reference/pairs.csv` — positive/negative пары для ROC-AUC / PR-AUC и retrieval;
 - `reference/triplets.csv` — `(anchor, positive, negative)` для Triplet Accuracy;
 - `reference/labels.csv` — targets/splits для Linear / Logistic Probe.
@@ -112,3 +113,9 @@ Evaluator добавляет к результату SHA-256 reference/features.
 о протоколе (если есть manifest.json). Leaderboard не должен сравнивать метрики
 по разным reference-файлам или наборам хостов: теперь такие смешанные результаты
 приводят к ошибке вместо вводящей в заблуждение общей таблицы.
+
+## Контракт задач #40–#45
+
+См. [BENCHMARK_CONTRACT.md](../BENCHMARK_CONTRACT.md): единый `host_id,emb_*`,
+manifest временных окон, `validate_benchmark.py`. Это предотвращает смешение
+несовместимых старого и нового форматов, встречающихся в описаниях Issues.
