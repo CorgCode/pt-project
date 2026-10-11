@@ -12,7 +12,7 @@ from evaluation.knn_consistency import evaluate_embedding
 
 
 def _load_matrix(path: Path, id_col: str, prefix: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, dtype={id_col: "string"})
     if id_col not in df.columns:
         raise ValueError(f"{path}: missing required column {id_col!r}")
     if df[id_col].duplicated().any():
