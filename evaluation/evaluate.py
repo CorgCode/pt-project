@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from evaluation.knn_consistency import evaluate_embedding
@@ -16,6 +17,8 @@ def _load_matrix(path: Path, id_col: str, prefix: str) -> pd.DataFrame:
     df = pd.read_csv(path, dtype={id_col: "string"})
     if id_col not in df.columns:
         raise ValueError(f"{path}: missing required column {id_col!r}")
+    if df[id_col].isna().any() or df[id_col].str.strip().eq("").any():
+        raise ValueError(f"{path}: missing or blank {id_col} values")
     if df[id_col].duplicated().any():
         raise ValueError(f"{path}: duplicate {id_col} values")
     cols = [c for c in df.columns if c.startswith(prefix)]
@@ -24,6 +27,12 @@ def _load_matrix(path: Path, id_col: str, prefix: str) -> pd.DataFrame:
     matrix = df.set_index(id_col)[cols]
     if matrix.isna().any().any():
         raise ValueError(f"{path}: NaN values are not allowed")
+    try:
+        coords = matrix.to_numpy(dtype=float)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"{path}: columns must be numeric") from exc
+    if not np.isfinite(coords).all():
+        raise ValueError(f"{path}: coordinates must be finite")
     return matrix
 
 
