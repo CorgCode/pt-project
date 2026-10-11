@@ -20,7 +20,15 @@ def main() -> None:
     for path in sorted(args.results_dir.glob("*.json")):
         data = json.loads(path.read_text(encoding="utf-8"))
         info = data.get("reference_info") or {}
-        fingerprint = info.get("features_sha256")
+        fingerprint = (
+            info.get("features_sha256"),
+            info.get("neighbors_sha256"),
+        )
+        if not any(fingerprint):
+            raise ValueError(
+                f"{path}: no reference fingerprint; re-evaluate this submission "
+                "with the current common evaluator before building the leaderboard"
+            )
         # Including None prevents silent mixing of legacy / unverified scores.
         reference_keys.add(fingerprint)
         host_counts.add(data.get("n_hosts"))

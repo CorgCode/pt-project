@@ -36,3 +36,10 @@ def test_rejects_nonfinite_coordinates(tmp_path, bad_value):
                   "emb_0": [1.0, bad_value]}).to_csv(file, index=False)
     with pytest.raises(ValueError, match="NaN|finite"):
         validate_submission(str(file))
+
+@pytest.mark.parametrize("value", ["inf", "-inf", "garbage"])
+def test_common_evaluator_refuses_invalid_numbers(tmp_path, value):
+    file = tmp_path / "embeddings.csv"
+    pd.DataFrame({"host_id": ["a", "b"], "emb_0": ["1.2", value]}).to_csv(file, index=False)
+    with pytest.raises(ValueError, match="finite|numeric"):
+        _load_matrix(file, "host_id", "emb_")
