@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -34,6 +35,9 @@ def validate_submission(path: str) -> None:
     ]
     if non_numeric:
         raise ValueError(f"Embedding columns must be numeric: {non_numeric}")
+
+    if not np.isfinite(df[embedding_columns].to_numpy(dtype=float)).all():
+        raise ValueError("Embedding columns must contain only finite numbers (no Inf or NaN)")
 
     print(f"OK: {len(df)} hosts, embedding dimension = {len(embedding_columns)}")
 
