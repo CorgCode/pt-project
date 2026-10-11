@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -9,7 +10,7 @@ def validate_submission(path: str) -> None:
     if not file_path.exists():
         raise FileNotFoundError(f"Submission not found: {file_path}")
 
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, dtype={"host_id": "string"})
 
     if "host_id" not in df.columns:
         raise ValueError("Missing required column: host_id")
@@ -18,8 +19,8 @@ def validate_submission(path: str) -> None:
     if not embedding_columns:
         raise ValueError("No embedding columns found. Expected columns named emb_0, emb_1, ...")
 
-    if df["host_id"].isna().any():
-        raise ValueError("host_id contains missing values")
+    if df["host_id"].isna().any() or df["host_id"].str.strip().eq("").any():
+        raise ValueError("host_id contains missing or blank values")
 
     if df["host_id"].duplicated().any():
         duplicates = df.loc[df["host_id"].duplicated(), "host_id"].tolist()
@@ -34,6 +35,9 @@ def validate_submission(path: str) -> None:
     ]
     if non_numeric:
         raise ValueError(f"Embedding columns must be numeric: {non_numeric}")
+
+    if not np.isfinite(df[embedding_columns].to_numpy(dtype=float)).all():
+        raise ValueError("Embedding columns must contain only finite numbers (no Inf or NaN)")
 
     print(f"OK: {len(df)} hosts, embedding dimension = {len(embedding_columns)}")
 
