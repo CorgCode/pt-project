@@ -90,6 +90,8 @@ def test_refuses_invalid_k(tmp_path):
 def test_refuses_bad_input(tmp_path, col, value):
     first, _ = flows_file(tmp_path, "train.csv")
     df = pd.read_csv(first)
+    if col == "ts":
+        df[col] = df[col].astype(object)  # pandas >=3 disallows strings in int columns
     df.loc[0, col] = value
     df.to_csv(first, index=False)
     with pytest.raises(ValueError):
