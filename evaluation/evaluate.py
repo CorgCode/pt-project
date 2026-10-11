@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -36,6 +37,17 @@ def run(embeddings_path: Path, reference_dir: Path, method: str) -> dict:
     }
 
     features = reference_dir / "features.csv"
+    manifest_file = reference_dir / "manifest.json"
+    protocol = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.exists() else {}
+    result["reference_info"] = {
+        "features_sha256": hashlib.sha256(features.read_bytes()).hexdigest()
+        if features.exists() else None,
+        "kind": protocol.get("kind", "unspecified_reference"),
+        "ground_truth": protocol.get("ground_truth"),
+        "provenance_verified": protocol.get("provenance_verified", False),
+        "train_end_utc": protocol.get("train_end_utc"),
+        "test_start_utc": protocol.get("test_start_utc"),
+    }
     if features.exists():
         ref = _load_matrix(features, "host_id", "ref_")
         summary = evaluate_embedding(emb, ref, ks=(5, 10, 20))
