@@ -21,6 +21,7 @@ import pandas as pd
 
 from benchmark.validate_submission import validate_submission
 from evaluation.knn_consistency import build_reference_features, evaluate_embedding
+from evaluation.frozen_neighbors import save_frozen_neighbors
 
 REQUIRED = {"src", "dst", "dst_port", "proto", "bytes", "packets", "ts"}
 
@@ -121,6 +122,12 @@ def generate_reference(
     reference.columns = [f"ref_{j}" for j in range(reference.shape[1])]
     reference.index.name = "host_id"
     reference.to_csv(output_dir / "features.csv")
+    save_frozen_neighbors(
+        reference, output_dir / "neighbors.csv",
+        reference_window=test_start.isoformat() + "Z"
+        + "/" + test["ts"].max().isoformat() + "Z",
+        k_max=max(ks), split="test",
+    )
 
     manifest = {
         "kind": "heldout_temporal_behavior_proxy",
