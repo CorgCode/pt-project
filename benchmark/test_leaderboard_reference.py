@@ -42,15 +42,15 @@ def test_same_reference_is_comparable(tmp_path, monkeypatch):
     assert set(board["method"]) == {"pca", "random"}
 
 
-@pytest.mark.parametrize("a,b", [
-    ("abc", "def"),
-    ("abc", None),
+@pytest.mark.parametrize("a,b,expected", [
+    ("abc", "def", "different or unknown reference"),
+    ("abc", None, "no reference fingerprint"),
 ])
-def test_different_references_rejected(tmp_path, monkeypatch, a, b):
+def test_different_references_rejected(tmp_path, monkeypatch, a, b, expected):
     folder = tmp_path / "results"
     write_score(folder, "pca", a)
     write_score(folder, "random", b)
-    with pytest.raises(ValueError, match="different or unknown reference"):
+    with pytest.raises(ValueError, match=expected):
         run_board(monkeypatch, folder, tmp_path / "board.csv")
 
 
@@ -59,4 +59,11 @@ def test_different_host_cohorts_rejected(tmp_path, monkeypatch):
     write_score(folder, "pca", "abc", n_hosts=25)
     write_score(folder, "random", "abc", n_hosts=30)
     with pytest.raises(ValueError, match="host cohorts"):
+        run_board(monkeypatch, folder, tmp_path / "board.csv")
+
+def test_both_unverified_references_rejected(tmp_path, monkeypatch):
+    folder = tmp_path / "results"
+    write_score(folder, "model_a", None)
+    write_score(folder, "model_b", None)
+    with pytest.raises(ValueError, match="no reference fingerprint"):
         run_board(monkeypatch, folder, tmp_path / "board.csv")
