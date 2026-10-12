@@ -107,3 +107,30 @@ def test_consistent_new_style_results_are_accepted(tmp_path, monkeypatch):
     _score(f, "b", data_kind="lanl", synthetic=False)
     run_board(monkeypatch, f, tmp_path / "board.csv")
     assert set(pd.read_csv(tmp_path / "board.csv").method) == {"a", "b"}
+
+
+def _fit_score(folder, name, fit, learned=True):
+    folder.mkdir(exist_ok=True)
+    metrics = {"triplet_accuracy": 0.6}
+    if learned:
+        metrics["link_learned_roc_auc"] = 0.7
+    payload = {"method": name, "n_hosts": 25, "split": "test", "metrics": metrics,
+               "reference_info": {"files_sha256": {"pairs.csv": "x"}, "fit_reference_files_sha256": fit,
+                                  "data_kind": "synthetic_fixture", "synthetic": True}}
+    (folder / f"{name}.json").write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_method_without_a_learned_link_score_may_omit_the_fit_reference(tmp_path, monkeypatch):
+    f = tmp_path / "r"
+    _fit_score(f, "model", {"edges.csv": "v1"})
+    _fit_score(f, "ceiling", None, learned=False)            # same evaluation reference, no learned score
+    run_board(monkeypatch, f, tmp_path / "board.csv")
+    assert set(pd.read_csv(tmp_path / "board.csv").method) == {"model", "ceiling"}
+
+
+def test_learned_scores_fitted_on_different_references_are_not_comparable(tmp_path, monkeypatch):
+    f = tmp_path / "r"
+    _fit_score(f, "a", {"edges.csv": "v1"})
+    _fit_score(f, "b", {"edges.csv": "v2"})
+    with pytest.raises(ValueError, match="fitted on different reference"):
+        run_board(monkeypatch, f, tmp_path / "board.csv")

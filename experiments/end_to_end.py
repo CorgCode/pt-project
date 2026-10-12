@@ -1,8 +1,9 @@
 """One command: raw netflow -> windows -> frozen references -> all methods -> report.
 
-    # real data (files from the LANL form):
+    # real data (files from the LANL form); without --data-kind lanl the run is labelled 'unverified':
     python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 \
-        --config my_config.json --workdir runs/lanl
+        --config my_config.json --workdir runs/lanl \
+        --data-kind lanl --source-note "LANL form, <date>, <who>"
 
     # pipeline smoke test on a SYNTHETIC LANL-format fixture (no download needed):
     python -m experiments.end_to_end --fixture --workdir runs/synthetic_demo
@@ -29,7 +30,8 @@ FIXTURE_CONFIG = PipelineConfig(windows={"train": (0, 21600), "validation": (216
 def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: PipelineConfig | None = None,
                fixture: bool = False, n_hosts: int = 300, dim: int = 16, seed: int = 0, n_boot: int = 200,
                submissions_dir: Path | None = None, pairs_per_anchor: int = 10, labels: Path | None = None,
-               labels_source: str | None = None, overwrite: bool = False) -> dict:
+               labels_source: str | None = None, overwrite: bool = False, data_kind: str | None = None,
+               source_note: str | None = None, cohort_policy: str | None = None) -> dict:
     workdir = Path(workdir)
     if fixture:
         raw = workdir / "fixture"
@@ -37,7 +39,10 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
         netflow, config = sorted(raw.glob("netflow_day-*.bz2")), config or FIXTURE_CONFIG
     if not netflow or config is None:
         raise ValueError("provide --netflow files and --config, or use --fixture")
-    prepare(netflow, config, workdir / "processed", overwrite=overwrite)
+    if cohort_policy:
+        config = PipelineConfig(**{**config.__dict__, "cohort_policy": cohort_policy})
+    prepare(netflow, config, workdir / "processed", overwrite=overwrite, data_kind=data_kind,
+            source_note=source_note)
     build_reference(workdir / "processed", workdir / "reference", seed=seed,
                     pairs_per_anchor=pairs_per_anchor, labels=labels, labels_source=labels_source)
     return run_experiment(workdir / "processed", workdir / "reference", workdir / "run", dim=dim, seed=seed,
@@ -58,11 +63,16 @@ def main() -> None:
     ap.add_argument("--labels", type=Path)
     ap.add_argument("--labels-source")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--data-kind", choices=["lanl", "synthetic_fixture"], default=None,
+                    help="DECLARE the origin of --netflow files (default: 'unverified'); 'lanl' needs --source-note")
+    ap.add_argument("--source-note", help="where/when the LANL files were obtained")
+    ap.add_argument("--cohort-policy", choices=["train_only", "all_windows"], default=None)
     a = ap.parse_args()
     m = end_to_end(a.workdir, netflow=a.netflow, config=PipelineConfig.from_json(a.config) if a.config else None,
                    fixture=a.fixture, n_hosts=a.n_hosts, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                    submissions_dir=a.submissions_dir, labels=a.labels, labels_source=a.labels_source,
-                   overwrite=a.overwrite)
+                   overwrite=a.overwrite, data_kind=a.data_kind, source_note=a.source_note,
+                   cohort_policy=a.cohort_policy)
     print(json.dumps({k: m[k] for k in ("data_kind", "n_hosts", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.workdir / 'run' / 'report.md'}")
 

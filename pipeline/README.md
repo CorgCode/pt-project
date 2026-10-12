@@ -53,18 +53,19 @@ python -m pipeline.prepare describe --netflow data/raw/netflow_day-0*.bz2
 
 # 2. declare windows BEFORE looking at any model scores (see pipeline/example_config.json)
 python -m pipeline.prepare run --netflow data/raw/netflow_day-0*.bz2 \
-    --config my_config.json --output-dir data/processed
+    --config my_config.json --output-dir data/processed \
+    --data-kind lanl --source-note "LANL download form, <date>, <who>"   # omit both => 'unverified'
 
 # 3. freeze the evaluation references (validation and test targets)
 python -m pipeline.reference --processed-dir data/processed --output-dir data/reference
 ```
 
-Output of step 2 (`data/processed`): `flows/{train,validation,test}.csv`, `cohort.csv`,
+Output of step 2 (`data/processed`): `flows/{train,validation,test}.csv`, `cohort.csv` (events per window and `evaluable_<window>`),
 `graph/edges_<window>.csv`, `manifest.json` (schema, config, per-reason invalid counts,
 SHA-256 of every input file, window statistics, leakage checks).
 
 Output of step 3 (`data/reference/{validation,test}`): `features.csv`, `neighbors.csv`,
-`edges.csv`, `pairs.csv`, `triplets.csv`, `manifest.json` (+ `labels.csv` only when external
+`edges.csv`, `pairs.csv`, `triplets.csv`, `eval_hosts.csv`, `manifest.json` (+ `labels.csv` only when external
 labels are supplied with `--labels F --labels-source "…"`).
 
 Models read only `ProcessedData.training_flows()` / `training_graph()` and the cohort:
@@ -74,6 +75,39 @@ from pipeline.data import ProcessedData
 d = ProcessedData("data/processed")
 flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort
 ```
+
+## Provenance: what the pipeline can and cannot claim
+
+LANL publishes no checksums this pipeline can compare against, so origin is **never verified**.
+Every processed dataset, reference and result carries one of three kinds (`pipeline/provenance.py`):
+
+| `data_kind` | meaning |
+|---|---|
+| `synthetic_fixture` | `pipeline.fixtures` output (marker file, or the generator's device-ID signature even if the marker was deleted) |
+| `unverified` | **default for any other input**: nothing is claimed about where the bytes came from |
+| `lanl_declared` | the operator ran `--data-kind lanl --source-note "where/when obtained"`; file names must look like `netflow_day-NN.bz2` and the data must not match the fixture signature |
+
+`provenance_verified` is always `false`; a declaration is recorded as a declaration, with the note,
+the sanity-check results and per-file format statistics (`manifest.json: provenance`). Contradictory claims
+(a marker or fixture signature together with `--data-kind lanl`, a LANL claim without a source note) are
+refused. Reports and the dashboard print which kind applies; unverified or synthetic input is never
+presented as LANL.
+
+## Cohort policy and selection bias
+
+Which hosts are evaluated is decided in `prepare` before any model exists:
+
+| `cohort_policy` | cohort | evaluable hosts per later window |
+|---|---|---|
+| `train_only` (**default**) | hosts active in the **train** window only | the cohort hosts also active in that window; references and metrics use them, coverage is reported |
+| `all_windows` | hosts active in **every** window | all (by construction) |
+
+`all_windows` lets *future* activity decide who is in the benchmark: it is a transductive **stable-host**
+benchmark. Models still receive no future flows or edges, but scores condition on host survival and
+overstate persistence, identity and link persistence for prospective use. It is kept for comparison.
+With `train_only`, hosts that vanish are simply not evaluable in that window; the manifest reports the
+coverage and a survivorship diagnostic (median train-window activity of hosts active in every window vs
+the others). A host-level cold-start or "disappeared host" analysis is not part of the metrics.
 
 ## Temporal design and leakage prevention
 
@@ -86,8 +120,8 @@ flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort
 - Windows are half-open `[start, end)`, strictly ordered, non-overlapping (validated).
 - Flows are assigned by start time and **dropped if still running at the window end**
   (`Time + Duration >= end`), so no flow carries information across a boundary.
-- One **cohort** (hosts active in every window with ≥ `min_events_per_window` events) is
-  fixed in `prepare`, before any model exists; every method is evaluated on the same hosts.
+- One **cohort** is fixed in `prepare`, before any model exists (policy above); every method is evaluated
+  on the same hosts. The default policy uses no information from the validation or test windows.
 - References are built from the *target* window (later than `train`), from logs only.
 - Reference views are different questions and are never mixed (see `evaluation/` docs):
   behavioural neighbours (`neighbors.csv`), future links (`edges.csv`), shared-peer structure

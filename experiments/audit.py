@@ -146,7 +146,11 @@ def prevalence(results_test: dict[str, dict]) -> dict:
                          "share_positives_seen_in_source": link.get("share_positives_seen_in_source"),
                          "note": "PR-AUC is only comparable at equal prevalence; use lift or the natural-prevalence value"},
         "pairs": {"sampled_positive_rate": pair.get("positive_rate"),
-                  "note": "judged-pair pool, not the population"},
+                  "judged_population_prevalence": pair.get("judged_population_prevalence"),
+                  "population_positive_rate": pair.get("population_positive_rate"),
+                  "unjudged_share": pair.get("unjudged_share"),
+                  "note": "the judged prevalence is conditional on a pair being judged (J >= tau or J == 0); "
+                          "unjudged pairs are excluded, so it is not the positive rate of all host pairs"},
     }
 
 

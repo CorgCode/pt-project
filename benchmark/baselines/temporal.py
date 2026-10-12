@@ -1,8 +1,10 @@
 """Baselines that follow the temporal protocol: FIT on the train window only.
 
 Each baseline has
-    fit(data)          reads only data.training_flows() / training_graph() / cohort
-    embed(data, window) -> DataFrame[host_id x emb_*] for the cohort, from THAT window's flows
+    fit(data)                    reads only data.training_flows() / training_graph() / cohort
+    embed(data, window, hosts)   -> DataFrame[host_id x emb_*] for `hosts` (default: the cohort),
+                                 from THAT window's flows. For a later window pass the hosts that are
+                                 evaluable there; inactive hosts have no data in that window.
 and declares `shared_coordinate_system`: True if embeddings of different windows live in one
 coordinate system (fixed, train-fitted transform), False if every window is fitted separately
 (then cross-window comparison needs alignment, see evaluation.identity_retrieval).
@@ -41,7 +43,7 @@ class Baseline:
     def fit(self, data: ProcessedData) -> "Baseline":
         return self
 
-    def embed(self, data: ProcessedData, window: str) -> pd.DataFrame:
+    def embed(self, data: ProcessedData, window: str, hosts: list[str] | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
     def info(self) -> dict:
@@ -57,10 +59,12 @@ class RandomBaseline(Baseline):
     def __init__(self, dim: int = 16, seed: int = 0):
         self.dim, self.seed = dim, seed
 
-    def embed(self, data, window):
+    def embed(self, data, window, hosts=None):
+        hosts = list(hosts) if hosts is not None else data.cohort
         offset = sum(ord(c) for c in window)                 # stable per-window stream
         rng = np.random.default_rng(self.seed * 1000 + offset)
-        return _frame(rng.standard_normal((len(data.cohort), self.dim)), data.cohort)
+        full = rng.standard_normal((len(data.cohort), self.dim))     # one row per cohort host
+        return _frame(full[[data.cohort.index(h) for h in hosts]], hosts)
 
 
 class BehavioralBaseline(Baseline):
@@ -78,13 +82,15 @@ class BehavioralBaseline(Baseline):
             data.training_flows(), hosts=data.cohort, return_fitted=True)
         return self
 
-    def _features(self, data, window) -> pd.DataFrame:
+    def _features(self, data, window, hosts=None) -> pd.DataFrame:
+        hosts = list(hosts) if hosts is not None else data.cohort
         if window == "train":
-            return self._train_feats
-        return build_reference_features(data.flows(window), hosts=data.cohort, fitted=self._fitted)
+            return self._train_feats.loc[hosts]
+        return build_reference_features(data.flows(window), hosts=hosts, fitted=self._fitted)
 
-    def embed(self, data, window):
-        return _frame(self._features(data, window).to_numpy(), data.cohort)
+    def embed(self, data, window, hosts=None):
+        hosts = list(hosts) if hosts is not None else data.cohort
+        return _frame(self._features(data, window, hosts).to_numpy(), hosts)
 
 
 class BehavioralPCA(BehavioralBaseline):
@@ -101,8 +107,9 @@ class BehavioralPCA(BehavioralBaseline):
         self._model = PCA(n_components=d, random_state=self.seed).fit(self._train_feats.to_numpy())
         return self
 
-    def embed(self, data, window):
-        return _frame(self._model.transform(self._features(data, window).to_numpy()), data.cohort)
+    def embed(self, data, window, hosts=None):
+        hosts = list(hosts) if hosts is not None else data.cohort
+        return _frame(self._model.transform(self._features(data, window, hosts).to_numpy()), hosts)
 
 
 class BehavioralSVD(BehavioralBaseline):
@@ -119,8 +126,9 @@ class BehavioralSVD(BehavioralBaseline):
         self._model = TruncatedSVD(n_components=d, random_state=self.seed).fit(self._train_feats.to_numpy())
         return self
 
-    def embed(self, data, window):
-        return _frame(self._model.transform(self._features(data, window).to_numpy()), data.cohort)
+    def embed(self, data, window, hosts=None):
+        hosts = list(hosts) if hosts is not None else data.cohort
+        return _frame(self._model.transform(self._features(data, window, hosts).to_numpy()), hosts)
 
 
 class GraphSpectral(Baseline):
@@ -132,10 +140,11 @@ class GraphSpectral(Baseline):
     def __init__(self, dim: int = 16, seed: int = 0):
         self.dim, self.seed = dim, seed
 
-    def embed(self, data, window):
+    def embed(self, data, window, hosts=None):
+        hosts = list(hosts) if hosts is not None else data.cohort
         flows = data.training_flows() if window == "train" else data.flows(window)
         flows = flows[flows["src"] != flows["dst"]]
-        universe = pd.Index(sorted(set(flows["src"].astype(str)) | set(flows["dst"].astype(str)) | set(data.cohort)))
+        universe = pd.Index(sorted(set(flows["src"].astype(str)) | set(flows["dst"].astype(str)) | set(hosts)))
         i, j = universe.get_indexer(flows["src"].astype(str)), universe.get_indexer(flows["dst"].astype(str))
         a = sp.coo_matrix((np.ones(len(i)), (i, j)), shape=(len(universe),) * 2).tocsr()
         a = a + a.T
@@ -147,10 +156,10 @@ class GraphSpectral(Baseline):
         v0 = np.random.default_rng(self.seed).standard_normal(len(universe))
         u, s, _ = svds(norm.astype(float), k=k, v0=v0)
         order = np.argsort(-s)
-        emb = (u[:, order] * np.sqrt(s[order]))[universe.get_indexer(data.cohort)]
+        emb = (u[:, order] * np.sqrt(s[order]))[universe.get_indexer(hosts)]
         if (np.linalg.norm(emb, axis=1) == 0).any():
-            raise ValueError("graph_spectral: some cohort hosts have a zero embedding (isolated in the graph)")
-        return _frame(emb, data.cohort)
+            raise ValueError("graph_spectral: some requested hosts have a zero embedding (isolated in the graph)")
+        return _frame(emb, hosts)
 
 
 def default_baselines(dim: int = 16, seed: int = 0) -> list[Baseline]:

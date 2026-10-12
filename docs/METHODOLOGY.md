@@ -3,6 +3,9 @@
 Status: the pipeline, metrics and audit are implemented and tested; **all numbers below come from a
 synthetic LANL-format fixture** (`python -m pipeline.fixtures`, seed 0, 300 hosts) and demonstrate the
 protocol, not network behaviour. Real LANL data was not accessible (the download link returned 401).
+Every run is labelled `synthetic_fixture`, `unverified` (default for any other input) or `lanl_declared`
+(an operator declaration with a source note); provenance is **never verified** by the pipeline, and reports
+say which label applies. Findings on synthetic or unverified data are not LANL findings.
 
 ## 1. Question and scope
 
@@ -23,8 +26,14 @@ metric states what it measures; they must not be conflated:
 
 * Source: LANL Unified Host and Network Dataset (2017) netflow; exact schema in `pipeline/README.md`.
 * Windows `train < validation < test` are half-open, ordered, non-overlapping (validated); flows still
-  running at a window end are dropped; the cohort (hosts active in all windows) is fixed before any
-  model exists.
+  running at a window end are dropped.
+* **Cohort policy** (decided before any model exists; see 4.9). Default `train_only`: the cohort is the
+  hosts active in the train window; a host is *evaluable* in a later window only if active there, and every
+  metric is computed on the evaluable hosts with the coverage reported. The legacy `all_windows` policy
+  (hosts active in every window) lets future activity decide who is evaluated and is a transductive
+  stable-host benchmark.
+* **Provenance** (`pipeline/provenance.py`): input is `unverified` unless declared; a LANL declaration needs a
+  source note, LANL-style file names, and no fixture marker/signature. A declaration is recorded as such.
 * Models may read only `ProcessedData.training_flows()/training_graph()`. This is enforced for the
   built-in baselines by a test that makes `flows(w)`/`graph(w)` raise for `w != train` during `fit()`
   (`benchmark/baselines/test_temporal.py`). External methods cannot be audited by code and must declare
@@ -72,14 +81,23 @@ baseline has not shown predictive value beyond behaviour that simply persists.
 
 **4.3 Chance bands.** 30 random embeddings are scored on the test reference (`audit.json:random_null`).
 Fixture: kNN 0.034±0.003, link AUC (cosine) 0.501±0.007, pair AUC 0.501±0.021, triplet 0.502±0.023.
-Use these, not 0.5, to judge significance. Bootstrap CIs (`--bootstrap`) cover evaluation-set sampling only
-(hosts / pairs / triplets resampled), not model seeds, reference choice or window choice.
+Use these, not 0.5, to judge significance.
+
+Bootstrap intervals (`--bootstrap`). Pairs and triplets **share hosts**, so resampling them as independent
+items understates the variance. The link, pair and triplet metrics therefore use a **host-cluster bootstrap**:
+hosts are resampled with replacement and an item is weighted by the product of its endpoints' multiplicities
+(`metrics_ci` plus `ci_methods` in every result). In a simulation with host-level effects shared across pairs
+(`evaluation/test_host_bootstrap.py`) the nominal 95% interval of the independent-pairs bootstrap covered the
+true AUC in 70% of the draws and was half as wide, versus 97% for the host-cluster bootstrap. kNN and
+retrieval intervals resample hosts / anchors. All intervals cover evaluation-set sampling only - not model
+training seeds, the choice of reference, or the choice of windows.
 
 **4.4 Candidate prevalence.** Sampled candidate pools are balanced (50% positives) while real prevalence is
 low (fixture natural prevalence 0.083). PR-AUC from a sampled pool is therefore not a deployment AP. The
 evaluator reports PR-AUC *lift* (AP / sampled rate), PR-AUC *reweighted to the natural prevalence*, and the
 pool's positive rate. Reweighting fixes only the class prior, **not** which negatives were drawn: uniform
-random non-links are easy, so absolute values remain optimistic. Pairs: prevalence of judged pairs only.
+random non-links are easy, so absolute values remain optimistic. Shared-peer pairs: see 4.8 - their reweighting target is the prevalence **among judged pairs**, a
+conditional quantity, not a population prevalence.
 
 **4.5 Persistence, and why raw cosine is the wrong link scorer.** 51% of future links were already present
 in the source window. The trivial predictor "pair seen in source" has ROC-AUC 0.708 and is stored with every
@@ -87,8 +105,8 @@ result. Cosine similarity of the embeddings scores ≈0.47–0.49 for *every* me
 from the communication graph: in client–server traffic linked hosts are dissimilar and same-role clients
 (similar, never linked) populate the negatives. Reporting only cosine would wrongly conclude the embeddings
 carry no link information. The evaluator therefore also reports an edge classifier on `[|e_a−e_b|, e_a∘e_b]`
-fitted on the validation candidates and scored on test (fixture: graph 0.730, behavioural 0.668, ceiling 0.681,
-random 0.546 vs persistence 0.708). **Random is above 0.5 for the learned score** (null band 0.543±0.007):
+fitted on the validation candidates and scored on test (fixture: graph 0.730, behavioural 0.668, random 0.546 vs
+persistence 0.708; the reference ceiling is excluded - it only embeds the target-evaluable hosts). **Random is above 0.5 for the learned score** (null band 0.543±0.007):
 random vectors act as host identifiers, so the classifier memorises hub hosts. The learned score must
 always be read against the random row; a `new-links only` view (candidates unseen in the source window) is
 reported separately.
@@ -105,9 +123,39 @@ two scores answer different questions (stability of fixed features vs recoverabi
 (fixture: kNN 0.71, pair AUC 1.00, triplet 0.93, cosine link AUC 0.00). Where all methods sit near chance
 (cosine link AUC) the ordering is noise and tau ≈ 0 is expected.
 
-**4.8 Judged-pair incompleteness.** Pairs are judged by a fixed rule (peer-set Jaccard ≥ τ positive, = 0
-negative, in between unjudged). Unjudged pairs are never negatives; P@k/R@k use the condensed list over
-judged candidates and report coverage and the oracle/chance precision of the same anchors.
+**4.8 Judged-pair incompleteness and what "prevalence" means for pairs.** Pairs are judged by a fixed rule
+(peer-set Jaccard ≥ τ positive, = 0 negative, in between **unjudged**). Unjudged pairs are never negatives;
+P@k/R@k use the condensed list over judged candidates and report coverage and the oracle/chance precision of
+the same anchors. The positive rate computed from the judged counts, `judged_population_prevalence`
+= positives / (positives + negatives), is **conditional on a pair being judged**; it is not the positive rate
+of all host pairs (`population_positive_rate` = positives / all possible pairs, reported next to
+`unjudged_share`; fixture: judged prevalence 0.070 versus population rate 0.010, 86% of pairs unjudged).
+`pair_pr_auc_at_judged_prevalence` is therefore an AP over the judgeable pairs with the
+sampled class prior corrected - not a population AP. (Review of #50; regression tests with a 50x larger
+unjudged share in `evaluation/test_prevalence_semantics.py`.) For future links every pair is either linked or
+not in the window, so there the natural prevalence (positives / all pairs of the evaluable hosts) is a
+population quantity - with the caveat that "no flow observed" is not "impossible link".
+
+**4.9 Cohort selection and coverage.** With the legacy `all_windows` policy a host enters the benchmark only if
+it is active in the validation *and test* windows, so future activity influences inclusion. Models still get
+no future flows or edges, but the scores condition on host survival and overstate persistence, identity and
+link persistence for prospective use. The default `train_only` policy removes this: the cohort is defined from
+the train window and survival into a later window is part of what is measured; a host that is inactive in a
+window is simply not evaluable there, and the report states the coverage per window and a survivorship
+diagnostic (median train activity of hosts active in every window versus the others). Not covered: a
+cold-start analysis of hosts that appear only later, and any metric on vanished hosts themselves. Identity
+retrieval and window-stability checks necessarily use the hosts active in both windows concerned.
+
+**4.10 Reproducibility.** Everything is seeded (`--seed`); `experiments/test_protocol.py` runs the full
+experiment twice and asserts that every JSON/CSV/Markdown artifact is identical (only the git SHA in the
+environment block may differ), and that the random baseline changes with the seed while the deterministic
+baselines do not. Scored embeddings are shown to be independent of the validation/test flows (test: perturb
+only later windows, train embeddings of every baseline are identical). Environment versions are in
+`manifest.json`; exact bit-for-bit equality across different library versions is not claimed.
+
+**4.11 External methods.** Training provenance cannot be verified by code. A submission may ship
+`provenance.json` (`{"trained_on_windows": ["train"]}`); a declaration that includes a later window is refused,
+and a missing declaration is flagged as *undeclared* in the report.
 
 ## 5. Results on the synthetic fixture (not LANL)
 
@@ -119,7 +167,7 @@ Test reference, 300 hosts, dim 16, seed 0 (full tables, CIs and plots: `demo/syn
 | behavioral | 0.280 | 0.478 | 0.668 | 0.907 | 0.918 | 0.591 | 0.745 |
 | behavioral PCA / SVD | 0.282 | 0.478 | 0.653 | 0.908 | 0.920 | 0.599 | 0.758 |
 | graph_spectral | 0.244 | 0.474 | 0.730 | 0.938 | 0.940 | 0.623 | 0.805 |
-| reference_ceiling (leaks) | 1.000 | 0.487 | 0.681 | 0.905 | 0.914 | 0.580 | 0.720 |
+| reference_ceiling (leaks) | 1.000 | 0.487 | n/a | 0.905 | 0.914 | 0.580 | 0.720 |
 
 Reading: random sits at chance everywhere; the reference ceiling is perfect only on the metric it is built
 from; the graph embedding wins the peer-based and link metrics (expected, by construction, section 3); the
@@ -129,6 +177,7 @@ features are already centred. No conclusion about LANL follows.
 ## 6. Threats to validity and limitations
 
 * Synthetic fixture only; effect sizes on real traffic are unknown.
+* Provenance of real files is a declaration, not a verification (no published checksums to compare against).
 * The behavioural proxy and the shared-peer judgments are *our* definitions of similarity.
 * Uniform negatives make link prediction easier than a realistic hard-negative setting.
 * Netflow records originator-direction counters in the features; responder counters are stored but unused.
@@ -140,7 +189,8 @@ features are already centred. No conclusion about LANL follows.
 ## 7. What is needed for the real experiment
 
 1. LANL `netflow_day-NN.bz2` files (download form; links are tokenised and expire).
-2. `describe` them, declare windows in `Time` units, run `pipeline.prepare` and `pipeline.reference`.
+2. `describe` them, declare windows in `Time` units, run `pipeline.prepare` (with `--data-kind lanl
+   --source-note ...` to label the run as declared LANL; the default is `unverified`) and `pipeline.reference`.
 3. Embeddings of the real methods (issue #20; node2vec, DeepWalk, GraphSAGE, struc2vec, RolX), trained on the
    train window only, one folder per method in a submissions directory; optional per-window files enable identity.
 4. `python -m experiments.end_to_end --netflow ... --config ... --workdir runs/lanl --submissions-dir ...`.

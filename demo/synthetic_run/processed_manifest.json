@@ -26,11 +26,36 @@
     "ts": "Time"
   },
   "cohort": {
+    "evaluable": {
+      "test": 300,
+      "validation": 300
+    },
     "n_hosts": 300,
-    "rule": "active (as src or dst, excluding self flows) >= 5 events in every window",
-    "sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1"
+    "policy": "train_only",
+    "rule": "active (as src or dst, excluding self flows) >= 5 events in the train window",
+    "selection": {
+      "coverage": {
+        "test": 1.0,
+        "validation": 1.0
+      },
+      "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+      "median_train_events": {
+        "active_in_every_window": 151.0,
+        "not_active_in_every_window": null
+      },
+      "n_cohort": 300,
+      "n_evaluable": {
+        "test": 300,
+        "validation": 300
+      },
+      "n_hosts_active_in_every_window": 300,
+      "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+      "policy": "train_only"
+    },
+    "sha256": "8cf9b0fd4ea30a03d9bfe96a361336e5b739218bc85dedec114f1b18c51b2d4e"
   },
   "config": {
+    "cohort_policy": "train_only",
     "drop_straddling": true,
     "min_cohort_size": 25,
     "min_events_per_window": 5,
@@ -92,6 +117,40 @@
     "max_time_train_lt_min_time_test": true,
     "windows_strictly_ordered": true
   },
+  "provenance": {
+    "basis": "marker_file",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": true,
+      "format_sample": {
+        "netflow_day-01.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": true
+    },
+    "declared_kind": null,
+    "kind": "synthetic_fixture",
+    "source_note": null,
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
+  "provenance_verified": false,
   "raw_columns": [
     "Time",
     "Duration",
@@ -105,7 +164,8 @@
     "SrcBytes",
     "DstBytes"
   ],
-  "schema_version": 1,
+  "real_lanl_declared": false,
+  "schema_version": 2,
   "source_format": "lanl-uhn-2017-netflow",
   "synthetic": true,
   "time_axis": "Time column units; calendar origin not specified by the source",

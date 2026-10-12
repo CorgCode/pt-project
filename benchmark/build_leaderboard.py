@@ -16,6 +16,7 @@ def main() -> None:
 
     rows = []
     reference_keys = set()
+    fit_keys = set()
     host_counts = set()
     kinds, splits = set(), set()
     for path in sorted(args.results_dir.glob("*.json")):
@@ -25,9 +26,11 @@ def main() -> None:
         fit_files = info.get("fit_reference_files_sha256")
         # New results fingerprint EVERY reference file; legacy ones only features/neighbors.
         fingerprint = (
-            (tuple(sorted(files.items())), tuple(sorted((fit_files or {}).items()))) if files else
+            tuple(sorted(files.items())) if files else
             (info.get("features_sha256"), info.get("neighbors_sha256"))
         )
+        if fit_files and any(k.startswith("link_learned") for k in data.get("metrics", {})):
+            fit_keys.add(tuple(sorted(fit_files.items())))      # learned scores must share ONE fit reference
         if not any(fingerprint):
             raise ValueError(
                 f"{path}: no reference fingerprint; re-evaluate this submission "
@@ -47,6 +50,8 @@ def main() -> None:
             "Leaderboard mixes different or unknown reference datasets. "
             "Evaluate every method against the SAME reference directory before comparing."
         )
+    if len(fit_keys) > 1:
+        raise ValueError("Leaderboard mixes learned link scores fitted on different reference files.")
     if len(host_counts) > 1:
         raise ValueError("Leaderboard mixes different host cohorts.")
     if len(kinds) > 1:

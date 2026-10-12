@@ -26,7 +26,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from evaluation.temporal_reference import load_flows
 from evaluation.io import load_embeddings as _load_matrix
-from evaluation.uncertainty import auc_with_ci, reweighted_average_precision
+from evaluation.uncertainty import auc_with_ci, host_index, reweighted_average_precision
 
 
 FIELDS = ["host_a", "host_b", "source_window", "target_window", "label", "split"]
@@ -190,11 +190,11 @@ def score_embeddings(
     norms = np.linalg.norm(emb, axis=1)
     cosine = np.einsum("ij,ij->i", emb[a], emb[b]) / (norms[a] * norms[b])
     window = edges.iloc[0]
-    auc = auc_with_ci(labels, cosine, n_boot=n_boot, seed=seed)
+    auc = auc_with_ci(labels, cosine, n_boot=n_boot, seed=seed, hosts=host_index(edges.host_a, edges.host_b))
     n_hosts = len(known)
     natural = float(labels.sum() / (n_hosts * (n_hosts - 1) / 2))
     extra: dict = {
-        "roc_auc_ci": auc["roc_auc_ci"], "pr_auc_ci": auc["pr_auc_ci"],
+        "roc_auc_ci": auc["roc_auc_ci"], "pr_auc_ci": auc["pr_auc_ci"], "ci_method": auc["ci_method"],
         "pr_auc_lift": auc["pr_auc"] / float(labels.mean()),
         # PR-AUC as if the pool had the natural positive rate (observed target edges over
         # all cohort pairs); removes the class-prior effect of 1:1 sampling only.
@@ -278,7 +278,7 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
         raise ValueError("both classes are required in the fit and evaluation candidates")
     clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
     score = clf.predict_proba(feats(ev))[:, 1]
-    out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed)
+    out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed, hosts=host_index(ev.host_a, ev.host_b))
     out.update(n_fit=int(len(fit)), n_eval=int(len(ev)), fit_split=fit_split, eval_split=eval_split,
                fit_target_window=fw["target_window"], eval_target_window=ew["target_window"],
                pr_auc_lift=out["pr_auc"] / float(ye.mean()))

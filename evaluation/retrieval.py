@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 
 from evaluation.io import ReferenceError, cosine_pairs, read_reference_table, select_split
-from evaluation.uncertainty import bootstrap_ci, reweighted_average_precision, auc_with_ci
+from evaluation.uncertainty import (auc_with_ci, bootstrap_ci, host_index, reweighted_average_precision)
 
 SPLITS = {"train", "validation", "test"}
 
@@ -55,19 +55,26 @@ def _scored(emb: pd.DataFrame, pairs: pd.DataFrame, split: str) -> pd.DataFrame:
 
 
 def pair_auc(emb: pd.DataFrame, pairs: pd.DataFrame, split: str = "test", *,
-             natural_prevalence: float | None = None, n_boot: int = 0, seed: int = 0) -> dict:
-    """ROC-AUC / PR-AUC of cosine similarity on judged pairs of one split."""
+             judged_prevalence: float | None = None, n_boot: int = 0, seed: int = 0) -> dict:
+    """ROC-AUC / PR-AUC of cosine similarity on judged pairs of one split.
+
+    `judged_prevalence`: positive rate among ALL JUDGED pairs of the population (positives over
+    positives + negatives; the unjudged middle 0 < J < tau is excluded). The PR-AUC reweighted to it
+    (`pr_auc_at_judged_prevalence`) is a *conditional* quantity: AP over the pairs that the rule can
+    judge, with the class prior of the sampled pool corrected. It is NOT a population AP; the unjudged
+    pairs, which are the vast majority in a sparse network, are outside its support.
+    """
     p = _scored(emb, pairs, split)
     y, s = p["label"].to_numpy(), p["score"].to_numpy()
     if len(np.unique(y)) < 2:
         raise ReferenceError(f"pairs.csv split={split!r} needs both relevant and non-relevant pairs")
-    out = auc_with_ci(y, s, n_boot=n_boot, seed=seed)
+    out = auc_with_ci(y, s, n_boot=n_boot, seed=seed, hosts=host_index(p.host_a, p.host_b))
     prev = float(y.mean())
     out.update(n_pairs=int(len(y)), n_positive=int(y.sum()), positive_rate=prev,
                pr_auc_lift=out["pr_auc"] / prev, split=split)
-    if natural_prevalence is not None:
-        out["pr_auc_at_natural_prevalence"] = reweighted_average_precision(y, s, natural_prevalence)
-        out["natural_prevalence"] = float(natural_prevalence)
+    if judged_prevalence is not None:
+        out["pr_auc_at_judged_prevalence"] = reweighted_average_precision(y, s, judged_prevalence)
+        out["judged_population_prevalence"] = float(judged_prevalence)
     return out
 
 
