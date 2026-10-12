@@ -6,10 +6,10 @@ Every method follows the benchmark's temporal protocol and is selected with `--m
 
 | method | algorithm | status |
 |---|---|---|
-| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | this PR |
+| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | PR 1 |
 | `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | separate PR |
 | `rolx` | ReFeX recursive structural features + NMF roles (Henderson et al., KDD 2012) | separate PR |
-| `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | separate PR |
+| `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | this PR |
 | `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | separate PR |
 
 ## Use
@@ -76,3 +76,12 @@ and `--target test` is refused. Fix the selection metric **before** looking at r
 configurations), and report the frozen configuration's *test* score: the best validation score is optimistically
 biased by the number of configurations tried (the output says so). Then run the final experiment once with
 `--method-config` set to the chosen configuration.
+
+### struc2vec scale
+
+Its cost is dominated by DTW over compressed degree sequences (~0.5 ms per candidate pair, memoised for identical
+sequences). Measured on heavy-tailed random graphs (3 layers, 2*ceil(log2 n) candidates per node, one core):
+1,000 nodes 2 s, 3,000 nodes 13 s, 8,000 nodes 54 s for the distances (plus the skip-gram, ~30 s at 8,000 nodes). It grows
+roughly as n log n, so ~5 minutes at 20,000 hosts and ~30 minutes at 100,000 are extrapolations, not measurements;
+real communication graphs have much larger hubs, which lengthen rings but not (much) the compressed sequences.
+Only the hosts to be embedded become nodes of the multilayer graph (`uses_focus`), which keeps this bounded by the cohort.
