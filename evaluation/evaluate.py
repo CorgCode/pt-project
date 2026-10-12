@@ -53,9 +53,10 @@ def _sha(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
 
 
-def _ci(result: dict, name: str, ci) -> None:
+def _ci(result: dict, name: str, ci, method: str = "item bootstrap (hosts / anchors resampled)") -> None:
     if ci is not None:
         result["metrics_ci"][name] = [float(ci[0]), float(ci[1])]
+        result.setdefault("ci_methods", {})[name] = method
 
 
 def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | None = None,
@@ -140,8 +141,8 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
             m["link_pr_auc_at_natural_prevalence"] = r["pr_auc_at_natural_prevalence"]
         if "new_links" in r:
             m["link_new_roc_auc"], m["link_new_pr_auc"] = r["new_links"]["roc_auc"], r["new_links"]["pr_auc"]
-        _ci(result, "link_roc_auc", r["roc_auc_ci"])
-        _ci(result, "link_pr_auc", r["pr_auc_ci"])
+        _ci(result, "link_roc_auc", r["roc_auc_ci"], r["ci_method"])
+        _ci(result, "link_pr_auc", r["pr_auc_ci"], r["ci_method"])
         result["metric_details"]["future_link_prediction"] = {
             k: r[k] for k in ("n_examples", "n_positive", "positive_rate", "natural_prevalence",
                               "share_positives_seen_in_source", "source_window", "target_window", "split",
@@ -153,12 +154,12 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
         fit_edges_file = Path(fit_reference_dir) / "edges.csv" if fit_reference_dir else None
         if fit_edges_file is not None and fit_edges_file.exists():
             fit_split = json.loads((Path(fit_reference_dir) / "manifest.json").read_text()).get("split", "validation")
-            lr = score_learned(emb, load_candidate_edges(fit_edges_file), load_candidate_edges(edges_file),
+            lr = score_learned(emb_full, load_candidate_edges(fit_edges_file), load_candidate_edges(edges_file),
                                fit_split=fit_split, eval_split=split, seed=seed, n_boot=n_boot)
             result["metrics"]["link_learned_roc_auc"] = lr["roc_auc"]
             result["metrics"]["link_learned_pr_auc"] = lr["pr_auc"]
             result["metrics"]["link_learned_pr_auc_lift"] = lr["pr_auc_lift"]
-            _ci(result, "link_learned_roc_auc", lr["roc_auc_ci"])
+            _ci(result, "link_learned_roc_auc", lr["roc_auc_ci"], lr["ci_method"])
             result["metric_details"]["link_learned"] = {k: v for k, v in lr.items() if not k.endswith("_ci")}
             result["reference_info"]["fit_reference_files_sha256"] = {
                 f: _sha(Path(fit_reference_dir) / f) for f in REFERENCE_FILES if (Path(fit_reference_dir) / f).exists()}
@@ -177,8 +178,8 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
         m["pair_roc_auc"], m["pair_pr_auc"], m["pair_pr_auc_lift"] = a["roc_auc"], a["pr_auc"], a["pr_auc_lift"]
         if "pr_auc_at_judged_prevalence" in a:
             m["pair_pr_auc_at_judged_prevalence"] = a["pr_auc_at_judged_prevalence"]
-        _ci(result, "pair_roc_auc", a["roc_auc_ci"])
-        _ci(result, "pair_pr_auc", a["pr_auc_ci"])
+        _ci(result, "pair_roc_auc", a["roc_auc_ci"], a["ci_method"])
+        _ci(result, "pair_pr_auc", a["pr_auc_ci"], a["ci_method"])
         n_possible = j.get("n_possible_pairs")
         result["metric_details"]["pairwise_auc"] = {
             **{k: a[k] for k in ("n_pairs", "n_positive", "positive_rate", "split")},
@@ -210,7 +211,7 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
     if triplets_file.exists():
         t = triplet_accuracy(emb, load_triplets(triplets_file), split, n_boot=n_boot, seed=seed)
         result["metrics"]["triplet_accuracy"] = t["accuracy"]
-        _ci(result, "triplet_accuracy", t["accuracy_ci"])
+        _ci(result, "triplet_accuracy", t["accuracy_ci"], t["ci_method"])
         result["metric_details"]["triplet_accuracy"] = {k: t[k] for k in
                                                         ("n_triplets", "n_ties", "chance", "split")}
         result["metric_status"]["triplet_accuracy"] = "ok"

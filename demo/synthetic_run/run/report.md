@@ -1,10 +1,14 @@
 # Benchmark run report
 
-> **SYNTHETIC FIXTURE - not LANL traffic.** Numbers demonstrate the pipeline and the metrics only; they say nothing about real network behaviour.
+> **SYNTHETIC FIXTURE - not LANL traffic.**
+>
+> The numbers come from generated data in the LANL netflow layout. They demonstrate the pipeline and the metrics only and say nothing about real network behaviour.
 
-* hosts in cohort: **300**; dim=16, seed=0, bootstrap=200; targets: validation, test
+* data kind: `synthetic_fixture` (basis: marker_file); cohort hosts: **300**; dim=16, seed=0, bootstrap=200; targets: validation, test
 * methods evaluated: behavioral, behavioral_pca, behavioral_svd, graph_spectral, random, reference_ceiling
 * **not available in this run** (no embeddings supplied, nothing simulated): node2vec, deepwalk, graphsage, struc2vec, rolx
+* cohort policy `train_only`; evaluable hosts per window: validation: 300/300 (100%), test: 300/300 (100%)
+  * The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.
 
 
 ## Scores - validation reference
@@ -32,7 +36,7 @@ Link-prediction reference point (no embedding): *pair already seen in the source
 | behavioral_pca | 0.282 | 0.260 | 0.478 | 0.653 | 0.487 | 0.908 | 0.920 | 0.599 | 0.758 |
 | behavioral_svd | 0.282 | 0.260 | 0.478 | 0.653 | 0.487 | 0.908 | 0.920 | 0.599 | 0.758 |
 | graph_spectral | 0.244 | 0.234 | 0.474 | 0.730 | 0.479 | 0.938 | 0.940 | 0.623 | 0.805 |
-| reference_ceiling | 1.000 | 1.000 | 0.487 | 0.681 | 0.500 | 0.905 | 0.914 | 0.580 | 0.720 |
+| reference_ceiling | 1.000 | 1.000 | 0.487 | n/a | 0.500 | 0.905 | 0.914 | 0.580 | 0.720 |
 
 Link-prediction reference point (no embedding): *pair already seen in the source window* scores ROC-AUC **0.708**. `link_learned_*` fits an edge classifier on the validation candidates and scores the test candidates; cosine is shown for completeness.
 
@@ -48,29 +52,29 @@ Link-prediction reference point (no embedding): *pair already seen in the source
 | method | metric | estimate | ci_low | ci_high |
 |---|---|---|---|---|
 | random | consistency@10_mean | 0.037 | 0.030 | 0.044 |
-| random | link_roc_auc | 0.502 | 0.490 | 0.516 |
-| random | pair_roc_auc | 0.516 | 0.486 | 0.547 |
-| random | triplet_accuracy | 0.514 | 0.480 | 0.548 |
+| random | link_roc_auc | 0.502 | 0.482 | 0.523 |
+| random | pair_roc_auc | 0.516 | 0.463 | 0.576 |
+| random | triplet_accuracy | 0.514 | 0.410 | 0.606 |
 | behavioral | consistency@10_mean | 0.280 | 0.256 | 0.304 |
-| behavioral | link_roc_auc | 0.478 | 0.464 | 0.491 |
-| behavioral | pair_roc_auc | 0.907 | 0.888 | 0.929 |
-| behavioral | triplet_accuracy | 0.918 | 0.896 | 0.940 |
+| behavioral | link_roc_auc | 0.478 | 0.451 | 0.506 |
+| behavioral | pair_roc_auc | 0.907 | 0.866 | 0.944 |
+| behavioral | triplet_accuracy | 0.918 | 0.851 | 0.967 |
 | behavioral_pca | consistency@10_mean | 0.282 | 0.260 | 0.313 |
-| behavioral_pca | link_roc_auc | 0.478 | 0.464 | 0.491 |
-| behavioral_pca | pair_roc_auc | 0.908 | 0.889 | 0.930 |
-| behavioral_pca | triplet_accuracy | 0.920 | 0.896 | 0.941 |
+| behavioral_pca | link_roc_auc | 0.478 | 0.450 | 0.505 |
+| behavioral_pca | pair_roc_auc | 0.908 | 0.866 | 0.945 |
+| behavioral_pca | triplet_accuracy | 0.920 | 0.857 | 0.968 |
 | behavioral_svd | consistency@10_mean | 0.282 | 0.260 | 0.313 |
-| behavioral_svd | link_roc_auc | 0.478 | 0.464 | 0.491 |
-| behavioral_svd | pair_roc_auc | 0.908 | 0.889 | 0.930 |
-| behavioral_svd | triplet_accuracy | 0.920 | 0.896 | 0.941 |
+| behavioral_svd | link_roc_auc | 0.478 | 0.450 | 0.505 |
+| behavioral_svd | pair_roc_auc | 0.908 | 0.866 | 0.945 |
+| behavioral_svd | triplet_accuracy | 0.920 | 0.857 | 0.968 |
 | graph_spectral | consistency@10_mean | 0.244 | 0.225 | 0.266 |
-| graph_spectral | link_roc_auc | 0.474 | 0.462 | 0.487 |
-| graph_spectral | pair_roc_auc | 0.938 | 0.918 | 0.957 |
-| graph_spectral | triplet_accuracy | 0.940 | 0.920 | 0.959 |
+| graph_spectral | link_roc_auc | 0.474 | 0.448 | 0.498 |
+| graph_spectral | pair_roc_auc | 0.938 | 0.894 | 0.966 |
+| graph_spectral | triplet_accuracy | 0.940 | 0.879 | 0.980 |
 | reference_ceiling | consistency@10_mean | 1.000 | 1.000 | 1.000 |
-| reference_ceiling | link_roc_auc | 0.487 | 0.475 | 0.500 |
-| reference_ceiling | pair_roc_auc | 0.905 | 0.884 | 0.926 |
-| reference_ceiling | triplet_accuracy | 0.914 | 0.892 | 0.935 |
+| reference_ceiling | link_roc_auc | 0.487 | 0.462 | 0.512 |
+| reference_ceiling | pair_roc_auc | 0.905 | 0.859 | 0.936 |
+| reference_ceiling | triplet_accuracy | 0.914 | 0.852 | 0.966 |
 
 ## Identity retrieval (train -> test)
 
@@ -114,4 +118,5 @@ Raw-coordinate scores are only interpretable for methods that declare a shared c
 
 * **Predictive:** future links (outcome observed later) and identity stability. **Agreement with a proxy we chose:** kNN consistency (behavioural profile), pair/triplet/P@k (shared peers).
 * `reference_ceiling` uses the target-window features themselves and leaks by design; baselines share feature definitions or peer structure with the references (table above), so they are calibration points, not independent evidence.
-* Intervals cover evaluation-set sampling only, not model seeds or reference choice.
+* Intervals: kNN and retrieval metrics resample hosts/anchors; link, pair and triplet metrics use a host-cluster bootstrap (pairs share hosts). They cover evaluation-set sampling only, not model seeds, reference choice or window choice.
+* Because the data are synthetic, no statement about LANL follows from any number above.

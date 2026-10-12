@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 
 from evaluation.io import ReferenceError, cosine_pairs, read_reference_table, select_split
-from evaluation.uncertainty import bootstrap_ci, reweighted_average_precision, auc_with_ci
+from evaluation.uncertainty import (auc_with_ci, bootstrap_ci, host_index, reweighted_average_precision)
 
 SPLITS = {"train", "validation", "test"}
 
@@ -68,7 +68,7 @@ def pair_auc(emb: pd.DataFrame, pairs: pd.DataFrame, split: str = "test", *,
     y, s = p["label"].to_numpy(), p["score"].to_numpy()
     if len(np.unique(y)) < 2:
         raise ReferenceError(f"pairs.csv split={split!r} needs both relevant and non-relevant pairs")
-    out = auc_with_ci(y, s, n_boot=n_boot, seed=seed)
+    out = auc_with_ci(y, s, n_boot=n_boot, seed=seed, hosts=host_index(p.host_a, p.host_b))
     prev = float(y.mean())
     out.update(n_pairs=int(len(y)), n_positive=int(y.sum()), positive_rate=prev,
                pr_auc_lift=out["pr_auc"] / prev, split=split)

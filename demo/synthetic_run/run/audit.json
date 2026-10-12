@@ -39,8 +39,11 @@
       "share_positives_seen_in_source": 0.5065807144775718
     },
     "pairs": {
-      "note": "judged-pair pool, not the population",
-      "sampled_positive_rate": 0.16693418940609953
+      "judged_population_prevalence": 0.06950880444856349,
+      "note": "the judged prevalence is conditional on a pair being judged (J >= tau or J == 0); unjudged pairs are excluded, so it is not the positive rate of all host pairs",
+      "population_positive_rate": 0.010033444816053512,
+      "sampled_positive_rate": 0.16693418940609953,
+      "unjudged_share": 0.8556521739130435
     }
   },
   "random_null": {
@@ -159,7 +162,7 @@
         "p95": 0.19067980421286523,
         "std": 0.01069427594411468
       },
-      "pair_pr_auc_at_natural_prevalence": {
+      "pair_pr_auc_at_judged_prevalence": {
         "mean": 0.07146472468875226,
         "p5": 0.06471355275678936,
         "p95": 0.08112384401737088,

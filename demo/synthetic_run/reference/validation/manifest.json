@@ -4,10 +4,32 @@
     "20": 0.06688963210702341,
     "5": 0.016722408026755852
   },
-  "cohort_sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1",
+  "cohort_policy": "train_only",
+  "cohort_selection": {
+    "coverage": {
+      "test": 1.0,
+      "validation": 1.0
+    },
+    "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+    "median_train_events": {
+      "active_in_every_window": 151.0,
+      "not_active_in_every_window": null
+    },
+    "n_cohort": 300,
+    "n_evaluable": {
+      "test": 300,
+      "validation": 300
+    },
+    "n_hosts_active_in_every_window": 300,
+    "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+    "policy": "train_only"
+  },
+  "cohort_sha256": "8cf9b0fd4ea30a03d9bfe96a361336e5b739218bc85dedec114f1b18c51b2d4e",
+  "coverage": 1.0,
   "data_kind": "synthetic_fixture",
   "files_sha256": {
     "edges.csv": "0c5332d6b1262d8c6011c048867ff32361221b0ceb121d843549d1281256a8dc",
+    "eval_hosts.csv": "856d0d751ae5d7a26c4ee449ab5f4fc8ddde9489b4864fa9c3705d2b833b7174",
     "features.csv": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
     "neighbors.csv": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
     "pairs.csv": "650beb11ab46987ce21e252f02f6b6204d1b988430f4dcb4b4e4f13a8fe317a8",
@@ -38,12 +60,48 @@
   ],
   "labels": null,
   "labels_source": null,
+  "n_cohort": 300,
+  "n_evaluable": 300,
   "n_hosts": 300,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "0b338b41c5f37a94acd98389e51599c274329fb2336111dc28dc54751a9742cf",
+  "pipeline_manifest_sha256": "2c70ddf24eea9b24240f7ff0d7ef72ed2c8a062ffbf30372be77a98fec32143c",
+  "provenance": {
+    "basis": "marker_file",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": true,
+      "format_sample": {
+        "netflow_day-01.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": true
+    },
+    "declared_kind": null,
+    "kind": "synthetic_fixture",
+    "source_note": null,
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
   "provenance_verified": false,
   "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
   "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "real_lanl_declared": false,
   "reference_dimensions": 56,
   "reference_neighbor_stability": {
     "consistency@10": 0.28400000000000003,

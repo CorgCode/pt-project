@@ -1,4 +1,27 @@
 {
+  "ci_methods": {
+    "consistency@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "link_learned_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "link_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "link_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "ndcg@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "pair_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "pair_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "precision@1": "item bootstrap (hosts / anchors resampled)",
+    "precision@3": "item bootstrap (hosts / anchors resampled)",
+    "precision@5": "item bootstrap (hosts / anchors resampled)",
+    "recall@1": "item bootstrap (hosts / anchors resampled)",
+    "recall@3": "item bootstrap (hosts / anchors resampled)",
+    "recall@5": "item bootstrap (hosts / anchors resampled)",
+    "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
+  },
   "method": "random",
   "method_info": {
     "description": "seeded Gaussian noise; independent draw per window",
@@ -32,6 +55,7 @@
       "target_window": "1970-01-01T09:00:00Z/1970-01-01T11:59:58Z"
     },
     "link_learned": {
+      "ci_method": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
       "eval_split": "test",
       "eval_target_window": "1970-01-01T09:00:00Z/1970-01-01T11:59:58Z",
       "fit_split": "validation",
@@ -43,10 +67,14 @@
       "roc_auc": 0.5458179724890372
     },
     "pairwise_auc": {
+      "interpretation": "Relevance is judged only for pairs with peer-set Jaccard >= tau (positive) or == 0 (negative). judged_population_prevalence is the positive rate AMONG JUDGED pairs; the unjudged pairs (0 < J < tau) are excluded, so it is not the positive rate of all host pairs (population_positive_rate) and pair_pr_auc_at_judged_prevalence is a conditional AP, not a population AP.",
+      "judged_population_prevalence": 0.06950880444856349,
       "n_pairs": 1869,
       "n_positive": 312,
+      "population_positive_rate": 0.010033444816053512,
       "positive_rate": 0.16693418940609953,
-      "split": "test"
+      "split": "test",
+      "unjudged_share": 0.8556521739130435
     },
     "retrieval": {
       "by_k": {
@@ -165,7 +193,7 @@
     "ndcg@5_median": 0.0,
     "ndcg@5_std": 0.07646966079346777,
     "pair_pr_auc": 0.17797725712484225,
-    "pair_pr_auc_at_natural_prevalence": 0.07488324511801192,
+    "pair_pr_auc_at_judged_prevalence": 0.07488324511801192,
     "pair_pr_auc_lift": 1.0661522229690068,
     "pair_roc_auc": 0.5159412413747674,
     "precision@1": 0.21810699588477367,
@@ -205,16 +233,16 @@
       0.02074074074074074
     ],
     "link_learned_roc_auc": [
-      0.5317564842294157,
-      0.5571852562650164
+      0.5169694729310128,
+      0.5750638251362739
     ],
     "link_pr_auc": [
-      0.48930797463221637,
-      0.5205561373118374
+      0.46941231443171116,
+      0.5371617246207905
     ],
     "link_roc_auc": [
-      0.4897677486912594,
-      0.5158270641617735
+      0.4824945458558139,
+      0.5230511232933195
     ],
     "ndcg@10_mean": [
       0.027492338831969908,
@@ -229,12 +257,12 @@
       0.03459076455358428
     ],
     "pair_pr_auc": [
-      0.15355099394720068,
-      0.21428851721195605
+      0.13854075949525876,
+      0.2435746128521849
     ],
     "pair_roc_auc": [
-      0.4859423320760666,
-      0.547324483516178
+      0.46322425974956505,
+      0.5755040268091167
     ],
     "precision@1": [
       0.18106995884773663,
@@ -261,15 +289,18 @@
       0.4629584809130264
     ],
     "triplet_accuracy": [
-      0.47956769983686787,
-      0.5481239804241436
+      0.41017488076311603,
+      0.606028287594398
     ]
   },
   "n_bootstrap": 200,
+  "n_embedded_hosts": 300,
   "n_hosts": 300,
   "reference_info": {
-    "cohort_sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1",
+    "cohort_policy": "train_only",
+    "cohort_sha256": "8cf9b0fd4ea30a03d9bfe96a361336e5b739218bc85dedec114f1b18c51b2d4e",
     "data_kind": "synthetic_fixture",
+    "evaluable_coverage": 1.0,
     "features_sha256": "fde28e85fa6e2177c607063649a3683b7ab5d1b31e2af5c6455117ed6047fac7",
     "files_sha256": {
       "edges.csv": "7811ffc96a1e2b6310e5fefdf310c554ca7273b28a1b65e54d0deb3367771ba3",
@@ -288,8 +319,12 @@
     "ground_truth": false,
     "kind": "heldout_temporal_behavior_proxy",
     "labels_source": null,
+    "n_cohort": 300,
+    "n_evaluable": 300,
     "neighbors_sha256": "8e07551ca89d01dfa48c306cc3f018ecab9716b9d421c2376f9c3bfbf6139283",
     "provenance_verified": false,
+    "provenance_verified_by_pipeline": false,
+    "real_lanl_declared": false,
     "source_window": "train",
     "synthetic": true,
     "target_window": "test",
