@@ -34,7 +34,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pandas numpy scikit-learn pytest streamlit plotly
+        run: python -m pip install --upgrade pip -r requirements.txt
 
       - name: Validate example submission
         run: python benchmark/validate_submission.py benchmark/example_embeddings.csv

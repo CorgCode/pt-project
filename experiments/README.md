@@ -1,5 +1,7 @@
 # Experiments
 
+Install dependencies once: `pip install -r requirements.txt`.
+
 Run every method on the SAME cohort, windows, references and candidate pairs.
 
 ```bash
