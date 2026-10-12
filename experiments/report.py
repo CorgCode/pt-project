@@ -30,8 +30,13 @@ def md_table(df: pd.DataFrame, floatfmt: str = "{:.3f}") -> str:
     return "\n".join(out)
 
 
+_FALLBACK = ["#9334e6", "#d01884", "#b06000", "#0b8043", "#c5221f", "#1967d2", "#7627bb", "#a52714", "#3c4043", "#00796b"]
+
+
 def _color(name: str) -> str:
-    return PALETTE.get(name, "#5f6368")
+    """Known baselines keep their colour; any other method gets a stable colour from its name."""
+    import zlib
+    return PALETTE.get(name) or _FALLBACK[zlib.crc32(name.encode()) % len(_FALLBACK)]
 
 
 def scorecard(results: dict[str, dict], path: Path, title: str) -> None:

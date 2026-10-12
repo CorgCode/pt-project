@@ -17,7 +17,7 @@ import argparse
 import json
 from pathlib import Path
 
-from experiments.run_experiment import run_experiment
+from experiments.run_experiment import _load_config, run_experiment
 from pipeline import fixtures
 from pipeline.prepare import prepare
 from pipeline.reference import build_reference
@@ -31,7 +31,9 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
                fixture: bool = False, n_hosts: int = 300, dim: int = 16, seed: int = 0, n_boot: int = 200,
                submissions_dir: Path | None = None, pairs_per_anchor: int = 10, labels: Path | None = None,
                labels_source: str | None = None, overwrite: bool = False, data_kind: str | None = None,
-               source_note: str | None = None, cohort_policy: str | None = None) -> dict:
+               source_note: str | None = None, cohort_policy: str | None = None,
+               methods: list[str] | None = None, method_config: dict | None = None,
+               fast_methods: bool = False) -> dict:
     workdir = Path(workdir)
     if fixture:
         raw = workdir / "fixture"
@@ -46,7 +48,8 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
     build_reference(workdir / "processed", workdir / "reference", seed=seed,
                     pairs_per_anchor=pairs_per_anchor, labels=labels, labels_source=labels_source)
     return run_experiment(workdir / "processed", workdir / "reference", workdir / "run", dim=dim, seed=seed,
-                          n_boot=n_boot, submissions_dir=submissions_dir)
+                          n_boot=n_boot, submissions_dir=submissions_dir, methods=methods,
+                          method_config=method_config, fast_methods=fast_methods)
 
 
 def main() -> None:
@@ -67,12 +70,16 @@ def main() -> None:
                     help="DECLARE the origin of --netflow files (default: 'unverified'); 'lanl' needs --source-note")
     ap.add_argument("--source-note", help="where/when the LANL files were obtained")
     ap.add_argument("--cohort-policy", choices=["train_only", "all_windows"], default=None)
+    ap.add_argument("--methods", nargs="+", default=None, help="graph-embedding methods (see benchmark/methods)")
+    ap.add_argument("--method-config", default=None, help="JSON or JSON file: {method: {param: value}}")
+    ap.add_argument("--fast-methods", action="store_true", help="tiny hyper-parameters (smoke tests only)")
     a = ap.parse_args()
     m = end_to_end(a.workdir, netflow=a.netflow, config=PipelineConfig.from_json(a.config) if a.config else None,
                    fixture=a.fixture, n_hosts=a.n_hosts, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                    submissions_dir=a.submissions_dir, labels=a.labels, labels_source=a.labels_source,
                    overwrite=a.overwrite, data_kind=a.data_kind, source_note=a.source_note,
-                   cohort_policy=a.cohort_policy)
+                   cohort_policy=a.cohort_policy, methods=a.methods,
+                   method_config=_load_config(a.method_config), fast_methods=a.fast_methods)
     print(json.dumps({k: m[k] for k in ("data_kind", "n_hosts", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.workdir / 'run' / 'report.md'}")
 

@@ -1,0 +1,168 @@
+"""Skip-gram trainer for node embeddings (numpy, deterministic, no extra dependencies).
+
+Two output objectives over (centre c, context x) pairs taken from a walk corpus:
+
+  neg  skip-gram with negative sampling (word2vec / node2vec reference implementation)
+         L = -log s(v_c . u_x) - sum_{k=1..K} log s(-v_c . u_{n_k}),   n_k ~ P(n) ~ freq^0.75
+  hs   hierarchical softmax over a Huffman tree (the DeepWalk paper's objective)
+         L = -sum_{j in path(x)} log s( (1 - 2 b_j) * v_c . theta_j )
+
+`W_in` (one row per node) are the embeddings. Pairs use word2vec's dynamic window (a window size drawn
+uniformly from 1..window per centre) in both directions. Updates are mini-batch SGD with a linearly
+decaying learning rate; a batch's gradients are scattered with sorted segment sums, so a node that occurs
+several times in a batch receives the summed update. Seeded; two runs with one seed are identical.
+"""
+from __future__ import annotations
+
+import heapq
+
+import numpy as np
+from scipy.special import expit
+
+
+# ------------------------------------------------------------------------------------ Huffman tree
+def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Huffman codes for leaves 0..n-1: (inner-node paths, bit codes, lengths); padded with -1 / 0."""
+    n = len(freq)
+    if n < 2:
+        raise ValueError("need at least two nodes")
+    heap = [(float(f), i) for i, f in enumerate(freq)]
+    heapq.heapify(heap)
+    parent = np.zeros(2 * n - 1, dtype=np.int64)
+    bit = np.zeros(2 * n - 1, dtype=np.int8)
+    nxt = n
+    while len(heap) > 1:
+        f1, a = heapq.heappop(heap)
+        f2, b = heapq.heappop(heap)
+        parent[a] = parent[b] = nxt
+        bit[b] = 1
+        heapq.heappush(heap, (f1 + f2, nxt))
+        nxt += 1
+    root = nxt - 1
+    chains = []
+    for leaf in range(n):
+        nodes, bits, cur = [], [], leaf
+        while cur != root:
+            bits.append(bit[cur])
+            cur = parent[cur]
+            nodes.append(cur - n)                      # inner nodes are numbered 0..n-2
+        chains.append((nodes[::-1], bits[::-1]))       # root -> leaf order
+    lens = np.array([len(c[0]) for c in chains], dtype=np.int64)
+    paths = np.full((n, lens.max()), -1, dtype=np.int64)
+    codes = np.zeros((n, lens.max()), dtype=np.int8)
+    for i, (nodes, bits) in enumerate(chains):
+        paths[i, :len(nodes)], codes[i, :len(bits)] = nodes, bits
+    return paths, codes, lens
+
+
+# ------------------------------------------------------------------------------------ losses
+def neg_loss_grads(W_in, W_out, c, pos, negs):
+    """Summed loss and gradients for a batch. Returns (loss, g_in (B,d), out_idx, out_grad)."""
+    v, up, un = W_in[c], W_out[pos], W_out[negs]                      # (B,d) (B,d) (B,K,d)
+    s_pos, s_neg = (v * up).sum(1), np.einsum("bd,bkd->bk", v, un)
+    loss = -np.log(expit(s_pos) + 1e-300).sum() - np.log(expit(-s_neg) + 1e-300).sum()
+    d_pos, d_neg = expit(s_pos) - 1.0, expit(s_neg)                    # dL/ds
+    g_in = d_pos[:, None] * up + np.einsum("bk,bkd->bd", d_neg, un)
+    out_idx = np.concatenate([pos, negs.reshape(-1)])
+    out_grad = np.concatenate([d_pos[:, None] * v, (d_neg[:, :, None] * v[:, None, :]).reshape(-1, v.shape[1])])
+    return loss, g_in, out_idx, out_grad
+
+
+def hs_loss_grads(W_in, W_out, c, ctx, paths, codes, lens):
+    v = W_in[c]
+    P, C, L = paths[ctx], codes[ctx], lens[ctx]
+    mask = np.arange(P.shape[1])[None, :] < L[:, None]
+    theta = W_out[np.where(mask, P, 0)]                                # (B,Lmax,d)
+    sign = 1.0 - 2.0 * C
+    z = sign * np.einsum("bd,bld->bl", v, theta)
+    loss = -(np.log(expit(z) + 1e-300) * mask).sum()
+    ds = (expit(z) - 1.0) * sign * mask                                # dL/d(v.theta)
+    g_in = np.einsum("bl,bld->bd", ds, theta)
+    out_grad = (ds[:, :, None] * v[:, None, :]).reshape(-1, v.shape[1])
+    return loss, g_in, np.where(mask, P, 0).reshape(-1), out_grad
+
+
+def scatter_sub(W: np.ndarray, idx: np.ndarray, grad: np.ndarray, lr: float) -> None:
+    """W[idx] -= lr * grad with repeated indices summed (sorted segment sums)."""
+    order = np.argsort(idx, kind="stable")
+    sidx = idx[order]
+    first = np.r_[True, sidx[1:] != sidx[:-1]]
+    W[sidx[first]] -= lr * np.add.reduceat(grad[order], np.flatnonzero(first), axis=0)
+
+
+# ------------------------------------------------------------------------------------ trainer
+class SkipGram:
+    def __init__(self, n_nodes: int, dim: int, *, objective: str = "neg", window: int = 10, negative: int = 5,
+                 lr: float = 0.025, min_lr: float = 1e-4, epochs: int = 1, batch_size: int = 512, seed: int = 0,
+                 node_freq: np.ndarray | None = None, max_chunk_pairs: int = 4_000_000):
+        if objective not in ("neg", "hs"):
+            raise ValueError("objective must be 'neg' or 'hs'")
+        if min(n_nodes, dim, window, epochs, batch_size) < 1 or (objective == "neg" and negative < 1):
+            raise ValueError("n_nodes, dim, window, epochs, batch_size (and negative for 'neg') must be >= 1")
+        self.n, self.dim, self.objective = n_nodes, dim, objective
+        self.window, self.negative, self.lr, self.min_lr = window, negative, lr, min_lr
+        self.epochs, self.batch_size, self.max_chunk_pairs = epochs, batch_size, max_chunk_pairs
+        self.rng = np.random.default_rng(seed)
+        freq = np.ones(n_nodes) if node_freq is None else np.asarray(node_freq, dtype=float)
+        if len(freq) != n_nodes or (freq < 0).any():
+            raise ValueError("node_freq must be non-negative with one value per node")
+        self.W_in = (self.rng.random((n_nodes, dim)) - 0.5) / dim
+        if objective == "neg":
+            self.W_out = np.zeros((n_nodes, dim))
+            p = np.maximum(freq, 1e-12) ** 0.75
+            self._neg_cdf = np.cumsum(p / p.sum())
+        else:
+            self.W_out = np.zeros((n_nodes - 1, dim))
+            self.paths, self.codes, self.lens = huffman(freq)
+        self.loss_history: list[float] = []
+
+    # -------------------------------------------------------------------------------- pairs
+    def _pairs(self, walks: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        b = self.rng.integers(1, self.window + 1, size=walks.shape)       # dynamic window per centre
+        cs, xs = [], []
+        for o in range(1, min(self.window, walks.shape[1] - 1) + 1):
+            fwd = b[:, :-o] >= o                                          # centre i, context i+o
+            cs.append(walks[:, :-o][fwd]); xs.append(walks[:, o:][fwd])
+            bwd = b[:, o:] >= o                                           # centre i+o, context i
+            cs.append(walks[:, o:][bwd]); xs.append(walks[:, :-o][bwd])
+        return np.concatenate(cs), np.concatenate(xs)
+
+    def expected_pairs(self, n_walks: int, length: int) -> float:
+        return n_walks * sum(2 * (length - o) * (self.window - o + 1) / self.window
+                             for o in range(1, min(self.window, length - 1) + 1))
+
+    # -------------------------------------------------------------------------------- training
+    def fit(self, walks: np.ndarray) -> "SkipGram":
+        walks = np.asarray(walks)
+        if walks.ndim != 2 or walks.shape[1] < 2 or walks.min() < 0 or walks.max() >= self.n:
+            raise ValueError("walks must be an (n_walks, length>=2) array of node indices in [0, n_nodes)")
+        total = self.epochs * self.expected_pairs(len(walks), walks.shape[1])
+        done = 0.0
+        per_chunk = max(1, int(self.max_chunk_pairs / max(1.0, self.expected_pairs(1, walks.shape[1]))))
+        for _ in range(self.epochs):
+            order = self.rng.permutation(len(walks))
+            for s in range(0, len(walks), per_chunk):
+                c, x = self._pairs(walks[order[s:s + per_chunk]])
+                perm = self.rng.permutation(len(c))
+                c, x = c[perm], x[perm]
+                chunk_loss = 0.0
+                for i in range(0, len(c), self.batch_size):
+                    lr = max(self.min_lr, self.lr * (1.0 - (done + i) / max(total, 1.0)))
+                    chunk_loss += self._step(c[i:i + self.batch_size], x[i:i + self.batch_size], lr)
+                done += len(c)
+                self.loss_history.append(chunk_loss / max(len(c), 1))
+        return self
+
+    def _step(self, c: np.ndarray, x: np.ndarray, lr: float) -> float:
+        if self.objective == "neg":
+            negs = np.minimum(np.searchsorted(self._neg_cdf, self.rng.random((len(c), self.negative))), self.n - 1)
+            loss, g_in, oi, og = neg_loss_grads(self.W_in, self.W_out, c, x, negs)
+        else:
+            loss, g_in, oi, og = hs_loss_grads(self.W_in, self.W_out, c, x, self.paths, self.codes, self.lens)
+        scatter_sub(self.W_in, c, g_in, lr)
+        scatter_sub(self.W_out, oi, og, lr)
+        return float(loss)
+
+    @property
+    def embeddings(self) -> np.ndarray:
+        return self.W_in

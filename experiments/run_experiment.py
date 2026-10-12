@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 
+from benchmark import methods as graph_methods
 from benchmark.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
 from evaluation.identity_retrieval import identity_retrieval
@@ -76,7 +77,8 @@ def _write(path: Path, df: pd.DataFrame) -> Path:
 
 def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, dim: int = 16, seed: int = 0,
                    n_boot: int = 200, submissions_dir: Path | None = None, do_audit: bool = True,
-                   audit_configs: int = 12, null_draws: int = 30) -> dict:
+                   audit_configs: int = 12, null_draws: int = 30, methods: list[str] | None = None,
+                   method_config: dict | None = None, fast_methods: bool = False) -> dict:
     processed_dir, reference_dir, out_dir = Path(processed_dir), Path(reference_dir), Path(out_dir)
     data = ProcessedData(processed_dir)
     targets = [t for t in TARGETS if (reference_dir / t).exists() and t in data.windows]
@@ -94,7 +96,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     # ---- collect embeddings: method -> {window: DataFrame}; 'train' = scored source embedding
     emb: dict[str, dict[str, pd.DataFrame]] = {}
     meta: dict[str, dict] = {}
-    for b in default_baselines(dim, seed):
+    graph_methods_run = graph_methods.create(methods or [], dim, seed, method_config, fast_methods)
+    for b in [*default_baselines(dim, seed), *graph_methods_run]:
         b.fit(data)
         emb[b.name] = {"train": b.embed(data, "train"),
                        **{t: b.embed(data, t, hosts_by_target[t]) for t in targets}}
@@ -118,7 +121,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                             "declared_training_windows": declared,
                             "shared_coordinate_system": (d / "SHARED_COORDINATES").exists()}
             external.append(d.name)
-    missing = [m for m in EXPECTED_EXTERNAL if m not in external]
+    implemented = [b.name for b in graph_methods_run]
+    missing = [m for m in EXPECTED_EXTERNAL if m not in external and m not in implemented]
 
     # ---- evaluate on every target reference
     results: dict[str, dict[str, dict]] = {t: {} for t in targets}
@@ -174,7 +178,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
             "split_agreement": A.split_agreement(results, ["consistency@10_mean", "link_roc_auc",
                                                            "pair_roc_auc", "triplet_accuracy"]),
             "prevalence": A.prevalence(results["test"]),
-            "information_overlap": A.OVERLAP,
+            "information_overlap": {**A.OVERLAP, **{m: meta[m]["overlap"] for m in meta if meta[m].get("overlap")}},
         }
         A.dump(out_dir / "audit.json", audit)
         import shutil
@@ -198,6 +202,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         "reference_files_sha256": {t: results[t]["random"]["reference_info"]["files_sha256"] for t in targets},
         "config": {"dim": dim, "seed": seed, "bootstrap": n_boot, "targets": targets},
         "methods": sorted(results["test"]), "external_methods": external, "missing_expected_methods": missing,
+        "graph_methods": {m: meta[m] for m in implemented},
         "environment": {"python": platform.python_version(), "pandas": pd.__version__,
                         "numpy": np.__version__, "sklearn": sklearn.__version__, "git_sha": _git_sha()},
     }
@@ -321,6 +326,13 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
     return "\n".join(L) + "\n"
 
 
+def _load_config(text: str | None) -> dict | None:
+    if not text:
+        return None
+    p = Path(text)
+    return json.loads(p.read_text(encoding="utf-8") if p.exists() else text)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--processed-dir", type=Path, required=True)
@@ -330,13 +342,20 @@ def main() -> None:
     ap.add_argument("--dim", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--bootstrap", type=int, default=200)
+    ap.add_argument("--methods", nargs="+", default=None, choices=sorted(graph_methods.available()) + ["all"],
+                    help="graph-embedding methods to fit on the train window in addition to the baselines")
+    ap.add_argument("--method-config", default=None,
+                    help='JSON (or a path to a JSON file) mapping a method to hyper-parameters, e.g. \'{"deepwalk": {"num_walks": 5}}\'')
+    ap.add_argument("--fast-methods", action="store_true",
+                    help="tiny hyper-parameters for every selected method (smoke tests only; results not meaningful)")
     ap.add_argument("--no-audit", action="store_true")
     ap.add_argument("--audit-configs", type=int, default=12)
     ap.add_argument("--null-draws", type=int, default=30)
     a = ap.parse_args()
     m = run_experiment(a.processed_dir, a.reference_dir, a.out_dir, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                        submissions_dir=a.submissions_dir, do_audit=not a.no_audit,
-                       audit_configs=a.audit_configs, null_draws=a.null_draws)
+                       audit_configs=a.audit_configs, null_draws=a.null_draws, methods=a.methods,
+                       method_config=_load_config(a.method_config), fast_methods=a.fast_methods)
     print(json.dumps({k: m[k] for k in ("data_kind", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.out_dir / 'report.md'}")
 

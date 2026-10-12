@@ -1,0 +1,38 @@
+"""Graph-embedding methods for the benchmark, discovered automatically.
+
+Every module in this package may define `METHODS = {"name": Class}`; adding a method never requires editing
+a central list. Methods follow the temporal protocol (fit on the train window only) of
+benchmark.baselines.temporal.Baseline and are selected with `--methods` in `experiments.run_experiment`.
+"""
+from __future__ import annotations
+
+import importlib
+import pkgutil
+
+_SKIP = {"base", "graph_input", "walks", "sgns"}
+
+
+def available() -> dict[str, type]:
+    found: dict[str, type] = {}
+    for mod in pkgutil.iter_modules(__path__):
+        if mod.name in _SKIP or mod.name.startswith("test_") or mod.name.startswith("_"):
+            continue
+        found.update(getattr(importlib.import_module(f"{__name__}.{mod.name}"), "METHODS", {}))
+    return dict(sorted(found.items()))
+
+
+def create(names: list[str], dim: int = 16, seed: int = 0, config: dict | None = None, fast: bool = False) -> list:
+    """Instantiate methods by name ("all" = every registered method).
+
+    `config` maps a method name to hyper-parameter overrides. `fast=True` first applies each method's tiny
+    `fast_params` profile (smoke tests / CI only: results from it are not meaningful), then the overrides.
+    """
+    reg, config = available(), config or {}
+    names = list(reg) if list(names) == ["all"] else list(names)
+    unknown = [n for n in names if n not in reg]
+    if unknown:
+        raise ValueError(f"unknown method(s) {unknown}; available: {sorted(reg)}")
+    stray = set(config) - set(names)
+    if stray:
+        raise ValueError(f"config given for methods that are not selected: {sorted(stray)}")
+    return [reg[n](dim=dim, seed=seed, **{**(reg[n].fast_params if fast else {}), **config.get(n, {})}) for n in names]
