@@ -6,11 +6,11 @@ Every method follows the benchmark's temporal protocol and is selected with `--m
 
 | method | algorithm | status |
 |---|---|---|
-| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | this PR |
+| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | PR 1 |
 | `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | separate PR |
 | `rolx` | ReFeX recursive structural features + NMF roles (Henderson et al., KDD 2012) | separate PR |
 | `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | separate PR |
-| `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | separate PR |
+| `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | this PR |
 
 ## Use
 
@@ -76,3 +76,17 @@ and `--target test` is refused. Fix the selection metric **before** looking at r
 configurations), and report the frozen configuration's *test* score: the best validation score is optimistically
 biased by the number of configurations tried (the output says so). Then run the final experiment once with
 `--method-config` set to the chosen configuration.
+
+### GraphSAGE specifics
+
+* **Inductive**: weights are trained once on the train window; later windows are embedded by inference with those weights
+  (full-neighbourhood mean aggregation, deterministic, ~10 ms for 8,000 nodes), so embeddings of different windows share
+  ONE coordinate system (`shared_coordinate_system: True`; the raw-coordinate identity score is meaningful, though the inputs
+  themselves drift between windows).
+* **Features** (`features`): `behavioral` (default; the train-window behavioural profile, standardised with TRAIN
+  statistics; its feature definitions are the same as the behavioural reference, a documented overlap), `structural`, or `degree`.
+  With degree/structural features GraphSAGE is much weaker on the references of this benchmark (fixture: pair AUC 0.62 vs 0.88).
+* **Loss floor**: embeddings are L2-normalised, so negatives cannot score below about 0 on average; with Q = 20 negatives the
+  per-pair loss cannot fall under ~14.1 (the starting value is ~15), so a small absolute decrease is expected.
+* **Scale** (measured, one core, paper sampling sizes 25/10, hidden 64): ~25k training pairs/s; the default settings
+  (10 walks of length 5, window 2, 2 epochs) take ~4 min at 20,000 hosts and ~19 min at 100,000 (extrapolated).
