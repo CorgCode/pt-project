@@ -15,7 +15,7 @@ from threading import Thread
 
 from playwright.sync_api import sync_playwright
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent  # emulate branch-based Jekyll deployment from repo root
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -40,6 +40,9 @@ def main() -> None:
                               wait_until="domcontentloaded", timeout=30000)
                     page.wait_for_selector("#dashboardContents:not([hidden])",
                                            timeout=30000)
+                    assert page.url.rstrip("/").endswith("/docs"), (
+                        "Repo root must redirect to /docs/ and show the real dashboard: " + page.url
+                    )
                     assert "snapshot loaded" in page.locator("#dashboardStatus").inner_text().lower()
                     assert page.locator("#chartConsistency svg").count() == 1
                     assert page.locator("#chartLinks svg").count() == 1
@@ -64,7 +67,7 @@ def main() -> None:
                         ), "Page introduces horizontal overflow at mobile width"
                     assert not problems, f"Page errors: {problems}"
                     page.close()
-                print("OK: Pages renders five research plots + leaderboard before upload; "
+                print("OK: repo root redirects to /docs/; five plots + leaderboard render before upload; "
                       "test/validation toggle; desktop/mobile; no page errors.")
             finally:
                 browser.close()
