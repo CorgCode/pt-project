@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from evaluation.temporal_auc import evaluate_method, load_temporal_pairs
+from evaluation.temporal_auc import evaluate_method, load_temporal_pairs, nearest_candidate_accuracy
 
 
 def fixture_data():
@@ -33,6 +33,35 @@ def test_reports_auc_metrics_for_validation_and_test():
     assert all(r["n_examples"] == 10 for r in retrieval)
     assert all(r["score_value"] >= 0.9 for r in retrieval)
 
+
+def test_nearest_candidate_accuracy_counts_ties_as_hits():
+    hosts = ["h1", "h2"]
+    a = pd.DataFrame([[1.0, 0.0], [1.0, 0.0]], index=hosts, columns=["emb_0", "emb_1"])
+    b = pd.DataFrame([[1.0, 0.0], [1.0, 0.0]], index=hosts, columns=["emb_0", "emb_1"])
+
+    accuracy, n_hosts = nearest_candidate_accuracy(a, b, hosts)
+
+    assert accuracy == 1.0
+    assert n_hosts == 2
+
+
+def test_nearest_candidate_accuracy_detects_wrong_nearest_host():
+    hosts = ["h1", "h2"]
+    a = pd.DataFrame([[1.0, 0.0], [0.0, 1.0]], index=hosts, columns=["emb_0", "emb_1"])
+    b = pd.DataFrame([[0.0, 1.0], [1.0, 0.0]], index=hosts, columns=["emb_0", "emb_1"])
+
+    accuracy, n_hosts = nearest_candidate_accuracy(a, b, hosts)
+
+    assert accuracy == 0.0
+    assert n_hosts == 2
+
+
+def test_nearest_candidate_accuracy_requires_two_hosts():
+    a = pd.DataFrame([[1.0, 0.0]], index=["h1"], columns=["emb_0", "emb_1"])
+    b = a.copy()
+
+    with pytest.raises(ValueError, match="at least two hosts"):
+        nearest_candidate_accuracy(a, b, ["h1"])
 
 def test_loader_rejects_wrong_identity_labels(tmp_path):
     p = tmp_path / "pairs.csv"
