@@ -19,6 +19,42 @@
     table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:#aeb8c5;font-weight:600}
     .plot{height:410px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.note{padding:14px 16px;border:1px solid #29313a;background:#101419;border-radius:12px;color:#aab4c0}.hidden{display:none}
     @media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:31px}.plot{height:360px}}
+
+    /* Always-visible research snapshot: standalone SVG, no charting CDN required */
+    .demo-area{margin-top:32px}.demo-hero{padding:27px 28px;background:linear-gradient(130deg,#18252f,#14231f 60%,#1d1a2d);border:1px solid #38515a;border-radius:19px}
+    .demo-kicker{letter-spacing:.09em;font-size:11px;font-weight:800;color:#a8e6d0;text-transform:uppercase}
+    .demo-hero h2{font-size:27px;margin:8px 0 6px;letter-spacing:-.03em}
+    .demo-hero p{color:#c8d4d8;max-width:850px}
+    .demo-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 15px}
+    .demo-controls label{font-weight:650;color:#dde4e9}
+    .demo-controls select{background:#1c242b;color:#edf5f7;border:1px solid #4b5e65;border-radius:9px;padding:9px 12px;font:inherit}
+    .demo-small{font-size:12px;color:#9fb0ba}
+    .demo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 15px}
+    .demo-stat{background:#141c23;border:1px solid #2a3540;border-radius:12px;padding:13px 16px}
+    .demo-stat .value{display:block;font-size:27px;font-weight:750;font-variant-numeric:tabular-nums}
+    .demo-stat .sub{display:block;font-size:12px;color:#a8b7be}
+    .viz-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+    .viz-panel{min-width:0;background:#141b22;border:1px solid #2e3842;border-radius:16px;padding:17px 18px}
+    .viz-panel h3{font-size:17px;font-weight:700;margin:0 0 4px}
+    .viz-panel p{font-size:12px;color:#a8b5c1;margin-bottom:8px}
+    .viz-panel.wide{grid-column:1/-1}
+    .svg-chart{width:100%;display:block;overflow:visible}
+    .demo-legend{display:flex;gap:13px;flex-wrap:wrap;padding:0 4px 6px;font-size:12px;color:#cad5df}
+    .legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+    .demo-table-wrap{overflow-x:auto;border:1px solid #303b45;border-radius:13px;margin-top:10px}
+    .demo-table{min-width:690px}
+    .demo-table th{white-space:nowrap}
+    .demo-table tbody tr:hover{background:#212f39}
+    .demo-table td{font-variant-numeric:tabular-nums}
+    .demo-table .leaky{opacity:.65}
+    .demo-separator{margin:35px 0 0;border:0;border-top:1px solid #303b45}
+    .demo-footnote{padding:14px;margin:18px 0 0;border:1px solid #485342;border-radius:11px;background:#1b241e;color:#c4d4c8}
+    .demo-error{padding:12px 16px;margin:15px 0;color:#e5b2a6;border:1px solid #673d3d;border-radius:12px}
+    .demo-axis{fill:#9dabb7;font-size:12px}.demo-value{fill:#f4f7f9;font-size:12px;font-weight:650}
+    .demo-axis-line{stroke:#36434e;stroke-width:1}
+    #dashboardContents[hidden]{display:none}
+    @media(max-width:900px){.demo-stats{grid-template-columns:repeat(2,1fr)}.viz-grid{grid-template-columns:1fr}.viz-panel.wide{grid-column:auto}}
+    @media(max-width:520px){.demo-hero{padding:20px}.demo-hero h2{font-size:23px}.demo-stat .value{font-size:23px}.demo-stats{gap:8px}.demo-stats .demo-stat{padding:12px}.viz-panel{padding:12px}}
   </style>
 </head>
 <body>
@@ -28,6 +64,62 @@
     <span class="badge">GitHub Pages · browser demo</span>
   </div>
 
+
+  <section class="demo-area" id="researchDashboard" aria-label="Research visualizations">
+    <div class="demo-hero">
+      <div class="demo-kicker">Synthetic research snapshot · Public visualizations</div>
+      <h2>Explore the host embedding benchmark</h2>
+      <p>Interactive charts, model comparisons, temporal stability and a host embedding projection. This is a <strong>synthetic fixture</strong>, not real LANL traffic. The five new graph methods are not included in this published snapshot.</p>
+    </div>
+    <div id="dashboardStatus" class="status" role="status">Loading synthetic experiment results…</div>
+    <div id="dashboardContents" hidden>
+      <div class="demo-controls">
+        <label for="dashboardSplit">Evaluation window</label>
+        <select id="dashboardSplit"><option value="test" selected>Held-out test</option><option value="validation">Validation</option></select>
+        <span class="demo-small">Source: frozen synthetic results from research PR #52 · 300 hosts · seed 0</span>
+      </div>
+      <div class="demo-stats" id="dashboardStats" aria-label="Experiment summary"></div>
+      <div class="viz-grid">
+        <article class="viz-panel">
+          <h3>Neighborhood preservation</h3>
+          <p>Consistency@k versus held-out behavioral neighbors. Reference ceiling excluded.</p>
+          <div id="chartConsistency"></div>
+          <div class="demo-legend" id="consistencyLegend"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Future link prediction</h3>
+          <p>ROC-AUC: raw cosine similarity versus a validation-trained scorer (when available). Chance = 0.5.</p>
+          <div id="chartLinks"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Shared-peer similarity</h3>
+          <p>Pair ROC-AUC against sampled structural-proxy judgments, not true host-role labels.</p>
+          <div id="chartPairs"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Temporal host identity</h3>
+          <p>Top-1 same-host retrieval on the test window, after alignment versus raw coordinates. Chance shown.</p>
+          <div id="chartIdentity"></div>
+        </article>
+        <article class="viz-panel wide">
+          <h3>Host embedding map</h3>
+          <p>PCA of <strong>behavioral</strong> train-window embeddings (300 synthetic hosts). Dot color = per-host Consistency@10 on held-out test; hover for ID and score. Not a geographic map.</p>
+          <div id="chartHosts"></div>
+          <div class="demo-legend"><span><span class="legend-dot" style="background:#7098c2"></span>Low agreement</span><span><span class="legend-dot" style="background:#54d4ad"></span>High agreement</span><span>Average: <strong id="agreementMean">—</strong></span></div>
+        </article>
+      </div>
+      <h2>Model leaderboard <span class="demo-small">(synthetic experiment)</span></h2>
+      <p>All scores come from the saved evaluation artifacts; missing values remain unavailable, never zero.</p>
+      <div class="demo-table-wrap"><table class="demo-table" id="snapshotBoard"></table></div>
+      <div class="demo-footnote">
+        <strong>Not evaluated here:</strong> <span id="missingMethods">—</span>. The reference ceiling uses held-out features by construction and is not a deployable model. These synthetic results cannot establish performance on LANL.
+        <span class="demo-small"> · <a href="https://github.com/CorgCode/pt-project/pull/52" style="color:#a8e6d0">Research dashboard source</a></span>
+      </div>
+    </div>
+  </section>
+  <hr class="demo-separator" />
+  <h2>Upload your own CSV · separate toy playground</h2>
+  <p>This older browser-only evaluator uses a different, generated 300-host reference. Its scores must <strong>not</strong> be compared with the research snapshot above.</p>
   <div class="upload">
     <div class="row">
       <input id="file" type="file" accept=".csv,text/csv" />
