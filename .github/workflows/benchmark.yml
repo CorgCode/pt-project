@@ -63,7 +63,7 @@ jobs:
           python -m pipeline.reference --processed-dir "$RUNNER_TEMP/processed" --output-dir "$RUNNER_TEMP/pipeline_reference"
 
       - name: End-to-end experiment smoke test (synthetic fixture)
-        run: python -m experiments.end_to_end --fixture --n-hosts 120 --bootstrap 20 --workdir "$RUNNER_TEMP/e2e"
+        run: python -m experiments.end_to_end --fixture --n-hosts 120 --bootstrap 20 --methods all --fast-methods --workdir "$RUNNER_TEMP/e2e"
 
       - name: Generate and validate baseline embeddings (synthetic reference)
         run: |
