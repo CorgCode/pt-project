@@ -60,13 +60,24 @@ def _ci(result: dict, name: str, ci) -> None:
 
 def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | None = None,
         n_boot: int = 0, seed: int = 0, fit_reference_dir: Path | None = None) -> dict:
-    emb = load_embeddings(embeddings_path, "host_id", "emb_")
+    emb_full = load_embeddings(embeddings_path, "host_id", "emb_")
+    emb = emb_full
     reference_dir = Path(reference_dir)
+    eval_file = reference_dir / "eval_hosts.csv"
+    if eval_file.exists():
+        # The reference covers the hosts evaluable in its target window; score exactly those hosts.
+        eval_hosts = pd.read_csv(eval_file, dtype={"host_id": str})["host_id"].tolist()
+        absent = sorted(set(eval_hosts) - set(emb_full.index))
+        if absent:
+            raise ValueError(f"embedding lacks {len(absent)} evaluable hosts (e.g. {absent[:5]}); "
+                             "every method must embed the whole cohort")
+        emb = emb_full.loc[eval_hosts]
     manifest_file = reference_dir / "manifest.json"
     protocol = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.exists() else {}
     split = split or protocol.get("split", "test")
     result: dict = {
         "method": method, "submission": str(embeddings_path), "n_hosts": int(len(emb)),
+        "n_embedded_hosts": int(len(emb_full)),
         "split": split, "n_bootstrap": n_boot, "seed": seed,
         "metrics": {}, "metrics_ci": {}, "metric_details": {},
         "metric_status": {}, "unavailable_metrics": [],
@@ -81,6 +92,11 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
         "train_end_utc": protocol.get("train_end_utc"), "test_start_utc": protocol.get("test_start_utc"),
         "data_kind": protocol.get("data_kind", "unspecified"),
         "synthetic": protocol.get("synthetic"),
+        "real_lanl_declared": protocol.get("real_lanl_declared"),
+        "provenance_verified_by_pipeline": protocol.get("provenance_verified", False),
+        "cohort_policy": protocol.get("cohort_policy"),
+        "n_cohort": protocol.get("n_cohort"), "n_evaluable": protocol.get("n_evaluable"),
+        "evaluable_coverage": protocol.get("coverage"),
         "target_window": protocol.get("target_window"), "source_window": protocol.get("source_window"),
         "cohort_sha256": protocol.get("cohort_sha256"),
         "labels_source": protocol.get("labels_source"),
@@ -154,17 +170,27 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
     if pairs_file.exists():
         pairs = load_pairs(pairs_file)
         j = protocol.get("judgments") or {}
-        denom = (j.get("n_positive_pairs", 0) + j.get("n_negative_pairs", 0))
-        natural = j["n_positive_pairs"] / denom if denom and j.get("n_positive_pairs") else None
-        a = pair_auc(emb, pairs, split, natural_prevalence=natural, n_boot=n_boot, seed=seed)
+        n_pos, n_neg = j.get("n_positive_pairs", 0), j.get("n_negative_pairs", 0)
+        judged_prev = n_pos / (n_pos + n_neg) if n_pos and n_neg else None
+        a = pair_auc(emb, pairs, split, judged_prevalence=judged_prev, n_boot=n_boot, seed=seed)
         m = result["metrics"]
         m["pair_roc_auc"], m["pair_pr_auc"], m["pair_pr_auc_lift"] = a["roc_auc"], a["pr_auc"], a["pr_auc_lift"]
-        if "pr_auc_at_natural_prevalence" in a:
-            m["pair_pr_auc_at_natural_prevalence"] = a["pr_auc_at_natural_prevalence"]
+        if "pr_auc_at_judged_prevalence" in a:
+            m["pair_pr_auc_at_judged_prevalence"] = a["pr_auc_at_judged_prevalence"]
         _ci(result, "pair_roc_auc", a["roc_auc_ci"])
         _ci(result, "pair_pr_auc", a["pr_auc_ci"])
-        result["metric_details"]["pairwise_auc"] = {k: a[k] for k in
-                                                    ("n_pairs", "n_positive", "positive_rate", "split") }
+        n_possible = j.get("n_possible_pairs")
+        result["metric_details"]["pairwise_auc"] = {
+            **{k: a[k] for k in ("n_pairs", "n_positive", "positive_rate", "split")},
+            "judged_population_prevalence": judged_prev,
+            "population_positive_rate": (n_pos / n_possible) if n_possible else None,
+            "unjudged_share": (j.get("n_unjudged_pairs", 0) / n_possible) if n_possible else None,
+            "interpretation": (
+                "Relevance is judged only for pairs with peer-set Jaccard >= tau (positive) or == 0 (negative). "
+                "judged_population_prevalence is the positive rate AMONG JUDGED pairs; the unjudged pairs "
+                "(0 < J < tau) are excluded, so it is not the positive rate of all host pairs "
+                "(population_positive_rate) and pair_pr_auc_at_judged_prevalence is a conditional AP, "
+                "not a population AP.")}
         pr = precision_recall_at_k(emb, pairs, RETRIEVAL_KS, split, n_boot=n_boot, seed=seed)
         for k, e in pr["by_k"].items():
             if e["eligible_anchors"]:

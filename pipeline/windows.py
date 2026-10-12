@@ -5,6 +5,14 @@ as the `Time` column; the LANL page does not define a calendar origin). Required
 
     train < validation (optional) < test        -- strictly ordered, non-overlapping
 
+Cohort policy (which hosts are evaluated):
+- train_only (default): the cohort is every host active in the TRAIN window; a host is
+  *evaluable* in a later window only if it is also active there. Metrics are computed on the
+  evaluable hosts and the coverage is reported, so no future information decides who is in.
+- all_windows: the cohort is the hosts active in EVERY window. Future activity influences
+  inclusion (a transductive "stable-host" benchmark): scores condition on host survival and
+  overstate persistence/identity/link-persistence for prospective use. Kept for comparison only.
+
 Rules:
 - train is the ONLY window models may fit on; validation is for tuning choices;
   test is for final reporting. Reference artifacts are built from later windows.
@@ -22,6 +30,7 @@ from pathlib import Path
 import numpy as np
 
 ORDER = ("train", "validation", "test")
+COHORT_POLICIES = ("train_only", "all_windows")
 
 
 @dataclass(frozen=True)
@@ -31,6 +40,7 @@ class PipelineConfig:
     min_cohort_size: int = 25
     drop_straddling: bool = True
     seed: int = 0
+    cohort_policy: str = "train_only"
 
     def __post_init__(self) -> None:
         names = set(self.windows)
@@ -46,6 +56,8 @@ class PipelineConfig:
             if previous_end is not None and start < previous_end:
                 raise ValueError(f"Window {name} overlaps or precedes the previous window")
             previous_end = end
+        if self.cohort_policy not in COHORT_POLICIES:
+            raise ValueError(f"cohort_policy must be one of {COHORT_POLICIES}")
         if self.min_events_per_window < 1 or self.min_cohort_size < 22:
             raise ValueError("min_events_per_window >= 1 and min_cohort_size >= 22 "
                              "(k=20 needs more than 21 hosts)")
@@ -58,7 +70,8 @@ class PipelineConfig:
         return {"windows": {k: list(v) for k, v in self.windows.items()},
                 "min_events_per_window": self.min_events_per_window,
                 "min_cohort_size": self.min_cohort_size,
-                "drop_straddling": self.drop_straddling, "seed": self.seed}
+                "drop_straddling": self.drop_straddling, "seed": self.seed,
+                "cohort_policy": self.cohort_policy}
 
     @classmethod
     def from_json(cls, path: Path) -> "PipelineConfig":
@@ -68,7 +81,7 @@ class PipelineConfig:
         except (KeyError, TypeError, ValueError, IndexError) as exc:
             raise ValueError('config needs {"windows": {"train": [start, end], ...}}') from exc
         extra = {k: raw[k] for k in ("min_events_per_window", "min_cohort_size",
-                                     "drop_straddling", "seed") if k in raw}
+                                     "drop_straddling", "seed", "cohort_policy") if k in raw}
         return cls(windows=windows, **extra)
 
 
