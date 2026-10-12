@@ -39,7 +39,8 @@ from evaluation.uncertainty import bootstrap_ci
 
 KS = (5, 10, 20)
 RETRIEVAL_KS = (1, 3, 5)
-REFERENCE_FILES = ("features.csv", "neighbors.csv", "edges.csv", "pairs.csv", "triplets.csv", "labels.csv")
+REFERENCE_FILES = ("features.csv", "neighbors.csv", "edges.csv", "pairs.csv", "triplets.csv", "labels.csv",
+                   "eval_hosts.csv")
 REQUIRED = ("knn_consistency", "future_link_prediction", "pairwise_roc_auc", "pairwise_pr_auc",
             "precision_at_k", "recall_at_k", "triplet_accuracy", "linear_probe")
 

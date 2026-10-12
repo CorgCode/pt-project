@@ -32,6 +32,9 @@ def _row_normalize(x: pd.DataFrame) -> pd.DataFrame:
     return x.div(s, axis=0)
 
 
+BLOCKS = ("volume", "peers", "ratio", "ports", "proto", "hourly")
+
+
 def build_reference_features(
     flows: pd.DataFrame,
     hosts: list | None = None,
@@ -39,12 +42,18 @@ def build_reference_features(
     weights: dict | None = None,
     fitted: dict | None = None,
     return_fitted: bool = False,
+    exclude_blocks: tuple[str, ...] = (),
 ):
     """Hand-crafted behavioural profile per host, one row per host.
 
     fitted / return_fitted: fit the standardisation, the port list and the protocol list on
     one window (return_fitted=True returns (features, fitted)) and reuse them on another
     window (fitted=...), so both windows live in ONE coordinate system.
+
+    exclude_blocks: feature blocks to drop ENTIRELY (they are not even computed), e.g. ("ports",) for a
+    port-free profile. Every block is standardised and normalised on its own, so the kept columns are
+    identical to the same columns of the full profile (tested). A `fitted` state remembers what was
+    excluded and refuses to be applied with a different setting.
 
     `flows` columns: src, dst, dst_port, proto, bytes, packets, ts (datetime or
     unix seconds). Blocks (each scaled to equal norm, then weighted):
@@ -61,6 +70,15 @@ def build_reference_features(
     *identity* is excluded by default for this reason: graph embeddings
     (node2vec etc.) trained on the same communication graph would reproduce it.
     """
+    exclude = tuple(sorted(set(exclude_blocks)))
+    unknown = set(exclude) - set(BLOCKS)
+    if unknown:
+        raise ValueError(f"unknown block(s) {sorted(unknown)}; blocks are {BLOCKS}")
+    if len(exclude) == len(BLOCKS):
+        raise ValueError("cannot exclude every block")
+    if fitted is not None and tuple(fitted.get("excluded", ())) != exclude:
+        raise ValueError(f"fitted state was built with excluded blocks {tuple(fitted.get('excluded', ()))}, "
+                         f"not {exclude}")
     f = flows.copy()
     if not np.issubdtype(f["ts"].dtype, np.datetime64):
         f["ts"] = pd.to_datetime(f["ts"], unit="s")
@@ -91,17 +109,23 @@ def build_reference_features(
         return _row_normalize(both.groupby(["h", col]).size().unstack(fill_value=0)
                               .reindex(idx).fillna(0.0))
 
-    port_list = (fitted["ports"] if fitted is not None
-                 else list(f["dst_port"].value_counts().head(top_ports).index))
-    ports = dist("dst_port", port_list)
-    proto = dist("proto")
-    if fitted is not None:
-        ports = ports.reindex(columns=port_list, fill_value=0.0)
-        proto = proto.reindex(columns=fitted["protos"], fill_value=0.0)
-    hourly = _row_normalize(pd.concat([
-        f[["src", "hour"]].rename(columns={"src": "h"}),
-        f[["dst", "hour"]].rename(columns={"dst": "h"})]).groupby(["h", "hour"]).size()
-        .unstack(fill_value=0).reindex(index=idx, columns=range(24)).fillna(0.0))
+    ports = proto = hourly = None
+    port_list = []
+    if "ports" not in exclude:
+        port_list = (fitted["ports"] if fitted is not None
+                     else list(f["dst_port"].value_counts().head(top_ports).index))
+        ports = dist("dst_port", port_list)
+        if fitted is not None:
+            ports = ports.reindex(columns=port_list, fill_value=0.0)
+    if "proto" not in exclude:
+        proto = dist("proto")
+        if fitted is not None:
+            proto = proto.reindex(columns=fitted["protos"], fill_value=0.0)
+    if "hourly" not in exclude:
+        hourly = _row_normalize(pd.concat([
+            f[["src", "hour"]].rename(columns={"src": "h"}),
+            f[["dst", "hour"]].rename(columns={"dst": "h"})]).groupby(["h", "hour"]).size()
+            .unstack(fill_value=0).reindex(index=idx, columns=range(24)).fillna(0.0))
 
     w = {"volume": 1.0, "peers": 1.0, "ratio": 1.0, "ports": 1.0, "proto": 0.5, "hourly": 1.0}
     w.update(weights or {})
@@ -109,6 +133,8 @@ def build_reference_features(
               "ports": ports, "proto": proto, "hourly": hourly}
     parts, scalers = [], {}
     for name, b in blocks.items():
+        if name in exclude:
+            continue
         if fitted is not None:
             sc = fitted["scalers"][name]
             z = sc.transform(b.values)
@@ -122,7 +148,8 @@ def build_reference_features(
     features = pd.concat(parts, axis=1)
     if return_fitted:
         state = fitted if fitted is not None else {
-            "ports": port_list, "protos": list(proto.columns), "scalers": scalers}
+            "ports": port_list, "protos": list(proto.columns) if proto is not None else [],
+            "scalers": scalers, "excluded": exclude}
         return features, state
     return features
 

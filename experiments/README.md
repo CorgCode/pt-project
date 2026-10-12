@@ -44,3 +44,14 @@ report. These declarations cannot be verified by code. Expected methods that wer
 (node2vec, deepwalk, graphsage, struc2vec, rolx) are listed as missing, never simulated.
 
 Read `docs/METHODOLOGY.md` before interpreting any number.
+
+## Feature ablation (port-free baseline, issue #43)
+
+```bash
+python -m experiments.feature_ablation --processed-dir data/processed --reference-dir data/reference --out-dir runs/ablation
+```
+
+Compares the behavioural profile with and without each feature block on identical hosts, windows and references; writes
+`ablation.json` and `ablation.md` (paired confidence intervals for full vs port-free, leave-one-block-out table, a
+port-free-reference diagnostic, and the methodological implications). The report carries the data-kind banner
+(synthetic / unverified / declared LANL).

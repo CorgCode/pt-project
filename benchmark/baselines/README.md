@@ -52,3 +52,12 @@ Do not commit synthetic references, generated embeddings or results as real benc
 ```bash
 python -m pytest -q
 ```
+
+
+## Port-free behavioural baseline (issue #43)
+
+`temporal.py` also provides `BehavioralPortFree` and `BehavioralPortFreePCA` (names `behavioral_portfree`,
+`behavioral_portfree_pca`): the train-window behavioural profile with the port block removed entirely. They are
+off by default; `--port-free-baselines` (in `experiments.run_experiment` / `end_to_end`) adds them as extra rows on the
+same references, hosts and windows. The full feature ablation (every block, paired intervals, a port-free-reference
+diagnostic and the methodological caveats) is `python -m experiments.feature_ablation`; see `docs/METHODOLOGY.md` 4.12.

@@ -157,6 +157,28 @@ only later windows, train embeddings of every baseline are identical). Environme
 `provenance.json` (`{"trained_on_windows": ["train"]}`); a declaration that includes a later window is refused,
 and a missing declaration is flagged as *undeclared* in the report.
 
+**4.12 Port-free behavioural baseline and feature ablation (issue #43).** The behavioural profile has six
+blocks (volume, peers, ratio, ports, proto, hourly); only `ports` is derived from port fields (`proto` is the
+protocol number). `exclude_blocks=("ports",)` removes the block entirely (it is not computed; a test shuffles the
+port column and the port-free features are bit-for-bit unchanged) and, because every block is standardised on its
+own, the kept columns equal the full profile's. `behavioral_portfree` / `behavioral_portfree_pca` are added with
+`--port-free-baselines`; `python -m experiments.feature_ablation` compares `full`, `no_ports` and every
+leave-one-block-out variant on the **same** hosts, windows and frozen references (file hashes recorded), with paired
+host-level intervals. What it means:
+* The standard kNN reference *contains* the port block (~18% of the profile's squared weight), so the full baseline
+  shares information with it by construction; a kNN gap is overlap, not representation quality. The shared-peer pair /
+  triplet references and the link candidates contain no ports, so there the ablation measures what service identity
+  adds to structural and predictive signal.
+* A diagnostic rebuilds the kNN reference without ports (analysis only: different fingerprint, never mixed into the
+  leaderboard). If the gap vanishes there, it was port overlap.
+* Synthetic fixture only, where ports are informative **by construction** (role-specific ports): full vs port-free,
+  kNN@10 0.280 vs 0.272 (paired difference +0.008, 95% CI [-0.000, +0.016]); pair AUC 0.907 vs 0.885 (+0.022
+  [+0.006, +0.042]); cosine link AUC 0.478 vs 0.457 (+0.021 [+0.015, +0.027]); triplet 0.918 vs 0.887 (+0.031
+  [0.000, +0.072]). Against the port-free reference the full baseline has no advantage (-0.004 [-0.013, +0.004]), and
+  the two references' neighbours agree at Consistency@10 = 0.77 (chance 0.033). Reading: on this fixture the kNN
+  proxy depends only weakly on ports (the other blocks carry most of the behaviour), while ports add measurable
+  structural signal. Nothing follows for LANL, where non-well-known ports are anonymised `PortNNNN` tokens.
+
 ## 5. Results on the synthetic fixture (not LANL)
 
 Test reference, 300 hosts, dim 16, seed 0 (full tables, CIs and plots: `demo/synthetic_run/report.md`):

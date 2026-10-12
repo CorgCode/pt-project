@@ -33,7 +33,7 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
                labels_source: str | None = None, overwrite: bool = False, data_kind: str | None = None,
                source_note: str | None = None, cohort_policy: str | None = None,
                methods: list[str] | None = None, method_config: dict | None = None,
-               fast_methods: bool = False) -> dict:
+               fast_methods: bool = False, port_free_baselines: bool = False) -> dict:
     workdir = Path(workdir)
     if fixture:
         raw = workdir / "fixture"
@@ -49,7 +49,8 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
                     pairs_per_anchor=pairs_per_anchor, labels=labels, labels_source=labels_source)
     return run_experiment(workdir / "processed", workdir / "reference", workdir / "run", dim=dim, seed=seed,
                           n_boot=n_boot, submissions_dir=submissions_dir, methods=methods,
-                          method_config=method_config, fast_methods=fast_methods)
+                          method_config=method_config, fast_methods=fast_methods,
+                          port_free_baselines=port_free_baselines)
 
 
 def main() -> None:
@@ -73,13 +74,14 @@ def main() -> None:
     ap.add_argument("--methods", nargs="+", default=None, help="graph-embedding methods (see benchmark/methods)")
     ap.add_argument("--method-config", default=None, help="JSON or JSON file: {method: {param: value}}")
     ap.add_argument("--fast-methods", action="store_true", help="tiny hyper-parameters (smoke tests only)")
+    ap.add_argument("--port-free-baselines", action="store_true", help="also run the port-free behavioural baselines (#43)")
     a = ap.parse_args()
     m = end_to_end(a.workdir, netflow=a.netflow, config=PipelineConfig.from_json(a.config) if a.config else None,
                    fixture=a.fixture, n_hosts=a.n_hosts, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                    submissions_dir=a.submissions_dir, labels=a.labels, labels_source=a.labels_source,
                    overwrite=a.overwrite, data_kind=a.data_kind, source_note=a.source_note,
                    cohort_policy=a.cohort_policy, methods=a.methods,
-                   method_config=_load_config(a.method_config), fast_methods=a.fast_methods)
+                   method_config=_load_config(a.method_config), fast_methods=a.fast_methods, port_free_baselines=a.port_free_baselines)
     print(json.dumps({k: m[k] for k in ("data_kind", "n_hosts", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.workdir / 'run' / 'report.md'}")
 
