@@ -37,6 +37,13 @@ jobs:
       - name: Validate GitHub Pages visualizations and snapshot data
         run: python docs/check_pages.py
 
+      - name: Browser smoke test GitHub Pages (no upload required)
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+          python docs/browser_check.py
+
+
       - name: Validate example submission
         run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
 
