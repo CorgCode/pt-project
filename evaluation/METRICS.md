@@ -18,6 +18,10 @@ Behavioural proxy ≠ structural proxy ≠ future links ≠ identity ≠ functio
 speaks about roles, and only if real external labels exist. None are generated.
 
 Similarity is cosine, matched by `host_id`; ties and zero vectors are handled explicitly.
+Hosts: the evaluator scores exactly the hosts in the reference's `eval_hosts.csv` (the hosts evaluable in
+the target window under the `train_only` cohort policy; the whole cohort otherwise). An embedding must cover
+all of them (an error otherwise); extra hosts are ignored. Coverage is reported in `reference_info`.
+
 Default evaluation split: the one declared by the reference manifest (`test`, or `validation`
 for `reference/validation`). Tune on validation, report on test.
 
@@ -34,7 +38,8 @@ Averaged over hosts. Chance Consistency@k ≈ k/(n-1). Source: `evaluation/knn_c
 target window; negative = sampled pair with none (ratio `negatives_per_positive`, seeded, once).
 Score `s(a,b)`; ROC-AUC and average precision. Additional, because sampling distorts prevalence:
 `PR-AUC lift = AP / sampled positive rate`; `PR-AUC@natural prevalence` reweights negatives so
-the pool has the natural positive rate (target positives / all cohort pairs); and a **new-links**
+the pool has the natural positive rate (target positives / all pairs of the evaluable hosts; every pair is
+either linked or not in the window, so this denominator is the full pair population); and a **new-links**
 view restricted to candidates unseen in the source window (persisting links are much easier).
 "No flow observed" ≠ "impossible link". Negatives are uniform random pairs, i.e. easy.
 
@@ -49,8 +54,13 @@ never informs the alignment). `python -m evaluation.identity_retrieval --embeddi
 **4. Pair ROC-AUC / PR-AUC.** Over judged pairs of the split. Labels: positive = target-window
 peer-set Jaccard ≥ τ (τ = max(0.1, 99th percentile of pairwise Jaccard) unless fixed),
 negative = Jaccard 0. Pairs in between are *unjudged* and are not in the file.
-Prevalence reporting as in (2) (`pr_auc_lift`, `pr_auc_at_natural_prevalence`, the latter from
-judged positive/negative counts over the whole cohort).
+Prevalence reporting: `pr_auc_lift` (AP / sampled positive rate) and
+`pair_pr_auc_at_judged_prevalence`, the AP reweighted to the positive rate **among all judged pairs**
+(`judged_population_prevalence` = positives / (positives + negatives) from the manifest).
+This is a *conditional* quantity: it describes pairs the rule can judge. Unjudged pairs - the vast
+majority in a sparse network - are outside its support, so it is **not** a population AP and the judged
+prevalence is **not** the positive rate of all host pairs; that is reported separately as
+`population_positive_rate` (= positives / all possible pairs) together with `unjudged_share`.
 
 **5. Triplet Accuracy.** `TA = mean[ 1{s(a,p) > s(a,n)} + 0.5·1{s(a,p) = s(a,n)} ]`; chance 0.5.
 Distinct hosts required; missing hosts are an error.
