@@ -4,13 +4,16 @@ Real implementations of the graph-embedding algorithms of issue #20, in numpy / 
 gensim, no torch), so CI stays light and results are exactly reproducible (multi-worker word2vec is not).
 Every method follows the benchmark's temporal protocol and is selected with `--methods`.
 
-| method | algorithm | status |
+| method | algorithm | notes |
 |---|---|---|
-| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | this PR |
-| `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | separate PR |
-| `rolx` | ReFeX recursive structural features + NMF roles (Henderson et al., KDD 2012) | separate PR |
-| `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | separate PR |
-| `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | separate PR |
+| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | below |
+| `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | `node2vec.md` |
+| `rolx` | ReFeX recursive structural features + NMF roles (Henderson et al., KDD 2012) | `rolx.md` |
+| `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | `struc2vec.md` |
+| `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | `graphsage.md` |
+
+The shared layer and DeepWalk come first; each other method is added by its own pull request (issue #20) together with
+its notes file, and `--methods` accepts exactly the methods present in the checked-out tree.
 
 ## Use
 
