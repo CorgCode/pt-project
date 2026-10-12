@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from pipeline.windows import ORDER
+
 FLOW_DTYPES = {"src": "string", "dst": "string", "dst_port": "string", "proto": "string",
                "src_port": "string"}
 
@@ -45,7 +47,8 @@ class ProcessedData:
 
     @property
     def windows(self) -> list[str]:
-        return list(self.manifest["windows"])
+        """Window names in chronological order (train, validation, test)."""
+        return [w for w in ORDER if w in self.manifest["windows"]]
 
     def flows(self, window: str) -> pd.DataFrame:
         """Canonical flows of one window (any window; prefer training_flows for model fitting)."""

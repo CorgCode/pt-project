@@ -89,6 +89,21 @@ Prefer **Squash merge** for task branches.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full team workflow.
 
+## End-to-end workflow
+
+```text
+raw LANL netflow ──pipeline.prepare──▶ windows, cohort, graphs ──pipeline.reference──▶ frozen references
+      ──experiments.run_experiment──▶ all methods × all metrics ──▶ leaderboard, audit, report ──▶ dashboard
+```
+
+```bash
+python -m experiments.end_to_end --fixture --workdir runs/demo        # synthetic smoke test
+python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config cfg.json --workdir runs/lanl
+```
+
+Docs: [`pipeline/README.md`](pipeline/README.md) (data), [`evaluation/METRICS.md`](evaluation/METRICS.md)
+(metrics), [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (validity audit), [`experiments/README.md`](experiments/README.md).
+
 ## Repository rules
 
 The `main` branch is protected:

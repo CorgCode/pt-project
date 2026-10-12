@@ -145,3 +145,28 @@ def test_identity_cli(cohort, tmp_path):
     res = json.loads(out.read_text())
     assert res["none"]["top1"] > 0.9 and res["procrustes"]["top1"] > 0.9
     assert res["shared_coordinate_system_declared"] is True
+
+
+# ---------------------------------------------------------------- learned link scorer
+def test_learned_link_scorer_fit_on_earlier_window_only(reference, cohort, tmp_path):
+    from evaluation.future_links import load_candidate_edges, persistence_baseline, score_learned
+    emb = pd.DataFrame(np.random.default_rng(0).normal(size=(len(cohort), 6)), index=cohort)
+    val = load_candidate_edges(reference / "validation" / "edges.csv")
+    test = load_candidate_edges(reference / "test" / "edges.csv")
+    r = score_learned(emb, val, test, fit_split="validation", eval_split="test")
+    assert 0.4 < r["roc_auc"] < 0.6 and r["n_fit"] == len(val) and r["n_eval"] == len(test)
+    with pytest.raises(ValueError, match="temporal leakage"):          # fit on the LATER window
+        score_learned(emb, test, val, fit_split="test", eval_split="validation")
+    with pytest.raises(ValueError, match="before the evaluation window"):
+        score_learned(emb, test, test, fit_split="test", eval_split="test")
+    p = persistence_baseline(test, "test")
+    assert p["roc_auc"] > 0.55                                          # persistence carries real signal
+
+
+def test_evaluator_reports_learned_link_score_and_fingerprints_fit_reference(reference, cohort, tmp_path):
+    e = random_emb(cohort, tmp_path)
+    plain = run(e, reference / "test", "m")
+    fitted = run(e, reference / "test", "m", fit_reference_dir=reference / "validation")
+    assert "link_learned_roc_auc" not in plain["metrics"] and "link_learned_roc_auc" in fitted["metrics"]
+    assert fitted["reference_info"]["fit_reference_files_sha256"]["edges.csv"]
+    assert fitted["metric_details"]["future_link_prediction"]["persistence_baseline"]["roc_auc"] > 0.5

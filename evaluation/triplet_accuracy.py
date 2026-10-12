@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from evaluation.io import ReferenceError, cosine_pairs, read_reference_table, select_split
-from evaluation.uncertainty import bootstrap_ci
+from evaluation.uncertainty import dyadic_bootstrap_ci, host_index
 
 SPLITS = {"train", "validation", "test"}
 
@@ -61,6 +61,8 @@ def triplet_accuracy(emb: pd.DataFrame, triplets: pd.DataFrame, split: str = "te
         "split": split,
         "chance": 0.5,
     }
-    ci = bootstrap_ci(lambda i: float(score[i].mean()), len(score), n_boot=n_boot, seed=seed)
-    out["accuracy_ci"] = ci
+    cols, n = host_index(t.anchor, t.positive, t.negative)
+    out["accuracy_ci"] = dyadic_bootstrap_ci(lambda w: float(np.average(score, weights=w)), cols, n,
+                                             n_boot=n_boot, seed=seed)
+    out["ci_method"] = "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
     return out

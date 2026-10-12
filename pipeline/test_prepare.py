@@ -130,3 +130,7 @@ def test_describe_reports_time_range(raw_fixture):
     out = describe(sorted(raw_fixture.glob("*.bz2")))
     assert len(out["files"]) == 3 and out["files"][0]["min_time"] >= 0
     assert out["files"][0]["n_hosts"] > 0
+
+
+def test_windows_are_chronological_regardless_of_json_key_order(processed):
+    assert ProcessedData(processed).windows == ["train", "validation", "test"]
