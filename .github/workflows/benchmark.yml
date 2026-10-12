@@ -5,6 +5,7 @@ on:
     paths:
       - "benchmark/**"
       - "evaluation/**"
+      - "pipeline/**"
       - "app/**"
       - "docs/**"
       - "submissions/**"
@@ -15,6 +16,7 @@ on:
     paths:
       - "benchmark/**"
       - "evaluation/**"
+      - "pipeline/**"
       - "app/**"
       - "docs/**"
       - "submissions/**"
@@ -48,7 +50,15 @@ jobs:
         run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
 
       - name: Run evaluation tests
-        run: python -m pytest -q evaluation benchmark app
+        run: python -m pytest -q evaluation benchmark app pipeline
+
+      - name: Pipeline smoke test (synthetic LANL-format fixture)
+        run: |
+          python -m pipeline.fixtures --output-dir "$RUNNER_TEMP/fixture" --n-hosts 100
+          python -m pipeline.prepare describe --netflow "$RUNNER_TEMP"/fixture/netflow_day-*.bz2 > /dev/null
+          python -m pipeline.prepare run --netflow "$RUNNER_TEMP"/fixture/netflow_day-*.bz2 \
+            --config pipeline/example_config.json --output-dir "$RUNNER_TEMP/processed"
+          python -m pipeline.reference --processed-dir "$RUNNER_TEMP/processed" --output-dir "$RUNNER_TEMP/pipeline_reference"
 
       - name: Generate and validate baseline embeddings (synthetic reference)
         run: |

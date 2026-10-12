@@ -1,0 +1,12 @@
+{
+  "windows": {
+    "train": [0, 21600],
+    "validation": [21600, 32400],
+    "test": [32400, 43200]
+  },
+  "min_events_per_window": 5,
+  "min_cohort_size": 25,
+  "drop_straddling": true,
+  "seed": 0,
+  "cohort_policy": "train_only"
+}

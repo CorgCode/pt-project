@@ -126,7 +126,14 @@ def build_edges(
         (a, b, source_window, target_window, 0, split)
         for a, b in sorted(negatives)
     ]
-    return pd.DataFrame(rows, columns=FIELDS)
+    out = pd.DataFrame(rows, columns=FIELDS)
+    # Persisting links (already seen in the source window) are far easier to predict
+    # than genuinely new ones; keep the flag so both can be reported separately.
+    seen = observed_edges(source, population)
+    out["seen_in_source"] = [
+        _pair(a, b) in seen for a, b in zip(out["host_a"], out["host_b"])
+    ]
+    return out
 
 
 def load_candidate_edges(file: Path) -> pd.DataFrame:

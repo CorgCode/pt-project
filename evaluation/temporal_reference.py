@@ -79,6 +79,7 @@ def generate_reference(
     hosts: list[str],
     output_dir: Path,
     ks: tuple[int, ...] = (5, 10, 20),
+    split: str = "test",
 ) -> dict:
     """Write features.csv and manifest.json for a strict temporal holdout.
 
@@ -126,7 +127,7 @@ def generate_reference(
         reference, output_dir / "neighbors.csv",
         reference_window=test_start.isoformat() + "Z"
         + "/" + test["ts"].max().isoformat() + "Z",
-        k_max=max(ks), split="test",
+        k_max=max(ks), split=split,
     )
 
     manifest = {
@@ -143,6 +144,7 @@ def generate_reference(
         "test_events": int(len(test)),
         "train_end_utc": train_end.isoformat() + "Z",
         "test_start_utc": test_start.isoformat() + "Z",
+        "split": split,
         "n_hosts": len(hosts),
         "reference_dimensions": reference.shape[1],
         "ks": list(ks),
