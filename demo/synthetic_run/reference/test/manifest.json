@@ -1,0 +1,100 @@
+{
+  "chance_consistency_at_k": {
+    "10": 0.033444816053511704,
+    "20": 0.06688963210702341,
+    "5": 0.016722408026755852
+  },
+  "cohort_sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1",
+  "data_kind": "synthetic_fixture",
+  "files_sha256": {
+    "edges.csv": "7811ffc96a1e2b6310e5fefdf310c554ca7273b28a1b65e54d0deb3367771ba3",
+    "features.csv": "fde28e85fa6e2177c607063649a3683b7ab5d1b31e2af5c6455117ed6047fac7",
+    "neighbors.csv": "8e07551ca89d01dfa48c306cc3f018ecab9716b9d421c2376f9c3bfbf6139283",
+    "pairs.csv": "01d5f5efcd5b710cf02aa27e086ecca77c06d78cccbd89d4cb6e13f7cb98ac25",
+    "triplets.csv": "171ad68c6eca53df1d77b212094c6f1880a63cbe9bf944ef3b3e2c86aa7772be"
+  },
+  "ground_truth": false,
+  "judgments": {
+    "n_anchors_without_judgments": 0,
+    "n_hosts": 300,
+    "n_negative_pairs": 6024,
+    "n_pairs": 2622,
+    "n_positive_pairs": 450,
+    "n_possible_pairs": 44850,
+    "n_triplets": 887,
+    "n_unjudged_pairs": 38376,
+    "pairs_per_anchor": 10,
+    "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
+    "rule_version": 1,
+    "seed": 0,
+    "tau_pos": 0.1509433962264151,
+    "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
+  },
+  "kind": "heldout_temporal_behavior_proxy",
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "labels": null,
+  "labels_source": null,
+  "n_hosts": 300,
+  "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
+  "pipeline_manifest_sha256": "0b338b41c5f37a94acd98389e51599c274329fb2336111dc28dc54751a9742cf",
+  "provenance_verified": false,
+  "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
+  "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "reference_dimensions": 56,
+  "reference_neighbor_stability": {
+    "consistency@10": 0.28,
+    "consistency@20": 0.4326666666666667,
+    "consistency@5": 0.20333333333333334,
+    "jaccard@10": 0.18656107738151084,
+    "jaccard@20": 0.2958302329218498,
+    "jaccard@5": 0.14592592592592593,
+    "ndcg@10": 0.26438621125753686,
+    "ndcg@20": 0.39911256541368195,
+    "ndcg@5": 0.18103838039246892
+  },
+  "reference_views": {
+    "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
+    "labels.csv": "external labels, only if supplied",
+    "neighbors.csv": "behavioural-profile proxy (target window)",
+    "pairs.csv / triplets.csv": "structural proxy: shared communication peers"
+  },
+  "seed": 0,
+  "source_window": "train",
+  "split": "test",
+  "synthetic": true,
+  "target_window": "test",
+  "test_events": 15562,
+  "test_start_utc": "1970-01-01T09:00:00Z",
+  "train_end_utc": "1970-01-01T05:59:58Z",
+  "train_events": 30881,
+  "windows": {
+    "test": {
+      "end": 43200,
+      "graph_edges": 3723,
+      "max_time": 43198.0,
+      "min_time": 32400.0,
+      "n_flows": 15562,
+      "start": 32400
+    },
+    "train": {
+      "end": 21600,
+      "graph_edges": 5168,
+      "max_time": 21598.0,
+      "min_time": 0.0,
+      "n_flows": 30881,
+      "start": 0
+    },
+    "validation": {
+      "end": 32400,
+      "graph_edges": 3779,
+      "max_time": 32398.0,
+      "min_time": 21600.0,
+      "n_flows": 15286,
+      "start": 21600
+    }
+  }
+}

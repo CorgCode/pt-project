@@ -22,9 +22,10 @@ def main() -> None:
         data = json.loads(path.read_text(encoding="utf-8"))
         info = data.get("reference_info") or {}
         files = info.get("files_sha256")
+        fit_files = info.get("fit_reference_files_sha256")
         # New results fingerprint EVERY reference file; legacy ones only features/neighbors.
         fingerprint = (
-            tuple(sorted(files.items())) if files else
+            (tuple(sorted(files.items())), tuple(sorted((fit_files or {}).items()))) if files else
             (info.get("features_sha256"), info.get("neighbors_sha256"))
         )
         if not any(fingerprint):

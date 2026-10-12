@@ -1,0 +1,281 @@
+{
+  "method": "random",
+  "method_info": {
+    "description": "seeded Gaussian noise; independent draw per window",
+    "fit_windows": [],
+    "name": "random",
+    "shared_coordinate_system": false
+  },
+  "metric_details": {
+    "future_link_prediction": {
+      "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
+      "n_examples": 7558,
+      "n_positive": 3779,
+      "natural_prevalence": 0.08425863991081382,
+      "new_links": {
+        "n_examples": 5301,
+        "n_positive": 1858,
+        "note": "candidates not observed in the source window (new links vs unseen non-links)",
+        "positive_rate": 0.3504999056781739,
+        "pr_auc": 0.3570940356223976,
+        "roc_auc": 0.5089528151376235
+      },
+      "persistence_baseline": {
+        "note": "trivial predictor: pair seen in the source window; embeddings should be read against it",
+        "pr_auc": 0.6784917652915519,
+        "roc_auc": 0.7097115639057952
+      },
+      "positive_rate": 0.5,
+      "share_positives_seen_in_source": 0.5083355385022492,
+      "source_window": "1970-01-01T00:00:00Z/1970-01-01T05:59:58Z",
+      "split": "validation",
+      "target_window": "1970-01-01T06:00:00Z/1970-01-01T08:59:58Z"
+    },
+    "pairwise_auc": {
+      "n_pairs": 820,
+      "n_positive": 162,
+      "positive_rate": 0.1975609756097561,
+      "split": "validation"
+    },
+    "retrieval": {
+      "by_k": {
+        "1": {
+          "chance_precision": 0.339065564065564,
+          "coverage": 0.5838926174496645,
+          "eligible_anchors": 174,
+          "oracle_precision": 1.0,
+          "precision": 0.3448275862068966,
+          "precision_ci": [
+            0.29310344827586204,
+            0.41379310344827586
+          ],
+          "precision_lift": 1.0169938287812041,
+          "recall": 0.2092501368363437,
+          "recall_ci": [
+            0.1715332512315271,
+            0.2659185139573071
+          ]
+        },
+        "3": {
+          "chance_precision": 0.32932579728986916,
+          "coverage": 0.5604026845637584,
+          "eligible_anchors": 167,
+          "oracle_precision": 0.5888223552894212,
+          "precision": 0.3313373253493014,
+          "precision_ci": [
+            0.281437125748503,
+            0.3853293413173652
+          ],
+          "precision_lift": 1.006108018491068,
+          "recall": 0.5396920444824637,
+          "recall_ci": [
+            0.4651671656686627,
+            0.610429498146564
+          ]
+        },
+        "5": {
+          "chance_precision": 0.2744503292122339,
+          "coverage": 0.4228187919463087,
+          "eligible_anchors": 126,
+          "oracle_precision": 0.38730158730158737,
+          "precision": 0.2698412698412699,
+          "precision_ci": [
+            0.23968253968253966,
+            0.3032142857142857
+          ],
+          "precision_lift": 0.9832062166433045,
+          "recall": 0.7177626606198034,
+          "recall_ci": [
+            0.6575713340891913,
+            0.7785780423280424
+          ]
+        }
+      },
+      "judged_anchors": 298,
+      "ks": [
+        1,
+        3,
+        5
+      ],
+      "split": "validation"
+    },
+    "triplet_accuracy": {
+      "chance": 0.5,
+      "n_ties": 0,
+      "n_triplets": 269,
+      "split": "validation"
+    }
+  },
+  "metric_status": {
+    "future_link_prediction": "ok",
+    "knn_consistency": "ok",
+    "linear_probe": "unavailable: labels.csv missing (no external host labels exist; none are fabricated)",
+    "pairwise_pr_auc": "ok",
+    "pairwise_roc_auc": "ok",
+    "precision_at_k": "ok",
+    "recall_at_k": "ok",
+    "triplet_accuracy": "ok"
+  },
+  "metrics": {
+    "consistency@10_mean": 0.03166666666666667,
+    "consistency@10_median": 0.0,
+    "consistency@10_std": 0.05923612595042209,
+    "consistency@20_mean": 0.059333333333333335,
+    "consistency@20_median": 0.05,
+    "consistency@20_std": 0.051689407733063374,
+    "consistency@5_mean": 0.01666666666666667,
+    "consistency@5_median": 0.0,
+    "consistency@5_std": 0.05773502691896259,
+    "jaccard@10_mean": 0.01706341015938539,
+    "jaccard@10_median": 0.0,
+    "jaccard@10_std": 0.03254789743317962,
+    "jaccard@20_mean": 0.031321362869350486,
+    "jaccard@20_median": 0.02564102564102564,
+    "jaccard@20_std": 0.028193696417747206,
+    "jaccard@5_mean": 0.00935185185185185,
+    "jaccard@5_median": 0.0,
+    "jaccard@5_std": 0.03272534315842958,
+    "link_new_pr_auc": 0.3570940356223976,
+    "link_new_roc_auc": 0.5089528151376235,
+    "link_pr_auc": 0.5013812630874731,
+    "link_pr_auc_at_natural_prevalence": 0.0847520209690378,
+    "link_pr_auc_lift": 1.0027625261749462,
+    "link_roc_auc": 0.5010114600393633,
+    "ndcg@10_mean": 0.025908244857641875,
+    "ndcg@10_median": 0.0,
+    "ndcg@10_std": 0.05953027021285793,
+    "ndcg@20_mean": 0.049751767278144975,
+    "ndcg@20_median": 0.0355366750171886,
+    "ndcg@20_std": 0.05623355305880919,
+    "ndcg@5_mean": 0.014803230235438667,
+    "ndcg@5_median": 0.0,
+    "ndcg@5_std": 0.06198284333197427,
+    "pair_pr_auc": 0.19295038602628758,
+    "pair_pr_auc_at_natural_prevalence": 0.0704732510061786,
+    "pair_pr_auc_lift": 0.9766624477873815,
+    "pair_roc_auc": 0.48117190138466737,
+    "precision@1": 0.3448275862068966,
+    "precision@3": 0.3313373253493014,
+    "precision@5": 0.2698412698412699,
+    "precision_lift@1": 1.0169938287812041,
+    "precision_lift@3": 1.006108018491068,
+    "precision_lift@5": 0.9832062166433045,
+    "recall@1": 0.2092501368363437,
+    "recall@3": 0.5396920444824637,
+    "recall@5": 0.7177626606198034,
+    "triplet_accuracy": 0.5278810408921933
+  },
+  "metrics_ci": {
+    "consistency@10_mean": [
+      0.024983333333333337,
+      0.03868333333333334
+    ],
+    "consistency@20_mean": [
+      0.05399166666666667,
+      0.0645
+    ],
+    "consistency@5_mean": [
+      0.010666666666666668,
+      0.023350000000000006
+    ],
+    "jaccard@10_mean": [
+      0.01335245384703589,
+      0.020829950693727783
+    ],
+    "jaccard@20_mean": [
+      0.028433283511456887,
+      0.03408819939934491
+    ],
+    "jaccard@5_mean": [
+      0.006016203703703703,
+      0.013157407407407408
+    ],
+    "link_pr_auc": [
+      0.48510076101738475,
+      0.5140245070592182
+    ],
+    "link_roc_auc": [
+      0.4866053802654005,
+      0.5127264906424897
+    ],
+    "ndcg@10_mean": [
+      0.019141575112137772,
+      0.03222876124770044
+    ],
+    "ndcg@20_mean": [
+      0.043849170889519035,
+      0.05634675560978383
+    ],
+    "ndcg@5_mean": [
+      0.007784514168733972,
+      0.02197314001549103
+    ],
+    "pair_pr_auc": [
+      0.1654026677608822,
+      0.245726671491474
+    ],
+    "pair_roc_auc": [
+      0.4378425903468348,
+      0.5333732029269989
+    ],
+    "precision@1": [
+      0.29310344827586204,
+      0.41379310344827586
+    ],
+    "precision@3": [
+      0.281437125748503,
+      0.3853293413173652
+    ],
+    "precision@5": [
+      0.23968253968253966,
+      0.3032142857142857
+    ],
+    "recall@1": [
+      0.1715332512315271,
+      0.2659185139573071
+    ],
+    "recall@3": [
+      0.4651671656686627,
+      0.610429498146564
+    ],
+    "recall@5": [
+      0.6575713340891913,
+      0.7785780423280424
+    ],
+    "triplet_accuracy": [
+      0.4757434944237918,
+      0.5800185873605948
+    ]
+  },
+  "n_bootstrap": 200,
+  "n_hosts": 300,
+  "reference_info": {
+    "cohort_sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1",
+    "data_kind": "synthetic_fixture",
+    "features_sha256": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
+    "files_sha256": {
+      "edges.csv": "0c5332d6b1262d8c6011c048867ff32361221b0ceb121d843549d1281256a8dc",
+      "features.csv": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
+      "neighbors.csv": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
+      "pairs.csv": "650beb11ab46987ce21e252f02f6b6204d1b988430f4dcb4b4e4f13a8fe317a8",
+      "triplets.csv": "93bdbcb16b0b496e37e477e2ae86dabe4994ca0208cec19ece5102d09dd89f63"
+    },
+    "fit_reference_files_sha256": null,
+    "ground_truth": false,
+    "kind": "heldout_temporal_behavior_proxy",
+    "labels_source": null,
+    "neighbors_sha256": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
+    "provenance_verified": false,
+    "source_window": "train",
+    "synthetic": true,
+    "target_window": "validation",
+    "test_start_utc": "1970-01-01T06:00:00Z",
+    "train_end_utc": "1970-01-01T05:59:58Z"
+  },
+  "seed": 0,
+  "split": "validation",
+  "submission": "<workdir>/run/embeddings/random/train.csv",
+  "unavailable_metrics": [
+    "linear_probe: labels.csv missing (no external host labels exist; none are fabricated)"
+  ]
+}

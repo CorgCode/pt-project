@@ -1,0 +1,55 @@
+{
+  "cohort_sha256": "089c659679394529fdf14cefad0a9ba4c959482c51838721146f8866538677b1",
+  "config": {
+    "bootstrap": 200,
+    "dim": 16,
+    "seed": 0,
+    "targets": [
+      "validation",
+      "test"
+    ]
+  },
+  "data_kind": "synthetic_fixture",
+  "environment": {
+    "git_sha": "a4962500fcdc164708325df9ce30e972e298a2f6",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "python": "3.13.7",
+    "sklearn": "1.9.1"
+  },
+  "external_methods": [],
+  "methods": [
+    "behavioral",
+    "behavioral_pca",
+    "behavioral_svd",
+    "graph_spectral",
+    "random",
+    "reference_ceiling"
+  ],
+  "missing_expected_methods": [
+    "node2vec",
+    "deepwalk",
+    "graphsage",
+    "struc2vec",
+    "rolx"
+  ],
+  "n_hosts": 300,
+  "processed_manifest": "<workdir>/processed/manifest.json",
+  "reference_files_sha256": {
+    "test": {
+      "edges.csv": "7811ffc96a1e2b6310e5fefdf310c554ca7273b28a1b65e54d0deb3367771ba3",
+      "features.csv": "fde28e85fa6e2177c607063649a3683b7ab5d1b31e2af5c6455117ed6047fac7",
+      "neighbors.csv": "8e07551ca89d01dfa48c306cc3f018ecab9716b9d421c2376f9c3bfbf6139283",
+      "pairs.csv": "01d5f5efcd5b710cf02aa27e086ecca77c06d78cccbd89d4cb6e13f7cb98ac25",
+      "triplets.csv": "171ad68c6eca53df1d77b212094c6f1880a63cbe9bf944ef3b3e2c86aa7772be"
+    },
+    "validation": {
+      "edges.csv": "0c5332d6b1262d8c6011c048867ff32361221b0ceb121d843549d1281256a8dc",
+      "features.csv": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
+      "neighbors.csv": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
+      "pairs.csv": "650beb11ab46987ce21e252f02f6b6204d1b988430f4dcb4b4e4f13a8fe317a8",
+      "triplets.csv": "93bdbcb16b0b496e37e477e2ae86dabe4994ca0208cec19ece5102d09dd89f63"
+    }
+  },
+  "synthetic": true
+}

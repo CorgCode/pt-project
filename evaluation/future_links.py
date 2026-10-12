@@ -234,6 +234,70 @@ def score_embeddings(
     }
 
 
+def _window_bounds(window: str) -> tuple[pd.Timestamp, pd.Timestamp]:
+    a, b = window.split("/")
+    return pd.Timestamp(a.rstrip("Z")), pd.Timestamp(b.rstrip("Z"))
+
+
+def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: pd.DataFrame, *,
+                  fit_split: str = "validation", eval_split: str = "test", seed: int = 0,
+                  n_boot: int = 0) -> dict:
+    """Edge classifier on frozen embeddings: LogisticRegression on [|e_a - e_b|, e_a * e_b].
+
+    Fit on the candidates of an EARLIER target window (validation), scored on the later one
+    (test); the embedding is the same source-window embedding in both cases. This is the
+    standard edge-classification protocol and does not use cosine, which is the wrong score for
+    heterophilous traffic (clients link to servers, not to look-alike clients). The fit window
+    must end before the evaluation window starts and use the same source window; otherwise it is
+    refused (no tuning on, or peeking at, the evaluation window). C=1 fixed, never tuned on test.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+
+    fit = fit_edges[fit_edges["split"] == fit_split]
+    ev = eval_edges[eval_edges["split"] == eval_split]
+    if fit.empty or ev.empty:
+        raise ValueError(f"need candidates for fit split {fit_split!r} and eval split {eval_split!r}")
+    fw, ew = fit.iloc[0], ev.iloc[0]
+    if fw["source_window"] != ew["source_window"]:
+        raise ValueError("fit and evaluation candidates use different source windows")
+    if _window_bounds(fw["target_window"])[1] > _window_bounds(ew["target_window"])[0]:
+        raise ValueError("fit window must end before the evaluation window starts (temporal leakage)")
+    used = set(fit.host_a) | set(fit.host_b) | set(ev.host_a) | set(ev.host_b)
+    if not used <= set(embedding.index):
+        raise ValueError(f"embedding lacks candidate hosts: {sorted(used - set(embedding.index))[:5]}")
+    scaler = StandardScaler().fit(embedding.to_numpy(float))
+    z = pd.DataFrame(scaler.transform(embedding.to_numpy(float)), index=embedding.index)
+
+    def feats(df):
+        a, b = z.loc[df.host_a].to_numpy(), z.loc[df.host_b].to_numpy()
+        return np.hstack([np.abs(a - b), a * b])
+
+    yf, ye = fit["label"].astype(int).to_numpy(), ev["label"].astype(int).to_numpy()
+    if len(np.unique(yf)) < 2 or len(np.unique(ye)) < 2:
+        raise ValueError("both classes are required in the fit and evaluation candidates")
+    clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
+    score = clf.predict_proba(feats(ev))[:, 1]
+    out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed)
+    out.update(n_fit=int(len(fit)), n_eval=int(len(ev)), fit_split=fit_split, eval_split=eval_split,
+               fit_target_window=fw["target_window"], eval_target_window=ew["target_window"],
+               pr_auc_lift=out["pr_auc"] / float(ye.mean()))
+    return out
+
+
+def persistence_baseline(edges: pd.DataFrame, split: str = "test") -> dict | None:
+    """Embedding-free reference point: score = 1 if the pair already communicated in the source window."""
+    e = edges[edges["split"] == split]
+    if "seen_in_source" not in e.columns:
+        return None
+    y = e["label"].astype(int).to_numpy()
+    seen = e["seen_in_source"].astype(str).str.lower().eq("true").to_numpy().astype(float)
+    if len(np.unique(y)) < 2:
+        return None
+    return {"roc_auc": float(roc_auc_score(y, seen)), "pr_auc": float(average_precision_score(y, seen)),
+            "note": "trivial predictor: pair seen in the source window; embeddings should be read against it"}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     sp = ap.add_subparsers(dest="command", required=True)

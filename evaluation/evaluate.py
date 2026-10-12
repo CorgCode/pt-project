@@ -28,7 +28,8 @@ import numpy as np
 import pandas as pd
 
 from evaluation.frozen_neighbors import evaluate_frozen_neighbors
-from evaluation.future_links import load_candidate_edges, score_embeddings
+from evaluation.future_links import (load_candidate_edges, persistence_baseline, score_embeddings,
+                                      score_learned)
 from evaluation.io import load_embeddings
 from evaluation.knn_consistency import evaluate_embedding
 from evaluation.linear_probe import linear_probe, load_labels
@@ -58,7 +59,7 @@ def _ci(result: dict, name: str, ci) -> None:
 
 
 def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | None = None,
-        n_boot: int = 0, seed: int = 0) -> dict:
+        n_boot: int = 0, seed: int = 0, fit_reference_dir: Path | None = None) -> dict:
     emb = load_embeddings(embeddings_path, "host_id", "emb_")
     reference_dir = Path(reference_dir)
     manifest_file = reference_dir / "manifest.json"
@@ -83,6 +84,7 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
         "target_window": protocol.get("target_window"), "source_window": protocol.get("source_window"),
         "cohort_sha256": protocol.get("cohort_sha256"),
         "labels_source": protocol.get("labels_source"),
+        "fit_reference_files_sha256": None,
     }
 
     def unavailable(metric: str, reason: str) -> None:
@@ -129,6 +131,21 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
                               "share_positives_seen_in_source", "source_window", "target_window", "split",
                               "interpretation", "new_links") if k in r}
         result["metric_status"]["future_link_prediction"] = "ok"
+        pers = persistence_baseline(load_candidate_edges(edges_file), split)
+        if pers is not None:
+            result["metric_details"]["future_link_prediction"]["persistence_baseline"] = pers
+        fit_edges_file = Path(fit_reference_dir) / "edges.csv" if fit_reference_dir else None
+        if fit_edges_file is not None and fit_edges_file.exists():
+            fit_split = json.loads((Path(fit_reference_dir) / "manifest.json").read_text()).get("split", "validation")
+            lr = score_learned(emb, load_candidate_edges(fit_edges_file), load_candidate_edges(edges_file),
+                               fit_split=fit_split, eval_split=split, seed=seed, n_boot=n_boot)
+            result["metrics"]["link_learned_roc_auc"] = lr["roc_auc"]
+            result["metrics"]["link_learned_pr_auc"] = lr["pr_auc"]
+            result["metrics"]["link_learned_pr_auc_lift"] = lr["pr_auc_lift"]
+            _ci(result, "link_learned_roc_auc", lr["roc_auc_ci"])
+            result["metric_details"]["link_learned"] = {k: v for k, v in lr.items() if not k.endswith("_ci")}
+            result["reference_info"]["fit_reference_files_sha256"] = {
+                f: _sha(Path(fit_reference_dir) / f) for f in REFERENCE_FILES if (Path(fit_reference_dir) / f).exists()}
     else:
         unavailable("future_link_prediction", "edges.csv missing")
 
@@ -199,12 +216,14 @@ def main() -> None:
     parser.add_argument("--reference-dir", required=True, type=Path)
     parser.add_argument("--method", required=True)
     parser.add_argument("--split", default=None, help="default: the split declared by the reference manifest")
+    parser.add_argument("--fit-reference-dir", type=Path, default=None,
+                        help="EARLIER-window reference (e.g. reference/validation) used only to fit the learned link scorer")
     parser.add_argument("--bootstrap", type=int, default=200, help="bootstrap replicates for 95%% CIs (0 = off)")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    result = run(args.embeddings, args.reference_dir, args.method, args.split, args.bootstrap, args.seed)
+    result = run(args.embeddings, args.reference_dir, args.method, args.split, args.bootstrap, args.seed, args.fit_reference_dir)
     text = json.dumps(result, indent=2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

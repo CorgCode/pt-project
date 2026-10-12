@@ -37,8 +37,14 @@ def build_reference_features(
     hosts: list | None = None,
     top_ports: int = 20,
     weights: dict | None = None,
-) -> pd.DataFrame:
+    fitted: dict | None = None,
+    return_fitted: bool = False,
+):
     """Hand-crafted behavioural profile per host, one row per host.
+
+    fitted / return_fitted: fit the standardisation, the port list and the protocol list on
+    one window (return_fitted=True returns (features, fitted)) and reuse them on another
+    window (fitted=...), so both windows live in ONE coordinate system.
 
     `flows` columns: src, dst, dst_port, proto, bytes, packets, ts (datetime or
     unix seconds). Blocks (each scaled to equal norm, then weighted):
@@ -85,8 +91,13 @@ def build_reference_features(
         return _row_normalize(both.groupby(["h", col]).size().unstack(fill_value=0)
                               .reindex(idx).fillna(0.0))
 
-    ports = dist("dst_port", f["dst_port"].value_counts().head(top_ports).index)
+    port_list = (fitted["ports"] if fitted is not None
+                 else list(f["dst_port"].value_counts().head(top_ports).index))
+    ports = dist("dst_port", port_list)
     proto = dist("proto")
+    if fitted is not None:
+        ports = ports.reindex(columns=port_list, fill_value=0.0)
+        proto = proto.reindex(columns=fitted["protos"], fill_value=0.0)
     hourly = _row_normalize(pd.concat([
         f[["src", "hour"]].rename(columns={"src": "h"}),
         f[["dst", "hour"]].rename(columns={"dst": "h"})]).groupby(["h", "hour"]).size()
@@ -96,13 +107,24 @@ def build_reference_features(
     w.update(weights or {})
     blocks = {"volume": volume, "peers": peers, "ratio": ratio,
               "ports": ports, "proto": proto, "hourly": hourly}
-    parts = []
+    parts, scalers = [], {}
     for name, b in blocks.items():
-        z = StandardScaler().fit_transform(b.values)
+        if fitted is not None:
+            sc = fitted["scalers"][name]
+            z = sc.transform(b.values)
+        else:
+            sc = StandardScaler().fit(b.values)
+            z = sc.transform(b.values)
+        scalers[name] = sc
         z = np.nan_to_num(z)
         z = z / np.sqrt(max(z.shape[1], 1))          # equal total variance per block
         parts.append(pd.DataFrame(z * w[name], index=idx).add_prefix(f"{name}_"))
-    return pd.concat(parts, axis=1)
+    features = pd.concat(parts, axis=1)
+    if return_fitted:
+        state = fitted if fitted is not None else {
+            "ports": port_list, "protos": list(proto.columns), "scalers": scalers}
+        return features, state
+    return features
 
 
 # --------------------------------------------------------------------------

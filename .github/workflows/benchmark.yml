@@ -6,6 +6,7 @@ on:
       - "benchmark/**"
       - "evaluation/**"
       - "pipeline/**"
+      - "experiments/**"
       - "app/**"
       - "submissions/**"
       - ".github/workflows/benchmark.yml"
@@ -16,6 +17,7 @@ on:
       - "benchmark/**"
       - "evaluation/**"
       - "pipeline/**"
+      - "experiments/**"
       - "app/**"
       - "submissions/**"
 
@@ -38,7 +40,7 @@ jobs:
         run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
 
       - name: Run evaluation tests
-        run: python -m pytest -q evaluation benchmark app pipeline
+        run: python -m pytest -q evaluation benchmark app pipeline experiments
 
       - name: Pipeline smoke test (synthetic LANL-format fixture)
         run: |
@@ -47,6 +49,9 @@ jobs:
           python -m pipeline.prepare run --netflow "$RUNNER_TEMP"/fixture/netflow_day-*.bz2 \
             --config pipeline/example_config.json --output-dir "$RUNNER_TEMP/processed"
           python -m pipeline.reference --processed-dir "$RUNNER_TEMP/processed" --output-dir "$RUNNER_TEMP/pipeline_reference"
+
+      - name: End-to-end experiment smoke test (synthetic fixture)
+        run: python -m experiments.end_to_end --fixture --n-hosts 120 --bootstrap 20 --workdir "$RUNNER_TEMP/e2e"
 
       - name: Generate and validate baseline embeddings (synthetic reference)
         run: |
