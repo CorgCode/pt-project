@@ -44,6 +44,10 @@ python -m evaluation.temporal_auc \
 
 Add `--shared-coordinates METHOD` only when the two embedding files genuinely share coordinates. The evaluator reports ROC-AUC and average precision (PR-AUC) for validation and test, plus host-cluster bootstrap intervals where estimable.
 
+## Nearest-candidate identity retrieval
+
+For each validation/test host, the evaluator queries its embedding in window A against all hosts in the same split in window B. The score is the fraction whose same-ID host is tied for the highest cosine similarity. Ties within `1e-12` count as hits. Candidate pools do not cross split boundaries. The result is written to the same `results.csv` as `metric=nearest_candidate_accuracy`; `score_value` is in `[0, 1]`. Raw cosine is included only when `--shared-coordinates METHOD` is declared; Procrustes-aligned cosine is always reported.
+
 ## Interpretation
 
 These metrics assess ranking against temporal identity labels. They do not establish similarity of functional roles. Report real-data provenance and actual window definitions; synthetic smoke tests are not LANL results.
