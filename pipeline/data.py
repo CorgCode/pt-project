@@ -17,11 +17,31 @@ class ProcessedData:
         if not mpath.exists():
             raise FileNotFoundError(f"{mpath}: not a processed dataset (run `python -m pipeline.prepare run`)")
         self.manifest = json.loads(mpath.read_text(encoding="utf-8"))
-        self.cohort = pd.read_csv(self.root / "cohort.csv", dtype={"host_id": "string"})["host_id"].astype(str).tolist()
+        table = pd.read_csv(self.root / "cohort.csv", dtype={"host_id": "string"})
+        self.cohort = table["host_id"].astype(str).tolist()
+        self._evaluable = {c[len("evaluable_"):]: table.loc[table[c].astype(str).str.lower().eq("true"), "host_id"]
+                           .astype(str).tolist() for c in table.columns if c.startswith("evaluable_")}
 
     @property
     def synthetic(self) -> bool:
         return bool(self.manifest.get("synthetic"))
+
+    @property
+    def kind(self) -> str:
+        """synthetic_fixture | unverified | lanl_declared (see pipeline.provenance)."""
+        return self.manifest.get("data_kind", "unverified")
+
+    @property
+    def cohort_policy(self) -> str:
+        return self.manifest["cohort"].get("policy", "all_windows")
+
+    def evaluable(self, window: str) -> list[str]:
+        """Cohort hosts active in `window` (all cohort hosts for the train window)."""
+        if window == "train":
+            return list(self.cohort)
+        if window not in self._evaluable:
+            raise KeyError(f"unknown window {window!r}")
+        return list(self._evaluable[window])
 
     @property
     def windows(self) -> list[str]:

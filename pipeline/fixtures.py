@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pipeline.prepare import SYNTHETIC_MARKER
+from pipeline.provenance import SYNTHETIC_MARKER
 
 ROLE_PORTS = [(443, 80), (22, 3389), (53, 123), (445, 389), (25, 587)]
 WELL_KNOWN = {22, 25, 53, 80, 123, 389, 443, 445, 587, 3389}

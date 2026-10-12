@@ -26,10 +26,10 @@ import pandas as pd
 
 from pipeline.lanl_netflow import (FLOW_COLUMNS, RAW_COLUMNS, SOURCE_FORMAT, PipelineError,
                                    read_canonical)
+from pipeline.provenance import SYNTHETIC_MARKER, classify
 from pipeline.windows import PipelineConfig, window_mask
 
-SYNTHETIC_MARKER = "SYNTHETIC_FIXTURE"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _sha256(path: Path) -> str:
@@ -40,11 +40,21 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def detect_kind(inputs: list[Path], declared: str | None) -> str:
-    synthetic = any((p.parent / SYNTHETIC_MARKER).exists() for p in inputs)
-    if synthetic and declared == "lanl":
-        raise PipelineError("Inputs carry a SYNTHETIC_FIXTURE marker; refusing to label them 'lanl'")
-    return "synthetic_fixture" if synthetic else (declared or "lanl")
+def detect_kind(inputs: list[Path], declared: str | None = None, source_note: str | None = None) -> str:
+    """Provenance kind: synthetic_fixture, unverified (default) or lanl_declared. See pipeline.provenance."""
+    return classify([Path(p) for p in inputs], declared, source_note)["kind"]
+
+
+SELECTION_NOTE = {
+    "train_only": ("The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window "
+                   "are not evaluable there; every reference is built on the evaluable hosts and the coverage "
+                   "is reported. Survivorship of hosts into later windows is therefore part of the measured "
+                   "outcome, not of the cohort definition."),
+    "all_windows": ("The cohort is the set of hosts active in EVERY window, including the future validation and "
+                    "test windows. Future activity influences inclusion: this is a transductive stable-host "
+                    "benchmark. Scores condition on host survival and overstate persistence, identity and link "
+                    "persistence for prospective use; the models still receive no future flows or edges."),
+}
 
 
 def describe(inputs: list[Path], chunksize: int = 500_000, strict: bool = True) -> dict:
@@ -70,11 +80,13 @@ def _write_chunk(path: Path, df: pd.DataFrame, first: bool) -> None:
 
 
 def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunksize: int = 500_000,
-            strict: bool = True, data_kind: str | None = None, overwrite: bool = False) -> dict:
+            strict: bool = True, data_kind: str | None = None, source_note: str | None = None,
+            overwrite: bool = False) -> dict:
     inputs = [Path(p) for p in inputs]
     if not inputs:
         raise PipelineError("No input files")
-    kind = detect_kind(inputs, data_kind)
+    provenance = classify(inputs, data_kind, source_note)
+    kind = provenance["kind"]
     out_dir = Path(out_dir)
     if (out_dir / "manifest.json").exists() and not overwrite:
         raise PipelineError(f"{out_dir} already contains a processed dataset; use --overwrite")
@@ -115,15 +127,42 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             raise PipelineError(f"Window {w} {config.windows[w]} contains no flows; "
                                 "check the Time range with `describe`")
 
-    # Cohort: active in every window, fixed before any modelling.
+    # Cohort, fixed before any modelling (see PipelineConfig.cohort_policy).
     table = pd.DataFrame({w: host_events[w] for w in names}).fillna(0)
-    cohort = table[(table >= config.min_events_per_window).all(axis=1)].sort_index().astype(int)
+    active = table >= config.min_events_per_window
+    later = [w for w in names if w != "train"]
+    keep = active.all(axis=1) if config.cohort_policy == "all_windows" else active["train"]
+    cohort = table[keep].sort_index().astype(int)
+    evaluable = active.loc[cohort.index, later]
+    problems = []
     if len(cohort) < config.min_cohort_size:
+        problems.append(f"cohort has {len(cohort)} hosts")
+    for w in later:
+        if int(evaluable[w].sum()) < config.min_cohort_size:
+            problems.append(f"only {int(evaluable[w].sum())} cohort hosts are evaluable in {w}")
+    if problems:
         raise PipelineError(
-            f"Cohort has {len(cohort)} hosts active in every window with >= "
-            f"{config.min_events_per_window} events; need >= {config.min_cohort_size}. "
+            f"Cohort too small ({'; '.join(problems)}) with >= {config.min_events_per_window} events per window "
+            f"under policy {config.cohort_policy!r}; need >= {config.min_cohort_size}. "
             "Use longer windows or a lower threshold.")
+    stable = active.all(axis=1)
+    train_events = table["train"]
+    selection = {
+        "policy": config.cohort_policy, "note": SELECTION_NOTE[config.cohort_policy],
+        "n_cohort": int(len(cohort)),
+        "n_evaluable": {w: int(evaluable[w].sum()) for w in later},
+        "coverage": {w: float(evaluable[w].mean()) for w in later},
+        "n_hosts_active_in_every_window": int(stable.sum()),
+        "median_train_events": {
+            "active_in_every_window": float(train_events[stable].median()) if stable.any() else None,
+            "not_active_in_every_window": float(train_events[active["train"] & ~stable].median())
+            if (active["train"] & ~stable).any() else None},
+        "interpretation": "if the two medians differ, host survival is related to train-window activity and "
+                          "restricting to stable hosts changes the population being evaluated",
+    }
     cohort.columns = [f"events_{w}" for w in cohort.columns]
+    for w in later:
+        cohort[f"evaluable_{w}"] = evaluable[w]
     cohort.index.name = "host_id"
     cohort.to_csv(out_dir / "cohort.csv")
     members = set(cohort.index)
@@ -151,7 +190,10 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "data_kind": kind,
-        "synthetic": kind != "lanl",
+        "synthetic": kind == "synthetic_fixture",
+        "real_lanl_declared": kind == "lanl_declared",
+        "provenance_verified": False,
+        "provenance": provenance,
         "source_format": SOURCE_FORMAT,
         "raw_columns": RAW_COLUMNS,
         "canonical_columns": FLOW_COLUMNS,
@@ -169,8 +211,11 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
                         "n_flows": n_rows[w], "min_time": float(t_range[w][0]),
                         "max_time": float(t_range[w][1]), "graph_edges": graph_sizes[w]}
                     for w in names},
-        "cohort": {"n_hosts": int(len(cohort)), "rule": f"active (as src or dst, excluding self flows) "
-                   f">= {config.min_events_per_window} events in every window",
+        "cohort": {"n_hosts": int(len(cohort)), "policy": config.cohort_policy,
+                   "rule": (f"active (as src or dst, excluding self flows) >= {config.min_events_per_window} "
+                            + ("events in the train window" if config.cohort_policy == "train_only"
+                               else "events in EVERY window")),
+                   "evaluable": selection["n_evaluable"], "selection": selection,
                    "sha256": _sha256(out_dir / "cohort.csv")},
         "graph_rule": "undirected, one edge per unordered cohort host pair; flows/bytes/packets "
                       "aggregated over the window (bytes/packets include both directions); self loops removed",
@@ -198,17 +243,24 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--output-dir", type=Path, required=True)
     r.add_argument("--chunksize", type=int, default=500_000)
     r.add_argument("--lenient", action="store_true")
-    r.add_argument("--data-kind", choices=["lanl", "synthetic_fixture"], default=None)
+    r.add_argument("--data-kind", choices=["lanl", "synthetic_fixture"], default=None,
+                   help="DECLARE the origin; default is 'unverified'. 'lanl' also needs --source-note")
+    r.add_argument("--source-note", help="where/when the LANL files were obtained (required with --data-kind lanl)")
+    r.add_argument("--cohort-policy", choices=["train_only", "all_windows"], default=None,
+                   help="override the config's cohort policy")
     r.add_argument("--overwrite", action="store_true")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "describe":
             print(json.dumps(describe(args.netflow, strict=not args.lenient), indent=2))
         else:
-            m = prepare(args.netflow, PipelineConfig.from_json(args.config), args.output_dir,
-                        chunksize=args.chunksize, strict=not args.lenient,
-                        data_kind=args.data_kind, overwrite=args.overwrite)
-            print(json.dumps({k: m[k] for k in ("data_kind", "windows", "cohort", "invalid_rows")}, indent=2))
+            cfg = PipelineConfig.from_json(args.config)
+            if args.cohort_policy:
+                cfg = PipelineConfig(**{**cfg.__dict__, "cohort_policy": args.cohort_policy})
+            m = prepare(args.netflow, cfg, args.output_dir, chunksize=args.chunksize, strict=not args.lenient,
+                        data_kind=args.data_kind, source_note=args.source_note, overwrite=args.overwrite)
+            print(json.dumps({k: m[k] for k in ("data_kind", "provenance_verified", "windows", "cohort",
+                                                "invalid_rows")}, indent=2))
     except (PipelineError, FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(1)
