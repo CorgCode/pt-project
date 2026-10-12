@@ -53,7 +53,17 @@ def check() -> None:
     assert set(meta["missing"]) == EXPECTED
     assert "LANL" not in set(meta["methods"])
     assert "reference_ceiling" in meta["methods"]
-    assert "Synthetic fixture" in html or "synthetic fixture" in html
+    assert '<html lang="ru">' in html
+    assert "синтетический пример" in html.lower()
+    assert "Исследование представлений хостов" in html
+    assert "Сохранение ближайших соседей" in html
+    assert "Прогноз будущих связей" in html
+    assert "Карта представлений хостов" in html
+    assert "Скачать пример CSV" in html
+    assert "Оценить embeddings" in html
+    root_html = (ROOT.parent / "index.html").read_text(encoding="utf-8")
+    assert '<html lang="ru">' in root_html
+    assert "Открыть визуализации" in root_html
     assert "id=\"dashboardContents\"" in html
     assert "id=\"dashboardSplit\"" in html
     assert "id=\"chartConsistency\"" in html
