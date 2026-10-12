@@ -24,10 +24,14 @@ def fixture_data():
 def test_reports_auc_metrics_for_validation_and_test():
     a, b, p = fixture_data()
     rows = evaluate_method(a, b, p, method="toy", n_boot=0)
-    assert {r["metric"] for r in rows} == {"roc_auc", "pr_auc"}
+    assert {r["metric"] for r in rows} == {"roc_auc", "pr_auc", "nearest_candidate_accuracy"}
     assert {r["split"] for r in rows} == {"validation", "test"}
     assert all(0 <= r["score_value"] <= 1 for r in rows)
     assert all(r["score_name"] == "cosine_procrustes" for r in rows)
+    retrieval = [r for r in rows if r["metric"] == "nearest_candidate_accuracy"]
+    assert len(retrieval) == 2
+    assert all(r["n_examples"] == 10 for r in retrieval)
+    assert all(r["score_value"] >= 0.9 for r in retrieval)
 
 
 def test_loader_rejects_wrong_identity_labels(tmp_path):
