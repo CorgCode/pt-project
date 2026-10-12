@@ -67,4 +67,30 @@ def test_streamlit_app_smoke():
 
     at = AppTest.from_file("streamlit_app.py", default_timeout=60).run()
     assert not at.exception
-    assert at.title[0].value == "Host embedding benchmark"
+    assert at.title[0].value == "Host embedding research dashboard"
+
+
+def test_dashboard_renders_every_tab_for_the_demo_bundle():
+    pytest.importorskip("streamlit")
+    pytest.importorskip("plotly")
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file("streamlit_app.py", default_timeout=120).run()
+    assert not at.exception
+    assert any("Synthetic fixture" in w.value for w in at.warning)       # synthetic is always labelled
+    assert len(at.tabs) == 8 and [t.label for t in at.tabs][:3] == ["Overview", "Leaderboard", "Link prediction"]
+    # interact: switch the leaderboard to another metric family and the reference window
+    at.selectbox(key="lb_group").select("Future links (predictive)").run()
+    assert not at.exception
+    at.radio(key="lb_target").set_value("validation").run()
+    assert not at.exception
+
+
+def test_dashboard_with_missing_bundle_still_offers_the_upload_tab(monkeypatch, tmp_path):
+    pytest.importorskip("streamlit")
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file("streamlit_app.py", default_timeout=60)
+    at.run()
+    at.text_input[0].set_value(str(tmp_path)).run()
+    assert not at.exception and any("run/manifest.json" in e.value for e in at.error)
