@@ -25,7 +25,8 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.metrics.pairwise import cosine_similarity
 
 from evaluation.temporal_reference import load_flows
-from evaluation.evaluate import _load_matrix
+from evaluation.io import load_embeddings as _load_matrix
+from evaluation.uncertainty import auc_with_ci, reweighted_average_precision
 
 
 FIELDS = ["host_a", "host_b", "source_window", "target_window", "label", "split"]
@@ -160,7 +161,7 @@ def load_candidate_edges(file: Path) -> pd.DataFrame:
 
 def score_embeddings(
     embedding: pd.DataFrame, edges: pd.DataFrame,
-    *, split: str = "test",
+    *, split: str = "test", n_boot: int = 0, seed: int = 0,
 ) -> dict:
     """Score EXACT saved candidates. Unknown hosts are an error, not filtered."""
     edges = edges[edges["split"] == split]
@@ -189,7 +190,32 @@ def score_embeddings(
     norms = np.linalg.norm(emb, axis=1)
     cosine = np.einsum("ij,ij->i", emb[a], emb[b]) / (norms[a] * norms[b])
     window = edges.iloc[0]
+    auc = auc_with_ci(labels, cosine, n_boot=n_boot, seed=seed)
+    n_hosts = len(known)
+    natural = float(labels.sum() / (n_hosts * (n_hosts - 1) / 2))
+    extra: dict = {
+        "roc_auc_ci": auc["roc_auc_ci"], "pr_auc_ci": auc["pr_auc_ci"],
+        "pr_auc_lift": auc["pr_auc"] / float(labels.mean()),
+        # PR-AUC as if the pool had the natural positive rate (observed target edges over
+        # all cohort pairs); removes the class-prior effect of 1:1 sampling only.
+        "natural_prevalence": natural,
+        "pr_auc_at_natural_prevalence": (reweighted_average_precision(labels, cosine, natural)
+                                         if 0 < natural < 1 else None),
+    }
+    if "seen_in_source" in edges.columns:
+        seen = edges["seen_in_source"].astype(str).str.lower().eq("true").to_numpy()
+        extra["share_positives_seen_in_source"] = float(seen[labels == 1].mean())
+        new = ~seen
+        if new.any() and len(np.unique(labels[new])) == 2:
+            extra["new_links"] = {
+                "roc_auc": float(roc_auc_score(labels[new], cosine[new])),
+                "pr_auc": float(average_precision_score(labels[new], cosine[new])),
+                "n_examples": int(new.sum()), "n_positive": int(labels[new].sum()),
+                "positive_rate": float(labels[new].mean()),
+                "note": "candidates not observed in the source window (new links vs unseen non-links)",
+            }
     return {
+        **extra,
         "roc_auc": float(roc_auc_score(labels, cosine)),
         "pr_auc": float(average_precision_score(labels, cosine)),
         "n_examples": int(len(labels)),

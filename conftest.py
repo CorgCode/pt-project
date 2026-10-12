@@ -15,7 +15,7 @@ CONFIG = PipelineConfig(windows={"train": (0, 21600), "validation": (21600, 3240
 @pytest.fixture(scope="session")
 def raw_fixture(tmp_path_factory) -> Path:
     d = tmp_path_factory.mktemp("raw")
-    fixtures.generate(d, n_hosts=80, seed=3)
+    fixtures.generate(d, n_hosts=150, seed=3)
     return d
 
 

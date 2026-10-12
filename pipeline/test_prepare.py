@@ -6,10 +6,12 @@ import pandas as pd
 import pytest
 
 from pipeline import fixtures
-from pipeline.conftest import CONFIG
 from pipeline.data import ProcessedData
 from pipeline.lanl_netflow import PipelineError
 from pipeline.prepare import describe, detect_kind, prepare
+from pipeline.windows import PipelineConfig
+
+CONFIG = PipelineConfig(windows={"train": (0, 21600), "validation": (21600, 32400), "test": (32400, 43200)})
 
 
 def test_outputs_and_manifest(processed):
@@ -100,14 +102,12 @@ def test_unmarked_files_are_unverified_never_lanl(tmp_path):
 
 
 def test_empty_window_has_clear_error(raw_fixture, tmp_path):
-    from pipeline.windows import PipelineConfig
     cfg = PipelineConfig(windows={"train": (0, 21600), "test": (900000, 900100)})
     with pytest.raises(PipelineError, match="contains no flows"):
         prepare(sorted(raw_fixture.glob("*.bz2")), cfg, tmp_path / "o")
 
 
 def test_cohort_too_small(raw_fixture, tmp_path):
-    from pipeline.windows import PipelineConfig
     cfg = PipelineConfig(windows=CONFIG.windows, min_events_per_window=10_000)
     with pytest.raises(PipelineError, match="Cohort too small"):
         prepare(sorted(raw_fixture.glob("*.bz2")), cfg, tmp_path / "o")
@@ -120,7 +120,6 @@ def test_straddling_flows_dropped_and_counted(tmp_path):
     raw.mkdir()
     with bz2.open(raw / "netflow_day-01.bz2", "wt") as f:
         f.write("\n".join(rows) + "\n")
-    from pipeline.windows import PipelineConfig
     cfg = PipelineConfig(windows={"train": (0, 300), "test": (300, 400)}, min_events_per_window=1)
     m = prepare([raw / "netflow_day-01.bz2"], cfg, tmp_path / "o")
     assert m["counts"]["straddling_dropped_train"] == 30      # t=299, duration 50 crosses 300

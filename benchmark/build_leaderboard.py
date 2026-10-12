@@ -17,12 +17,15 @@ def main() -> None:
     rows = []
     reference_keys = set()
     host_counts = set()
+    kinds, splits = set(), set()
     for path in sorted(args.results_dir.glob("*.json")):
         data = json.loads(path.read_text(encoding="utf-8"))
         info = data.get("reference_info") or {}
+        files = info.get("files_sha256")
+        # New results fingerprint EVERY reference file; legacy ones only features/neighbors.
         fingerprint = (
-            info.get("features_sha256"),
-            info.get("neighbors_sha256"),
+            tuple(sorted(files.items())) if files else
+            (info.get("features_sha256"), info.get("neighbors_sha256"))
         )
         if not any(fingerprint):
             raise ValueError(
@@ -32,17 +35,23 @@ def main() -> None:
         # Including None prevents silent mixing of legacy / unverified scores.
         reference_keys.add(fingerprint)
         host_counts.add(data.get("n_hosts"))
+        kinds.add((info.get("data_kind", "unspecified"), info.get("synthetic")))
+        splits.add(data.get("split"))
         row = {"method": data.get("method", path.stem), "n_hosts": data.get("n_hosts")}
         row.update(data.get("metrics", {}))
         rows.append(row)
 
     if len(reference_keys) > 1:
         raise ValueError(
-            "Leaderboard mixes different or unknown reference feature datasets. "
-            "Evaluate every method on the SAME reference/features.csv before comparing."
+            "Leaderboard mixes different or unknown reference datasets. "
+            "Evaluate every method against the SAME reference directory before comparing."
         )
     if len(host_counts) > 1:
         raise ValueError("Leaderboard mixes different host cohorts.")
+    if len(kinds) > 1:
+        raise ValueError(f"Leaderboard mixes data kinds (e.g. synthetic and real): {sorted(map(str, kinds))}")
+    if len(splits) > 1:
+        raise ValueError(f"Leaderboard mixes evaluation splits: {sorted(map(str, splits))}")
 
     if not rows:
         print("No result JSON files found.")

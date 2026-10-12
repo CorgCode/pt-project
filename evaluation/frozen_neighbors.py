@@ -118,9 +118,12 @@ def read_frozen_neighbors(
 def evaluate_frozen_neighbors(
     embeddings: pd.DataFrame, path: Path,
     ks: tuple[int, ...] = (5, 10, 20),
-    *, split: str = "test",
-) -> pd.DataFrame:
-    """Compute exactly the existing consistency, Jaccard and nDCG metrics."""
+    *, split: str = "test", return_per_host: bool = False,
+):
+    """Compute exactly the existing consistency, Jaccard and nDCG metrics.
+
+    With return_per_host=True also return {k: per-host DataFrame} (index = embedding order).
+    """
     if embeddings.index.has_duplicates or not ks:
         raise ValueError("Embeddings must have unique hosts and ks must not be empty")
     highest = max(ks)
@@ -128,11 +131,14 @@ def evaluate_frozen_neighbors(
         raise ValueError("Each k must be between 1 and n_hosts - 1")
     ref = read_frozen_neighbors(path, list(embeddings.index), k_max=highest, split=split)
     emb = embeddings.to_numpy(dtype=float)
-    rows = []
+    rows, per_host = [], {}
     for k in ks:
         eb_nn = top_k_neighbors(emb, k)
         ph = neighborhood_metrics(ref[:, :k], eb_nn)
+        ph.index = embeddings.index
+        per_host[k] = ph
         stats = summarize(ph)
         stats.index = pd.MultiIndex.from_product([[k], stats.index], names=["k", "metric"])
         rows.append(stats)
-    return pd.concat(rows)
+    summary = pd.concat(rows)
+    return (summary, per_host) if return_per_host else summary
