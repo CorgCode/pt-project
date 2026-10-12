@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA
 from evaluation.frozen_neighbors import read_frozen_neighbors
 from evaluation.io import load_embeddings
 from evaluation.knn_consistency import neighborhood_metrics, top_k_neighbors
+from pipeline.provenance import BADGE
 
 TARGET_ORDER = ("test", "validation")
 PALETTE = {"random": "#9aa0a6", "behavioral": "#1a73e8", "behavioral_pca": "#12b5cb",
@@ -31,6 +32,7 @@ METRIC_GROUPS: dict[str, list[tuple[str, str]]] = {
                                   ("link_new_roc_auc", "ROC-AUC new links"), ("link_pr_auc_lift", "PR-AUC lift"),
                                   ("link_pr_auc_at_natural_prevalence", "PR-AUC @ natural prevalence")],
     "Shared-peer proxy (structural)": [("pair_roc_auc", "Pair ROC-AUC"), ("pair_pr_auc_lift", "Pair PR-AUC lift"),
+                                       ("pair_pr_auc_at_judged_prevalence", "Pair PR-AUC @ judged prevalence (conditional)"),
                                        ("triplet_accuracy", "Triplet accuracy"), ("precision@3", "Precision@3"),
                                        ("recall@3", "Recall@3")],
     "External labels": [("probe_accuracy", "Probe accuracy"), ("probe_macro_f1", "Probe macro-F1")],
@@ -61,7 +63,9 @@ class Bundle:
             raise BundleError(f"{root}: no run/manifest.json (run `python -m experiments.end_to_end` first)")
         self.root, self.run = root, run
         self.manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
-        self.synthetic = bool(self.manifest.get("synthetic"))
+        self.kind = self.manifest.get("data_kind", "unverified")      # old bundles without a kind: unverified
+        self.synthetic = self.kind == "synthetic_fixture"
+        self.provenance_verified = False                              # the pipeline never verifies provenance
         base = run.parent
         self.ref_dir = base / "reference"
         pm = [base / "processed_manifest.json", base / "processed" / "manifest.json"]
@@ -78,7 +82,18 @@ class Bundle:
 
     @property
     def label(self) -> str:
-        return "SYNTHETIC FIXTURE" if self.synthetic else "LANL"
+        return {"synthetic_fixture": "SYNTHETIC FIXTURE", "lanl_declared": "LANL (declared)"}.get(self.kind, "UNVERIFIED")
+
+    @property
+    def badge(self) -> str:
+        return BADGE.get(self.kind, BADGE["unverified"])
+
+    @property
+    def source_note(self) -> str | None:
+        return (self.manifest.get("provenance") or {}).get("source_note")
+
+    def cohort(self) -> dict | None:
+        return self.manifest.get("cohort")
 
     def results(self, target: str) -> dict[str, dict]:
         d = self.run / "results" / target
@@ -128,6 +143,18 @@ class Bundle:
             raise BundleError(f"embeddings of {method!r} are not in the bundle")
         return load_embeddings(p)
 
+    def eval_hosts(self) -> list[str]:
+        """Hosts the saved test reference covers (the evaluable hosts of the test window)."""
+        p = self.ref_dir / "test" / "eval_hosts.csv"
+        if p.exists():
+            return pd.read_csv(p, dtype=str)["host_id"].tolist()
+        return sorted(self.reference_neighbors()["host_id"].unique())
+
+    def scored_embedding(self, method: str) -> pd.DataFrame:
+        """The embedding restricted to the hosts that were actually scored."""
+        emb = self.embedding(method)
+        return emb.loc[self.eval_hosts()] if self.has_neighbors() else emb
+
     def has_neighbors(self) -> bool:
         return (self.ref_dir / "test" / "neighbors.csv").exists()
 
@@ -139,7 +166,7 @@ class Bundle:
 
     def per_host_agreement(self, method: str, k: int = 10) -> pd.Series:
         """Per-host Consistency@k between the embedding neighbours and the frozen reference."""
-        emb = self.embedding(method)
+        emb = self.scored_embedding(method)
         ref = read_frozen_neighbors(self.ref_dir / "test" / "neighbors.csv", list(emb.index), k_max=k, split="test")
         ph = neighborhood_metrics(ref[:, :k], top_k_neighbors(emb.to_numpy(float), k))
         ph.index = emb.index
@@ -147,7 +174,7 @@ class Bundle:
 
     def projection(self, method: str, k: int = 10) -> pd.DataFrame:
         """2D PCA of the scored embedding; per-host agreement attached when the reference is present."""
-        emb = self.embedding(method)
+        emb = self.scored_embedding(method)
         if emb.shape[1] < 2:
             raise BundleError("embedding has a single dimension; no 2D projection")
         xy = PCA(n_components=2, random_state=0).fit_transform(emb.to_numpy(float))
@@ -158,7 +185,7 @@ class Bundle:
 
     def neighborhood(self, method: str, host: str, k: int = 10) -> pd.DataFrame:
         """Embedding neighbours of `host` with cosine and whether the reference also lists them."""
-        emb = self.embedding(method)
+        emb = self.scored_embedding(method)
         if host not in emb.index:
             raise BundleError(f"unknown host {host!r}")
         x = emb.to_numpy(float)

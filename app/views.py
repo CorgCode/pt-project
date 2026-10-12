@@ -16,18 +16,51 @@ def _color(m: str) -> str:
     return PALETTE.get(m, "#5f6368")
 
 
-def _style(fig: go.Figure, h: int = 380) -> go.Figure:
+def _style(fig: go.Figure, h: int = 380, legend_y: float = -0.3) -> go.Figure:
+    """Shared look: legend BELOW the plot, clear of the axis labels (and of any colourbar)."""
     fig.update_layout(template="plotly_white", height=h, margin=dict(t=30, b=10, l=10, r=10),
-                      legend_title_text="", font=dict(size=13))
+                      legend=dict(orientation="h", yanchor="top", y=legend_y, xanchor="left", x=0, title_text=""),
+                      font=dict(size=13))
+    fig.update_xaxes(automargin=True)
     return fig
 
 
+def _fmt(v, spec: str = "{:.3f}") -> str:
+    return "-" if v is None or (isinstance(v, float) and np.isnan(v)) else spec.format(v)
+
+
+def _text_table(df: pd.DataFrame, spec: str = "{:.3f}", highlight: pd.DataFrame | None = None):
+    """Missing values as '-' (Streamlit renders Styler NaN as 'None'); optional green highlight mask."""
+    txt = df.apply(lambda col: col.map(lambda v: _fmt(v, spec)))
+    if highlight is None:
+        return txt
+    return txt.style.apply(lambda col: ["background-color: #d9f2e1" if highlight.loc[i, col.name] else "" for i in col.index])
+
+
+def _rows(df: pd.DataFrame, extra: int = 1) -> int:
+    return 35 * (len(df) + extra) + 3          # whole table visible, nothing clipped mid-row
+
+
+def _methods_for_chart(b: Bundle, names, key: str):
+    """Chart methods; the leaking reference ceiling is optional so it does not flatten every other bar."""
+    if any(m in LEAKY for m in names) and not st.toggle("Include the reference ceiling (leaks by design)",
+                                                          value=False, key=key):
+        return [m for m in names if m not in LEAKY]
+    return list(names)
+
+
 def banner(b: Bundle) -> None:
-    if b.synthetic:
-        st.warning("**Synthetic fixture - not LANL traffic.** Every number below comes from generated data written "
-                   "in the LANL netflow layout. It demonstrates the protocol and the metrics only.", icon="⚠️")
+    """Always say which of the three provenance kinds applies; none of them is ever 'verified'."""
+    if b.kind == "synthetic_fixture":
+        st.warning(f"**{b.badge}.** Every number below comes from generated data written in the LANL netflow "
+                   "layout. It demonstrates the protocol and the metrics only; no statement about LANL follows.",
+                   icon="⚠️")
+    elif b.kind == "lanl_declared":
+        st.info(f"**{b.badge}.** Source declared: *{b.source_note or 'n/a'}*. The pipeline cannot verify where "
+                "the files came from; findings apply to these files under the stated protocol only.", icon="ℹ️")
     else:
-        st.success("Data: LANL Unified Host and Network Dataset (netflow).", icon="✅")
+        st.error(f"**{b.badge}.** Nothing here is presented as a LANL result. Declare the source "
+                 "(`--data-kind lanl --source-note ...`) to label a run as LANL.", icon="🚫")
 
 
 # --------------------------------------------------------------------------------------- overview
@@ -38,6 +71,20 @@ def overview(b: Bundle) -> None:
     c[1].metric("Methods evaluated", len(m["methods"]))
     c[2].metric("Embedding dim", m["config"]["dim"])
     c[3].metric("Bootstrap draws", m["config"]["bootstrap"])
+    coh = b.cohort()
+    if coh:
+        st.markdown("##### Cohort")
+        order = [w for w in ("validation", "test") if w in coh["n_evaluable"]]
+        cov = pd.DataFrame({"evaluable hosts": coh["n_evaluable"], "coverage": coh["coverage"]}).loc[order]
+        cov.index.name = "window"
+        c2 = st.columns([1, 2])
+        c2[0].metric("Cohort policy", coh["policy"])
+        c2[1].dataframe(cov.style.format({"coverage": "{:.0%}"}), width="stretch")
+        if coh.get("selection"):
+            with st.expander("Selection bias: what this cohort conditions on"):
+                st.write(coh["selection"]["note"])
+                st.caption(f"Hosts active in every window: {coh['selection']['n_hosts_active_in_every_window']} of "
+                           f"{coh['n_cohort']}. " + coh["selection"].get("interpretation", ""))
     st.markdown("##### What is evaluated")
     st.markdown(
         "Embeddings are computed from the **train** window only. They are scored against references built from a "
@@ -50,7 +97,7 @@ def overview(b: Bundle) -> None:
         st.markdown("##### Data quality")
         w = pd.DataFrame(pm["windows"]).T[["start", "end", "n_flows", "graph_edges"]]
         w.index.name = "window"
-        st.dataframe(w.loc[[x for x in ("train", "validation", "test") if x in w.index]], use_container_width=True)
+        st.dataframe(w.loc[[x for x in ("train", "validation", "test") if x in w.index]], width="stretch")
         inv = pm.get("invalid_rows", {})
         cnt = pm.get("counts", {})
         q = st.columns(3)
@@ -80,23 +127,32 @@ def leaderboard(b: Bundle) -> None:
             for k in keys:
                 v, ci = board.loc[m, k], b.ci(target, m, k)
                 cells.loc[m, k] = "-" if pd.isna(v) else (f"{v:.3f} [{ci[0]:.3f}, {ci[1]:.3f}]" if ci else f"{v:.3f}")
-        st.dataframe(cells.rename(columns=LABELS), use_container_width=True)
+        st.dataframe(cells.rename(columns=LABELS), width="stretch")
+        methods_used = sorted({v for r in b.results(target).values() for k, v in r.get("ci_methods", {}).items() if k in keys})
+        if methods_used:
+            st.caption("Interval method: " + "; ".join(methods_used) + ". Intervals cover evaluation-set sampling only.")
     else:
         honest = board.drop(index=[m for m in board.index if m in LEAKY])
-        styled = board.rename(columns=LABELS).style.format("{:.3f}", na_rep="-").highlight_max(
-            axis=0, color="#d9f2e1", subset=pd.IndexSlice[honest.index, :])
-        st.dataframe(styled, use_container_width=True)
-    st.caption("Green = best among methods that do not leak (the reference ceiling uses the target-window features "
-               "themselves). Chance: AUC/accuracy 0.5, lift 1.0, kNN ≈ k/(n-1).")
+        mask = pd.DataFrame(False, index=board.index, columns=board.columns)
+        for k in keys:
+            if honest[k].notna().any():
+                mask.loc[honest[k].idxmax(), k] = True
+        st.dataframe(_text_table(board.rename(columns=LABELS), highlight=mask.rename(columns=LABELS)), width="stretch")
+        best = [f"{LABELS[k]}: **{honest[k].idxmax()}** {honest[k].max():.3f}" for k in keys if honest[k].notna().any()]
+        if best:
+            st.caption("Best among methods that do not leak - " + " · ".join(best))
+    st.caption("The reference ceiling uses the target-window features themselves and is excluded from 'best'. "
+               "Chance: AUC/accuracy 0.5, lift 1.0, kNN ≈ k/(n-1).")
+    shown = _methods_for_chart(b, list(board.index), "lb_ceiling")
     fig = go.Figure()
-    for m in board.index:
+    for m in shown:
         err = [[(b.ci(target, m, k) or (np.nan, np.nan))[i] for k in keys] for i in (0, 1)]
         vals = board.loc[m, keys].to_numpy(float)
         fig.add_bar(name=m, x=[LABELS[k] for k in keys], y=vals, marker_color=_color(m),
                     error_y=dict(type="data", symmetric=False, array=np.array(err[1]) - vals,
                                  arrayminus=vals - np.array(err[0]), thickness=1))
-    fig.update_layout(barmode="group", yaxis_title="score")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    fig.update_layout(barmode="group", yaxis_title="score", xaxis_tickangle=-30)
+    st.plotly_chart(_style(fig, 460, legend_y=-0.42), width="stretch")
     un = b.unavailable(target)
     if un:
         with st.expander(f"Metrics not available ({len(un)})"):
@@ -116,19 +172,23 @@ def links(b: Bundle) -> None:
     c[1].metric("Natural prevalence", f"{ctx['natural_prevalence']:.3f}")
     c[2].metric("Positives already linked in source", f"{ctx['share_positives_seen_in_source']:.0%}")
     c[3].metric("Persistence predictor ROC-AUC", f"{ctx['persistence_roc_auc']:.3f}")
+    shown = _methods_for_chart(b, list(board.index), "link_ceiling")
     fig = go.Figure()
     for key, name, col in (("link_roc_auc", "cosine similarity", "#9aa0a6"), ("link_learned_roc_auc", "learned edge classifier", "#1a73e8")):
-        fig.add_bar(name=name, x=list(board.index), y=board[key], marker_color=col)
-    fig.add_hline(y=0.5, line_dash="dot", line_color="#d93025", annotation_text="chance")
+        fig.add_bar(name=name, x=shown, y=board.loc[shown, key], marker_color=col)
+    ref_lines = [("chance (0.5)", 0.5, "#d93025", "dot")]
     if ctx["persistence_roc_auc"]:
-        fig.add_hline(y=ctx["persistence_roc_auc"], line_dash="dash", line_color="#188038",
-                      annotation_text="persistence (pair seen in source)")
+        ref_lines.append(("persistence: pair seen in source", ctx["persistence_roc_auc"], "#188038", "dash"))
+    for name, y, col, dash in ref_lines:
+        fig.add_hline(y=y, line_dash=dash, line_color=col)
+        fig.add_trace(go.Scatter(x=[None], y=[None], mode="lines", name=name, line=dict(color=col, dash=dash)))
     if audit and "link_learned_roc_auc" in audit["random_null"]["metrics"]:
         n = audit["random_null"]["metrics"]["link_learned_roc_auc"]
-        fig.add_hrect(y0=n["mean"] - 2 * n["std"], y1=n["mean"] + 2 * n["std"], fillcolor="#1a73e8", opacity=0.12,
-                      line_width=0, annotation_text="random embeddings, learned scorer", annotation_position="bottom right")
+        fig.add_hrect(y0=n["mean"] - 2 * n["std"], y1=n["mean"] + 2 * n["std"], fillcolor="#1a73e8", opacity=0.12, line_width=0)
+        fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="random embeddings, learned scorer (±2 sd)",
+                                 marker=dict(symbol="square", size=12, color="rgba(26,115,232,0.25)")))
     fig.update_layout(barmode="group", yaxis=dict(range=[0.35, 0.85], title="ROC-AUC"))
-    st.plotly_chart(_style(fig, 420), use_container_width=True)
+    st.plotly_chart(_style(fig, 480, legend_y=-0.28), width="stretch")
     st.markdown(
         "**How to read this.** Candidates are pairs that did (positive) or did not (negative) communicate in the "
         "later window. *Cosine* is a parameter-free score and is **below chance** for client-server traffic: linked "
@@ -137,7 +197,7 @@ def links(b: Bundle) -> None:
         "above 0.5 under the learned scorer (they act as host identifiers and the classifier memorises hubs), so "
         "always compare against the random band and the persistence line. PR-AUC depends on prevalence: use "
         "lift or the natural-prevalence value.")
-    st.dataframe(board.rename(columns=LABELS).style.format("{:.3f}", na_rep="-"), use_container_width=True)
+    st.dataframe(_text_table(board.rename(columns=LABELS)), width="stretch")
 
 
 # --------------------------------------------------------------------------------------- neighbourhoods
@@ -156,7 +216,10 @@ def neighborhoods(b: Bundle) -> None:
     k = c[1].select_slider("k", [5, 10, 20], value=10)
     proj = _projection(b, str(b.root), method, k)
     hosts = sorted(proj.index)
-    host = c[2].selectbox("Host", hosts, help="Pick a host to compare its embedding neighbours with the frozen reference.")
+    best = proj["agreement"].idxmax()
+    host = c[2].selectbox("Host", hosts, index=hosts.index(best),
+                          help="Compare a host's embedding neighbours with the frozen reference. "
+                               "Default: the host with the highest agreement for this method.")
     nb, ref = b.neighborhood(method, host, k), b.reference_list(host, k)
     overlap = int(nb["in_reference_top_k"].sum())
     st.caption(f"Mean per-host agreement of **{method}** at k={k}: {proj['agreement'].mean():.3f}. "
@@ -173,15 +236,17 @@ def neighborhoods(b: Bundle) -> None:
     s = proj.loc[[host]]
     fig.add_trace(go.Scatter(x=s.PC1, y=s.PC2, mode="markers", name=host, hoverinfo="name",
                              marker=dict(symbol="star", size=18, color="black")))
-    fig.update_coloraxes(colorbar_title="per-host<br>agreement")
-    st.plotly_chart(_style(fig, 520), use_container_width=True)
+    fig.update_coloraxes(colorbar=dict(title="agreement", thickness=12, len=0.8))
+    st.plotly_chart(_style(fig, 520), width="stretch")
     t1, t2 = st.columns(2)
     nbt = nb.copy()
     nbt["in_reference_top_k"] = nbt["in_reference_top_k"].map({True: "yes", False: "no"})
+    nbt["reference_rank"] = nbt["reference_rank"].map(lambda v: "-" if pd.isna(v) else str(int(v)))
+    nbt["cosine"] = nbt["cosine"].map(lambda v: f"{v:.3f}")
     t1.markdown("**Embedding neighbours** (cosine)")
-    t1.dataframe(nbt, use_container_width=True, hide_index=True)
+    t1.dataframe(nbt, width="stretch", hide_index=True)
     t2.markdown("**Frozen reference neighbours** (later-window behaviour)")
-    t2.dataframe(ref, use_container_width=True, hide_index=True)
+    t2.dataframe(ref, width="stretch", hide_index=True)
     st.caption("The 2D PCA projection is a lossy view of the scored embedding; distances in the plane are not the "
                "distances used by the metrics. Colour = per-host Consistency@k against the frozen reference.")
 
@@ -194,13 +259,14 @@ def temporal(b: Bundle) -> None:
     metric = st.selectbox("Metric", avail, format_func=lambda k: LABELS[k], index=avail.index("consistency@10_mean"))
     if "validation" in b.targets:
         d = pd.concat([b.board(t, [metric])[metric].rename(t) for t in ("validation", "test")], axis=1)
+        d = d.loc[_methods_for_chart(b, list(d.index), "temp_ceiling")]
         fig = go.Figure()
         for t, col in (("validation", "#9aa0a6"), ("test", "#1a73e8")):
             fig.add_bar(name=t, x=list(d.index), y=d[t], marker_color=col)
         if metric in CHANCE:
             fig.add_hline(y=CHANCE[metric], line_dash="dot", line_color="#d93025", annotation_text="chance")
         fig.update_layout(barmode="group")
-        st.plotly_chart(_style(fig, 340), use_container_width=True)
+        st.plotly_chart(_style(fig, 340), width="stretch")
         audit = b.audit()
         if audit and audit["split_agreement"].get(metric) is not None:
             st.caption(f"Ranking agreement between validation and test (Kendall tau): {audit['split_agreement'][metric]:.2f}. "
@@ -217,7 +283,7 @@ def temporal(b: Bundle) -> None:
         chance = ident[methods[0]]["procrustes"]["chance_top1"]
         fig.add_hline(y=chance, line_dash="dot", line_color="#d93025", annotation_text="chance")
         fig.update_layout(barmode="group", yaxis_title="Top-1 identity retrieval")
-        st.plotly_chart(_style(fig, 340), use_container_width=True)
+        st.plotly_chart(_style(fig, 340), width="stretch")
         st.caption("Same host ID in two windows is the judgment: this measures stability *and* discriminability, not "
                    "behavioural similarity. Independently fitted embeddings rotate between windows, so raw cosine is "
                    "meaningless for them; alignment is fitted on one half of the hosts and scored on the other.")
@@ -226,8 +292,10 @@ def temporal(b: Bundle) -> None:
         st.markdown("##### How much does behaviour itself drift?")
         s = audit["reference_stability"]
         d = pd.DataFrame({p: v for p, v in s["pairs"].items()}).T
+        chron = {"train": 0, "validation": 1, "test": 2}
+        d = d.loc[sorted(d.index, key=lambda p: tuple(chron[w] for w in p.split("->")))]
         d.index.name = "windows"
-        st.dataframe(d.style.format("{:.3f}"), use_container_width=True)
+        st.dataframe(_text_table(d), width="stretch")
         st.caption(f"Agreement of behavioural neighbour lists built from two windows (chance Consistency@{s['k']} = "
                    f"{s['chance_consistency']:.3f}). It bounds what an earlier-window embedding can reach on the kNN metric.")
 
@@ -240,7 +308,8 @@ def audit_view(b: Bundle) -> None:
         return
     st.markdown("##### Chance bands (random embeddings, test reference)")
     rows = {LABELS.get(k, k): v for k, v in a["random_null"]["metrics"].items() if k in LABELS}
-    st.dataframe(pd.DataFrame(rows).T[["mean", "std", "p5", "p95"]].style.format("{:.3f}"), use_container_width=True)
+    nulls = pd.DataFrame(rows).T[["mean", "std", "p5", "p95"]]
+    st.dataframe(_text_table(nulls), width="stretch", height=_rows(nulls))
     st.caption(f"{a['random_null']['n_draws']} random draws. Use these bands, not 0.5, to judge significance.")
     w = a["weight_sensitivity"]
     st.markdown("##### Sensitivity of the behavioural proxy to feature weights")
@@ -252,11 +321,22 @@ def audit_view(b: Bundle) -> None:
     fig = px.bar(cfg, x="config", y="kendall_tau", color=cfg["dropped_block"].fillna("all blocks"),
                  labels={"kendall_tau": "Kendall tau of method ranking", "config": "weight configuration", "color": "removed block"})
     fig.update_layout(yaxis_range=[-1, 1])
-    st.plotly_chart(_style(fig, 300), use_container_width=True)
+    st.plotly_chart(_style(fig, 300), width="stretch")
+    pv = a.get("prevalence")
+    if pv:
+        st.markdown("##### Prevalence of the candidate pools")
+        fl, pr = pv["future_links"], pv["pairs"]
+        rows = {"future links": {"in the pool": fl["sampled_positive_rate"], "natural (all pairs)": fl["natural_prevalence"]},
+                "shared-peer pairs": {"in the pool": pr["sampled_positive_rate"],
+                                      "among judged pairs": pr.get("judged_population_prevalence"),
+                                      "among all pairs": pr.get("population_positive_rate")}}
+        st.dataframe(_text_table(pd.DataFrame(rows).T), width="stretch")
+        st.caption(pr["note"][0].upper() + pr["note"][1:] + ". For links every pair is either linked or not, so the natural prevalence is a "
+                   "population value; for shared-peer pairs the judged prevalence is conditional.")
     st.markdown("##### Information shared by construction")
     ov = pd.DataFrame(a["information_overlap"]).T
     ov.index.name = "method"
-    st.dataframe(ov, use_container_width=True)
+    st.table(ov)                              # wraps long text instead of truncating it
     st.caption("A method whose input overlaps a reference's source scores well on it for a trivial reason. "
                "These rows are calibration points, not independent evidence.")
 

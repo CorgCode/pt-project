@@ -29,11 +29,29 @@ the dashboard says so at the top of every page; real runs are labelled `LANL`.
 | Provenance | run manifest, reference manifests, file hashes, judgment rules |
 | Try your embedding | upload `embeddings.csv` for the small synthetic demo cohort and compare with baselines |
 
+## Browser verification
+
+`python -m app.browser_check --out app/screenshots --stress` (needs `pip install playwright && playwright install chromium`)
+starts the real server and drives every tab at desktop (1440 px) and phone (390 px) width in headless Chromium. It
+records console errors and Streamlit exception boxes, checks horizontal overflow and `nan`/`undefined` text, and
+compares what the page shows with the saved result files (best non-leaking Consistency@10 on the leaderboard,
+mean per-host agreement on the Neighbourhoods tab). `--stress` repeats it on a bundle with a very long method name and
+on one with the audit, embeddings, identity, validation results and neighbours removed. The last run is in
+`app/screenshots/browser_check.json` (Chromium 153, Playwright 1.63, Streamlit 1.65); it is not part of CI because it
+needs a browser download - the AppTests in `test_app.py` run in CI.
+
+| desktop | phone |
+|---|---|
+| ![leaderboard](screenshots/desktop_leaderboard.png) | ![leaderboard](screenshots/phone_leaderboard.png) |
+| ![link prediction](screenshots/desktop_link_prediction.png) | ![overview](screenshots/phone_overview.png) |
+| ![neighbourhoods](screenshots/desktop_neighbourhoods.png) | |
+
 ## Design rules
 
 - synthetic vs real is always visible; metrics that were not computed show as unavailable, never as 0;
 - the reference ceiling is marked as leaking and excluded from the "best" highlight;
-- every chart shows chance (dashed) where one exists.
+- every chart shows chance (dashed) where one exists; the leaking reference ceiling is hidden from charts unless toggled on;
+- missing values read `-` (never `None`/`nan`); missing artifacts give a message instead of an error.
 
 ## Layout and tests
 

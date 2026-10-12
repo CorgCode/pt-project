@@ -48,6 +48,8 @@ def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200)
             (ref / t).mkdir(parents=True)
             shutil.copy(work / "reference" / t / "manifest.json", ref / t / "manifest.json")
         shutil.copy(work / "reference" / "test" / "neighbors.csv", ref / "test" / "neighbors.csv")
+        for t in ("validation", "test"):
+            shutil.copy(work / "reference" / t / "eval_hosts.csv", ref / t / "eval_hosts.csv")
         shutil.copy(work / "processed" / "manifest.json", output / "processed_manifest.json")
         for sub in ("embeddings",):                       # keep only the scored (train-window) embeddings
             pass

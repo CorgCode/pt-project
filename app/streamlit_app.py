@@ -65,10 +65,10 @@ def try_it() -> None:
         sub = col.columns(len(core.KS))
         for s, k in zip(sub, core.KS):
             s.metric(f"@{k}", f"{up[f'{m}@{k}']:.3f}")
-    st.dataframe(board.style.format("{:.3f}"), use_container_width=True)
+    st.dataframe(board.style.format("{:.3f}"), width="stretch")
     if out["projection"] is not None:
         st.plotly_chart(px.scatter(out["projection"], x="PC1", y="PC2", hover_name="host_id", opacity=0.75)
-                        .update_layout(template="plotly_white", height=420), use_container_width=True)
+                        .update_layout(template="plotly_white", height=420), width="stretch")
     st.warning("Not available yet: " + "; ".join(out["unavailable"]))
 
 
@@ -79,8 +79,10 @@ with st.sidebar:
     env = os.environ.get("PT_RESULTS_DIR")
     if env:
         options[env] = Path(env)
-    choice = st.selectbox("Run bundle", list(options) or ["(none found)"],
-                          help="demo/synthetic_run is a committed synthetic example; real runs live in runs/<name>.")
+    keys = list(options) or ["(none found)"]
+    choice = st.selectbox("Run bundle", keys, index=keys.index(env) if env in options else 0,
+                          help="demo/synthetic_run is a committed synthetic example; real runs live in runs/<name>. "
+                               "PT_RESULTS_DIR, when set, is selected by default.")
     custom = st.text_input("...or a path", placeholder="runs/lanl")
     st.caption("Create a bundle with `python -m experiments.end_to_end` (see experiments/README.md).")
 
