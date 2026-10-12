@@ -15,6 +15,7 @@ from pipeline.prepare import describe, detect_kind, prepare
 def test_outputs_and_manifest(processed):
     m = json.loads((processed / "manifest.json").read_text())
     assert m["synthetic"] is True and m["data_kind"] == "synthetic_fixture"
+    assert m["provenance_verified"] is False and m["real_lanl_declared"] is False
     assert m["source_format"] == "lanl-uhn-2017-netflow"
     assert m["canonical_mapping"]["bytes"] == "SrcBytes"
     assert all(len(i["sha256"]) == 64 for i in m["inputs"])
@@ -38,15 +39,19 @@ def test_no_temporal_leakage_between_windows(processed):
     assert d.manifest["leakage_checks"]["max_time_train_lt_min_time_test"] is True
 
 
-def test_cohort_active_in_every_window(processed):
+def test_cohort_is_train_active_and_evaluable_hosts_are_active_in_their_window(processed):
     d = ProcessedData(processed)
     cohort = pd.read_csv(processed / "cohort.csv")
-    assert (cohort.drop(columns="host_id") >= CONFIG.min_events_per_window).all().all()
+    assert (cohort["events_train"] >= CONFIG.min_events_per_window).all()
     assert cohort.host_id.is_unique and cohort.host_id.tolist() == sorted(cohort.host_id)
-    for w in d.windows:
+    assert d.cohort_policy == "train_only"
+    for w in ("validation", "test"):
+        ev = cohort[cohort[f"evaluable_{w}"]]
+        assert (ev[f"events_{w}"] >= CONFIG.min_events_per_window).all()
+        assert d.evaluable(w) == ev.host_id.tolist()
         f = d.flows(w)
-        active = set(f.src) | set(f.dst)
-        assert set(d.cohort) <= active
+        assert set(d.evaluable(w)) <= set(f.src) | set(f.dst)
+    assert d.evaluable("train") == d.cohort
 
 
 def test_graph_is_undirected_cohort_only_no_self_loops(processed):
@@ -85,13 +90,13 @@ def test_synthetic_marker_cannot_be_relabelled_as_lanl(raw_fixture):
     files = sorted(raw_fixture.glob("*.bz2"))
     assert detect_kind(files, None) == "synthetic_fixture"
     with pytest.raises(PipelineError, match="SYNTHETIC_FIXTURE"):
-        detect_kind(files, "lanl")
+        detect_kind(files, "lanl", "someone said so")
 
 
-def test_unmarked_files_default_to_lanl(tmp_path):
+def test_unmarked_files_are_unverified_never_lanl(tmp_path):
     p = tmp_path / "x.bz2"
     p.write_bytes(b"")
-    assert detect_kind([p], None) == "lanl"
+    assert detect_kind([p], None) == "unverified"
 
 
 def test_empty_window_has_clear_error(raw_fixture, tmp_path):
@@ -104,7 +109,7 @@ def test_empty_window_has_clear_error(raw_fixture, tmp_path):
 def test_cohort_too_small(raw_fixture, tmp_path):
     from pipeline.windows import PipelineConfig
     cfg = PipelineConfig(windows=CONFIG.windows, min_events_per_window=10_000)
-    with pytest.raises(PipelineError, match="Cohort has"):
+    with pytest.raises(PipelineError, match="Cohort too small"):
         prepare(sorted(raw_fixture.glob("*.bz2")), cfg, tmp_path / "o")
 
 

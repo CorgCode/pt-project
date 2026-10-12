@@ -11,7 +11,8 @@ all built from that later window and the fixed cohort - never from any embedding
     reference/<target>/pairs.csv       shared-peer pair judgments               (structural proxy)
     reference/<target>/triplets.csv    shared-peer triplets                     (structural proxy)
     reference/<target>/labels.csv      ONLY if --labels is supplied (external, with provenance)
-    reference/<target>/manifest.json   provenance, windows, rules, file hashes
+    reference/<target>/eval_hosts.csv  hosts evaluable in the target window (the evaluator subsets to them)
+    reference/<target>/manifest.json   provenance, cohort policy/coverage, windows, rules, file hashes
 
 Use reference/validation to tune; report final numbers on reference/test only.
 No role labels are fabricated: labels.csv exists only when supplied.
@@ -45,12 +46,14 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
     data = ProcessedData(processed_dir)
     if labels is not None and not labels_source:
         raise ValueError("--labels requires --labels-source describing where the labels come from")
-    hosts = data.cohort
     train = load_flows(processed_dir / "flows" / "train.csv")
     summary = {}
     for target in (t for t in TARGETS if t in data.windows):
+        # hosts evaluable in THIS target window (== the cohort under the all_windows policy)
+        hosts = data.evaluable(target)
         out = Path(output_dir) / target
         out.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame({"host_id": hosts}).to_csv(out / "eval_hosts.csv", index=False)
         flows = load_flows(processed_dir / "flows" / f"{target}.csv")
         manifest = generate_reference(train, flows, hosts, out, ks, split=target)
 
@@ -68,17 +71,24 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
             lab = pd.read_csv(labels, dtype={"host_id": "string", "target": "string", "split": "string"})
             if not {"host_id", "target", "split"} <= set(lab.columns):
                 raise ValueError("labels file needs columns host_id,target,split")
-            unknown = sorted(set(lab.host_id) - set(hosts))
+            unknown = sorted(set(lab.host_id) - set(data.cohort))
             if unknown:
                 raise ValueError(f"labels contain hosts outside the cohort: {unknown[:5]}")
             lab.to_csv(out / "labels.csv", index=False)
             label_info = {"source": labels_source, "n_labelled": int(len(lab)),
                           "coverage": len(lab) / len(hosts)}
 
-        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv"))}
+        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv"))}   # includes eval_hosts.csv
         manifest.update({
             "data_kind": data.manifest["data_kind"],
             "synthetic": data.synthetic,
+            "real_lanl_declared": bool(data.manifest.get("real_lanl_declared")),
+            "provenance_verified": False,
+            "provenance": data.manifest.get("provenance"),
+            "cohort_policy": data.cohort_policy,
+            "n_cohort": len(data.cohort), "n_evaluable": len(hosts),
+            "coverage": len(hosts) / len(data.cohort),
+            "cohort_selection": data.manifest["cohort"].get("selection"),
             "pipeline_manifest_sha256": _sha(processed_dir / "manifest.json"),
             "cohort_sha256": data.manifest["cohort"]["sha256"],
             "source_window": "train", "target_window": target,
@@ -98,7 +108,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
         })
         (out / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False,
                                                       sort_keys=True) + "\n", encoding="utf-8")
-        summary[target] = {"n_hosts": len(hosts), "edges": int(len(edges)),
+        summary[target] = {"n_hosts": len(hosts), "coverage": len(hosts) / len(data.cohort), "edges": int(len(edges)),
                            "positive_rate": float(edges["label"].mean()),
                            "pairs": judge["n_pairs"], "triplets": judge["n_triplets"],
                            "labels": label_info}
