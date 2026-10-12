@@ -63,3 +63,16 @@ The scored (train) window is embedded once; identity retrieval re-runs the metho
 
 Subclass `GraphEmbeddingMethod`, set `name`, `default_params`, `reference`, implement
 `embed_graph(graph) -> (n_nodes, d)`, and export `METHODS = {name: Class}`; add tests next to it.
+
+## Tuning hyper-parameters (validation window only)
+
+```bash
+python -m experiments.tune_methods --processed-dir data/processed --reference-dir data/reference \
+    --method deepwalk --grid '{"walk_length": [40, 80], "window": [5, 10]}' --metric pair_roc_auc --out runs/tune_deepwalk.json
+```
+
+Each grid point is fitted on the train window and scored on `reference/validation`; the test reference is never read
+and `--target test` is refused. Fix the selection metric **before** looking at results, keep the grid small (at most 64
+configurations), and report the frozen configuration's *test* score: the best validation score is optimistically
+biased by the number of configurations tried (the output says so). Then run the final experiment once with
+`--method-config` set to the chosen configuration.
