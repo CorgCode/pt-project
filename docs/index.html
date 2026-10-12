@@ -4,8 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Host Embedding Benchmark</title>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <!-- Main dashboard uses native SVG; optional upload dependencies load on demand. -->
   <style>
     :root{--bg:#0b0d10;--card:#13171c;--muted:#8b96a5;--text:#f5f7fa;--line:#252b33;--accent:#fff}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -19,6 +18,42 @@
     table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:#aeb8c5;font-weight:600}
     .plot{height:410px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.note{padding:14px 16px;border:1px solid #29313a;background:#101419;border-radius:12px;color:#aab4c0}.hidden{display:none}
     @media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:31px}.plot{height:360px}}
+
+    /* Always-visible research snapshot: standalone SVG, no charting CDN required */
+    .demo-area{margin-top:32px}.demo-hero{padding:27px 28px;background:linear-gradient(130deg,#18252f,#14231f 60%,#1d1a2d);border:1px solid #38515a;border-radius:19px}
+    .demo-kicker{letter-spacing:.09em;font-size:11px;font-weight:800;color:#a8e6d0;text-transform:uppercase}
+    .demo-hero h2{font-size:27px;margin:8px 0 6px;letter-spacing:-.03em}
+    .demo-hero p{color:#c8d4d8;max-width:850px}
+    .demo-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 15px}
+    .demo-controls label{font-weight:650;color:#dde4e9}
+    .demo-controls select{background:#1c242b;color:#edf5f7;border:1px solid #4b5e65;border-radius:9px;padding:9px 12px;font:inherit}
+    .demo-small{font-size:12px;color:#9fb0ba}
+    .demo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 15px}
+    .demo-stat{background:#141c23;border:1px solid #2a3540;border-radius:12px;padding:13px 16px}
+    .demo-stat .value{display:block;font-size:27px;font-weight:750;font-variant-numeric:tabular-nums}
+    .demo-stat .sub{display:block;font-size:12px;color:#a8b7be}
+    .viz-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+    .viz-panel{min-width:0;background:#141b22;border:1px solid #2e3842;border-radius:16px;padding:17px 18px}
+    .viz-panel h3{font-size:17px;font-weight:700;margin:0 0 4px}
+    .viz-panel p{font-size:12px;color:#a8b5c1;margin-bottom:8px}
+    .viz-panel.wide{grid-column:1/-1}
+    .svg-chart{width:100%;display:block;overflow:visible}
+    .demo-legend{display:flex;gap:13px;flex-wrap:wrap;padding:0 4px 6px;font-size:12px;color:#cad5df}
+    .legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+    .demo-table-wrap{overflow-x:auto;border:1px solid #303b45;border-radius:13px;margin-top:10px}
+    .demo-table{min-width:690px}
+    .demo-table th{white-space:nowrap}
+    .demo-table tbody tr:hover{background:#212f39}
+    .demo-table td{font-variant-numeric:tabular-nums}
+    .demo-table .leaky{opacity:.65}
+    .demo-separator{margin:35px 0 0;border:0;border-top:1px solid #303b45}
+    .demo-footnote{padding:14px;margin:18px 0 0;border:1px solid #485342;border-radius:11px;background:#1b241e;color:#c4d4c8}
+    .demo-error{padding:12px 16px;margin:15px 0;color:#e5b2a6;border:1px solid #673d3d;border-radius:12px}
+    .demo-axis{fill:#9dabb7;font-size:12px}.demo-value{fill:#f4f7f9;font-size:12px;font-weight:650}
+    .demo-axis-line{stroke:#36434e;stroke-width:1}
+    #dashboardContents[hidden]{display:none}
+    @media(max-width:900px){.demo-stats{grid-template-columns:repeat(2,1fr)}.viz-grid{grid-template-columns:1fr}.viz-panel.wide{grid-column:auto}}
+    @media(max-width:520px){.demo-hero{padding:20px}.demo-hero h2{font-size:23px}.demo-stat .value{font-size:23px}.demo-stats{gap:8px}.demo-stats .demo-stat{padding:12px}.viz-panel{padding:12px}}
   </style>
 </head>
 <body>
@@ -28,6 +63,62 @@
     <span class="badge">GitHub Pages · browser demo</span>
   </div>
 
+
+  <section class="demo-area" id="researchDashboard" aria-label="Research visualizations">
+    <div class="demo-hero">
+      <div class="demo-kicker">Synthetic research snapshot · Public visualizations</div>
+      <h2>Explore the host embedding benchmark</h2>
+      <p>Interactive charts, model comparisons, temporal stability and a host embedding projection. This is a <strong>synthetic fixture</strong>, not real LANL traffic. The five new graph methods are not included in this published snapshot.</p>
+    </div>
+    <div id="dashboardStatus" class="status" role="status">Loading synthetic experiment results…</div>
+    <div id="dashboardContents" hidden>
+      <div class="demo-controls">
+        <label for="dashboardSplit">Evaluation window</label>
+        <select id="dashboardSplit"><option value="test" selected>Held-out test</option><option value="validation">Validation</option></select>
+        <span class="demo-small">Source: frozen synthetic results from research PR #52 · 300 hosts · seed 0</span>
+      </div>
+      <div class="demo-stats" id="dashboardStats" aria-label="Experiment summary"></div>
+      <div class="viz-grid">
+        <article class="viz-panel">
+          <h3>Neighborhood preservation</h3>
+          <p>Consistency@k versus held-out behavioral neighbors. Reference ceiling excluded.</p>
+          <div id="chartConsistency"></div>
+          <div class="demo-legend" id="consistencyLegend"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Future link prediction</h3>
+          <p>ROC-AUC: raw cosine similarity versus a validation-trained scorer (when available). Chance = 0.5.</p>
+          <div id="chartLinks"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Shared-peer similarity</h3>
+          <p>Pair ROC-AUC against sampled structural-proxy judgments, not true host-role labels.</p>
+          <div id="chartPairs"></div>
+        </article>
+        <article class="viz-panel">
+          <h3>Temporal host identity</h3>
+          <p>Top-1 same-host retrieval on the test window, after alignment versus raw coordinates. Chance shown.</p>
+          <div id="chartIdentity"></div>
+        </article>
+        <article class="viz-panel wide">
+          <h3>Host embedding map</h3>
+          <p>PCA of <strong>behavioral</strong> train-window embeddings (300 synthetic hosts). Dot color = per-host Consistency@10 on held-out test; hover for ID and score. Not a geographic map.</p>
+          <div id="chartHosts"></div>
+          <div class="demo-legend"><span><span class="legend-dot" style="background:#7098c2"></span>Low agreement</span><span><span class="legend-dot" style="background:#54d4ad"></span>High agreement</span><span>Average: <strong id="agreementMean">—</strong></span></div>
+        </article>
+      </div>
+      <h2>Model leaderboard <span class="demo-small">(synthetic experiment)</span></h2>
+      <p>All scores come from the saved evaluation artifacts; missing values remain unavailable, never zero.</p>
+      <div class="demo-table-wrap"><table class="demo-table" id="snapshotBoard"></table></div>
+      <div class="demo-footnote">
+        <strong>Not evaluated here:</strong> <span id="missingMethods">—</span>. The reference ceiling uses held-out features by construction and is not a deployable model. These synthetic results cannot establish performance on LANL.
+        <span class="demo-small"> · <a href="https://github.com/CorgCode/pt-project/pull/52" style="color:#a8e6d0">Research dashboard source</a></span>
+      </div>
+    </div>
+  </section>
+  <hr class="demo-separator" />
+  <h2>Upload your own CSV · separate toy playground</h2>
+  <p>This older browser-only evaluator uses a different, generated 300-host reference. Its scores must <strong>not</strong> be compared with the research snapshot above.</p>
   <div class="upload">
     <div class="row">
       <input id="file" type="file" accept=".csv,text/csv" />
@@ -74,9 +165,219 @@ function renderCards(m){const labels=[['consistency','Consistency'],['jaccard','
 function renderBoard(items){items.sort((a,b)=>b.metrics[10].consistency-a.metrics[10].consistency);let h='<tr><th>Method</th><th>C@5</th><th>C@10</th><th>C@20</th><th>J@10</th><th>nDCG@10</th></tr>';for(const x of items)h+=`<tr><td>${x.name}</td><td>${format(x.metrics[5].consistency)}</td><td>${format(x.metrics[10].consistency)}</td><td>${format(x.metrics[20].consistency)}</td><td>${format(x.metrics[10].jaccard)}</td><td>${format(x.metrics[10].ndcg)}</td></tr>`;document.getElementById('leaderboard').innerHTML=h}
 function renderPlot(items){const traces=[];for(const x of items)traces.push({x:KS.map(String),y:KS.map(k=>x.metrics[k].consistency),name:x.name,type:'bar'});Plotly.newPlot('metricPlot',traces,{barmode:'group',paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},yaxis:{range:[0,1],title:'Consistency'},xaxis:{title:'k'}},{responsive:true,displaylogo:false})}
 function renderScatter(X){const x=X.map(v=>v[0]??0),y=X.map(v=>v[1]??0);Plotly.newPlot('scatter',[{x,y,text:HOSTS,mode:'markers',type:'scattergl',marker:{size:7,opacity:.72}}],{paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},xaxis:{title:'emb_0'},yaxis:{title:X[0].length>1?'emb_1':'0'}},{responsive:true,displaylogo:false})}
-async function run(){try{const f=document.getElementById('file').files[0];if(!f)throw Error('Choose embeddings.csv first.');statusEl.textContent='Evaluating in browser…';statusEl.className='status';const rows=await parseUpload(f),{X,dim}=validate(rows);const uploaded=metrics(X),rand=metrics(randomEmbedding(dim)),ceil=metrics(REF);const items=[{name:'Uploaded',metrics:uploaded},{name:'Reference ceiling',metrics:ceil},{name:'Random',metrics:rand}];renderCards(uploaded);renderBoard([...items]);renderPlot(items);renderScatter(X);resultsEl.classList.remove('hidden');statusEl.textContent=`✓ Valid: ${N} hosts × ${dim} dimensions`;statusEl.className='status ok'}catch(e){resultsEl.classList.add('hidden');statusEl.textContent='Error: '+e.message;statusEl.className='status err'}}
+function loadExternal(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=()=>reject(new Error('Upload playground dependency could not load; the research charts above remain available.'));document.head.appendChild(el)})}
+async function run(){try{const f=document.getElementById('file').files[0];if(!f)throw Error('Choose embeddings.csv first.');statusEl.textContent='Loading optional CSV/chart libraries…';statusEl.className='status';if(typeof Papa==='undefined')await loadExternal('https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js');if(typeof Plotly==='undefined')await loadExternal('https://cdn.plot.ly/plotly-2.35.2.min.js');statusEl.textContent='Evaluating in browser…';const rows=await parseUpload(f),{X,dim}=validate(rows);const uploaded=metrics(X),rand=metrics(randomEmbedding(dim)),ceil=metrics(REF);const items=[{name:'Uploaded',metrics:uploaded},{name:'Reference ceiling',metrics:ceil},{name:'Random',metrics:rand}];renderCards(uploaded);renderBoard([...items]);renderPlot(items);renderScatter(X);resultsEl.classList.remove('hidden');statusEl.textContent=`✓ Valid: ${N} hosts × ${dim} dimensions`;statusEl.className='status ok'}catch(e){resultsEl.classList.add('hidden');statusEl.textContent='Error: '+e.message;statusEl.className='status err'}}
 function sample(){const r=rng(123),d=16,lines=['host_id,'+Array.from({length:d},(_,j)=>`emb_${j}`).join(',')];for(let i=0;i<N;i++){const role=i%5,row=Array.from({length:d},(_,j)=>((j<5?(j===role?2.2:0):0)+0.35*normal(r)).toFixed(6));lines.push(`h${i},${row.join(',')}`)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='embeddings.csv';a.click();URL.revokeObjectURL(a.href)}
 document.getElementById('run').addEventListener('click',run);document.getElementById('sample').addEventListener('click',sample);
 </script>
+
+<script>
+/* Public Pages snapshot: pure SVG, intentionally independent of Plotly/PapaParse
+   and of the separate local-CSV playground below. No metrics recomputed here. */
+(() => {
+  "use strict";
+  const NS="http://www.w3.org/2000/svg";
+  const palette={random:"#9aa6b2",behavioral:"#57cfb5",behavioral_pca:"#82b7f5",
+    behavioral_svd:"#9584ec",graph_spectral:"#f2a467",reference_ceiling:"#778491"};
+  const label={random:"Random",behavioral:"Behavioral",behavioral_pca:"PCA",
+    behavioral_svd:"SVD",graph_spectral:"Graph spectral",reference_ceiling:"Reference ceiling"};
+  let data=null;
+  const fmt=v => Number.isFinite(v) ? Number(v).toFixed(3) : "—";
+  const cleanMethods=()=>data.meta.methods.filter(m=>m!=="reference_ceiling");
+  function node(tag,attrs={},text){
+    const n=document.createElementNS(NS,tag);
+    for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));
+    if(text!==undefined)n.textContent=String(text);
+    return n;
+  }
+  function draw(parent,tag,attrs,text){const el=node(tag,attrs,text);parent.appendChild(el);return el;}
+  function plot(target,w,h,title){
+    const root=document.getElementById(target);root.replaceChildren();
+    const svg=node("svg",{viewBox:"0 0 "+w+" "+h,role:"img","aria-label":title,class:"svg-chart",
+      preserveAspectRatio:"xMidYMid meet"});
+    draw(svg,"title",{},title);
+    root.appendChild(svg);return svg;
+  }
+  function tick(s,x,y,value,anchor="start",cls="demo-axis"){
+    draw(s,"text",{x,y,"text-anchor":anchor,class:cls},value);
+  }
+  function warning(target,message){document.getElementById(target).textContent=message;}
+  function renderStats(split){
+    const ms=cleanMethods(), actual=ms.filter(m=>data.results[split]?.[m]);
+    const c=actual.filter(m=>m!=="random").sort((a,b)=>
+      (data.results[split][b]["consistency@10_mean"]??-1)-(data.results[split][a]["consistency@10_mean"]??-1))[0];
+    const best=c?data.results[split][c]["consistency@10_mean"]:null;
+    const values=[
+      [data.meta.hosts,"Synthetic hosts"],
+      [actual.length,"Evaluated baselines"],
+      [c&&Number.isFinite(best)?fmt(best):"—","Best non-leaking C@10 ("+(label[c]||"—")+")"],
+      [fmt(data.audit.prevalence.future_links.sampled_positive_rate),"Link-candidate positive rate"]
+    ];
+    const root=document.getElementById("dashboardStats");root.replaceChildren();
+    for(const [v,subtitle] of values){
+      const box=document.createElement("div");box.className="demo-stat";
+      const val=document.createElement("span");val.className="value";val.textContent=v;
+      const sub=document.createElement("span");sub.className="sub";sub.textContent=subtitle;
+      box.append(val,sub);root.appendChild(box);
+    }
+  }
+  function renderConsistency(split){
+    const svg=plot("chartConsistency",650,315,"Consistency across k values for synthetic "+split+" split");
+    const left=53,right=625,top=23,bottom=263,maxY=0.6;
+    for(const yVal of [0,0.2,0.4,0.6]){
+      const y=bottom-yVal/maxY*(bottom-top);
+      draw(svg,"line",{x1:left,y1:y,x2:right,y2:y,class:"demo-axis-line"});
+      tick(svg,left-8,y+4,yVal.toFixed(1),"end");
+    }
+    for(const [i,k] of [5,10,20].entries()){
+      const x=left+i*(right-left)/2;
+      draw(svg,"line",{x1:x,y1:top,x2:x,y2:bottom,stroke:"#24303a","stroke-dasharray":"3 6"});
+      tick(svg,x,bottom+22,"k = "+k,"middle");
+    }
+    for(const method of cleanMethods()){
+      const m=data.results[split][method]||{};
+      const pts=[5,10,20].map((k,i)=>[left+i*(right-left)/2,bottom-(m["consistency@"+k+"_mean"]??0)/maxY*(bottom-top)]);
+      draw(svg,"polyline",{points:pts.map(x=>x.join(",")).join(" "),fill:"none",stroke:palette[method],"stroke-width":3});
+      pts.forEach((pt,i)=>{
+        const circle=draw(svg,"circle",{cx:pt[0],cy:pt[1],r:5,fill:palette[method],stroke:"#162129","stroke-width":1});
+        draw(circle,"title",{},label[method]+", k="+[5,10,20][i]+": "+fmt(m["consistency@"+[5,10,20][i]+"_mean"]));
+      });
+    }
+    const leg=document.getElementById("consistencyLegend");leg.replaceChildren();
+    for(const method of cleanMethods()){
+      const item=document.createElement("span"),dot=document.createElement("i");
+      dot.className="legend-dot";dot.style.background=palette[method];item.appendChild(dot);
+      item.appendChild(document.createTextNode(label[method]));leg.appendChild(item);
+    }
+  }
+  function renderLinks(split){
+    const svg=plot("chartLinks",660,336,"Future-link prediction ROC AUC");
+    const methods=cleanMethods(),left=147,right=630,top=20,row=54;
+    const chance=left+(right-left)*0.5;
+    draw(svg,"line",{x1:chance,y1:top-8,x2:chance,y2:315,stroke:"#e5b782","stroke-dasharray":"4 5","stroke-width":1.5});
+    tick(svg,chance,333,"0.5 chance","middle");
+    for(const [i,method] of methods.entries()){
+      const y=top+i*row;
+      tick(svg,left-12,y+19,label[method],"end");
+      const record=data.results[split][method]||{};
+      for(const [j,key,fill] of [[0,"link_roc_auc","#82b7f5"],[1,"link_learned_roc_auc","#57cfb5"]]){
+        const val=record[key];if(!Number.isFinite(val))continue;
+        const yy=y+5+j*16,bar=draw(svg,"rect",{x:left,y:yy,width:(right-left)*val,height:11,rx:3,fill,opacity:0.9});
+        draw(bar,"title",{},label[method]+": "+key+" = "+fmt(val));
+        tick(svg,Math.min(right-31,left+(right-left)*val+6),yy+10,fmt(val),"start","demo-value");
+      }
+    }
+    tick(svg,left,333,"0","middle");tick(svg,right,333,"1","middle");
+    if(!methods.some(m=>Number.isFinite(data.results[split][m]?.link_learned_roc_auc))){
+      tick(svg,right,15,"Validation: learned scorer not available","end");
+    }
+    draw(svg,"rect",{x:162,y:303,width:11,height:11,rx:2,fill:"#82b7f5"});
+    tick(svg,177,313,"cosine");
+    if(split==="test"){draw(svg,"rect",{x:260,y:303,width:11,height:11,rx:2,fill:"#57cfb5"});tick(svg,275,313,"learned");}
+  }
+  function horizontal(target,split,key,title,{max=1,chance=null}={}){
+    const s=plot(target,650,325,title);const methods=cleanMethods(),l=149,r=620,w=r-l,t=20,row=56;
+    if(chance!==null){const x=l+chance/max*w;draw(s,"line",{x1:x,y1:10,x2:x,y2:297,stroke:"#dfaf78","stroke-dasharray":"4 5"});tick(s,x,316,"chance "+fmt(chance),"middle");}
+    methods.forEach((method,i)=>{
+      const y=t+i*row,v=data.results[split][method]?.[key];
+      tick(s,l-10,y+21,label[method],"end");
+      if(Number.isFinite(v)){
+        const width=Math.max(0,Math.min(v/max,1))*w;
+        const box=draw(s,"rect",{x:l,y:y+5,width,height:24,fill:palette[method],rx:5});
+        draw(box,"title",{},label[method]+": "+fmt(v));
+        tick(s,Math.min(r-30,l+width+8),y+22,fmt(v),"start","demo-value");
+      }else tick(s,l+10,y+22,"unavailable");
+    });
+    tick(s,l,316,"0","middle");tick(s,r,316,fmt(max),"middle");
+  }
+  function renderIdentity(){
+    const s=plot("chartIdentity",650,320,"Top-1 identity retrieval after alignment on synthetic test");
+    const methods=cleanMethods(),l=149,r=610,t=20,row=53,max=0.40,w=r-l;
+    const chance=Object.values(data.identity)[0]?.chance_top1||0;
+    const cx=l+w*chance/max;draw(s,"line",{x1:cx,y1:8,x2:cx,y2:294,stroke:"#e5b782","stroke-dasharray":"4 4"});
+    for(const [i,method] of methods.entries()){
+      const y=t+i*row,d=data.identity[method]||{};
+      tick(s,l-10,y+24,label[method],"end");
+      for(const [j,key,fill] of [[0,"raw_top1","#82b7f5"],[1,"aligned_top1","#57cfb5"]]){
+        const v=d[key];if(!Number.isFinite(v))continue;
+        const yy=y+4+j*16;
+        const b=draw(s,"rect",{x:l,y:yy,width:w*v/max,height:11,rx:3,fill});
+        draw(b,"title",{},label[method]+" "+key+": "+fmt(v));
+        if(j===1)tick(s,l+w*v/max+5,yy+10,fmt(v),"start","demo-value");
+      }
+    }
+    tick(s,l,316,"0","middle");tick(s,r,316,"0.4","middle");
+    draw(s,"rect",{x:223,y:302,width:9,height:9,rx:2,fill:"#82b7f5"});tick(s,236,311,"raw");
+    draw(s,"rect",{x:296,y:302,width:9,height:9,rx:2,fill:"#57cfb5"});tick(s,309,311,"aligned");
+  }
+  function renderScatter(){
+    const s=plot("chartHosts",1100,340,"PCA projection of synthetic behavioral embeddings");
+    const p=data.projection.points,l=58,r=1072,t=18,b=306;
+    const xs=p.map(d=>d.x),ys=p.map(d=>d.y);
+    const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+    const fx=x=>l+(x-xmin)/(xmax-xmin||1)*(r-l);
+    const fy=y=>b-(y-ymin)/(ymax-ymin||1)*(b-t);
+    draw(s,"line",{x1:l,y1:b,x2:r,y2:b,class:"demo-axis-line"});
+    draw(s,"line",{x1:l,y1:t,x2:l,y2:b,class:"demo-axis-line"});
+    tick(s,(l+r)/2,331,"PCA component 1","middle");
+    tick(s,11,(t+b)/2,"PCA 2");
+    for(const d of p){
+      const val=Math.max(0,Math.min(1,d.agreement));
+      const color="rgb("+Math.round(112+(84-112)*val)+","+Math.round(152+(212-152)*val)+","+Math.round(194+(173-194)*val)+")";
+      const circle=draw(s,"circle",{cx:fx(d.x),cy:fy(d.y),r:4.2,fill:color,opacity:0.78,stroke:"#132029","stroke-width":0.6});
+      draw(circle,"title",{},d.id+" — held-out C@10 "+fmt(d.agreement));
+    }
+    document.getElementById("agreementMean").textContent=fmt(data.projection.per_host_mean_agreement);
+  }
+  function renderBoard(split){
+    const table=document.getElementById("snapshotBoard");table.replaceChildren();
+    const thead=document.createElement("thead"),tr=document.createElement("tr");
+    const cols=[["method","Method"],["consistency@10_mean","C@10"],["link_roc_auc","Link AUC"],["link_learned_roc_auc","Learned AUC"],["pair_roc_auc","Pair AUC"],["triplet_accuracy","Triplet"],["recall@3","R@3"]];
+    cols.forEach(([,name])=>{const th=document.createElement("th");th.textContent=name;tr.appendChild(th)});
+    thead.appendChild(tr);table.appendChild(thead);
+    const body=document.createElement("tbody");
+    const methods=[...data.meta.methods].sort((a,b)=>(data.results[split][b]?.["consistency@10_mean"]??0)-(data.results[split][a]?.["consistency@10_mean"]??0));
+    // Sort by actual Consistency@10, without allowing the leaky ceiling to be called best.
+    methods.sort((a,b)=>(data.results[split][b]?.["consistency@10_mean"]??0)-(data.results[split][a]?.["consistency@10_mean"]??0));
+    for(const method of methods){
+      const row=document.createElement("tr");if(method==="reference_ceiling")row.className="leaky";
+      for(const [key] of cols){
+        const cell=document.createElement("td");
+        cell.textContent=key==="method" ? label[method]+(method==="reference_ceiling"?" (leaks)":"") :
+          fmt(data.results[split][method]?.[key]);
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    }
+    table.appendChild(body);
+  }
+  function render(){
+    const split=document.getElementById("dashboardSplit").value;
+    renderStats(split);renderConsistency(split);renderLinks(split);
+    horizontal("chartPairs",split,"pair_roc_auc","Shared-peer pair ROC AUC",{chance:0.5});
+    renderIdentity();renderScatter();renderBoard(split);
+  }
+  async function init(){
+    const st=document.getElementById("dashboardStatus");
+    try{
+      const response=await fetch("./data/synthetic_demo.json",{cache:"no-cache"});
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      data=await response.json();
+      if(data.meta.synthetic!==true||data.meta.hosts!==300)throw new Error("Unexpected snapshot provenance/cohort");
+      document.getElementById("missingMethods").textContent=data.meta.missing.join(", ");
+      document.getElementById("dashboardSplit").addEventListener("change",render);
+      render();
+      document.getElementById("dashboardContents").hidden=false;
+      st.textContent="Synthetic snapshot loaded · Numbers from saved evaluation files · Not real LANL";
+      st.className="status ok";
+    }catch(e){
+      st.textContent="Could not load the saved synthetic snapshot: "+e.message;
+      st.className="demo-error";
+    }
+  }
+  init();
+})();
+</script>
+
 </body>
 </html>
