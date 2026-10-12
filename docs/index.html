@@ -170,5 +170,214 @@ async function run(){try{const f=document.getElementById('file').files[0];if(!f)
 function sample(){const r=rng(123),d=16,lines=['host_id,'+Array.from({length:d},(_,j)=>`emb_${j}`).join(',')];for(let i=0;i<N;i++){const role=i%5,row=Array.from({length:d},(_,j)=>((j<5?(j===role?2.2:0):0)+0.35*normal(r)).toFixed(6));lines.push(`h${i},${row.join(',')}`)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='embeddings.csv';a.click();URL.revokeObjectURL(a.href)}
 document.getElementById('run').addEventListener('click',run);document.getElementById('sample').addEventListener('click',sample);
 </script>
+
+<script>
+/* Public Pages snapshot: pure SVG, intentionally independent of Plotly/PapaParse
+   and of the separate local-CSV playground below. No metrics recomputed here. */
+(() => {
+  "use strict";
+  const NS="http://www.w3.org/2000/svg";
+  const palette={random:"#9aa6b2",behavioral:"#57cfb5",behavioral_pca:"#82b7f5",
+    behavioral_svd:"#9584ec",graph_spectral:"#f2a467",reference_ceiling:"#778491"};
+  const label={random:"Random",behavioral:"Behavioral",behavioral_pca:"PCA",
+    behavioral_svd:"SVD",graph_spectral:"Graph spectral",reference_ceiling:"Reference ceiling"};
+  let data=null;
+  const fmt=v => Number.isFinite(v) ? Number(v).toFixed(3) : "—";
+  const cleanMethods=()=>data.meta.methods.filter(m=>m!=="reference_ceiling");
+  function node(tag,attrs={},text){
+    const n=document.createElementNS(NS,tag);
+    for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));
+    if(text!==undefined)n.textContent=String(text);
+    return n;
+  }
+  function draw(parent,tag,attrs,text){const el=node(tag,attrs,text);parent.appendChild(el);return el;}
+  function plot(target,w,h,title){
+    const root=document.getElementById(target);root.replaceChildren();
+    const svg=node("svg",{viewBox:"0 0 "+w+" "+h,role:"img","aria-label":title,class:"svg-chart",
+      preserveAspectRatio:"xMidYMid meet"});
+    draw(svg,"title",{},title);
+    root.appendChild(svg);return svg;
+  }
+  function tick(s,x,y,value,anchor="start",cls="demo-axis"){
+    draw(s,"text",{x,y,"text-anchor":anchor,class:cls},value);
+  }
+  function warning(target,message){document.getElementById(target).textContent=message;}
+  function renderStats(split){
+    const ms=cleanMethods(), actual=ms.filter(m=>data.results[split]?.[m]);
+    const c=actual.filter(m=>m!=="random").sort((a,b)=>
+      (data.results[split][b]["consistency@10_mean"]??-1)-(data.results[split][a]["consistency@10_mean"]??-1))[0];
+    const best=c?data.results[split][c]["consistency@10_mean"]:null;
+    const values=[
+      [data.meta.hosts,"Synthetic hosts"],
+      [actual.length,"Evaluated baselines"],
+      [c&&Number.isFinite(best)?fmt(best):"—","Best non-leaking C@10 ("+(label[c]||"—")+")"],
+      [fmt(data.audit.prevalence.future_links.sampled_positive_rate),"Link-candidate positive rate"]
+    ];
+    const root=document.getElementById("dashboardStats");root.replaceChildren();
+    for(const [v,subtitle] of values){
+      const box=document.createElement("div");box.className="demo-stat";
+      const val=document.createElement("span");val.className="value";val.textContent=v;
+      const sub=document.createElement("span");sub.className="sub";sub.textContent=subtitle;
+      box.append(val,sub);root.appendChild(box);
+    }
+  }
+  function renderConsistency(split){
+    const svg=plot("chartConsistency",650,315,"Consistency across k values for synthetic "+split+" split");
+    const left=53,right=625,top=23,bottom=263,maxY=0.6;
+    for(const yVal of [0,0.2,0.4,0.6]){
+      const y=bottom-yVal/maxY*(bottom-top);
+      draw(svg,"line",{x1:left,y1:y,x2:right,y2:y,class:"demo-axis-line"});
+      tick(svg,left-8,y+4,yVal.toFixed(1),"end");
+    }
+    for(const [i,k] of [5,10,20].entries()){
+      const x=left+i*(right-left)/2;
+      draw(svg,"line",{x1:x,y1:top,x2:x,y2:bottom,stroke:"#24303a","stroke-dasharray":"3 6"});
+      tick(svg,x,bottom+22,"k = "+k,"middle");
+    }
+    for(const method of cleanMethods()){
+      const m=data.results[split][method]||{};
+      const pts=[5,10,20].map((k,i)=>[left+i*(right-left)/2,bottom-(m["consistency@"+k+"_mean"]??0)/maxY*(bottom-top)]);
+      draw(svg,"polyline",{points:pts.map(x=>x.join(",")).join(" "),fill:"none",stroke:palette[method],"stroke-width":3});
+      pts.forEach((pt,i)=>{
+        const circle=draw(svg,"circle",{cx:pt[0],cy:pt[1],r:5,fill:palette[method],stroke:"#162129","stroke-width":1});
+        draw(circle,"title",{},label[method]+", k="+[5,10,20][i]+": "+fmt(m["consistency@"+[5,10,20][i]+"_mean"]));
+      });
+    }
+    const leg=document.getElementById("consistencyLegend");leg.replaceChildren();
+    for(const method of cleanMethods()){
+      const item=document.createElement("span"),dot=document.createElement("i");
+      dot.className="legend-dot";dot.style.background=palette[method];item.appendChild(dot);
+      item.appendChild(document.createTextNode(label[method]));leg.appendChild(item);
+    }
+  }
+  function renderLinks(split){
+    const svg=plot("chartLinks",660,336,"Future-link prediction ROC AUC");
+    const methods=cleanMethods(),left=147,right=630,top=20,row=54;
+    const chance=left+(right-left)*0.5;
+    draw(svg,"line",{x1:chance,y1:top-8,x2:chance,y2:315,stroke:"#e5b782","stroke-dasharray":"4 5","stroke-width":1.5});
+    tick(svg,chance,333,"0.5 chance","middle");
+    for(const [i,method] of methods.entries()){
+      const y=top+i*row;
+      tick(svg,left-12,y+19,label[method],"end");
+      const record=data.results[split][method]||{};
+      for(const [j,key,fill] of [[0,"link_roc_auc","#82b7f5"],[1,"link_learned_roc_auc","#57cfb5"]]){
+        const val=record[key];if(!Number.isFinite(val))continue;
+        const yy=y+5+j*16,bar=draw(svg,"rect",{x:left,y:yy,width:(right-left)*val,height:11,rx:3,fill,opacity:0.9});
+        draw(bar,"title",{},label[method]+": "+key+" = "+fmt(val));
+        tick(svg,Math.min(right-31,left+(right-left)*val+6),yy+10,fmt(val),"start","demo-value");
+      }
+    }
+    tick(svg,left,333,"0","middle");tick(svg,right,333,"1","middle");
+    if(!methods.some(m=>Number.isFinite(data.results[split][m]?.link_learned_roc_auc))){
+      tick(svg,right,15,"Validation: learned scorer not available","end");
+    }
+    draw(svg,"rect",{x:162,y:303,width:11,height:11,rx:2,fill:"#82b7f5"});
+    tick(svg,177,313,"cosine");
+    if(split==="test"){draw(svg,"rect",{x:260,y:303,width:11,height:11,rx:2,fill:"#57cfb5"});tick(svg,275,313,"learned");}
+  }
+  function horizontal(target,split,key,title,{max=1,chance=null}={}){
+    const s=plot(target,650,325,title);const methods=cleanMethods(),l=149,r=620,w=r-l,t=20,row=56;
+    if(chance!==null){const x=l+chance/max*w;draw(s,"line",{x1:x,y1:10,x2:x,y2:297,stroke:"#dfaf78","stroke-dasharray":"4 5"});tick(s,x,316,"chance "+fmt(chance),"middle");}
+    methods.forEach((method,i)=>{
+      const y=t+i*row,v=data.results[split][method]?.[key];
+      tick(s,l-10,y+21,label[method],"end");
+      if(Number.isFinite(v)){
+        const width=Math.max(0,Math.min(v/max,1))*w;
+        const box=draw(s,"rect",{x:l,y:y+5,width,height:24,fill:palette[method],rx:5});
+        draw(box,"title",{},label[method]+": "+fmt(v));
+        tick(s,Math.min(r-30,l+width+8),y+22,fmt(v),"start","demo-value");
+      }else tick(s,l+10,y+22,"unavailable");
+    });
+    tick(s,l,316,"0","middle");tick(s,r,316,fmt(max),"middle");
+  }
+  function renderIdentity(){
+    const s=plot("chartIdentity",650,320,"Top-1 identity retrieval after alignment on synthetic test");
+    const methods=cleanMethods(),l=149,r=610,t=20,row=53,max=0.40,w=r-l;
+    const chance=Object.values(data.identity)[0]?.chance_top1||0;
+    const cx=l+w*chance/max;draw(s,"line",{x1:cx,y1:8,x2:cx,y2:294,stroke:"#e5b782","stroke-dasharray":"4 4"});
+    for(const [i,method] of methods.entries()){
+      const y=t+i*row,d=data.identity[method]||{};
+      tick(s,l-10,y+24,label[method],"end");
+      for(const [j,key,fill] of [[0,"raw_top1","#82b7f5"],[1,"aligned_top1","#57cfb5"]]){
+        const v=d[key];if(!Number.isFinite(v))continue;
+        const yy=y+4+j*16;
+        const b=draw(s,"rect",{x:l,y:yy,width:w*v/max,height:11,rx:3,fill});
+        draw(b,"title",{},label[method]+" "+key+": "+fmt(v));
+        if(j===1)tick(s,l+w*v/max+5,yy+10,fmt(v),"start","demo-value");
+      }
+    }
+    tick(s,l,316,"0","middle");tick(s,r,316,"0.4","middle");
+    draw(s,"rect",{x:223,y:302,width:9,height:9,rx:2,fill:"#82b7f5"});tick(s,236,311,"raw");
+    draw(s,"rect",{x:296,y:302,width:9,height:9,rx:2,fill:"#57cfb5"});tick(s,309,311,"aligned");
+  }
+  function renderScatter(){
+    const s=plot("chartHosts",1100,340,"PCA projection of synthetic behavioral embeddings");
+    const p=data.projection.points,l=58,r=1072,t=18,b=306;
+    const xs=p.map(d=>d.x),ys=p.map(d=>d.y);
+    const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+    const fx=x=>l+(x-xmin)/(xmax-xmin||1)*(r-l);
+    const fy=y=>b-(y-ymin)/(ymax-ymin||1)*(b-t);
+    draw(s,"line",{x1:l,y1:b,x2:r,y2:b,class:"demo-axis-line"});
+    draw(s,"line",{x1:l,y1:t,x2:l,y2:b,class:"demo-axis-line"});
+    tick(s,(l+r)/2,331,"PCA component 1","middle");
+    tick(s,11,(t+b)/2,"PCA 2");
+    for(const d of p){
+      const val=Math.max(0,Math.min(1,d.agreement));
+      const color="rgb("+Math.round(112+(84-112)*val)+","+Math.round(152+(212-152)*val)+","+Math.round(194+(173-194)*val)+")";
+      const circle=draw(s,"circle",{cx:fx(d.x),cy:fy(d.y),r:4.2,fill:color,opacity:0.78,stroke:"#132029","stroke-width":0.6});
+      draw(circle,"title",{},d.id+" — held-out C@10 "+fmt(d.agreement));
+    }
+    document.getElementById("agreementMean").textContent=fmt(data.projection.per_host_mean_agreement);
+  }
+  function renderBoard(split){
+    const table=document.getElementById("snapshotBoard");table.replaceChildren();
+    const thead=document.createElement("thead"),tr=document.createElement("tr");
+    const cols=[["method","Method"],["consistency@10_mean","C@10"],["link_roc_auc","Link AUC"],["link_learned_roc_auc","Learned AUC"],["pair_roc_auc","Pair AUC"],["triplet_accuracy","Triplet"],["recall@3","R@3"]];
+    cols.forEach(([,name])=>{const th=document.createElement("th");th.textContent=name;tr.appendChild(th)});
+    thead.appendChild(tr);table.appendChild(thead);
+    const body=document.createElement("tbody");
+    const methods=[...data.meta.methods].sort((a,b)=>(data.results[split][b]?.["consistency@10_mean"]??0)-(data.results[split][a]?.["consistency@10_mean"]??0));
+    // Sort by actual Consistency@10, without allowing the leaky ceiling to be called best.
+    methods.sort((a,b)=>(data.results[split][b]?.["consistency@10_mean"]??0)-(data.results[split][a]?.["consistency@10_mean"]??0));
+    for(const method of methods){
+      const row=document.createElement("tr");if(method==="reference_ceiling")row.className="leaky";
+      for(const [key] of cols){
+        const cell=document.createElement("td");
+        cell.textContent=key==="method" ? label[method]+(method==="reference_ceiling"?" (leaks)":"") :
+          fmt(data.results[split][method]?.[key]);
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    }
+    table.appendChild(body);
+  }
+  function render(){
+    const split=document.getElementById("dashboardSplit").value;
+    renderStats(split);renderConsistency(split);renderLinks(split);
+    horizontal("chartPairs",split,"pair_roc_auc","Shared-peer pair ROC AUC",{chance:0.5});
+    renderIdentity();renderScatter();renderBoard(split);
+  }
+  async function init(){
+    const st=document.getElementById("dashboardStatus");
+    try{
+      const response=await fetch("./data/synthetic_demo.json",{cache:"no-cache"});
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      data=await response.json();
+      if(data.meta.synthetic!==true||data.meta.hosts!==300)throw new Error("Unexpected snapshot provenance/cohort");
+      document.getElementById("missingMethods").textContent=data.meta.missing.join(", ");
+      document.getElementById("dashboardSplit").addEventListener("change",render);
+      render();
+      document.getElementById("dashboardContents").hidden=false;
+      st.textContent="Synthetic snapshot loaded · Numbers from saved evaluation files · Not real LANL";
+      st.className="status ok";
+    }catch(e){
+      st.textContent="Could not load the saved synthetic snapshot: "+e.message;
+      st.className="demo-error";
+    }
+  }
+  init();
+})();
+</script>
+
 </body>
 </html>
