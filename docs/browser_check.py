@@ -43,14 +43,20 @@ def main() -> None:
                     assert page.url.rstrip("/").endswith("/docs"), (
                         "Repo root must redirect to /docs/ and show the real dashboard: " + page.url
                     )
-                    assert "snapshot loaded" in page.locator("#dashboardStatus").inner_text().lower()
+                    assert page.locator("html").get_attribute("lang") == "ru"
+                    assert "Синтетический набор загружен" in page.locator("#dashboardStatus").inner_text()
+                    assert "Окно оценки" in page.locator("#researchDashboard").inner_text()
+                    assert "Сохранение ближайших соседей" in page.locator("#researchDashboard").inner_text()
+                    assert "Прогноз будущих связей" in page.locator("#researchDashboard").inner_text()
+                    assert page.locator("#run").inner_text() == "Оценить embeddings"
+                    assert page.locator("#sample").inner_text() == "Скачать пример CSV"
                     assert page.locator("#chartConsistency svg").count() == 1
                     assert page.locator("#chartLinks svg").count() == 1
                     assert page.locator("#chartPairs svg").count() == 1
                     assert page.locator("#chartIdentity svg").count() == 1
                     assert page.locator("#chartHosts svg circle").count() == 300
                     assert page.locator("#snapshotBoard tbody tr").count() == 6
-                    assert "synthetic" in page.locator("#researchDashboard").inner_text().lower()
+                    assert "синтетический" in page.locator("#researchDashboard").inner_text().lower()
                     assert "node2vec" in page.locator("#missingMethods").inner_text().lower()
                     assert page.locator("#results.hidden").count() == 1, (
                         "upload-playground results must remain hidden before upload"
@@ -61,6 +67,8 @@ def main() -> None:
                     assert page.locator("#chartConsistency svg").count() == 1
                     assert page.locator("#snapshotBoard tbody tr").count() == 6
                     assert "0.284" in page.locator("#snapshotBoard tbody").inner_text()
+                    assert "Валидация" == page.locator("#dashboardSplit option:checked").inner_text()
+                    assert "Метод" in page.locator("#snapshotBoard").inner_text()
                     if width == 390:
                         assert page.evaluate(
                             "document.documentElement.scrollWidth <= window.innerWidth + 2"

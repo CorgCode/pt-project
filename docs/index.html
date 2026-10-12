@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Host Embedding Benchmark</title>
+  <title>Исследование представлений хостов — сравнение методов</title>
   <!-- Main dashboard uses native SVG; optional upload dependencies load on demand. -->
   <style>
     :root{--bg:#0b0d10;--card:#13171c;--muted:#8b96a5;--text:#f5f7fa;--line:#252b33;--accent:#fff}
@@ -59,90 +59,90 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <div><h1>Host Embedding Benchmark</h1><p>Upload <code>embeddings.csv</code> and evaluate it directly in your browser.</p></div>
-    <span class="badge">GitHub Pages · browser demo</span>
+    <div><h1>Исследование представлений хостов</h1><p>Сравнение методов анализа сетевого поведения и качества embeddings.</p></div>
+    <span class="badge">GitHub Pages · исследовательская демонстрация</span>
   </div>
 
 
   <section class="demo-area" id="researchDashboard" aria-label="Research visualizations">
     <div class="demo-hero">
-      <div class="demo-kicker">Synthetic research snapshot · Public visualizations</div>
-      <h2>Explore the host embedding benchmark</h2>
-      <p>Interactive charts, model comparisons, temporal stability and a host embedding projection. This is a <strong>synthetic fixture</strong>, not real LANL traffic. The five new graph methods are not included in this published snapshot.</p>
+      <div class="demo-kicker">Синтетический эксперимент · интерактивные визуализации</div>
+      <h2>Как работают представления хостов</h2>
+      <p>Интерактивные графики, сравнение методов, устойчивость во времени и проекция представлений хостов. <strong>Важно: это синтетический пример, а не реальные данные LANL.</strong> Результатов пяти новых графовых методов в этой демонстрации пока нет.</p>
     </div>
-    <div id="dashboardStatus" class="status" role="status">Loading synthetic experiment results…</div>
+    <div id="dashboardStatus" class="status" role="status">Загружаем результаты синтетического эксперимента…</div>
     <div id="dashboardContents" hidden>
       <div class="demo-controls">
-        <label for="dashboardSplit">Evaluation window</label>
-        <select id="dashboardSplit"><option value="test" selected>Held-out test</option><option value="validation">Validation</option></select>
-        <span class="demo-small">Source: frozen synthetic results from research PR #52 · 300 hosts · seed 0</span>
+        <label for="dashboardSplit">Окно оценки</label>
+        <select id="dashboardSplit"><option value="test" selected>Отложенный тест</option><option value="validation">Валидация</option></select>
+        <span class="demo-small">Источник: зафиксированные синтетические результаты PR #52 · 300 хостов · seed 0</span>
       </div>
       <div class="demo-stats" id="dashboardStats" aria-label="Experiment summary"></div>
       <div class="viz-grid">
         <article class="viz-panel">
-          <h3>Neighborhood preservation</h3>
-          <p>Consistency@k versus held-out behavioral neighbors. Reference ceiling excluded.</p>
+          <h3>Сохранение ближайших соседей</h3>
+          <p>Consistency@k относительно соседей из отложенного окна. Эталонный максимум исключён.</p>
           <div id="chartConsistency"></div>
           <div class="demo-legend" id="consistencyLegend"></div>
         </article>
         <article class="viz-panel">
-          <h3>Future link prediction</h3>
-          <p>ROC-AUC: raw cosine similarity versus a validation-trained scorer (when available). Chance = 0.5.</p>
+          <h3>Прогноз будущих связей</h3>
+          <p>ROC-AUC: косинусное сходство и модель оценки связей, обученная на валидации (если доступна). Случайный уровень — 0,5.</p>
           <div id="chartLinks"></div>
         </article>
         <article class="viz-panel">
-          <h3>Shared-peer similarity</h3>
-          <p>Pair ROC-AUC against sampled structural-proxy judgments, not true host-role labels.</p>
+          <h3>Сходство по общим соседям</h3>
+          <p>ROC-AUC пар относительно структурного эталона. Это не настоящие метки ролей хостов.</p>
           <div id="chartPairs"></div>
         </article>
         <article class="viz-panel">
-          <h3>Temporal host identity</h3>
-          <p>Top-1 same-host retrieval on the test window, after alignment versus raw coordinates. Chance shown.</p>
+          <h3>Узнавание хоста во времени</h3>
+          <p>Доля правильных совпадений Top-1 на тесте: до и после выравнивания координат. Показан случайный уровень.</p>
           <div id="chartIdentity"></div>
         </article>
         <article class="viz-panel wide">
-          <h3>Host embedding map</h3>
-          <p>PCA of <strong>behavioral</strong> train-window embeddings (300 synthetic hosts). Dot color = per-host Consistency@10 on held-out test; hover for ID and score. Not a geographic map.</p>
+          <h3>Карта представлений хостов</h3>
+          <p>PCA-проекция <strong>поведенческих</strong> представлений из обучающего окна (300 синтетических хостов). Цвет точки отражает Consistency@10 на отложенном тесте. Наведите курсор, чтобы увидеть ID и значение. Это не географическая карта.</p>
           <div id="chartHosts"></div>
-          <div class="demo-legend"><span><span class="legend-dot" style="background:#7098c2"></span>Low agreement</span><span><span class="legend-dot" style="background:#54d4ad"></span>High agreement</span><span>Average: <strong id="agreementMean">—</strong></span></div>
+          <div class="demo-legend"><span><span class="legend-dot" style="background:#7098c2"></span>Низкое совпадение</span><span><span class="legend-dot" style="background:#54d4ad"></span>Высокое совпадение</span><span>Среднее: <strong id="agreementMean">—</strong></span></div>
         </article>
       </div>
-      <h2>Model leaderboard <span class="demo-small">(synthetic experiment)</span></h2>
-      <p>All scores come from the saved evaluation artifacts; missing values remain unavailable, never zero.</p>
+      <h2>Рейтинг методов <span class="demo-small">(синтетический эксперимент)</span></h2>
+      <p>Все значения взяты из сохранённых результатов оценки. Недоступные метрики не подменяются нулями.</p>
       <div class="demo-table-wrap"><table class="demo-table" id="snapshotBoard"></table></div>
       <div class="demo-footnote">
-        <strong>Not evaluated here:</strong> <span id="missingMethods">—</span>. The reference ceiling uses held-out features by construction and is not a deployable model. These synthetic results cannot establish performance on LANL.
-        <span class="demo-small"> · <a href="https://github.com/CorgCode/pt-project/pull/52" style="color:#a8e6d0">Research dashboard source</a></span>
+        <strong>Пока не оценены здесь:</strong> <span id="missingMethods">—</span>. Эталонный максимум использует признаки отложенного окна и не является применимой на практике моделью. Синтетические оценки не доказывают качество на LANL.
+        <span class="demo-small"> · <a href="https://github.com/CorgCode/pt-project/pull/52" style="color:#a8e6d0">Исходный код исследовательского dashboard</a></span>
       </div>
     </div>
   </section>
   <hr class="demo-separator" />
-  <h2>Upload your own CSV · separate toy playground</h2>
-  <p>This older browser-only evaluator uses a different, generated 300-host reference. Its scores must <strong>not</strong> be compared with the research snapshot above.</p>
+  <h2>Загрузите свой CSV · отдельный учебный пример</h2>
+  <p>Этот упрощённый инструмент оценивает CSV относительно другого сгенерированного эталона из 300 хостов. <strong>Не сравнивайте</strong> его оценки с исследовательскими графиками выше.</p>
   <div class="upload">
     <div class="row">
       <input id="file" type="file" accept=".csv,text/csv" />
-      <button id="run">Run evaluation</button>
-      <button class="secondary" id="sample">Download sample CSV</button>
+      <button id="run">Оценить embeddings</button>
+      <button class="secondary" id="sample">Скачать пример CSV</button>
     </div>
-    <div id="status" class="status">Demo reference: 300 synthetic hosts (<code>h0…h299</code>). Files never leave your browser.</div>
+    <div id="status" class="status">Демонстрационный эталон: 300 синтетических хостов (<code>h0…h299</code>). Файлы остаются в вашем браузере.</div>
   </div>
 
   <div id="results" class="hidden">
-    <h2>Your embedding</h2>
+    <h2>Ваше представление</h2>
     <div class="grid" id="cards"></div>
 
-    <h2>Comparison</h2>
+    <h2>Сравнение</h2>
     <div id="metricPlot" class="plot"></div>
 
-    <h2>Leaderboard</h2>
+    <h2>Рейтинг методов</h2>
     <table id="leaderboard"></table>
 
-    <h2>2D preview</h2>
+    <h2>Двумерная проекция</h2>
     <div id="scatter" class="plot"></div>
 
-    <h2>Not available in the browser demo yet</h2>
-    <div class="note">Triplet Accuracy, Pairwise ROC-AUC / PR-AUC, Precision@k / Recall@k and Linear Probe stay unavailable until the shared implementations/reference artifacts from #22–#25 are ready. The Python/Streamlit version remains the source of truth for the full evaluator.</div>
+    <h2>Ограничения инструмента оценки CSV</h2>
+    <div class="note">Здесь рассчитываются только Consistency, Jaccard и nDCG. Метрики Triplet Accuracy, Pairwise ROC-AUC / PR-AUC, Precision@k / Recall@k и Linear Probe доступны в основном Python-evaluator при наличии соответствующих эталонов. Учебный пример не заменяет полный исследовательский отчёт.</div>
   </div>
 </div>
 <script>
@@ -159,14 +159,14 @@ function metrics(X){const res={};for(const k of KS){const e=topK(X,k),cons=[],ja
 function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
 function randomEmbedding(d){const r=rng(7);return Array.from({length:N},()=>Array.from({length:d},()=>normal(r)))}
 function parseUpload(file){return new Promise((resolve,reject)=>Papa.parse(file,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:x=>x.errors.length?reject(new Error(x.errors[0].message)):resolve(x.data),error:reject}))}
-function validate(rows){if(!rows.length)throw Error('CSV is empty.');const cols=Object.keys(rows[0]);if(!cols.includes('host_id'))throw Error('Missing required host_id column.');const emb=cols.filter(c=>c.startsWith('emb_'));if(!emb.length)throw Error('No emb_* columns found.');const ids=rows.map(r=>String(r.host_id));if(new Set(ids).size!==ids.length)throw Error('Duplicate host_id values.');if(ids.length!==N||HOSTS.some(h=>!ids.includes(h)))throw Error(`Demo requires exactly ${N} hosts h0…h${N-1}.`);const by=new Map(rows.map(r=>[String(r.host_id),r]));const X=HOSTS.map(h=>emb.map(c=>Number(by.get(h)[c])));if(X.some(row=>row.some(v=>!Number.isFinite(v))))throw Error('Embedding contains missing, non-numeric, NaN or Inf values.');return {X,dim:emb.length}}
+function validate(rows){if(!rows.length)throw Error('CSV пуст.');const cols=Object.keys(rows[0]);if(!cols.includes('host_id'))throw Error('Отсутствует обязательный столбец host_id.');const emb=cols.filter(c=>c.startsWith('emb_'));if(!emb.length)throw Error('Нет столбцов emb_*.');const ids=rows.map(r=>String(r.host_id));if(new Set(ids).size!==ids.length)throw Error('Встречаются повторяющиеся host_id.');if(ids.length!==N||HOSTS.some(h=>!ids.includes(h)))throw Error(`Для демонстрации нужно ровно ${N} хостов h0…h${N-1}.`);const by=new Map(rows.map(r=>[String(r.host_id),r]));const X=HOSTS.map(h=>emb.map(c=>Number(by.get(h)[c])));if(X.some(row=>row.some(v=>!Number.isFinite(v))))throw Error('В embeddings обнаружены пропуски, нечисловые значения, NaN или бесконечность.');return {X,dim:emb.length}}
 function format(v){return Number(v).toFixed(3)}
-function renderCards(m){const labels=[['consistency','Consistency'],['jaccard','Jaccard'],['ndcg','nDCG']];document.getElementById('cards').innerHTML=labels.map(([key,name])=>`<div class="card metric"><span>${name}@10</span><b>${format(m[10][key])}</b><span>@5 ${format(m[5][key])} · @20 ${format(m[20][key])}</span></div>`).join('')}
-function renderBoard(items){items.sort((a,b)=>b.metrics[10].consistency-a.metrics[10].consistency);let h='<tr><th>Method</th><th>C@5</th><th>C@10</th><th>C@20</th><th>J@10</th><th>nDCG@10</th></tr>';for(const x of items)h+=`<tr><td>${x.name}</td><td>${format(x.metrics[5].consistency)}</td><td>${format(x.metrics[10].consistency)}</td><td>${format(x.metrics[20].consistency)}</td><td>${format(x.metrics[10].jaccard)}</td><td>${format(x.metrics[10].ndcg)}</td></tr>`;document.getElementById('leaderboard').innerHTML=h}
+function renderCards(m){const labels=[['consistency','Совпадение соседей'],['jaccard','Jaccard'],['ndcg','nDCG']];document.getElementById('cards').innerHTML=labels.map(([key,name])=>`<div class="card metric"><span>${name}@10</span><b>${format(m[10][key])}</b><span>@5 ${format(m[5][key])} · @20 ${format(m[20][key])}</span></div>`).join('')}
+function renderBoard(items){items.sort((a,b)=>b.metrics[10].consistency-a.metrics[10].consistency);let h='<tr><th>Метод</th><th>C@5</th><th>C@10</th><th>C@20</th><th>J@10</th><th>nDCG@10</th></tr>';for(const x of items)h+=`<tr><td>${x.name}</td><td>${format(x.metrics[5].consistency)}</td><td>${format(x.metrics[10].consistency)}</td><td>${format(x.metrics[20].consistency)}</td><td>${format(x.metrics[10].jaccard)}</td><td>${format(x.metrics[10].ndcg)}</td></tr>`;document.getElementById('leaderboard').innerHTML=h}
 function renderPlot(items){const traces=[];for(const x of items)traces.push({x:KS.map(String),y:KS.map(k=>x.metrics[k].consistency),name:x.name,type:'bar'});Plotly.newPlot('metricPlot',traces,{barmode:'group',paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},yaxis:{range:[0,1],title:'Consistency'},xaxis:{title:'k'}},{responsive:true,displaylogo:false})}
 function renderScatter(X){const x=X.map(v=>v[0]??0),y=X.map(v=>v[1]??0);Plotly.newPlot('scatter',[{x,y,text:HOSTS,mode:'markers',type:'scattergl',marker:{size:7,opacity:.72}}],{paper_bgcolor:'#13171c',plot_bgcolor:'#13171c',font:{color:'#dce3ea'},margin:{t:20,r:20,b:45,l:55},xaxis:{title:'emb_0'},yaxis:{title:X[0].length>1?'emb_1':'0'}},{responsive:true,displaylogo:false})}
-function loadExternal(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=()=>reject(new Error('Upload playground dependency could not load; the research charts above remain available.'));document.head.appendChild(el)})}
-async function run(){try{const f=document.getElementById('file').files[0];if(!f)throw Error('Choose embeddings.csv first.');statusEl.textContent='Loading optional CSV/chart libraries…';statusEl.className='status';if(typeof Papa==='undefined')await loadExternal('https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js');if(typeof Plotly==='undefined')await loadExternal('https://cdn.plot.ly/plotly-2.35.2.min.js');statusEl.textContent='Evaluating in browser…';const rows=await parseUpload(f),{X,dim}=validate(rows);const uploaded=metrics(X),rand=metrics(randomEmbedding(dim)),ceil=metrics(REF);const items=[{name:'Uploaded',metrics:uploaded},{name:'Reference ceiling',metrics:ceil},{name:'Random',metrics:rand}];renderCards(uploaded);renderBoard([...items]);renderPlot(items);renderScatter(X);resultsEl.classList.remove('hidden');statusEl.textContent=`✓ Valid: ${N} hosts × ${dim} dimensions`;statusEl.className='status ok'}catch(e){resultsEl.classList.add('hidden');statusEl.textContent='Error: '+e.message;statusEl.className='status err'}}
+function loadExternal(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=()=>reject(new Error('Не удалось загрузить библиотеки для CSV. Исследовательские графики выше по-прежнему доступны.'));document.head.appendChild(el)})}
+async function run(){try{const f=document.getElementById('file').files[0];if(!f)throw Error('Сначала выберите embeddings.csv.');statusEl.textContent='Загрузка библиотек для CSV и графиков…';statusEl.className='status';if(typeof Papa==='undefined')await loadExternal('https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js');if(typeof Plotly==='undefined')await loadExternal('https://cdn.plot.ly/plotly-2.35.2.min.js');statusEl.textContent='Оценка в браузере…';const rows=await parseUpload(f),{X,dim}=validate(rows);const uploaded=metrics(X),rand=metrics(randomEmbedding(dim)),ceil=metrics(REF);const items=[{name:'Загруженный CSV',metrics:uploaded},{name:'Эталонный максимум',metrics:ceil},{name:'Случайный',metrics:rand}];renderCards(uploaded);renderBoard([...items]);renderPlot(items);renderScatter(X);resultsEl.classList.remove('hidden');statusEl.textContent=`✓ Файл проверен: ${N} хостов × ${dim} измерений`;statusEl.className='status ok'}catch(e){resultsEl.classList.add('hidden');statusEl.textContent='Ошибка: '+e.message;statusEl.className='status err'}}
 function sample(){const r=rng(123),d=16,lines=['host_id,'+Array.from({length:d},(_,j)=>`emb_${j}`).join(',')];for(let i=0;i<N;i++){const role=i%5,row=Array.from({length:d},(_,j)=>((j<5?(j===role?2.2:0):0)+0.35*normal(r)).toFixed(6));lines.push(`h${i},${row.join(',')}`)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='embeddings.csv';a.click();URL.revokeObjectURL(a.href)}
 document.getElementById('run').addEventListener('click',run);document.getElementById('sample').addEventListener('click',sample);
 </script>
@@ -179,8 +179,8 @@ document.getElementById('run').addEventListener('click',run);document.getElement
   const NS="http://www.w3.org/2000/svg";
   const palette={random:"#9aa6b2",behavioral:"#57cfb5",behavioral_pca:"#82b7f5",
     behavioral_svd:"#9584ec",graph_spectral:"#f2a467",reference_ceiling:"#778491"};
-  const label={random:"Random",behavioral:"Behavioral",behavioral_pca:"PCA",
-    behavioral_svd:"SVD",graph_spectral:"Graph spectral",reference_ceiling:"Reference ceiling"};
+  const label={random:"Случайный",behavioral:"Поведенческий",behavioral_pca:"Поведенческий PCA",
+    behavioral_svd:"Поведенческий SVD",graph_spectral:"Спектральный графовый",reference_ceiling:"Эталонный максимум"};
   let data=null;
   const fmt=v => Number.isFinite(v) ? Number(v).toFixed(3) : "—";
   const cleanMethods=()=>data.meta.methods.filter(m=>m!=="reference_ceiling");
@@ -208,10 +208,10 @@ document.getElementById('run').addEventListener('click',run);document.getElement
       (data.results[split][b]["consistency@10_mean"]??-1)-(data.results[split][a]["consistency@10_mean"]??-1))[0];
     const best=c?data.results[split][c]["consistency@10_mean"]:null;
     const values=[
-      [data.meta.hosts,"Synthetic hosts"],
-      [actual.length,"Evaluated baselines"],
-      [c&&Number.isFinite(best)?fmt(best):"—","Best non-leaking C@10 ("+(label[c]||"—")+")"],
-      [fmt(data.audit.prevalence.future_links.sampled_positive_rate),"Link-candidate positive rate"]
+      [data.meta.hosts,"Синтетических хостов"],
+      [actual.length,"Оценено baseline-моделей"],
+      [c&&Number.isFinite(best)?fmt(best):"—","Лучший без утечки C@10 ("+(label[c]||"—")+")"],
+      [fmt(data.audit.prevalence.future_links.sampled_positive_rate),"Доля положительных пар-кандидатов"]
     ];
     const root=document.getElementById("dashboardStats");root.replaceChildren();
     for(const [v,subtitle] of values){
@@ -222,7 +222,7 @@ document.getElementById('run').addEventListener('click',run);document.getElement
     }
   }
   function renderConsistency(split){
-    const svg=plot("chartConsistency",650,315,"Consistency across k values for synthetic "+split+" split");
+    const svg=plot("chartConsistency",650,315,"Consistency для разных k, набор: "+(split==="test"?"тест":"валидация"));
     const left=53,right=625,top=23,bottom=263,maxY=0.6;
     for(const yVal of [0,0.2,0.4,0.6]){
       const y=bottom-yVal/maxY*(bottom-top);
@@ -251,11 +251,11 @@ document.getElementById('run').addEventListener('click',run);document.getElement
     }
   }
   function renderLinks(split){
-    const svg=plot("chartLinks",660,336,"Future-link prediction ROC AUC");
+    const svg=plot("chartLinks",660,336,"ROC-AUC прогноза будущих связей");
     const methods=cleanMethods(),left=147,right=630,top=20,row=54;
     const chance=left+(right-left)*0.5;
     draw(svg,"line",{x1:chance,y1:top-8,x2:chance,y2:315,stroke:"#e5b782","stroke-dasharray":"4 5","stroke-width":1.5});
-    tick(svg,chance,333,"0.5 chance","middle");
+    tick(svg,chance,333,"0,5 — случайный уровень","middle");
     for(const [i,method] of methods.entries()){
       const y=top+i*row;
       tick(svg,left-12,y+19,label[method],"end");
@@ -269,15 +269,15 @@ document.getElementById('run').addEventListener('click',run);document.getElement
     }
     tick(svg,left,333,"0","middle");tick(svg,right,333,"1","middle");
     if(!methods.some(m=>Number.isFinite(data.results[split][m]?.link_learned_roc_auc))){
-      tick(svg,right,15,"Validation: learned scorer not available","end");
+      tick(svg,right,15,"Обученная модель оценки на валидации недоступна","end");
     }
     draw(svg,"rect",{x:162,y:303,width:11,height:11,rx:2,fill:"#82b7f5"});
-    tick(svg,177,313,"cosine");
-    if(split==="test"){draw(svg,"rect",{x:260,y:303,width:11,height:11,rx:2,fill:"#57cfb5"});tick(svg,275,313,"learned");}
+    tick(svg,177,313,"Косинус");
+    if(split==="test"){draw(svg,"rect",{x:260,y:303,width:11,height:11,rx:2,fill:"#57cfb5"});tick(svg,275,313,"Обученный");}
   }
   function horizontal(target,split,key,title,{max=1,chance=null}={}){
     const s=plot(target,650,325,title);const methods=cleanMethods(),l=149,r=620,w=r-l,t=20,row=56;
-    if(chance!==null){const x=l+chance/max*w;draw(s,"line",{x1:x,y1:10,x2:x,y2:297,stroke:"#dfaf78","stroke-dasharray":"4 5"});tick(s,x,316,"chance "+fmt(chance),"middle");}
+    if(chance!==null){const x=l+chance/max*w;draw(s,"line",{x1:x,y1:10,x2:x,y2:297,stroke:"#dfaf78","stroke-dasharray":"4 5"});tick(s,x,316,"Случайный "+fmt(chance),"middle");}
     methods.forEach((method,i)=>{
       const y=t+i*row,v=data.results[split][method]?.[key];
       tick(s,l-10,y+21,label[method],"end");
@@ -286,12 +286,12 @@ document.getElementById('run').addEventListener('click',run);document.getElement
         const box=draw(s,"rect",{x:l,y:y+5,width,height:24,fill:palette[method],rx:5});
         draw(box,"title",{},label[method]+": "+fmt(v));
         tick(s,Math.min(r-30,l+width+8),y+22,fmt(v),"start","demo-value");
-      }else tick(s,l+10,y+22,"unavailable");
+      }else tick(s,l+10,y+22,"нет данных");
     });
     tick(s,l,316,"0","middle");tick(s,r,316,fmt(max),"middle");
   }
   function renderIdentity(){
-    const s=plot("chartIdentity",650,320,"Top-1 identity retrieval after alignment on synthetic test");
+    const s=plot("chartIdentity",650,320,"Top-1 распознавание хоста: до и после выравнивания");
     const methods=cleanMethods(),l=149,r=610,t=20,row=53,max=0.40,w=r-l;
     const chance=Object.values(data.identity)[0]?.chance_top1||0;
     const cx=l+w*chance/max;draw(s,"line",{x1:cx,y1:8,x2:cx,y2:294,stroke:"#e5b782","stroke-dasharray":"4 4"});
@@ -307,11 +307,11 @@ document.getElementById('run').addEventListener('click',run);document.getElement
       }
     }
     tick(s,l,316,"0","middle");tick(s,r,316,"0.4","middle");
-    draw(s,"rect",{x:223,y:302,width:9,height:9,rx:2,fill:"#82b7f5"});tick(s,236,311,"raw");
-    draw(s,"rect",{x:296,y:302,width:9,height:9,rx:2,fill:"#57cfb5"});tick(s,309,311,"aligned");
+    draw(s,"rect",{x:223,y:302,width:9,height:9,rx:2,fill:"#82b7f5"});tick(s,236,311,"До выравнивания");
+    draw(s,"rect",{x:296,y:302,width:9,height:9,rx:2,fill:"#57cfb5"});tick(s,309,311,"После выравнивания");
   }
   function renderScatter(){
-    const s=plot("chartHosts",1100,340,"PCA projection of synthetic behavioral embeddings");
+    const s=plot("chartHosts",1100,340,"PCA-проекция синтетических поведенческих представлений");
     const p=data.projection.points,l=58,r=1072,t=18,b=306;
     const xs=p.map(d=>d.x),ys=p.map(d=>d.y);
     const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
@@ -319,7 +319,7 @@ document.getElementById('run').addEventListener('click',run);document.getElement
     const fy=y=>b-(y-ymin)/(ymax-ymin||1)*(b-t);
     draw(s,"line",{x1:l,y1:b,x2:r,y2:b,class:"demo-axis-line"});
     draw(s,"line",{x1:l,y1:t,x2:l,y2:b,class:"demo-axis-line"});
-    tick(s,(l+r)/2,331,"PCA component 1","middle");
+    tick(s,(l+r)/2,331,"Компонента PCA 1","middle");
     tick(s,11,(t+b)/2,"PCA 2");
     for(const d of p){
       const val=Math.max(0,Math.min(1,d.agreement));
@@ -332,7 +332,7 @@ document.getElementById('run').addEventListener('click',run);document.getElement
   function renderBoard(split){
     const table=document.getElementById("snapshotBoard");table.replaceChildren();
     const thead=document.createElement("thead"),tr=document.createElement("tr");
-    const cols=[["method","Method"],["consistency@10_mean","C@10"],["link_roc_auc","Link AUC"],["link_learned_roc_auc","Learned AUC"],["pair_roc_auc","Pair AUC"],["triplet_accuracy","Triplet"],["recall@3","R@3"]];
+    const cols=[["method","Метод"],["consistency@10_mean","C@10"],["link_roc_auc","AUC связей"],["link_learned_roc_auc","AUC обученной модели"],["pair_roc_auc","AUC пар"],["triplet_accuracy","Триплеты"],["recall@3","R@3"]];
     cols.forEach(([,name])=>{const th=document.createElement("th");th.textContent=name;tr.appendChild(th)});
     thead.appendChild(tr);table.appendChild(thead);
     const body=document.createElement("tbody");
@@ -343,7 +343,7 @@ document.getElementById('run').addEventListener('click',run);document.getElement
       const row=document.createElement("tr");if(method==="reference_ceiling")row.className="leaky";
       for(const [key] of cols){
         const cell=document.createElement("td");
-        cell.textContent=key==="method" ? label[method]+(method==="reference_ceiling"?" (leaks)":"") :
+        cell.textContent=key==="method" ? label[method]+(method==="reference_ceiling"?" (утечка)":"") :
           fmt(data.results[split][method]?.[key]);
         row.appendChild(cell);
       }
@@ -354,7 +354,7 @@ document.getElementById('run').addEventListener('click',run);document.getElement
   function render(){
     const split=document.getElementById("dashboardSplit").value;
     renderStats(split);renderConsistency(split);renderLinks(split);
-    horizontal("chartPairs",split,"pair_roc_auc","Shared-peer pair ROC AUC",{chance:0.5});
+    horizontal("chartPairs",split,"pair_roc_auc","ROC-AUC пар с общими соседями",{chance:0.5});
     renderIdentity();renderScatter();renderBoard(split);
   }
   async function init(){
@@ -363,15 +363,15 @@ document.getElementById('run').addEventListener('click',run);document.getElement
       const response=await fetch("./data/synthetic_demo.json",{cache:"no-cache"});
       if(!response.ok)throw new Error("HTTP "+response.status);
       data=await response.json();
-      if(data.meta.synthetic!==true||data.meta.hosts!==300)throw new Error("Unexpected snapshot provenance/cohort");
+      if(data.meta.synthetic!==true||data.meta.hosts!==300)throw new Error("Неожиданный источник или размер набора данных");
       document.getElementById("missingMethods").textContent=data.meta.missing.join(", ");
       document.getElementById("dashboardSplit").addEventListener("change",render);
       render();
       document.getElementById("dashboardContents").hidden=false;
-      st.textContent="Synthetic snapshot loaded · Numbers from saved evaluation files · Not real LANL";
+      st.textContent="Синтетический набор загружен · Оценки из сохранённых файлов · Это не LANL";
       st.className="status ok";
     }catch(e){
-      st.textContent="Could not load the saved synthetic snapshot: "+e.message;
+      st.textContent="Не удалось загрузить синтетические результаты: "+e.message;
       st.className="demo-error";
     }
   }
