@@ -6,8 +6,8 @@ Every method follows the benchmark's temporal protocol and is selected with `--m
 
 | method | algorithm | status |
 |---|---|---|
-| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | this PR |
-| `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | separate PR |
+| `deepwalk` | uniform weighted walks + skip-gram with hierarchical softmax (Perozzi et al., KDD 2014) | PR 1 |
+| `node2vec` | second-order biased walks (p, q) + skip-gram with negative sampling (Grover & Leskovec, KDD 2016) | this PR |
 | `rolx` | ReFeX recursive structural features + NMF roles (Henderson et al., KDD 2012) | separate PR |
 | `struc2vec` | multilayer structural-similarity graph, DTW degree-sequence distances (Ribeiro et al., KDD 2017) | separate PR |
 | `graphsage` | unsupervised mean-aggregator GraphSAGE, inductive (Hamilton et al., NeurIPS 2017) | separate PR |
