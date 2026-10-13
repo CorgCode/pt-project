@@ -111,16 +111,107 @@ def evaluate_synthetic_embeddings(seed=42):
 
     return df, metrics
 
+def evaluate_embedding_csv(path, eps=1.8, min_samples=5):
+    """Evaluate DBSCAN clustering on an existing embedding CSV."""
+    from pathlib import Path
+
+    df = pd.read_csv(path)
+    embedding_columns = [
+        column for column in df.columns if column.startswith("emb_")
+    ]
+
+    if "host_id" not in df.columns:
+        raise ValueError("CSV must contain a host_id column.")
+    if not embedding_columns:
+        raise ValueError("CSV must contain columns named emb_0, emb_1, ...")
+    if df["host_id"].duplicated().any():
+        raise ValueError("host_id values must be unique.")
+    if df[embedding_columns].isna().any().any():
+        raise ValueError("Embedding coordinates must not contain missing values.")
+
+    X = df[embedding_columns].to_numpy(dtype=float)
+    if not np.isfinite(X).all():
+        raise ValueError("Embedding coordinates must all be finite.")
+
+    model = DBSCAN(eps=eps, min_samples=min_samples)
+    labels = model.fit_predict(X)
+
+    non_noise = labels != -1
+    cluster_ids = np.unique(labels[non_noise])
+    n_non_noise = int(non_noise.sum())
+
+    silhouette = np.nan
+    davies_bouldin = np.nan
+    if 2 <= len(cluster_ids) < n_non_noise:
+        X_clustered = X[non_noise]
+        labels_clustered = labels[non_noise]
+        silhouette = silhouette_score(X_clustered, labels_clustered)
+        davies_bouldin = davies_bouldin_score(
+            X_clustered, labels_clustered
+        )
+
+    results = {
+        "method": Path(path).stem,
+        "evaluator": "DBSCAN",
+        "n_hosts": len(df),
+        "n_dimensions": len(embedding_columns),
+        "n_clusters_excluding_noise": len(cluster_ids),
+        "n_detected_outliers": int((labels == -1).sum()),
+        "outlier_fraction": float((labels == -1).mean()),
+        "silhouette": float(silhouette),
+        "davies_bouldin": float(davies_bouldin),
+        "dbscan_eps": eps,
+        "dbscan_min_samples": min_samples,
+        "input_file": str(path),
+        "anomaly_precision": np.nan,
+        "anomaly_recall": np.nan,
+        "anomaly_f1": np.nan,
+    }
+
+    return pd.DataFrame([results]), pd.DataFrame({
+        "host_id": df["host_id"],
+        "cluster": labels,
+        "is_dbscan_outlier": labels == -1,
+    })
 
 if __name__ == "__main__":
-    embeddings, metrics = evaluate_synthetic_embeddings()
+    import argparse
+    from pathlib import Path
 
-    pd.DataFrame([metrics]).to_csv(
-        "clustering_anomaly_results.csv",
-        index=False,
+    parser = argparse.ArgumentParser(
+        description="Evaluate DBSCAN on synthetic or existing embeddings."
     )
-    embeddings.to_csv("synthetic_embeddings.csv", index=False)
+    parser.add_argument(
+        "--embeddings",
+        type=str,
+        help="Path to an existing embeddings CSV.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="runs/clustering_anomaly",
+        help="Directory for evaluation results.",
+    )
+    args = parser.parse_args()
 
-    print(pd.Series(metrics).to_string())
-    print("\nSaved clustering_anomaly_results.csv")
-    print("Saved synthetic_embeddings.csv")
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.embeddings:
+        results, assignments = evaluate_embedding_csv(args.embeddings)
+        assignments_path = output_dir / "cluster_assignments.csv"
+    else:
+        embeddings, metrics = evaluate_synthetic_embeddings()
+        results = pd.DataFrame([metrics])
+        assignments = embeddings
+        assignments_path = output_dir / "synthetic_embeddings.csv"
+
+    result_path = output_dir / "clustering_anomaly_results.csv"
+
+    results.to_csv(result_path, index=False)
+    assignments.to_csv(assignments_path, index=False)
+
+    print(results.to_string(index=False))
+    print(f"\nSaved results: {result_path}")
+    print(f"Saved assignments/data: {assignments_path}")
+
