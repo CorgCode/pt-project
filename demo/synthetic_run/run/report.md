@@ -111,6 +111,8 @@ Raw-coordinate scores are only interpretable for methods that declare a shared c
 | behavioral | same feature definitions, earlier window (feature overlap) | none | weak: behaviour correlates with peers |
 | behavioral_pca | same feature definitions, earlier window (feature overlap) | none | weak: behaviour correlates with peers |
 | behavioral_svd | same feature definitions, earlier window (feature overlap) | none | weak: behaviour correlates with peers |
+| behavioral_portfree | same feature definitions MINUS the port block, earlier window (reduced feature overlap) | none | weak: behaviour correlates with peers |
+| behavioral_portfree_pca | same feature definitions MINUS the port block, earlier window (reduced feature overlap) | none | weak: behaviour correlates with peers |
 | graph_spectral | weak: degree/volume leaks into the spectrum | strong: link persistence (peers seen in train recur) | strong: peer sets persist across windows |
 | reference_ceiling | identical by construction (target-window features) | none | weak |
 
