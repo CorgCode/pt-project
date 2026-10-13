@@ -2,6 +2,8 @@
 
 Team project for **Positive Technologies / MIPT**.
 
+Research site (Russian, synthetic results only): https://corgcode.github.io/pt-project/ — source in `docs/`, deployed by `.github/workflows/pages.yml`.
+
 ## Goal
 
 Build a system that learns representations of hosts in a corporate network from network traffic and uses them to:

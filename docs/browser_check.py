@@ -1,87 +1,119 @@
-"""Automated visual smoke test of the static GitHub Pages site.
+"""Real-browser check of the static site (headless Chromium), served from docs/ exactly as the
+Pages workflow publishes it. Never starts Streamlit and never needs an upload for the main page.
 
-Launches a local HTTP server and headless Chromium; this deliberately never
-starts Streamlit or uploads a CSV. The key requirement is that research charts
-appear on first page load on both desktop and mobile.
+Verifies at 1440 / 768 / 390 px: no page errors, no horizontal overflow, all charts drawn on first
+load, provenance + pending placeholders visible, split toggle redraws, playground accepts a valid CSV
+and rejects invalid ones. Pass --shots DIR to also save full-page screenshots.
 """
 from __future__ import annotations
 
-import json
+import argparse
+import tempfile
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from threading import Thread
 
 from playwright.sync_api import sync_playwright
 
-ROOT = Path(__file__).resolve().parent.parent  # emulate branch-based Jekyll deployment from repo root
+ROOT = Path(__file__).resolve().parent
+SIZES = ((1440, 900), (768, 1024), (390, 844))
+CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "leaderboard"]
 
 
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, *_args) -> None:
+class Quiet(SimpleHTTPRequestHandler):
+    def log_message(self, *_a) -> None:
         pass
 
 
 def main() -> None:
-    handler = partial(QuietHandler, directory=str(ROOT))
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    problems = []
-    try:
-        with sync_playwright() as engine:
-            browser = engine.chromium.launch(headless=True, args=["--no-sandbox"])
-            try:
-                for width, height in ((1440, 900), (390, 844)):
-                    page = browser.new_page(viewport={"width": width, "height": height})
-                    page.on("pageerror", lambda error: problems.append(str(error)))
-                    page.goto(f"http://127.0.0.1:{server.server_port}/index.html",
-                              wait_until="domcontentloaded", timeout=30000)
-                    page.wait_for_selector("#dashboardContents:not([hidden])",
-                                           timeout=30000)
-                    assert page.url.rstrip("/").endswith("/docs"), (
-                        "Repo root must redirect to /docs/ and show the real dashboard: " + page.url
-                    )
-                    assert page.locator("html").get_attribute("lang") == "ru"
-                    assert "Синтетический набор загружен" in page.locator("#dashboardStatus").inner_text()
-                    assert "Окно оценки" in page.locator("#researchDashboard").inner_text()
-                    assert "Сохранение ближайших соседей" in page.locator("#researchDashboard").inner_text()
-                    assert "Прогноз будущих связей" in page.locator("#researchDashboard").inner_text()
-                    assert page.locator("#run").inner_text() == "Оценить embeddings"
-                    assert page.locator("#sample").inner_text() == "Скачать пример CSV"
-                    assert page.locator("#chartConsistency svg").count() == 1
-                    assert page.locator("#chartLinks svg").count() == 1
-                    assert page.locator("#chartPairs svg").count() == 1
-                    assert page.locator("#chartIdentity svg").count() == 1
-                    assert page.locator("#chartHosts svg circle").count() == 300
-                    assert page.locator("#snapshotBoard tbody tr").count() == 6
-                    assert "синтетический" in page.locator("#researchDashboard").inner_text().lower()
-                    assert "node2vec" in page.locator("#missingMethods").inner_text().lower()
-                    assert page.locator("#results.hidden").count() == 1, (
-                        "upload-playground results must remain hidden before upload"
-                    )
-                    scores = page.locator("#snapshotBoard tbody").inner_text()
-                    assert "0.280" in scores, "reported behavioural score absent"
-                    page.locator("#dashboardSplit").select_option("validation")
-                    assert page.locator("#chartConsistency svg").count() == 1
-                    assert page.locator("#snapshotBoard tbody tr").count() == 6
-                    assert "0.284" in page.locator("#snapshotBoard tbody").inner_text()
-                    assert "Валидация" == page.locator("#dashboardSplit option:checked").inner_text()
-                    assert "Метод" in page.locator("#snapshotBoard").inner_text()
-                    if width == 390:
-                        assert page.evaluate(
-                            "document.documentElement.scrollWidth <= window.innerWidth + 2"
-                        ), "Page introduces horizontal overflow at mobile width"
-                    assert not problems, f"Page errors: {problems}"
-                    page.close()
-                print("OK: repo root redirects to /docs/; five plots + leaderboard render before upload; "
-                      "test/validation toggle; desktop/mobile; no page errors.")
-            finally:
-                browser.close()
-    finally:
-        server.shutdown()
-        server.server_close()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--shots", default="")
+    args = ap.parse_args()
+    shots = Path(args.shots) if args.shots else None
+    if shots:
+        shots.mkdir(parents=True, exist_ok=True)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(Quiet, directory=str(ROOT)))
+    Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    problems: list[str] = []
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, args=["--no-sandbox"])
+        for w, h in SIZES:
+            page = browser.new_page(viewport={"width": w, "height": h})
+            page.on("pageerror", lambda e, w=w: problems.append(f"{w}px pageerror: {e}"))
+            page.on("console", lambda m, w=w: m.type == "error" and problems.append(f"{w}px console: {m.text}"))
+            page.on("requestfailed", lambda r, w=w: problems.append(f"{w}px request failed: {r.url}"))
+            page.goto(base + "/index.html", wait_until="networkidle", timeout=30000)
+            page.wait_for_selector("html[data-charts=ready]", timeout=10000)
+            for cid in CHARTS:
+                n = page.eval_on_selector(f"#{cid}", "e => e.querySelectorAll('svg, table').length")
+                if n < 1:
+                    problems.append(f"{w}px: #{cid} not rendered")
+            sw = page.evaluate("document.documentElement.scrollWidth")
+            if sw > w:
+                problems.append(f"{w}px: horizontal overflow (scrollWidth {sw})")
+            body = page.inner_text("body")
+            for needle in ("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL", "Ожидаются результаты эксперимента", "Чего вывести нельзя"):
+                if needle not in body:
+                    problems.append(f"{w}px: missing text {needle!r}")
+            if page.locator("svg text").count() < 20:
+                problems.append(f"{w}px: chart labels missing")
+            clipped = page.evaluate("""() => [...document.querySelectorAll('.fig svg')].flatMap(s => {
+                const r = s.getBoundingClientRect();
+                return [...s.querySelectorAll('text')].filter(t => { const b = t.getBoundingClientRect();
+                    return b.width && (b.right > r.right + 1 || b.left < r.left - 1); }).map(t => t.textContent); })""")
+            if clipped:
+                problems.append(f"{w}px: clipped chart labels {clipped[:3]}")
+            before = page.inner_text("#leaderboard")
+            page.click("button[data-split=validation]")
+            if page.inner_text("#leaderboard") == before:
+                problems.append(f"{w}px: split toggle did not change leaderboard")
+            page.click("button[data-split=test]")
+            page.goto(base + "/index.html", wait_until="networkidle")
+            page.keyboard.press("Tab")
+            if page.evaluate("document.activeElement.className") != "skip":
+                problems.append(f"{w}px: skip link not first focus")
+            if shots:
+                page.screenshot(path=str(shots / f"index_{w}.png"), full_page=True)
+            page.close()
+
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        page.on("pageerror", lambda e: problems.append(f"playground pageerror: {e}"))
+        page.goto(base + "/playground.html", wait_until="networkidle")
+        with page.expect_download() as dl:
+            page.click("#sample")
+        with tempfile.TemporaryDirectory() as tmp:
+            good = Path(tmp) / "embeddings.csv"
+            dl.value.save_as(good)
+            page.set_input_files("#file", str(good))
+            page.click("#run")
+            page.wait_for_selector("#results:not([hidden])", timeout=60000)
+            if "300 хостов" not in page.inner_text("#status"):
+                problems.append("playground: valid CSV not accepted")
+            if page.evaluate("document.documentElement.scrollWidth") > 390:
+                problems.append("playground: horizontal overflow at 390px")
+            if shots:
+                page.screenshot(path=str(shots / "playground_390.png"), full_page=True)
+            for label, content, expect in (
+                ("dup", "host_id,emb_0\n" + "h0,1\n" * 300, "повторяющиеся"),
+                ("nan", "host_id,emb_0\n" + "".join(f"h{i},{'x' if i == 3 else 1}\n" for i in range(300)), "нечисловые"),
+                ("noid", "id,emb_0\nh0,1\n", "host_id"),
+            ):
+                bad = Path(tmp) / f"{label}.csv"
+                bad.write_text(content, encoding="utf-8")
+                page.set_input_files("#file", str(bad))
+                page.click("#run")
+                page.wait_for_function("document.getElementById('status').textContent.startsWith('Ошибка')", timeout=20000)
+                if expect not in page.inner_text("#status") or not page.is_hidden("#results"):
+                    problems.append(f"playground: bad CSV '{label}' not rejected properly")
+        page.close()
+        browser.close()
+    server.shutdown()
+    if problems:
+        raise SystemExit("Browser check FAILED:\n- " + "\n- ".join(problems))
+    print("OK: index charts/provenance/pending/toggle at 1440/768/390; playground accepts valid and rejects invalid CSV.")
 
 
 if __name__ == "__main__":
