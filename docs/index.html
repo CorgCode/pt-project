@@ -65,9 +65,9 @@
         <tr><td>Базовая модель 2</td><td>Спектральное вложение графа коммуникаций (<code>graph_spectral</code>) в том же файле</td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
         <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>В main реализованы пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Результатов по ним на этом сайте нет — они не запускались на общем эталоне.</td><td><span class="tag ok">Код в main</span> <span class="tag pend">нет результатов</span></td></tr>
         <tr><td>Какие три метода показываем</td><td>Решение команды не зафиксировано в репозитории. <b>Предложение:</b> node2vec (случайные обходы, обобщает DeepWalk), struc2vec (структурные роли), GraphSAGE (индуктивная нейросетевая модель) — три разных семейства. DeepWalk и RolX остаются дополнительными.</td><td><span class="tag prop">Предложение</span></td></tr>
-        <tr><td>Беспортовая поведенческая модель</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>)</td><td><span class="tag pend">Ожидает ревью</span></td></tr>
-        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): +451 строка, CI зелёный</td><td><span class="tag pend">Ожидает ревью</span></td></tr>
-        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): +1202 строки, отдельный набор скриптов</td><td><span class="tag pend">Ожидает ревью</span></td></tr>
+        <tr><td>Беспортовая поведенческая модель</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>)</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
+        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): +451 строка, CI зелёный</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
+        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): +1202 строки, отдельный набор скриптов</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
         <tr><td>Эксперимент на реальных данных</td><td>Issue <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a> открыт; нужен доступ к LANL</td><td><span class="tag none">Требуются реальные данные</span></td></tr>
         <tr><td>Личная ответственность и умение объяснить код</td><td>См. раздел «Команда»: по git почти весь код методов принадлежит одному автору. Это вопрос к команде, сайт его не решает.</td><td><span class="tag none">Не подтверждено</span></td></tr>
       </tbody>
@@ -127,7 +127,7 @@
         <p>Для каждого окна считается отдельно, поэтому векторы разных окон нельзя сравнивать без выравнивания.</p>
       </div>
     </div>
-    <p><b>Вариант без портов</b> <span class="tag pend">ожидает ревью</span> — pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> проверяет, сколько качества дают сами порты (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>). Пока не влит, на сайте результатов нет.</p>
+    <p><b>Вариант без портов</b> <span class="tag ok">в main</span> <span class="tag pend">влит без ревью</span> — pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> проверяет, сколько качества дают сами порты (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>). Результатов этой модели на сайте нет: они не включены в опубликованные синтетические данные.</p>
     <p>Дополнительно в оценке участвуют два служебных ориентира: случайные векторы (нижняя граница) и «потолок эталона» — модель с утечкой, не являющаяся методом.</p>
   </div>
 </section>
@@ -181,7 +181,7 @@
         <p><b>Что измеряется.</b> Доля хостов, ближайший вектор которых в следующем окне принадлежит тому же хосту (top-1).</p>
         <p><b>Как читать.</b> Пунктир — случайное угадывание (1/число хостов). Второй маркер — после ортогонального выравнивания Прокруста, когда координаты окон подгоняются друг к другу.</p>
         <p><b>Что показывают результаты.</b> Значения невелики. Без выравнивания у спектрального графа точность 0, с выравниванием — около 0,18: его окна подгоняются отдельно, и координаты несопоставимы. Случайные векторы после выравнивания дают уровень случайного угадывания.</p>
-        <p><b>Чего вывести нельзя.</b> Полноценная оценка устойчивости ещё в <a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> и не влита; показан лишь доступный в main срез.</p>
+        <p><b>Чего вывести нельзя.</b> Расширенная оценка устойчивости из <a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> влита в main, но её результаты на сайт не включены; показан срез из синтетического прогона.</p>
       </div>
     </div>
 
@@ -212,11 +212,11 @@
     <table>
       <thead><tr><th>Участник</th><th>Назначено (issue)</th><th>Подтверждено</th><th>Ссылки</th></tr></thead>
       <tbody>
-        <tr><td>Даниил<br><span class="mono">@physcorgi</span></td><td>#17, #26, #42; закрыты #2</td><td>70 из 76 коммитов в main. Единственный автор файлов пяти графовых методов, <code>pipeline/</code>, <code>experiments/</code>, основной части <code>evaluation/</code>; автор PR #62</td><td><a href="https://github.com/CorgCode/pt-project/commits/main?author=physcorgi">коммиты</a> · <a href="https://github.com/CorgCode/pt-project/pull/62">PR #62</a></td></tr>
+        <tr><td>Даниил<br><span class="mono">@physcorgi</span></td><td>#17, #26, #42; закрыты #2</td><td>70 из 76 коммитов в main. Единственный автор файлов пяти графовых методов, <code>pipeline/</code>, <code>experiments/</code>, основной части <code>evaluation/</code>; автор PR #62 (влит без ревью)</td><td><a href="https://github.com/CorgCode/pt-project/commits/main?author=physcorgi">коммиты</a> · <a href="https://github.com/CorgCode/pt-project/pull/62">PR #62</a></td></tr>
         <tr><td>Дима<br><span class="mono">@DrMogger</span></td><td>#18, #23, #34, #44 (закрыты)</td><td>В main нет коммитов, однозначно привязанных к аккаунту. Есть коммит «init» автора «Дмитрий Карпович» (аккаунт не определён) и ветки <code>check/embeddings</code>, <code>example-work</code> — не влиты</td><td><a href="https://github.com/CorgCode/pt-project/tree/check/embeddings">ветка</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/DrMogger.md">заметки</a></td></tr>
-        <tr><td>Тихон<br><span class="mono">@Tikhon2783</span></td><td>#20 (закрыт), #22 (закрыт), #40 (открыт)</td><td>PR #65 «Link prediction»: 6 файлов, +1202 строки, ожидает ревью. Коммит «triplet accuracy» в main подписан <code>khevikos</code> — аккаунт не сопоставлен</td><td><a href="https://github.com/CorgCode/pt-project/pull/65">PR #65</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/Tikhon2783.md">заметки</a></td></tr>
-        <tr><td>Даня<br><span class="mono">@kalivixZ</span></td><td>#19, #24 (закрыт), #41</td><td>2 коммита в main (архитектурные заметки по #19, загрузка файлов); PR #64 «Temporal stability»: 5 файлов, +451 строка, ожидает ревью</td><td><a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/kalivixZ.md">заметки</a></td></tr>
-        <tr><td>Даша<br><span class="mono">@ElliOrNora</span></td><td>#21, #25, #43 (открыты), #6</td><td>2 коммита в main: <code>readme.md</code> и <code>linear_probe.py</code> (исходные заметки сохранены в <code>evaluation/LINEAR_PROBE_original_notes.md</code>). Реализация #43 пока в PR #62 автора @physcorgi</td><td><a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/LINEAR_PROBE_original_notes.md">заметки</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/ElliOrNora.md">research</a></td></tr>
+        <tr><td>Тихон<br><span class="mono">@Tikhon2783</span></td><td>#20 (закрыт), #22 (закрыт), #40 (открыт)</td><td>PR #65 «Link prediction»: 6 файлов, +1202 строки; влит в main без ревью. Коммит «triplet accuracy» в main подписан <code>khevikos</code> — аккаунт не сопоставлен</td><td><a href="https://github.com/CorgCode/pt-project/pull/65">PR #65</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/Tikhon2783.md">заметки</a></td></tr>
+        <tr><td>Даня<br><span class="mono">@kalivixZ</span></td><td>#19, #24 (закрыт), #41</td><td>2 коммита в main (архитектурные заметки по #19, загрузка файлов); PR #64 «Temporal stability»: 5 файлов, +451 строка; влит в main без ревью</td><td><a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/kalivixZ.md">заметки</a></td></tr>
+        <tr><td>Даша<br><span class="mono">@ElliOrNora</span></td><td>#21, #25, #43 (открыты), #6</td><td>2 коммита в main: <code>readme.md</code> и <code>linear_probe.py</code> (исходные заметки сохранены в <code>evaluation/LINEAR_PROBE_original_notes.md</code>). Реализация #43 — PR #62 автора @physcorgi (влит без ревью)</td><td><a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/LINEAR_PROBE_original_notes.md">заметки</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/ElliOrNora.md">research</a></td></tr>
       </tbody>
     </table>
     </div>
@@ -252,7 +252,7 @@
     <ol class="steps">
       <li><b>Реальный эксперимент на LANL</b> — все методы на общих эталонах (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Блокер: доступ к данным.</li>
       <li><b>Независимый эталон сходства</b> — проверить, что оценка не зависит от тех же признаков, что и модель (<a href="https://github.com/CorgCode/pt-project/issues/45">#45</a>).</li>
-      <li><b>Интеграция открытых PR</b> — #62 (беспортовая модель), #64 (устойчивость во времени), #65 (прогноз связей) после независимого ревью.</li>
+      <li><b>Независимое ревью влитых PR</b> — #62, #64, #65 влиты без ревью; нужна проверка кода и включение их результатов в сводку.</li>
       <li><b>Кластеризация и аномалии</b> — оценка на уровне ролей и отклонений (<a href="https://github.com/CorgCode/pt-project/issues/21">#21</a>); линейный зонд (<a href="https://github.com/CorgCode/pt-project/issues/25">#25</a>).</li>
     </ol>
   </div>
