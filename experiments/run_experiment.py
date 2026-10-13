@@ -78,7 +78,8 @@ def _write(path: Path, df: pd.DataFrame) -> Path:
 def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, dim: int = 16, seed: int = 0,
                    n_boot: int = 200, submissions_dir: Path | None = None, do_audit: bool = True,
                    audit_configs: int = 12, null_draws: int = 30, methods: list[str] | None = None,
-                   method_config: dict | None = None, fast_methods: bool = False) -> dict:
+                   method_config: dict | None = None, fast_methods: bool = False,
+                   port_free_baselines: bool = False) -> dict:
     processed_dir, reference_dir, out_dir = Path(processed_dir), Path(reference_dir), Path(out_dir)
     data = ProcessedData(processed_dir)
     targets = [t for t in TARGETS if (reference_dir / t).exists() and t in data.windows]
@@ -97,7 +98,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     emb: dict[str, dict[str, pd.DataFrame]] = {}
     meta: dict[str, dict] = {}
     graph_methods_run = graph_methods.create(methods or [], dim, seed, method_config, fast_methods)
-    for b in [*default_baselines(dim, seed), *graph_methods_run]:
+    for b in [*default_baselines(dim, seed, port_free_baselines), *graph_methods_run]:
         b.fit(data)
         emb[b.name] = {"train": b.embed(data, "train"),
                        **{t: b.embed(data, t, hosts_by_target[t]) for t in targets}}
@@ -348,6 +349,8 @@ def main() -> None:
                     help='JSON (or a path to a JSON file) mapping a method to hyper-parameters, e.g. \'{"deepwalk": {"num_walks": 5}}\'')
     ap.add_argument("--fast-methods", action="store_true",
                     help="tiny hyper-parameters for every selected method (smoke tests only; results not meaningful)")
+    ap.add_argument("--port-free-baselines", action="store_true",
+                    help="also run the port-free behavioural baselines (feature ablation, issue #43)")
     ap.add_argument("--no-audit", action="store_true")
     ap.add_argument("--audit-configs", type=int, default=12)
     ap.add_argument("--null-draws", type=int, default=30)
@@ -355,7 +358,7 @@ def main() -> None:
     m = run_experiment(a.processed_dir, a.reference_dir, a.out_dir, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                        submissions_dir=a.submissions_dir, do_audit=not a.no_audit,
                        audit_configs=a.audit_configs, null_draws=a.null_draws, methods=a.methods,
-                       method_config=_load_config(a.method_config), fast_methods=a.fast_methods)
+                       method_config=_load_config(a.method_config), fast_methods=a.fast_methods, port_free_baselines=a.port_free_baselines)
     print(json.dumps({k: m[k] for k in ("data_kind", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.out_dir / 'report.md'}")
 

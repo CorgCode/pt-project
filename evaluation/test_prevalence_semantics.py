@@ -126,3 +126,18 @@ def test_extra_non_evaluable_hosts_in_the_embedding_do_not_change_scores(referen
     a, b = run(emb_path, reference / "test", "m"), run(p, reference / "test", "m")
     assert b["n_hosts"] == a["n_hosts"] and b["n_embedded_hosts"] == a["n_embedded_hosts"] + 3
     assert all(a["metrics"][k] == pytest.approx(b["metrics"][k], abs=1e-9) for k in a["metrics"])
+
+
+def test_the_scored_host_list_is_part_of_the_reference_fingerprint(reference, emb_path, tmp_path):
+    """eval_hosts.csv decides which hosts are scored, so a change in it must change the fingerprint."""
+    r = run(emb_path, reference / "test", "m")
+    assert "eval_hosts.csv" in r["reference_info"]["files_sha256"]
+    other = tmp_path / "ref"
+    shutil.copytree(reference / "test", other)
+    hosts = pd.read_csv(other / "eval_hosts.csv", dtype=str)
+    hosts.iloc[:-1].to_csv(other / "eval_hosts.csv", index=False)               # one host fewer
+    try:
+        r2 = run(emb_path, other, "m")
+    except ValueError:
+        return                                                                  # inconsistent reference refused outright
+    assert r2["reference_info"]["files_sha256"]["eval_hosts.csv"] != r["reference_info"]["files_sha256"]["eval_hosts.csv"]

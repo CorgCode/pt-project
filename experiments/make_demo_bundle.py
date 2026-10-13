@@ -15,6 +15,7 @@ import tempfile
 from pathlib import Path
 
 from experiments.end_to_end import end_to_end
+from experiments.feature_ablation import run_ablation
 
 BANNER = """# Synthetic demo bundle - NOT LANL data
 
@@ -40,6 +41,7 @@ def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200)
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp).resolve()
         end_to_end(work, fixture=True, n_hosts=n_hosts, seed=seed, n_boot=n_boot, pairs_per_anchor=10)
+        run_ablation(work / "processed", work / "reference", work / "ablation", n_boot=n_boot, seed=seed)
         if output.exists():
             shutil.rmtree(output)
         run, ref = output / "run", output / "reference"
@@ -51,6 +53,9 @@ def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200)
         for t in ("validation", "test"):
             shutil.copy(work / "reference" / t / "eval_hosts.csv", ref / t / "eval_hosts.csv")
         shutil.copy(work / "processed" / "manifest.json", output / "processed_manifest.json")
+        (output / "ablation").mkdir()
+        for name in ("ablation.json", "ablation.md"):                       # the port-free feature ablation (#43)
+            shutil.copy(work / "ablation" / name, output / "ablation" / name)
         for sub in ("embeddings",):                       # keep only the scored (train-window) embeddings
             pass
         for path in output.rglob("*.json"):

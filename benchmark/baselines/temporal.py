@@ -73,20 +73,30 @@ class BehavioralBaseline(Baseline):
     description = ("standardised behavioural profile (volume, degree, direction, ports, protocols, "
                    "hour-of-day) fitted on train; same transform applied to other windows")
 
-    def __init__(self):
+    exclude_blocks: tuple[str, ...] = ()
+
+    def __init__(self, exclude_blocks: tuple[str, ...] | None = None):
+        if exclude_blocks is not None:
+            self.exclude_blocks = tuple(exclude_blocks)
         self._fitted = None
         self._train_feats = None
 
     def fit(self, data):
         self._train_feats, self._fitted = build_reference_features(
-            data.training_flows(), hosts=data.cohort, return_fitted=True)
+            data.training_flows(), hosts=data.cohort, return_fitted=True, exclude_blocks=self.exclude_blocks)
         return self
+
+    def info(self) -> dict:
+        out = super().info()
+        out["excluded_feature_blocks"] = list(self.exclude_blocks)
+        return out
 
     def _features(self, data, window, hosts=None) -> pd.DataFrame:
         hosts = list(hosts) if hosts is not None else data.cohort
         if window == "train":
             return self._train_feats.loc[hosts]
-        return build_reference_features(data.flows(window), hosts=hosts, fitted=self._fitted)
+        return build_reference_features(data.flows(window), hosts=hosts, fitted=self._fitted,
+                                        exclude_blocks=self.exclude_blocks)
 
     def embed(self, data, window, hosts=None):
         hosts = list(hosts) if hosts is not None else data.cohort
@@ -97,8 +107,8 @@ class BehavioralPCA(BehavioralBaseline):
     name = "behavioral_pca"
     description = "PCA (fit on train features) of the behavioural profile"
 
-    def __init__(self, dim: int = 16, seed: int = 0):
-        super().__init__()
+    def __init__(self, dim: int = 16, seed: int = 0, exclude_blocks: tuple[str, ...] | None = None):
+        super().__init__(exclude_blocks)
         self.dim, self.seed = dim, seed
 
     def fit(self, data):
@@ -110,6 +120,20 @@ class BehavioralPCA(BehavioralBaseline):
     def embed(self, data, window, hosts=None):
         hosts = list(hosts) if hosts is not None else data.cohort
         return _frame(self._model.transform(self._features(data, window, hosts).to_numpy()), hosts)
+
+
+class BehavioralPortFree(BehavioralBaseline):
+    """The behavioural profile WITHOUT any port-derived feature (issue #43)."""
+    name = "behavioral_portfree"
+    exclude_blocks = ("ports",)
+    description = ("standardised behavioural profile (volume, degree, direction, protocols, hour-of-day) with the "
+                   "port block removed entirely; fitted on train, same transform applied to other windows")
+
+
+class BehavioralPortFreePCA(BehavioralPCA):
+    name = "behavioral_portfree_pca"
+    exclude_blocks = ("ports",)
+    description = "PCA (fit on train features) of the port-free behavioural profile"
 
 
 class BehavioralSVD(BehavioralBaseline):
@@ -162,6 +186,10 @@ class GraphSpectral(Baseline):
         return _frame(emb, hosts)
 
 
-def default_baselines(dim: int = 16, seed: int = 0) -> list[Baseline]:
-    return [RandomBaseline(dim, seed), BehavioralBaseline(), BehavioralPCA(dim, seed),
-            BehavioralSVD(dim, seed), GraphSpectral(dim, seed)]
+def default_baselines(dim: int = 16, seed: int = 0, port_free: bool = False) -> list[Baseline]:
+    """The standard baselines; `port_free=True` adds the port-free behavioural ablation (issue #43)."""
+    out = [RandomBaseline(dim, seed), BehavioralBaseline(), BehavioralPCA(dim, seed),
+           BehavioralSVD(dim, seed), GraphSpectral(dim, seed)]
+    if port_free:
+        out += [BehavioralPortFree(), BehavioralPortFreePCA(dim, seed)]
+    return out
