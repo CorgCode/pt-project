@@ -1,27 +1,20 @@
-"""Pair / triplet judgments from SHARED COMMUNICATION PEERS in a held-out window.
+"""Пары и тройки «похожи / не похожи» по ОБЩИМ СОБЕСЕДНИКАМ в более позднем окне.
 
-This is a *structural-similarity proxy*, deliberately different from the behavioural
-profile proxy (neighbors.csv) and from future-link labels (edges.csv):
+Это приближение структурной похожести — специально отличное от поведенческого профиля (neighbors.csv)
+и от будущих связей (edges.csv):
 
-    J(a, b) = |peers(a) ∩ peers(b)| / |peers(a) ∪ peers(b)|      (target window)
+    J(a, b) = |peers(a) ∩ peers(b)| / |peers(a) ∪ peers(b)|      (целевое окно)
 
-where peers(h) is the set of hosts h exchanged at least one flow with (either
-direction, self excluded, any host - not only the cohort).
+peers(h) — все хосты, с которыми h обменялся хотя бы одним потоком (в любую сторону, любые хосты).
 
-Judgment rule (fixed in advance, written to the manifest):
-    positive    J >= tau_pos   (default: tau_pos = max(0.1, 99th percentile of J over all
-                                pairs of the target window) - uses no embedding)
-    negative    J == 0                  (no shared peer at all)
-    unjudged    0 < J < tau_pos         (ambiguous; NEVER treated as negative)
+Правило разметки (фиксировано заранее, пишется в манифест):
+    похожи        J >= tau   (по умолчанию max(0.1, 99-й перцентиль J по всем парам окна))
+    не похожи     J == 0     (ни одного общего собеседника)
+    не размечено  0 < J < tau (неоднозначно; НИКОГДА не считается «непохожим»)
 
-pairs.csv samples up to `pairs_per_anchor` positives and negatives per anchor host
-(seeded); triplets.csv pairs each sampled positive with a sampled negative of the same
-anchor. Pair/triplet `split` (validation/test) is a deterministic hash of the pair, so it
-never depends on any embedding.
-
-These judgments measure agreement with a chosen structural proxy. They are not host
-role labels, and (like neighbors.csv) they are NOT independent of one another's source
-data: report them as alternative views, not as separate evidence.
+pairs.csv — до pairs_per_anchor похожих и непохожих на хост (seed фиксирован); triplets.csv — пары
+«похожий + непохожий» одного хоста. split пары — детерминированный хеш пары, от эмбеддингов не зависит.
+Это не метки ролей.
 """
 from __future__ import annotations
 
@@ -40,13 +33,13 @@ def _split(key: str, seed: int, validation_fraction: float) -> str:
 
 
 def jaccard_matrix(flows: pd.DataFrame, hosts: list[str]) -> np.ndarray:
-    """Dense |hosts| x |hosts| peer-set Jaccard (diagonal 0)."""
+    """Матрица Jaccard по множествам собеседников, |hosts| x |hosts|, на диагонали 0."""
     mask = flows["src"] != flows["dst"]
     a, b = flows.loc[mask, "src"].astype(str), flows.loc[mask, "dst"].astype(str)
     universe = pd.Index(sorted(set(a) | set(b) | set(hosts)))
     ia, ib = universe.get_indexer(a), universe.get_indexer(b)
     adj = sp.coo_matrix((np.ones(len(ia)), (ia, ib)), shape=(len(universe),) * 2).tocsr()
-    adj = ((adj + adj.T) > 0).astype(np.float64)          # undirected, binary
+    adj = ((adj + adj.T) > 0).astype(np.float64)          # неориентированно, 0/1
     rows = adj[universe.get_indexer(pd.Index(hosts))]
     inter = (rows @ rows.T).toarray()
     size = np.asarray(rows.sum(axis=1)).ravel()
@@ -60,7 +53,7 @@ def jaccard_matrix(flows: pd.DataFrame, hosts: list[str]) -> np.ndarray:
 def build_judgments(flows: pd.DataFrame, hosts: list[str], *, tau_pos: float | None = None,
                     pairs_per_anchor: int = 5, seed: int = 0,
                     validation_fraction: float = 0.3) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    """Return (pairs, triplets, summary). All inputs come from the target window only."""
+    """(pairs, triplets, summary). Всё берётся только из целевого окна."""
     hosts = sorted(hosts)
     if len(hosts) != len(set(hosts)) or len(hosts) < 3:
         raise ValueError("need >= 3 unique hosts")

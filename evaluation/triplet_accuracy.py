@@ -1,21 +1,12 @@
-"""Triplet Accuracy against frozen triplets (reference/triplets.csv).
-
-Definition (cosine similarity s, tie = 0.5):
+"""Точность по тройкам (reference/triplets.csv).
 
     TA = (1/N) * sum_i [ 1{ s(a_i, p_i) > s(a_i, n_i) } + 0.5 * 1{ s(a_i, p_i) = s(a_i, n_i) } ]
 
-N = number of triplets of the evaluated split (default: test). Chance level is 0.5.
+s — косинус, N — число троек нужного split (по умолчанию test). Случайный уровень — 0.5.
+anchor, positive, negative — три разных хоста; каждый должен быть в эмбеддинге (иначе это другая
+когорта — ошибка; с allow_missing=True такие тройки исключаются и считаются). Сопоставление по ID.
 
-Inputs: embeddings (host_id,emb_*) and triplets.csv (anchor,positive,negative,split).
-Rules: anchor/positive/negative must be three distinct hosts; every host must exist in the
-embedding (a missing host is an error - it means a different cohort - unless
-allow_missing=True, in which case those triplets are excluded and COUNTED); hosts match by
-ID, never by row position; blank/unknown-split rows are rejected.
-
-Interpretation: agreement with how the reference judged the triplet. What a triplet means
-(behavioural, structural, role) is defined by the reference manifest, not by this module.
-
-Original implementation: PR #36 (Tikhon / khevikos); loader, validation and tests reworked.
+Первая версия — PR #36 (Тихон); загрузка, проверки и тесты переписаны.
 """
 from __future__ import annotations
 

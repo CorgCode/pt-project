@@ -1,144 +1,88 @@
-# PT-05 — Host Behaviour Representation from Network Traffic
+# PT-05 — эмбеддинги хостов по сетевому трафику
 
-Team project for **Positive Technologies / MIPT**.
+Командный проект Positive Technologies × МФТИ.
+Сайт проекта: https://corgcode.github.io/pt-project/ (пока только синтетические результаты).
 
-Research site (Russian, synthetic results only): https://corgcode.github.io/pt-project/ — source in `docs/`, deployed by `.github/workflows/pages.yml`.
+## Цель
 
-## Goal
+В корпоративной сети есть журнал соединений: кто с кем связывался, по какому порту, сколько трафика.
+Какой хост чем занимается (сервер, рабочая станция, принтер) — неизвестно. Мы хотим по этим логам
+**научиться строить для каждого хоста вектор — эмбеддинг**, чтобы по нему:
 
-Build a system that learns representations of hosts in a corporate network from network traffic and uses them to:
+- находить хосты с похожим поведением;
+- видеть группы и роли хостов без ручной разметки;
+- замечать подозрительные изменения поведения;
+- объяснять, почему хосты считаются похожими.
 
-- find hosts with similar behaviour;
-- discover groups / structural roles without manual labels;
-- detect suspicious behavioural changes and anomalies;
-- explain why hosts are considered similar.
+Данные — [LANL Unified Host and Network Dataset](https://csr.lanl.gov/data/2017/) (NetFlow).
 
-The current project stage is **research**. Each team member performs research in a separate task branch and submits the result through a Pull Request.
-
-## Team
-
-- **Daniil** — @physcorgi
-- **Dima** — @DrMogger
-- **Tikhon** — @Tikhon2783
-- **Danya** — @genshpaaack123-byte
-- **Dasha** — @ElliOrNora
-
-## Current stage — Research
-
-The team is currently studying:
-
-- host embeddings and representation learning;
-- node2vec / DeepWalk / GraphSAGE;
-- structural-role methods such as struc2vec and RolX;
-- clustering and dimensionality reduction;
-- anomaly and lateral-movement detection;
-- the LANL Unified Host and Network Dataset;
-- evaluation of unsupervised embeddings and clusters.
-
-Research tasks are tracked in **GitHub Issues** and grouped by milestone.
-
-## Workflow
+## Как это устроено
 
 ```text
-Issue
-  ↓
-task branch
-  ↓
-commits
-  ↓
-Pull Request
-  ↓
-review
-  ↓
-main
+сырые логи LANL ─▶ pipeline ─▶ окна train / validation / test, когорта хостов, графы
+                        │
+                        └─▶ эталоны для оценки (строятся один раз, без участия моделей)
+
+train-окно ─▶ методы и бейзлайны ─▶ эмбеддинги host_id, emb_0, emb_1, …
+                                          │
+эталоны ──────────────────────────────────┴─▶ evaluation ─▶ таблица результатов, отчёт, сайт
 ```
 
-### Branches
+Главный принцип: **все методы учатся на одних данных и проверяются на одних эталонах**,
+иначе их нельзя сравнивать. Модели видят только train-окно; оценка — по более поздним окнам.
 
-Do not work directly in `main`.
-
-Create one branch for each Issue using:
-
-```text
-<github-login>/<type>-<issue-number>-<short-task>
-```
-
-Examples:
-
-```text
-physcorgi/research-2-host-embedding
-DrMogger/infra-7-repository-setup
-Tikhon2783/research-4-graph-embeddings
-genshpaaack123-byte/data-5-lanl-eda
-ElliOrNora/research-6-structural-roles
-```
-
-Task branches are temporary and should be deleted after merge.
-
-### Pull Requests
-
-Every change to `main` should go through a Pull Request.
-
-A PR should:
-
-- link the related Issue using `Closes #<issue-number>`;
-- describe what was done;
-- be reviewed before merge;
-- resolve review conversations;
-- avoid secrets or confidential data.
-
-Prefer **Squash merge** for task branches.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full team workflow.
-
-## End-to-end workflow
-
-```text
-raw LANL netflow ──pipeline.prepare──▶ windows, cohort, graphs ──pipeline.reference──▶ frozen references
-      ──experiments.run_experiment──▶ all methods × all metrics ──▶ leaderboard, audit, report ──▶ dashboard
-```
+## Быстрый старт
 
 ```bash
-python -m experiments.end_to_end --fixture --workdir runs/demo        # synthetic smoke test
-python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config cfg.json --workdir runs/lanl
+pip install -r requirements.txt
+
+# всё сразу на синтетике в формате LANL (без скачивания данных), ~1 минута
+python -m experiments.end_to_end --fixture --workdir runs/demo
+# результат: runs/demo/run/report.md, runs/demo/run/scoreboard_test.md
+
+# на настоящих файлах LANL
+python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config cfg.json \
+    --workdir runs/lanl --data-kind lanl --source-note "откуда, когда, кто скачал" --methods all
+
+# тесты
+python -m pytest -q evaluation benchmark app pipeline experiments
 ```
 
-Docs: [`pipeline/README.md`](pipeline/README.md) (data), [`evaluation/METRICS.md`](evaluation/METRICS.md)
-(metrics), [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (validity audit), [`experiments/README.md`](experiments/README.md).
+## Где что лежит
 
-## Repository rules
+| папка | что внутри | подробнее |
+|---|---|---|
+| `pipeline/` | LANL → окна → когорта → графы → эталоны | [`pipeline/README.md`](pipeline/README.md) |
+| `benchmark/` | графовые методы (DeepWalk, node2vec, RolX, struc2vec, GraphSAGE) и бейзлайны | [`benchmark/README.md`](benchmark/README.md) |
+| `evaluation/` | **оценка**: все метрики одной командой, таблица результатов, как подключить метод | [`evaluation/README.md`](evaluation/README.md) |
+| `experiments/` | запуск всего вместе, подбор параметров, абляции, устойчивость | [`experiments/README.md`](experiments/README.md) |
+| `app/` | дашборд на Streamlit | [`app/README.md`](app/README.md) |
+| `docs/` | сайт на GitHub Pages и [методология](docs/METHODOLOGY.md) | |
+| `research/` | ресёрч первого этапа, по файлу на участника | [`research/README.md`](research/README.md) |
+| `demo/` | маленький синтетический результат для дашборда и сайта | |
 
-The `main` branch is protected:
+## Где мы сейчас
 
-- direct changes should go through Pull Requests;
-- at least one approval is required;
-- CODEOWNER review is required;
-- stale approvals are dismissed after new pushes;
-- review conversations must be resolved;
-- force pushes and branch deletion are blocked.
+- Готово и проверено **на синтетике**: пайплайн данных, 5 графовых методов, бейзлайны, единая оценка и таблица результатов.
+- Не сделано: прогон на настоящих данных LANL (#60), кластеризация и аномалии (#21, PR #67), внешние метки для зонда (#25).
+- Научных выводов о качестве методов пока **нет** — синтетика проверяет код, а не методы.
 
-## Security
+Задачи — в [Issues](https://github.com/CorgCode/pt-project/issues), кто что делал — в [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
-Never commit:
+## Команда
 
-- passwords;
-- API tokens;
-- private keys;
-- `.env` files;
-- VPN configuration;
-- confidential or restricted datasets.
+| | GitHub |
+|---|---|
+| Даниил | @physcorgi |
+| Дима | @DrMogger |
+| Тихон | @Tikhon2783 |
+| Даня | @kalivixZ |
+| Даша | @ElliOrNora |
 
-Use environment variables and GitHub Secrets for credentials.
+## Как работать
 
-## Next stage
+Issue → своя ветка → pull request → ревью → `main`. Напрямую в `main` не пишем.
+Ветки: `<логин>/<тип>-<номер issue>-<коротко>`, например `physcorgi/feature-68-eval`.
+Подробно — [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-After the research phase, the team will define the MVP architecture and split implementation into separate Issues for:
-
-- data loading and preprocessing;
-- feature extraction;
-- embeddings;
-- clustering;
-- anomaly detection;
-- evaluation;
-- API / interface;
-- tests and reproducibility.
+Никогда не коммитим пароли, токены, ключи, `.env`, VPN-конфиги и сами данные (`data/` и `runs/` в `.gitignore`).

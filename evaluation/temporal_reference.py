@@ -1,10 +1,8 @@
-"""Build a HELD-OUT behavioural reference for neighborhood evaluation.
+"""Поведенческий эталон из ОТЛОЖЕННОГО окна для оценки соседства.
 
-This measures cross-window behavioural neighborhood preservation, NOT
-ground-truth host-role accuracy. Training provenance of embeddings must still
-be checked by the experiment author.
+Проверяет, сохраняется ли поведенческое соседство во времени, а не правильность ролей.
+На каких данных учился эмбеддинг, должен проверить автор эксперимента.
 
-Example:
  python -m evaluation.temporal_reference \
    --train-flows data/train.csv --test-flows data/test.csv \
    --embeddings submissions/method/embeddings.csv \
@@ -27,7 +25,7 @@ REQUIRED = {"src", "dst", "dst_port", "proto", "bytes", "packets", "ts"}
 
 
 def load_flows(path: Path) -> pd.DataFrame:
-    """Load canonical flow records; timestamps can be Unix seconds or ISO-8601."""
+    """Загрузить нормализованные потоки; время — Unix-секунды или ISO-8601."""
     f = pd.read_csv(
         path, dtype={"src": "string", "dst": "string",
                      "dst_port": "string", "proto": "string"}
@@ -60,7 +58,7 @@ def load_flows(path: Path) -> pd.DataFrame:
         ts = pd.to_datetime(raw, errors="coerce", utc=True)
     if ts.isna().any():
         raise ValueError(f"{path}: invalid timestamps")
-    # build_reference_features expects a conventional datetime64 series.
+    # build_reference_features ждёт обычный datetime64
     f["ts"] = ts.dt.tz_convert("UTC").dt.tz_localize(None)
     return f
 
@@ -81,10 +79,10 @@ def generate_reference(
     ks: tuple[int, ...] = (5, 10, 20),
     split: str = "test",
 ) -> dict:
-    """Write features.csv and manifest.json for a strict temporal holdout.
+    """Записать features.csv и manifest.json для строгого отложенного окна.
 
-    Hosts must be active in BOTH periods. Do not silently fill missing hosts
-    with all-zero profiles: this would create arbitrary cosine neighbours.
+    Хосты должны быть активны в ОБОИХ периодах. Нулевые профили для отсутствующих хостов не подставляем:
+    это дало бы случайных соседей по косинусу.
     """
     if not hosts or len(set(hosts)) != len(hosts):
         raise ValueError("Host list must be nonempty and unique")
@@ -110,8 +108,8 @@ def generate_reference(
 
     train_ref = build_reference_features(train, hosts=hosts)
     test_ref = build_reference_features(test, hosts=hosts)
-    # Each period gets its own within-window similarities. Feature columns need
-    # not have identical dimensions because we compare NEIGHBOR LISTS, not vectors.
+    # у каждого периода своя похожесть внутри окна; размерности признаков могут различаться,
+    # потому что сравниваются СПИСКИ СОСЕДЕЙ, а не векторы
     summary = evaluate_embedding(train_ref, test_ref, ks=ks)
     stability = {
         f"{metric}@{k}": float(row["mean"])

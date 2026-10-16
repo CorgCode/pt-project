@@ -1,77 +1,39 @@
-# Team Git Workflow
+# Как мы работаем
 
-## Roles
+## Роли
 
-- @physcorgi — project owner and final code owner.
-- @DrMogger — repository administrator.
-- Other team members — write access.
+- @physcorgi — владелец проекта и кода (CODEOWNER, его ревью обязательно).
+- @DrMogger — администратор репозитория.
+- Остальные — права на запись.
 
-## Branches
+## Порядок
 
-The `main` branch is the stable integration branch.
+1. Есть issue: зачем, что сделать, когда готово. Нет issue — заведите.
+2. Ветка от свежего `main`, **одна ветка — одна задача**:
 
-Do not work directly in `main`.
+   ```text
+   <логин>/<тип>-<номер issue>-<коротко>
+   physcorgi/feature-68-eval
+   Tikhon2783/research-40-link-prediction
+   ```
 
-Create **one branch per Issue**.
+   Типы: `research` — ресёрч, `data` — данные, `feature` — функциональность, `fix` — исправление,
+   `docs` — документация, `infra` — CI, инструменты.
+3. Коммиты — небольшие, сообщение говорит, что и зачем изменилось.
+4. Pull request в `main`: что сделано, `Closes #<номер>`, отметки в чек-листе шаблона.
+5. Ревью хотя бы одного человека и владельца кода; все обсуждения закрыты; CI зелёный.
+6. Слияние через **Squash merge**, ветку удалить.
 
-### Branch naming
+`main` защищён: только через PR, после новых коммитов аппрув сбрасывается, force push и удаление ветки запрещены.
 
-Use this format:
+## Код
 
-```text
-<github-login>/<type>-<issue-number>-<short-task>
-```
+- Комментарии и docstring — по-русски, коротко: зачем, а не что. Имена в коде — по-английски.
+- Рядом с модулем — тест `test_<модуль>.py`. Перед PR: `python -m pytest -q evaluation benchmark app pipeline experiments`.
+- Новый метод — в `benchmark/methods/`, новая метрика — в `evaluation/` (см. их README).
+- Данные и результаты прогонов (`data/`, `runs/`) в git не попадают.
 
-Allowed task types:
+## Безопасность
 
-- `research` — research / literature review;
-- `data` — dataset exploration and preprocessing;
-- `feature` — implementation of functionality;
-- `fix` — bug fixes;
-- `docs` — documentation;
-- `infra` — repository, CI, Docker, tooling.
-
-Examples:
-
-```text
-physcorgi/research-2-host-embedding
-DrMogger/infra-7-repository-setup
-Tikhon2783/research-4-graph-embeddings
-genshpaaack123-byte/data-5-lanl-eda
-ElliOrNora/research-6-structural-roles
-```
-
-Do not create permanent personal branches such as `daniil`, `dasha`, `dev/dima`, etc.
-A branch should exist only for one task and should be deleted after its PR is merged.
-
-Legacy branches created before this convention may keep their names until the current work is merged. All new branches must follow this convention.
-
-## Pull Requests
-
-All changes to `main` should go through a Pull Request.
-
-Before merging:
-
-1. The branch is up to date with `main`.
-2. The result matches the linked Issue.
-3. The work has been checked locally where applicable.
-4. At least one other team member reviews the PR.
-5. Review conversations are resolved.
-6. The PR contains `Closes #<issue-number>` when it completes an Issue.
-
-Prefer **Squash merge** for task branches.
-
-After merge, delete the task branch.
-
-## Safety
-
-Never commit:
-
-- passwords;
-- API tokens;
-- private keys;
-- VPN configs;
-- `.env` files;
-- confidential datasets.
-
-Use environment variables and GitHub Secrets for credentials.
+Никогда не коммитим пароли, токены, приватные ключи, `.env`, VPN-конфиги и закрытые датасеты.
+Секреты — через переменные окружения и GitHub Secrets.

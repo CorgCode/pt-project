@@ -1,13 +1,14 @@
-# Research — Phase 1
+# Ресёрч: первый этап
 
-Individual research submissions for the first project phase.
+Обзор методов и датасета, который каждый участник делал в начале проекта. Файлы лежат по отдельности,
+чтобы было видно, чей вклад.
 
-| Team member | GitHub | Issue | Research |
+| участник | GitHub | задача | файл |
 |---|---|---|---|
-| Daniil | @physcorgi | [#2](https://github.com/CorgCode/pt-project/issues/2) | [physcorgi.md](physcorgi.md) |
-| Dima | @DrMogger | [#3](https://github.com/CorgCode/pt-project/issues/3) | [DrMogger.md](DrMogger.md) |
-| Tikhon | @Tikhon2783 | [#4](https://github.com/CorgCode/pt-project/issues/4) | [Tikhon2783.md](Tikhon2783.md) |
-| Danya | @kalivixZ | [#5](https://github.com/CorgCode/pt-project/issues/5) | [kalivixZ.md](kalivixZ.md) |
-| Dasha | @ElliOrNora | [#6](https://github.com/CorgCode/pt-project/issues/6) | [ElliOrNora.md](ElliOrNora.md) |
+| Даниил | @physcorgi | [#2](https://github.com/CorgCode/pt-project/issues/2) | [physcorgi.md](physcorgi.md) |
+| Дима | @DrMogger | [#3](https://github.com/CorgCode/pt-project/issues/3) | [DrMogger.md](DrMogger.md) |
+| Тихон | @Tikhon2783 | [#4](https://github.com/CorgCode/pt-project/issues/4) | [Tikhon2783.md](Tikhon2783.md) |
+| Даня | @kalivixZ | [#5](https://github.com/CorgCode/pt-project/issues/5) | [kalivixZ.md](kalivixZ.md) |
+| Даша | @ElliOrNora | [#6](https://github.com/CorgCode/pt-project/issues/6) | [ElliOrNora.md](ElliOrNora.md) |
 
-All five research Issues are completed. The files are kept separately so that each contribution remains attributable to its author.
+Сводка — [FULL_RESEARCH.md](FULL_RESEARCH.md). Архитектурные заметки по задачам #19 и #24 — `issue_19_architecture.md`, `issue_24_architecture.md`.

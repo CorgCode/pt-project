@@ -1,8 +1,7 @@
-"""Frozen log-derived neighborhood reference for cross-method host evaluation.
+"""Замороженные соседи по логам — общий эталон для всех методов.
 
-The file defines a BEHAVIORAL PROXY, not ground-truth functional roles.
-Generate neighbors ONCE from reference features; use the same file for all
-submissions. Prefer held-out features from a later time window (#45).
+Это ПРИБЛИЖЕНИЕ поведенческой похожести, а не правда о ролях. Строится один раз из эталонных
+признаков и одинаков для всех методов. Лучше брать признаки более позднего окна (#45).
 """
 from __future__ import annotations
 
@@ -29,10 +28,10 @@ def save_frozen_neighbors(
     k_max: int = 20,
     split: str = "test",
 ) -> Path:
-    """Generate reproducible top-k reference neighbors, excluding self.
+    """Воспроизводимые top-k эталонные соседи без самого хоста.
 
-    reference must use host_id as its index. Rows are sorted by host_id so that
-    file order and tie behavior are independent of the provided row ordering.
+    В reference host_id — индекс. Строки сортируются по host_id, чтобы порядок файла и ничьи
+    не зависели от порядка входных строк.
     """
     if not reference_window.strip():
         raise ValueError("reference_window must be specified")
@@ -63,9 +62,9 @@ def save_frozen_neighbors(
 def read_frozen_neighbors(
     path: Path, hosts: list[str], *, k_max: int, split: str = "test"
 ) -> np.ndarray:
-    """Validate full coverage; return neighbor indices in EXACT embedding order.
+    """Проверить полное покрытие и вернуть индексы соседей в ТОЧНОМ порядке эмбеддинга.
 
-    Unjudged and partial neighbor lists are not silently treated as negatives.
+    Неполные списки соседей не превращаются молча в «непохожих».
     """
     if len(hosts) != len(set(hosts)) or not hosts:
         raise ValueError("Embedding hosts must be nonempty and unique")
@@ -120,9 +119,9 @@ def evaluate_frozen_neighbors(
     ks: tuple[int, ...] = (5, 10, 20),
     *, split: str = "test", return_per_host: bool = False,
 ):
-    """Compute exactly the existing consistency, Jaccard and nDCG metrics.
+    """Consistency, Jaccard и nDCG по замороженным соседям.
 
-    With return_per_host=True also return {k: per-host DataFrame} (index = embedding order).
+    return_per_host=True — ещё {k: таблица по хостам} (индекс — порядок эмбеддинга).
     """
     if embeddings.index.has_duplicates or not ks:
         raise ValueError("Embeddings must have unique hosts and ks must not be empty")

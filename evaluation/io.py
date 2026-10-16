@@ -1,4 +1,4 @@
-"""Strict loaders shared by all metrics (canonical formats from BENCHMARK_CONTRACT.md)."""
+"""Строгая загрузка файлов, общая для всех метрик (форматы — evaluation/README.md)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,11 +10,11 @@ SPLITS = ("train", "validation", "test")
 
 
 class ReferenceError(ValueError):
-    """A reference file violates the contract; the message names file and rule."""
+    """Файл эталона нарушает формат; в сообщении — файл и правило."""
 
 
 def load_embeddings(path: Path, id_col: str = "host_id", prefix: str = "emb_") -> pd.DataFrame:
-    """host_id-indexed float matrix. Rejects missing/blank/duplicate IDs, NaN, non-numeric, inf."""
+    """Матрица с host_id в индексе. Ошибка на пустых и повторных ID, NaN, нечисловых значениях, Inf."""
     df = pd.read_csv(path, dtype={id_col: "string"})
     if id_col not in df.columns:
         raise ValueError(f"{path}: missing required column {id_col!r}")
@@ -40,7 +40,7 @@ def load_embeddings(path: Path, id_col: str = "host_id", prefix: str = "emb_") -
 
 def read_reference_table(path: Path, required: set[str], *, split_values: set[str] | None = None,
                          string_cols: tuple[str, ...] = ()) -> pd.DataFrame:
-    """Read a reference CSV as strings, check required columns / emptiness / blank cells."""
+    """Прочитать CSV эталона как строки и проверить колонки, пустоту, пустые ячейки."""
     if not Path(path).exists():
         raise FileNotFoundError(path)
     df = pd.read_csv(path, dtype=str, keep_default_na=False)
@@ -67,7 +67,7 @@ def select_split(df: pd.DataFrame, split: str, name: str) -> pd.DataFrame:
 
 
 def cosine_pairs(emb: pd.DataFrame, a: list[str], b: list[str]) -> np.ndarray:
-    """Cosine similarity of row pairs, matched by host_id. Unknown host / zero vector -> error."""
+    """Косинус для пар строк по host_id. Неизвестный хост или нулевой вектор — ошибка."""
     unknown = sorted((set(a) | set(b)) - set(emb.index))
     if unknown:
         raise ReferenceError(f"embedding lacks hosts used by the reference: {unknown[:5]}")

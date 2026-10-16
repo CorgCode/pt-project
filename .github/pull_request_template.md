@@ -1,15 +1,15 @@
-## What was done
+## Что сделано
 
-Briefly describe the changes.
+Коротко: что изменилось и зачем.
 
-## Related issue
+## Задача
 
 Closes #
 
-## Checklist
+## Чек-лист
 
-- [ ] I worked in a separate branch, not directly in `main`
-- [ ] The result matches the issue / task
-- [ ] I tested or checked my changes
-- [ ] I did not commit secrets, credentials, private keys, `.env`, or confidential data
-- [ ] I added or updated documentation if needed
+- [ ] Работал в отдельной ветке, не в `main`
+- [ ] Результат соответствует задаче
+- [ ] Тесты проходят: `python -m pytest -q evaluation benchmark app pipeline experiments`
+- [ ] Нет секретов, ключей, `.env` и данных
+- [ ] Обновил README, если поменялось поведение

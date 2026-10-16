@@ -1,121 +1,92 @@
-# Общий benchmark
+# Методы и бейзлайны
 
-Этот каталог задаёт единые правила оценки host embeddings для всей команды.
+Здесь живут те, кто **строит** эмбеддинги хостов. Оценивает их [`evaluation/`](../evaluation/README.md).
 
-## Формат submission
+| папка | что внутри |
+|---|---|
+| `methods/` | графовые методы: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE |
+| `baselines/` | простые бейзлайны, которые методы обязаны обогнать |
+| `config.json` | общие соглашения: имя колонки хоста, префикс `emb_`, значения k |
+| `example_embeddings.csv` | пример файла эмбеддинга (проверяется в CI) |
 
-Каждый метод должен экспортировать CSV вида:
+## Общее правило
 
-```csv
-host_id,emb_0,emb_1,emb_2
-C1,0.12,-0.81,0.44
-C2,0.09,-0.77,0.39
-```
+Каждый метод: `fit(data)` — учится **только на train-окне** (`data.training_flows()`, тест это проверяет);
+`embed(data, окно)` — возвращает `DataFrame` с `host_id` в индексе и колонками `emb_*` для всех хостов когорты.
 
-Правила:
-- первый обязательный столбец: `host_id`;
-- все embedding-координаты начинаются с `emb_`;
-- `host_id` уникален;
-- пропуски и NaN запрещены;
-- порядок строк не важен: сопоставление идёт по `host_id`.
+## Графовые методы (`methods/`)
 
-## Единые reference data
+Написаны на numpy / scipy / scikit-learn, без gensim и torch: CI лёгкий, результаты воспроизводятся точно.
 
-Все методы должны оцениваться на одинаковых reference artifacts и splits. Форматы зафиксированы в `benchmark/REFERENCE_DATA.md`:
+| метод | идея | статья | заметки |
+|---|---|---|---|
+| `deepwalk` | случайные блуждания по графу + skip-gram | Perozzi et al., KDD 2014 | — |
+| `node2vec` | блуждания с перекосом (p, q) между «вглубь» и «вширь» + skip-gram | Grover & Leskovec, KDD 2016 | `node2vec.md` |
+| `rolx` | рекурсивные структурные признаки + NMF → роли | Henderson et al., KDD 2012 | `rolx.md` |
+| `struc2vec` | граф структурной похожести (DTW по степеням) + блуждания | Ribeiro et al., KDD 2017 | `struc2vec.md` |
+| `graphsage` | GraphSAGE без учителя, усреднение соседей; переносится на новые окна | Hamilton et al., NeurIPS 2017 | `graphsage.md` |
 
-- `reference/features.csv` — независимые reference features для neighborhood metrics;
-- `reference/neighbors.csv` — фиксированные reference-соседи по логам (предпочтительнее пересчёта для разных методов);
-- `reference/pairs.csv` — positive/negative пары для ROC-AUC / PR-AUC и retrieval;
-- `reference/triplets.csv` — `(anchor, positive, negative)` для Triplet Accuracy;
-- `reference/labels.csv` — targets/splits для Linear / Logistic Probe.
+**Вход:** взвешенный неориентированный граф одного окна (`graph_input.py`): все хосты (когорта и их собеседники),
+вес ребра — `log1p(число потоков)`, петли выброшены.
 
-Нельзя генерировать отдельную разметку или новый random split внутри каждого метода: иначе результаты разных embeddings не будут сопоставимы.
+**Другие окна** (для узнаваемости во времени) — тот же алгоритм с теми же параметрами на графе того окна.
+Координаты между окнами **не общие**, поэтому честное сравнение — после выравнивания (Procrustes).
+GraphSAGE переносит обученные веса и объявляет общую систему координат.
 
-## Единые параметры
+**Пересечение с эталонами.** Графовые методы используют структуру собеседников — как и эталоны «будущие связи»
+и «общие собеседники». Часть совпадения с ними — по построению; каждый метод описывает это в `info()["overlap"]`.
 
-Параметры лежат в `benchmark/config.json`.
+Общие кирпичики: `walks.py` (блуждания, в том числе точные node2vec-переходы), `sgns.py` (skip-gram
+с negative sampling или hierarchical softmax), `base.py` (класс `GraphEmbeddingMethod`).
 
-Сейчас зафиксированы:
-- `k = 5, 10, 20`;
-- cosine distance для embedding-space;
-- одинаковый список основных метрик для всех методов.
+**Скорость** (одно ядро): skip-gram ≈ 150–200 тыс. пар (центр, контекст) в секунду. С параметрами из статей
+граф на 20 000 хостов — около 15 минут на окно и эпоху, на 100 000 — около часа. Для первого прогона на реальных
+данных берите `num_walks=5`.
 
-## Основные метрики
-
-Все методы в итоговом сравнении должны оцениваться одним набором:
-
-- Triplet Accuracy;
-- Pairwise ROC-AUC;
-- Pairwise PR-AUC;
-- Precision@k / Recall@k;
-- k-NN Consistency;
-- Linear / Logistic Probe.
-
-Silhouette и Davies–Bouldin считаются вспомогательными: они оценивают геометрию кластеров, но не заменяют проверку правильности разделения хостов.
-
-## Запуск
-
-Сначала проверить submission:
+### Запуск
 
 ```bash
-python benchmark/validate_submission.py submissions/METHOD/embeddings.csv
+python -m experiments.end_to_end --fixture --workdir runs/demo --methods deepwalk node2vec   # синтетика
+python -m experiments.end_to_end … --methods all \
+    --method-config '{"deepwalk": {"num_walks": 10, "walk_length": 80, "window": 10}}'
 ```
 
-Затем запустить общий evaluator:
+`--fast-methods` — крошечные параметры для CI (числа бессмысленны). Неизвестный параметр — ошибка.
+
+### Подбор гиперпараметров — только на validation
 
 ```bash
-python -m evaluation.evaluate \
-  --embeddings submissions/METHOD/embeddings.csv \
-  --reference-dir reference \
-  --method METHOD \
-  --output benchmark/results/METHOD.json
+python -m experiments.tune_methods --processed-dir data/processed --reference-dir data/reference \
+    --method deepwalk --grid '{"walk_length": [40, 80], "window": [5, 10]}' --metric pair_roc_auc --out runs/tune.json
 ```
 
-Сейчас общий CLI уже считает интегрированную k-NN consistency / Jaccard / nDCG оценку. Реализации из issues #22–#25 подключаются к этому же CLI по мере merge; отсутствующие метрики явно отмечаются как unavailable, а не подменяются фиктивными значениями.
+Метрику выбора фиксируйте **до** просмотра результатов, сетку держите маленькой (до 64 точек). `--target test` запрещён.
+Лучший результат на validation завышен числом попыток — итог считается один раз на test.
 
-Итоговый leaderboard строится одной командой:
+### Добавить метод
+
+Новый модуль в `methods/`: наследник `GraphEmbeddingMethod` с `name`, `default_params`, `reference` и методом
+`embed_graph(graph) -> массив (n_nodes, d)`, плюс `METHODS = {"имя": Класс}` — метод найдётся сам. Тесты — рядом.
+
+## Бейзлайны (`baselines/`)
+
+Входят в каждый запуск экспериментов (`temporal.py`):
+
+| имя | что это | общие координаты между окнами |
+|---|---|---|
+| `random` | случайный шум — нижняя граница | нет |
+| `behavioral` | нормированный поведенческий профиль: объём, степень, направление, порты, протоколы, час суток | да |
+| `behavioral_pca`, `behavioral_svd` | PCA / SVD этого профиля, обученные на train | да |
+| `graph_spectral` | спектральное вложение графа окна | нет |
+| `behavioral_portfree`, `_pca` | профиль без признаков по портам (#43), флаг `--port-free-baselines` | да |
+
+Поведенческие бейзлайны похожи по признакам на эталон соседей, поэтому на «Поведении» они сильны отчасти
+по построению. Это точки калибровки, а не победители.
+
+Отдельно — калибровка по готовому `features.csv` (`methods.py`, `run_all.py`): `random`, `pca`, `svd` и
+`reference_identity` (копия эталона — потолок, «утекает» намеренно). Нужна для CI:
 
 ```bash
-python benchmark/build_leaderboard.py
+python -m benchmark.baselines.make_synthetic_reference --output-dir /tmp/ref
+python -m benchmark.baselines.run_all --reference-dir /tmp/ref --out-dir /tmp/sub --results-dir /tmp/res --evaluate
 ```
-
-Она собирает `benchmark/results/*.json` в `benchmark/leaderboard.csv`.
-
-## Workflow
-
-1. Метод строит embeddings.
-2. Экспортирует их в общий CSV-формат.
-3. `benchmark/validate_submission.py` проверяет файл.
-4. Общий evaluator использует один и тот же набор reference data / splits из `benchmark/REFERENCE_DATA.md`.
-5. Все доступные согласованные метрики считаются без специальных изменений под конкретный embedding-метод.
-6. Результаты записываются в JSON и сводятся в один leaderboard.
-7. GitHub Actions проверяет submission format и запускает evaluation tests.
-
-## Почему не Kaggle сейчас
-
-GitHub остаётся источником истины для кода и результатов. Это бесплатно, прозрачно и удобно для PR workflow.
-
-Kaggle/Codabench или GitHub Pages можно добавить позже как внешний leaderboard, не меняя формат submission и evaluator.
-
-
-## Temporal holdout и честная интерпретация
-
-Для метрики k-NN consistency теперь можно построить reference из более позднего
-временного окна, не используя тестовые сетевые события для построения embedding.
-Протокол и команды: [Temporal reference](../evaluation/TEMPORAL_REFERENCE.md).
-
-**Важно:** это оценка сохранения поведенческой похожести во времени, а не
-истинная разметка функциональных ролей. Скрипт проверяет непересечение
-предоставленных временных окон, но не может доказать, какие данные использовала
-модель при обучении. Источники входных файлов должны быть задокументированы.
-
-Evaluator добавляет к результату SHA-256 reference/features.csv и информацию
-о протоколе (если есть manifest.json). Leaderboard не должен сравнивать метрики
-по разным reference-файлам или наборам хостов: теперь такие смешанные результаты
-приводят к ошибке вместо вводящей в заблуждение общей таблицы.
-
-## Контракт задач #40–#45
-
-См. [BENCHMARK_CONTRACT.md](../BENCHMARK_CONTRACT.md): единый `host_id,emb_*`,
-manifest временных окон, `validate_benchmark.py`. Это предотвращает смешение
-несовместимых старого и нового форматов, встречающихся в описаниях Issues.

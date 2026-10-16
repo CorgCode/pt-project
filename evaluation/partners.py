@@ -10,8 +10,8 @@
 Рядом считаются бейзлайны без эмбеддинга на тех же кандидатах:
   history    — с кем A общался раньше (по частоте);
   popularity — самые популярные собеседники.
-Отдельно — только НОВЫЕ собеседники (которых у A не было в train): здесь история
-бессильна, и видно, что даёт именно эмбеддинг.
+Отдельно — только НОВЫЕ собеседники (которых у A не было в train): старые собеседники A
+убираются из кандидатов, история здесь бессильна, и видно, что даёт именно эмбеддинг.
 """
 from __future__ import annotations
 
@@ -90,10 +90,12 @@ def partner_ranking(emb: pd.DataFrame, partners: pd.DataFrame, *, k: int = 10, t
                           shape=(len(hosts), len(universe)))
     own = universe.get_indexer(h_idx)                           # позиция самого хоста среди кандидатов (-1 если нет)
 
-    def cand_mask(h):
+    def cand_mask(h, new_only=False):
         m = np.ones(len(universe), bool)
         if own[h] >= 0:
             m[own[h]] = False
+        if new_only:                                            # старые собеседники не могут быть «новыми»
+            m[M.indices[M.indptr[h]:M.indptr[h + 1]]] = False
         return m
 
     # цели: собеседники в target-окне, которые вообще есть среди кандидатов
@@ -128,7 +130,7 @@ def partner_ranking(emb: pd.DataFrame, partners: pd.DataFrame, *, k: int = 10, t
                   "popularity": np.broadcast_to(pop, (len(idx), len(universe)))}
         for v, targets in views.items():
             for name, S in scores.items():
-                rr, rec = _per_host(S, idx, cand_mask, targets, top_n)
+                rr, rec = _per_host(S, idx, lambda h, v=v: cand_mask(h, v == "new"), targets, top_n)
                 acc[v, name][0].extend(rr)
                 acc[v, name][1].extend(rec)
     for view in views:

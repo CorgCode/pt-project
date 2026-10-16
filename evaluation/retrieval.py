@@ -1,28 +1,16 @@
-"""Precision@k / Recall@k over JUDGED candidates (reference/pairs.csv).
+"""Precision@k / Recall@k среди РАЗМЕЧЕННЫХ кандидатов (reference/pairs.csv).
 
-Relevance judgments are the rows of pairs.csv of the evaluated split (default: test):
-label 1 = relevant, label 0 = not relevant. A host pair that is NOT in pairs.csv is
-UNJUDGED - it is never counted as non-relevant.
+Разметка — строки pairs.csv нужного split: 1 — похожи, 0 — не похожи. Пары, которой нет в файле,
+НЕ размечена и никогда не считается «непохожей».
 
-Condensed-list protocol (standard for incomplete judgments):
-  for every anchor host a, the candidate set C(a) is the set of hosts b for which {a, b}
-  is judged. Rank C(a) by cosine similarity to a (ties: host_id ascending), then
+Для каждого хоста a кандидаты C(a) — хосты, пара с которыми размечена. Ранжируем C(a) по косинусу
+(при равенстве — по host_id):
+    P@k(a) = hits_k(a) / k,   R@k(a) = hits_k(a) / R(a),   R(a) — число похожих среди C(a)
+Хост участвует для данного k, если |C(a)| >= k и R(a) >= 1; остальные исключаются и считаются (coverage).
+Рядом на тех же хостах: лучшее возможное min(R, k)/k, случайный уровень R/|C| и lift = P@k / случайный.
 
-      P@k(a) = hits_k(a) / k            R@k(a) = hits_k(a) / R(a)
-      R(a)   = number of relevant candidates of a
-
-  An anchor is ELIGIBLE for a given k iff |C(a)| >= k and R(a) >= 1; other anchors are
-  excluded and counted (eligible_anchors / judged_anchors = coverage).
-  Reported means are over eligible anchors. Because candidate pools are small and sampled,
-  also reported for the SAME anchors:
-      oracle_precision@k  = mean(min(R, k) / k)       (best achievable)
-      chance_precision@k  = mean(R / |C|)             (expected under random ranking)
-  and the lift P@k / chance_precision@k. Compare methods by lift/at equal k and pool.
-
-Interpretation: ranks a fixed, sampled pool - NOT retrieval among all hosts. The meaning of
-"relevant" is defined by the reference manifest (shared-peer structure for generated pairs).
-
-Specification: PR #38 (kalivixZ) architecture, extended with the incomplete-judgment rule.
+Это ранжирование маленького выборочного набора, а не поиск среди всех хостов.
+Основа — архитектура из PR #38 (Даня) + правило про неразмеченные пары.
 """
 from __future__ import annotations
 
@@ -56,13 +44,11 @@ def _scored(emb: pd.DataFrame, pairs: pd.DataFrame, split: str) -> pd.DataFrame:
 
 def pair_auc(emb: pd.DataFrame, pairs: pd.DataFrame, split: str = "test", *,
              judged_prevalence: float | None = None, n_boot: int = 0, seed: int = 0) -> dict:
-    """ROC-AUC / PR-AUC of cosine similarity on judged pairs of one split.
+    """ROC-AUC / PR-AUC косинуса на размеченных парах одного split.
 
-    `judged_prevalence`: positive rate among ALL JUDGED pairs of the population (positives over
-    positives + negatives; the unjudged middle 0 < J < tau is excluded). The PR-AUC reweighted to it
-    (`pr_auc_at_judged_prevalence`) is a *conditional* quantity: AP over the pairs that the rule can
-    judge, with the class prior of the sampled pool corrected. It is NOT a population AP; the unjudged
-    pairs, which are the vast majority in a sparse network, are outside its support.
+    judged_prevalence — доля похожих среди ВСЕХ размеченных пар (неразмеченные 0 < J < tau исключены).
+    PR-AUC, пересчитанный к ней (pr_auc_at_judged_prevalence), — условная величина: только по парам,
+    которые правило умеет разметить. Это не PR-AUC по всем парам хостов.
     """
     p = _scored(emb, pairs, split)
     y, s = p["label"].to_numpy(), p["score"].to_numpy()
