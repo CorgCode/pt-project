@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from evaluation.identity_retrieval import identity_retrieval
+from evaluation.identity import identity_retrieval
 from evaluation.io import ReferenceError, cosine_pairs, load_embeddings
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.retrieval import load_pairs, pair_auc, precision_recall_at_k
@@ -277,13 +277,13 @@ def test_identity_constant_embedding_scores_exactly_chance():
 
 def test_identity_input_validation():
     A, B, hosts = windows(n=40)
-    with pytest.raises(ValueError, match="different host IDs"):
+    with pytest.raises(ValueError, match="разные хосты"):
         identity_retrieval(A, B.iloc[:-1])
-    with pytest.raises(ValueError, match="equal dimensions"):
+    with pytest.raises(ValueError, match="размерности"):
         identity_retrieval(A, B.iloc[:, :4], alignment="procrustes")
     with pytest.raises(ValueError, match="alignment"):
         identity_retrieval(A, B, alignment="magic")
-    with pytest.raises(ValueError, match="at least 20"):
+    with pytest.raises(ValueError, match="20 хостов"):
         identity_retrieval(A.iloc[:10], B.iloc[:10])
 
 

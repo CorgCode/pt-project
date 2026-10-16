@@ -1,12 +1,50 @@
-"""Contract tests for validated multi-window manifests."""
+"""Проверка формата эмбеддингов и манифеста нескольких окон."""
 from __future__ import annotations
-
-from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from validate_benchmark import validate_manifest
+from pathlib import Path
+
+from evaluation.validate import validate_manifest, validate_submission
+from evaluation.evaluate import _load_matrix
+
+
+def test_validates_and_preserves_lexical_host_ids(tmp_path):
+    file = tmp_path / "embeddings.csv"
+    pd.DataFrame({
+        "host_id": ["001", "1", "02"],
+        "emb_0": [1.0, 2.0, 3.0],
+        "emb_1": [0.0, 1.0, 1.0],
+    }).to_csv(file, index=False)
+    validate_submission(str(file))
+    mat = _load_matrix(file, "host_id", "emb_")
+    assert list(mat.index) == ["001", "1", "02"]
+
+
+@pytest.mark.parametrize("invalid_id", ["", "  "])
+def test_rejects_empty_or_blank_host_id(tmp_path, invalid_id):
+    file = tmp_path / "embedding.csv"
+    pd.DataFrame({"host_id": ["ok", invalid_id],
+                  "emb_0": [1.0, 2.0]}).to_csv(file, index=False)
+    with pytest.raises(ValueError, match="host_id"):
+        validate_submission(str(file))
+
+
+@pytest.mark.parametrize("bad_value", [float("inf"), -float("inf"), float("nan")])
+def test_rejects_nonfinite_coordinates(tmp_path, bad_value):
+    file = tmp_path / "embedding.csv"
+    pd.DataFrame({"host_id": ["a", "b"],
+                  "emb_0": [1.0, bad_value]}).to_csv(file, index=False)
+    with pytest.raises(ValueError, match="NaN|конечными"):
+        validate_submission(str(file))
+
+@pytest.mark.parametrize("value", ["inf", "-inf", "garbage"])
+def test_common_evaluator_refuses_invalid_numbers(tmp_path, value):
+    file = tmp_path / "embeddings.csv"
+    pd.DataFrame({"host_id": ["a", "b"], "emb_0": ["1.2", value]}).to_csv(file, index=False)
+    with pytest.raises(ValueError, match="finite|numeric"):
+        _load_matrix(file, "host_id", "emb_")
 
 
 def write_embedding(path: Path, hosts):
@@ -38,7 +76,7 @@ def test_rejects_cross_method_cohort_mismatch(tmp_path):
         {"method": "a", "window_id": "10", "path": "a.csv"},
         {"method": "b", "window_id": "10", "path": "b.csv"},
     ]).to_csv(manifest, index=False)
-    with pytest.raises(ValueError, match="incompatible host cohorts"):
+    with pytest.raises(ValueError, match="разные наборы хостов"):
         validate_manifest(manifest)
 
 
@@ -49,7 +87,7 @@ def test_rejects_repeated_method_window(tmp_path):
         {"method": "a", "window_id": "10", "path": "a.csv"},
         {"method": "a", "window_id": "10", "path": "a.csv"},
     ]).to_csv(manifest, index=False)
-    with pytest.raises(ValueError, match="Duplicate"):
+    with pytest.raises(ValueError, match="повтор"):
         validate_manifest(manifest)
 
 
@@ -68,5 +106,5 @@ def test_rejects_wrong_schema(tmp_path):
     pd.DataFrame([{"method": "a", "window_id": "10", "filename": "a.csv"}]).to_csv(
         manifest, index=False
     )
-    with pytest.raises(ValueError, match="Missing manifest columns"):
+    with pytest.raises(ValueError, match="нет колонок"):
         validate_manifest(manifest)

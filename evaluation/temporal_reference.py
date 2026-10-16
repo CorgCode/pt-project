@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from benchmark.validate_submission import validate_submission
+from evaluation.validate import validate_submission
 from evaluation.knn_consistency import build_reference_features, evaluate_embedding
 from evaluation.frozen_neighbors import save_frozen_neighbors
 

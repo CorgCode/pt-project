@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from knn_consistency import (build_reference_features, evaluate_embedding,
+from evaluation.knn_consistency import (build_reference_features, evaluate_embedding,
                              neighborhood_metrics, top_k_neighbors)
-from demo_knn_consistency import make_flows
+from benchmark.baselines.make_synthetic_reference import make_flows
 
 
 def test_self_excluded_even_with_duplicates():

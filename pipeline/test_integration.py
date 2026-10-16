@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.build_leaderboard import main as board_main
+from evaluation.scoreboard import build as build_board
 from evaluation.evaluate import run
 from pipeline.data import ProcessedData
 from pipeline.reference import build_reference
@@ -114,8 +114,7 @@ def test_cli_and_leaderboard_roundtrip(reference, cohort, tmp_path, monkeypatch)
                         "--reference-dir", str(reference / "test"), "--method", name,
                         "--bootstrap", "10", "--output", str(out / f"{name}.json")],
                        check=True, capture_output=True)
-    monkeypatch.setattr(sys, "argv", ["b", "--results-dir", str(out), "--output", str(tmp_path / "board.csv")])
-    board_main()
+    build_board(out, tmp_path / "board.csv")
     board = pd.read_csv(tmp_path / "board.csv")
     assert set(board.method) == {"m1", "m2"} and "triplet_accuracy" in board.columns
 
@@ -128,9 +127,8 @@ def test_leaderboard_rejects_scores_from_two_references(reference, cohort, proce
     p = random_emb(cohort, tmp_path)
     for name, ref in [("a", reference / "test"), ("b", other / "test")]:
         (out / f"{name}.json").write_text(json.dumps(run(p, ref, name)))
-    monkeypatch.setattr(sys, "argv", ["b", "--results-dir", str(out), "--output", str(tmp_path / "x.csv")])
-    with pytest.raises(ValueError, match="different or unknown reference"):
-        board_main()
+    with pytest.raises(ValueError, match="разных эталонах"):
+        build_board(out, tmp_path / "x.csv")
 
 
 def test_identity_cli(cohort, tmp_path):
@@ -139,7 +137,7 @@ def test_identity_cli(cohort, tmp_path):
     B = A + rng.normal(scale=0.05, size=A.shape)
     pa, pb = write_emb(tmp_path / "A.csv", A), write_emb(tmp_path / "B.csv", B)
     out = tmp_path / "id.json"
-    subprocess.run([sys.executable, "-m", "evaluation.identity_retrieval", "--embeddings-a", str(pa),
+    subprocess.run([sys.executable, "-m", "evaluation.identity", "--embeddings-a", str(pa),
                     "--embeddings-b", str(pb), "--method", "m", "--shared-coordinate-system",
                     "--bootstrap", "10", "--output", str(out)], check=True, capture_output=True)
     res = json.loads(out.read_text())

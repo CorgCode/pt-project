@@ -42,7 +42,7 @@ def test_no_pair_metric_is_called_natural(reference, emb_path):
     assert "pair_pr_auc_at_judged_prevalence" in r["metrics"]
     d = r["metric_details"]["pairwise_auc"]
     assert {"judged_population_prevalence", "population_positive_rate", "unjudged_share"} <= set(d)
-    assert "judged" in d["interpretation"] and "not a population AP" in d["interpretation"]
+    assert "размеченных" in d["interpretation"] and "не среди всех пар" in d["interpretation"]
 
 
 def test_judged_prevalence_is_conditional_on_judged_pairs(reference, emb_path):
@@ -114,7 +114,7 @@ def test_embedding_missing_an_evaluable_host_is_refused(reference, emb_path, tmp
     short = df[df.host_id != ev[0]]
     p = tmp_path / "short.csv"
     short.to_csv(p, index=False)
-    with pytest.raises(ValueError, match="evaluable hosts"):
+    with pytest.raises(ValueError, match="оцениваемых хостов"):
         run(p, reference / "test", "m")
 
 

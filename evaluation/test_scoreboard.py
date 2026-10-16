@@ -1,13 +1,11 @@
-"""Leaderboard must not compare scores from different reference datasets."""
+"""Таблица результатов не должна смешивать оценки с разных эталонов, когорт, split и типов данных."""
 from __future__ import annotations
 
 import json
-import sys
-
 import pandas as pd
 import pytest
 
-from benchmark.build_leaderboard import main
+from evaluation.scoreboard import build
 
 
 def write_score(folder, name, fingerprint, n_hosts=25):
@@ -26,10 +24,7 @@ def write_score(folder, name, fingerprint, n_hosts=25):
 
 
 def run_board(monkeypatch, folder, output):
-    monkeypatch.setattr(sys, "argv", [
-        "build_leaderboard.py", "--results-dir", str(folder), "--output", str(output)
-    ])
-    main()
+    build(folder, output)
 
 
 def test_same_reference_is_comparable(tmp_path, monkeypatch):
@@ -43,8 +38,8 @@ def test_same_reference_is_comparable(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("a,b,expected", [
-    ("abc", "def", "different or unknown reference"),
-    ("abc", None, "no reference fingerprint"),
+    ("abc", "def", "разных эталонах"),
+    ("abc", None, "нет отпечатка эталона"),
 ])
 def test_different_references_rejected(tmp_path, monkeypatch, a, b, expected):
     folder = tmp_path / "results"
@@ -58,14 +53,14 @@ def test_different_host_cohorts_rejected(tmp_path, monkeypatch):
     folder = tmp_path / "results"
     write_score(folder, "pca", "abc", n_hosts=25)
     write_score(folder, "random", "abc", n_hosts=30)
-    with pytest.raises(ValueError, match="host cohorts"):
+    with pytest.raises(ValueError, match="когортах"):
         run_board(monkeypatch, folder, tmp_path / "board.csv")
 
 def test_both_unverified_references_rejected(tmp_path, monkeypatch):
     folder = tmp_path / "results"
     write_score(folder, "model_a", None)
     write_score(folder, "model_b", None)
-    with pytest.raises(ValueError, match="no reference fingerprint"):
+    with pytest.raises(ValueError, match="нет отпечатка эталона"):
         run_board(monkeypatch, folder, tmp_path / "board.csv")
 
 
@@ -81,7 +76,7 @@ def test_all_reference_files_are_fingerprinted(tmp_path, monkeypatch):
     f = tmp_path / "r"
     _score(f, "a", data_kind="lanl", synthetic=False)
     _score(f, "b", data_kind="lanl", synthetic=False, files={"pairs.csv": "x", "edges.csv": "CHANGED"})
-    with pytest.raises(ValueError, match="different or unknown reference"):
+    with pytest.raises(ValueError, match="разных эталонах"):
         run_board(monkeypatch, f, tmp_path / "board.csv")
 
 
@@ -89,7 +84,7 @@ def test_synthetic_and_real_never_share_a_leaderboard(tmp_path, monkeypatch):
     f = tmp_path / "r"
     _score(f, "a", data_kind="lanl", synthetic=False)
     _score(f, "b", data_kind="synthetic_fixture", synthetic=True)
-    with pytest.raises(ValueError, match="data kinds"):
+    with pytest.raises(ValueError, match="типы данных"):
         run_board(monkeypatch, f, tmp_path / "board.csv")
 
 
@@ -97,7 +92,7 @@ def test_validation_and_test_scores_never_mixed(tmp_path, monkeypatch):
     f = tmp_path / "r"
     _score(f, "a", data_kind="lanl", synthetic=False, split="test")
     _score(f, "b", data_kind="lanl", synthetic=False, split="validation")
-    with pytest.raises(ValueError, match="splits"):
+    with pytest.raises(ValueError, match="split"):
         run_board(monkeypatch, f, tmp_path / "board.csv")
 
 
@@ -132,5 +127,22 @@ def test_learned_scores_fitted_on_different_references_are_not_comparable(tmp_pa
     f = tmp_path / "r"
     _fit_score(f, "a", {"edges.csv": "v1"})
     _fit_score(f, "b", {"edges.csv": "v2"})
-    with pytest.raises(ValueError, match="fitted on different reference"):
+    with pytest.raises(ValueError, match="классификатор связей"):
         run_board(monkeypatch, f, tmp_path / "board.csv")
+
+
+def test_markdown_has_headlines_and_chance_row(tmp_path):
+    f = tmp_path / "r"
+    f.mkdir()
+    for name, v in (("a", 0.7), ("b", 0.6)):
+        payload = {"method": name, "n_hosts": 25, "split": "test",
+                   "metrics": {"triplet_accuracy": v}, "metrics_ci": {"triplet_accuracy": [v - 0.1, v + 0.1]},
+                   "summary": [{"group": "Общие собеседники", "metric": "triplet_accuracy", "title": "Тройки",
+                                "value": v, "ci": None, "chance": 0.5}],
+                   "reference_info": {"files_sha256": {"triplets.csv": "x"}, "data_kind": "synthetic_fixture",
+                                      "synthetic": True}}
+        (f / f"{name}.json").write_text(json.dumps(payload), encoding="utf-8")
+    build(f, tmp_path / "board")
+    md = (tmp_path / "board.md").read_text(encoding="utf-8")
+    assert md.index("`a`") < md.index("`b`")                 # лучший метод выше
+    assert "случайный уровень" in md and "0.500" in md and "[0.60–0.80]" in md

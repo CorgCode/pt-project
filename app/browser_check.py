@@ -46,7 +46,7 @@ def stress_bundle(src: Path, dst: Path, scenario: str) -> Path:
         shutil.rmtree(run / "embeddings")
         shutil.rmtree(run / "identity")
         shutil.rmtree(run / "results" / "validation")
-        (run / "leaderboard_validation.csv").unlink()
+        (run / "scoreboard_validation.csv").unlink()
         for t in ("test", "validation"):
             f = dst / "reference" / t / "neighbors.csv"
             f.unlink(missing_ok=True)

@@ -16,7 +16,7 @@ def run_dir(processed, reference, tmp_path_factory):
 
 
 def test_all_outputs_exist(run_dir):
-    for p in ["manifest.json", "report.md", "audit.json", "leaderboard_test.csv", "leaderboard_validation.csv",
+    for p in ["manifest.json", "report.md", "audit.json", "scoreboard_test.csv", "scoreboard_validation.csv",
               "figures/scorecard_test.png", "figures/knn_by_k.png", "figures/identity_test.png",
               "figures/weight_sensitivity.png", "results/test/random.json", "identity/test/behavioral.json"]:
         assert (run_dir / p).exists(), p
@@ -45,12 +45,12 @@ def test_same_cohort_and_reference_for_every_method(run_dir):
 
 
 def test_sanity_ordering(run_dir):
-    board = pd.read_csv(run_dir / "leaderboard_test.csv").set_index("method")
+    board = pd.read_csv(run_dir / "scoreboard_test.csv").set_index("method")
     assert board.loc["reference_ceiling", "consistency@10_mean"] == pytest.approx(1.0)
     assert board.loc["random", "consistency@10_mean"] < 0.1 < board.loc["behavioral", "consistency@10_mean"]
     assert abs(board.loc["random", "pair_roc_auc"] - 0.5) < 0.1
     assert board.loc["graph_spectral", "link_learned_roc_auc"] > board.loc["random", "link_learned_roc_auc"] + 0.05
-    assert "link_learned_roc_auc" not in pd.read_csv(run_dir / "leaderboard_validation.csv").columns
+    assert "link_learned_roc_auc" not in pd.read_csv(run_dir / "scoreboard_validation.csv").columns
 
 
 def test_identity_is_chance_for_random_and_above_for_real_methods(run_dir):

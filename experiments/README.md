@@ -23,7 +23,7 @@ Stages (also usable separately): `pipeline.prepare` → `pipeline.reference` →
 | `report.md`, `figures/` | tables with bootstrap CIs, scorecards, identity and audit plots |
 | `results/<target>/<method>.json` | full evaluator output (metrics, CIs, details, reference fingerprints) |
 | `identity/<target>/<method>.json` | identity retrieval, raw and Procrustes |
-| `leaderboard_<target>.csv` | built by `benchmark.build_leaderboard` (refuses mixed references) |
+| `scoreboard_<target>.csv` | built by `benchmark.build_leaderboard` (refuses mixed references) |
 | `audit.json` | weight sensitivity, window stability, random-null bands, prevalence, overlap |
 | `manifest.json` | data kind (synthetic/real), cohort/reference hashes, seeds, environment, git SHA |
 

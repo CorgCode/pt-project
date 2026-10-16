@@ -33,10 +33,10 @@ def test_metric_long_shape(sample, reference_dir):
 @pytest.mark.parametrize("data,msg", [
     (b"", "empty"),
     (b"a,b\n1,2\n", "host_id"),
-    (b"host_id,x\nh1,1\n", "No embedding columns"),
-    (b"host_id,emb_0\nh1,1\nh1,2\n", "Duplicate host_id"),
+    (b"host_id,x\nh1,1\n", "нет колонок эмбеддинга"),
+    (b"host_id,emb_0\nh1,1\nh1,2\n", "повторяющиеся host_id"),
     (b"host_id,emb_0\nh1,\nh2,2\n", "NaN"),
-    (b"host_id,emb_0\nh1,abc\nh2,2\n", "numeric"),
+    (b"host_id,emb_0\nh1,abc\nh2,2\n", "нечисловые"),
 ])
 def test_malformed_files_give_clear_errors(data, msg, reference_dir, tmp_path):
     with pytest.raises(core.UploadError, match=msg):

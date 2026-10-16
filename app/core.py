@@ -12,7 +12,7 @@ from sklearn.decomposition import PCA
 
 from benchmark.baselines.make_synthetic_reference import make
 from benchmark.baselines.run_all import generate
-from benchmark.validate_submission import validate_submission
+from evaluation.validate import validate_submission
 from evaluation.evaluate import run
 
 KS = (5, 10, 20)

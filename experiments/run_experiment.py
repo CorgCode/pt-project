@@ -10,7 +10,7 @@ behavioral_svd, graph_spectral), the reference ceiling (leaks by design), and an
 listed in the report, never simulated.
 
 Outputs: results/<target>/<method>.json, identity/<target>/<method>.json,
-leaderboard_<target>.csv, audit.json, report.md, figures/, manifest.json.
+scoreboard_<target>.csv, audit.json, report.md, figures/, manifest.json.
 """
 from __future__ import annotations
 
@@ -28,7 +28,8 @@ import sklearn
 from benchmark import methods as graph_methods
 from benchmark.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
-from evaluation.identity_retrieval import identity_retrieval
+from evaluation.identity import identity_retrieval
+from evaluation import scoreboard
 from evaluation.io import load_embeddings
 from experiments import audit as A
 from experiments import report as R
@@ -161,9 +162,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                 (out_dir / "identity" / t).mkdir(parents=True, exist_ok=True)
                 (out_dir / "identity" / t / f"{name}.json").write_text(
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        subprocess.run([sys.executable, "-m", "benchmark.build_leaderboard", "--results-dir",
-                        str(out_dir / "results" / t), "--output", str(out_dir / f"leaderboard_{t}.csv")],
-                       check=True, capture_output=True)
+        scoreboard.build(out_dir / "results" / t, out_dir / f"scoreboard_{t}")
 
     # ---- audit
     audit = None
@@ -248,7 +247,7 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
                  f"* external method `{name}`: **training windows undeclared** - leakage cannot be excluded")
     L.append("")
     cols = ["consistency@10_mean", "ndcg@10_mean", "link_roc_auc", "link_learned_roc_auc", "link_new_roc_auc",
-            "pair_roc_auc", "triplet_accuracy", "precision@3", "recall@3"]
+            "partner_new_mrr", "pair_roc_auc", "triplet_accuracy", "precision@3", "recall@3"]
     for t in c["targets"]:
         rows = {m: {k: r["metrics"].get(k) for k in cols} for m, r in results[t].items()}
         df = pd.DataFrame(rows).T
@@ -280,6 +279,7 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         rows[m] = {"shared coords declared": str(v["shared_coordinate_system_declared"]),
                    "Top-1 raw": v.get("none", {}).get("top1"), "Top-1 Procrustes": v.get("procrustes", {}).get("top1"),
                    "MRR Procrustes": v.get("procrustes", {}).get("mrr"),
+                   "pair ROC-AUC Procrustes": v.get("procrustes", {}).get("pair_roc_auc"),
                    "chance Top-1": v.get("procrustes", {}).get("chance_top1")}
     if rows:
         L.append(R.md_table(pd.DataFrame(rows).T))

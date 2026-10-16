@@ -28,6 +28,7 @@ from pathlib import Path
 import pandas as pd
 
 from evaluation.future_links import build_edges
+from evaluation.partners import build_partners
 from evaluation.structural_pairs import build_judgments
 from evaluation.temporal_reference import generate_reference, load_flows
 from pipeline.data import ProcessedData
@@ -60,6 +61,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
         edges = build_edges(train, flows, hosts, seed=seed, split=target,
                             negatives_per_positive=negatives_per_positive)
         edges.to_csv(out / "edges.csv", index=False)
+        build_partners(train, flows, hosts).to_csv(out / "partners.csv", index=False)
 
         pairs, triplets, judge = build_judgments(flows, hosts, tau_pos=tau_pos, seed=seed,
                                                  pairs_per_anchor=pairs_per_anchor)
@@ -99,6 +101,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
                 "neighbors.csv": "behavioural-profile proxy (target window)",
                 "edges.csv": "future communication (source=train, target window); "
                              f"negatives_per_positive={negatives_per_positive}",
+                "partners.csv": "partners of each evaluable host in train (source) and target window",
                 "pairs.csv / triplets.csv": "structural proxy: shared communication peers",
                 "labels.csv": "external labels, only if supplied",
             },

@@ -49,7 +49,7 @@ jobs:
 
 
       - name: Validate example submission
-        run: python benchmark/validate_submission.py benchmark/example_embeddings.csv
+        run: python -m evaluation.validate benchmark/example_embeddings.csv
 
       - name: Run evaluation tests
         run: python -m pytest -q evaluation benchmark app pipeline experiments
@@ -71,9 +71,9 @@ jobs:
           python -m benchmark.baselines.run_all --reference-dir "$RUNNER_TEMP/reference" \
             --out-dir "$RUNNER_TEMP/baselines" --results-dir "$RUNNER_TEMP/results" --evaluate
           for file in "$RUNNER_TEMP"/baselines/*/embeddings.csv; do
-            python benchmark/validate_submission.py "$file"
+            python -m evaluation.validate "$file"
           done
-          python benchmark/build_leaderboard.py --results-dir "$RUNNER_TEMP/results" --output "$RUNNER_TEMP/leaderboard.csv"
+          python -m evaluation.scoreboard --results-dir "$RUNNER_TEMP/results" --output "$RUNNER_TEMP/scoreboard"
 
       - name: Validate team submissions
         shell: bash
@@ -87,5 +87,5 @@ jobs:
           fi
           for file in "${files[@]}"; do
             echo "Validating $file"
-            python benchmark/validate_submission.py "$file"
+            python -m evaluation.validate "$file"
           done
