@@ -19,12 +19,12 @@ def test_valid_config_roundtrip(tmp_path):
 
 
 @pytest.mark.parametrize("windows", [
-    dict(train=(0, 10)),                                   # test missing
-    dict(train=(0, 10), test=(5, 20)),                     # overlap
-    dict(train=(10, 20), test=(0, 5)),                     # test before train
-    dict(train=(0, 10), validation=(10, 20), test=(15, 30)),  # validation/test overlap
-    dict(train=(5, 5), test=(6, 9)),                       # empty window
-    dict(train=(0, 10), test=(10, 20), holdout=(30, 40)),  # unknown name
+    dict(train=(0, 10)),                                   # нет test
+    dict(train=(0, 10), test=(5, 20)),                     # пересечение
+    dict(train=(10, 20), test=(0, 5)),                     # test раньше train
+    dict(train=(0, 10), validation=(10, 20), test=(15, 30)),  # validation и test пересекаются
+    dict(train=(5, 5), test=(6, 9)),                       # пустое окно
+    dict(train=(0, 10), test=(10, 20), holdout=(30, 40)),  # неизвестное имя
     dict(train=(0, float("inf")), test=(1, 2)),
 ])
 def test_invalid_windows_rejected(windows):

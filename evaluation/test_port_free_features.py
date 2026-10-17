@@ -1,4 +1,4 @@
-"""Port-free behavioural features: ports are removed entirely, nothing else changes (issue #43)."""
+"""Признаки без портов: порты убраны полностью, всё остальное не меняется (#43)."""
 import numpy as np
 import pandas as pd
 import pytest
@@ -34,17 +34,17 @@ def test_no_port_columns_and_all_other_columns_identical(flows, hosts):
 def test_port_free_features_do_not_depend_on_port_values_at_all(flows, hosts):
     base = build_reference_features(flows["train"], hosts=hosts, exclude_blocks=("ports",))
     shuf = build_reference_features(shuffled_ports(flows["train"]), hosts=hosts, exclude_blocks=("ports",))
-    pd.testing.assert_frame_equal(base, shuf)                                     # bit for bit
+    pd.testing.assert_frame_equal(base, shuf)                                     # бит в бит
     full = build_reference_features(flows["train"], hosts=hosts)
     full_shuf = build_reference_features(shuffled_ports(flows["train"]), hosts=hosts)
     assert not np.allclose(full.filter(like="ports_").to_numpy(), full_shuf.filter(like="ports_").to_numpy())
     pd.testing.assert_frame_equal(full.drop(columns=full.filter(like="ports_").columns),
-                                  full_shuf.drop(columns=full_shuf.filter(like="ports_").columns))   # only ports changed
+                                  full_shuf.drop(columns=full_shuf.filter(like="ports_").columns))   # изменились только порты
 
 
 def test_missing_or_garbage_port_column_is_irrelevant_when_excluded(flows, hosts):
     tr = flows["train"].copy()
-    tr["dst_port"] = "x"                                                          # a constant, meaningless port field
+    tr["dst_port"] = "x"                                                          # постоянное бессмысленное поле порта
     a = build_reference_features(tr, hosts=hosts, exclude_blocks=("ports",))
     b = build_reference_features(flows["train"], hosts=hosts, exclude_blocks=("ports",))
     pd.testing.assert_frame_equal(a, b)
@@ -55,9 +55,9 @@ def test_fitted_state_is_reused_on_later_windows_and_remembers_the_exclusion(flo
     assert fit["excluded"] == ("ports",) and "ports" not in fit["scalers"] and fit["ports"] == []
     Xt = build_reference_features(flows["test"], hosts=hosts, fitted=fit, exclude_blocks=("ports",))
     assert list(Xt.columns) == list(X.columns) and np.isfinite(Xt.to_numpy()).all()
-    assert not np.allclose(Xt.mean(axis=0), 0, atol=1e-8)                              # not re-standardised on the later window
+    assert not np.allclose(Xt.mean(axis=0), 0, atol=1e-8)                              # на позднем окне не перенормируется
     with pytest.raises(ValueError, match="excluded blocks"):
-        build_reference_features(flows["test"], hosts=hosts, fitted=fit)           # applied without the exclusion
+        build_reference_features(flows["test"], hosts=hosts, fitted=fit)           # применено без исключения
     _, full_fit = build_reference_features(flows["train"], hosts=hosts, return_fitted=True)
     with pytest.raises(ValueError, match="excluded blocks"):
         build_reference_features(flows["test"], hosts=hosts, fitted=full_fit, exclude_blocks=("ports",))

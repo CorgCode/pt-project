@@ -1,4 +1,4 @@
-"""Pairs share hosts, so the pair bootstrap understates uncertainty; hosts must be the resampling unit."""
+"""Пары делят хостов, поэтому бутстреп по парам занижает неопределённость; пересэмплировать нужно хосты."""
 import itertools
 
 import numpy as np
@@ -10,7 +10,7 @@ from evaluation.uncertainty import auc_with_ci, dyadic_bootstrap_ci, host_index
 
 
 def draw(rng, n):
-    u = rng.normal(0, 1.2, n)                                   # host-level effects shared across pairs
+    u = rng.normal(0, 1.2, n)                                   # эффекты хостов, общие для многих пар
     pairs = np.array(list(itertools.combinations(range(n), 2)))
     latent = u[pairs[:, 0]] + u[pairs[:, 1]]
     y = (rng.random(len(latent)) < 1 / (1 + np.exp(-latent))).astype(int)
@@ -20,7 +20,7 @@ def draw(rng, n):
 def test_host_index_maps_equal_ids_to_equal_integers():
     cols, n = host_index(["a", "b", "a"], ["b", "c", "c"])
     assert n == 3
-    assert cols[0].tolist() == [0, 1, 0] and cols[1].tolist() == [1, 2, 2]     # a=0, b=1, c=2 in both columns
+    assert cols[0].tolist() == [0, 1, 0] and cols[1].tolist() == [1, 2, 2]     # a=0, b=1, c=2 в обеих колонках
 
 
 def test_unit_weights_reproduce_the_point_estimate():
@@ -29,8 +29,8 @@ def test_unit_weights_reproduce_the_point_estimate():
     seen = []
     dyadic_bootstrap_ci(lambda w: seen.append(w.copy()) or float(np.average(y, weights=w)),
                         [pairs[:, 0], pairs[:, 1]], 25, n_boot=20, seed=1)
-    assert all((w >= 0).all() for w in seen) and any((w == 0).any() for w in seen)       # some pairs drop out
-    # a replicate in which every host is drawn exactly once weights every pair by 1
+    assert all((w >= 0).all() for w in seen) and any((w == 0).any() for w in seen)       # часть пар выпадает
+    # повтор, где каждый хост выпал ровно один раз, даёт каждой паре вес 1
     counts = np.ones(25)
     assert np.allclose(counts[pairs[:, 0]] * counts[pairs[:, 1]], 1.0)
     assert roc_auc_score(y, s, sample_weight=np.ones(len(y))) == pytest.approx(roc_auc_score(y, s))
@@ -40,7 +40,7 @@ def test_weights_are_the_product_of_endpoint_multiplicities():
     captured = []
     pairs = np.array([[0, 1], [1, 2], [0, 2], [2, 3]])
     dyadic_bootstrap_ci(lambda w: captured.append(w.copy()) or 0.0, [pairs[:, 0], pairs[:, 1]], 4, n_boot=12, seed=3)
-    rng = np.random.default_rng(3)                              # replay the first replicate's host draw
+    rng = np.random.default_rng(3)                              # повторяем выбор хостов первого повтора
     counts = np.bincount(rng.integers(0, 4, 4), minlength=4)
     expected = counts[pairs[:, 0]] * counts[pairs[:, 1]]
     assert captured[0].tolist() == expected.tolist()
@@ -65,9 +65,9 @@ def test_host_bootstrap_is_wider_and_better_calibrated_than_the_pair_bootstrap()
         item_cov += i["roc_auc_ci"][0] <= truth <= i["roc_auc_ci"][1]
         host_w += h["roc_auc_ci"][1] - h["roc_auc_ci"][0]
         item_w += i["roc_auc_ci"][1] - i["roc_auc_ci"][0]
-    assert host_w > 1.5 * item_w                                  # roughly twice as wide
-    assert host_cov / reps >= 0.85 and item_cov / reps < host_cov / reps    # nominal 95% only for hosts
-    assert item_cov / reps <= 0.85                                # the pair bootstrap under-covers
+    assert host_w > 1.5 * item_w                                  # примерно вдвое шире
+    assert host_cov / reps >= 0.85 and item_cov / reps < host_cov / reps    # 95% только для хостов
+    assert item_cov / reps <= 0.85                                # бутстреп по парам недопокрывает
 
 
 def test_ci_method_is_reported():

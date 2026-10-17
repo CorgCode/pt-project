@@ -118,7 +118,7 @@ def _fit_score(folder, name, fit, learned=True):
 def test_method_without_a_learned_link_score_may_omit_the_fit_reference(tmp_path, monkeypatch):
     f = tmp_path / "r"
     _fit_score(f, "model", {"edges.csv": "v1"})
-    _fit_score(f, "ceiling", None, learned=False)            # same evaluation reference, no learned score
+    _fit_score(f, "ceiling", None, learned=False)            # тот же эталон оценки, без обученного классификатора
     run_board(monkeypatch, f, tmp_path / "board.csv")
     assert set(pd.read_csv(tmp_path / "board.csv").method) == {"model", "ceiling"}
 

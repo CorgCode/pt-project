@@ -29,7 +29,7 @@ def test_identical_protocol_for_every_variant(ablation, reference):
     hashes = json.loads((reference / "test" / "manifest.json").read_text())["files_sha256"]
     assert rep["protocol"]["reference_files_sha256"] == hashes
     scored = {pd.read_csv(out / "embeddings" / n / "train.csv", dtype={"host_id": str}).shape[0] for n in rep["protocol"]["variants"]}
-    assert len(scored) == 1                                                       # every variant embeds the same hosts
+    assert len(scored) == 1                                                       # все варианты встраивают одних и тех же хостов
 
 
 def test_paired_difference_equals_the_difference_of_reported_means(ablation):

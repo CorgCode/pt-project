@@ -8,7 +8,7 @@ from pipeline.data import ProcessedData
 
 
 class TrainOnlyGuard(ProcessedData):
-    """Fails loudly if fitting touches anything but the training window."""
+    """Громко падает, если обучение трогает что-то, кроме train-окна."""
     fitting = False
 
     def flows(self, window):
@@ -63,7 +63,7 @@ def test_random_seed_changes_output_and_windows_are_independent(data):
 def test_shared_coordinates_flag_matches_behaviour(data):
     b = BehavioralPCA(dim=6).fit(data)
     assert b.shared_coordinate_system and not GraphSpectral(6).shared_coordinate_system
-    # a fixed, train-fitted transform gives the SAME coordinates for the same flows
+    # фиксированное преобразование с train даёт ТЕ ЖЕ координаты для тех же потоков
     tr = b.embed(data, "train")
     again = b._model.transform(b._features(data, "train").to_numpy())
     np.testing.assert_allclose(tr.to_numpy(), again)
@@ -72,7 +72,7 @@ def test_shared_coordinates_flag_matches_behaviour(data):
 def test_other_windows_use_train_scaling_not_their_own(data):
     b = BehavioralBaseline().fit(data)
     test_emb = b.embed(data, "test").to_numpy()
-    # if the test window were re-standardised, every column would have mean ~0 and std ~1
+    # если бы test-окно нормировалось заново, у каждой колонки было бы среднее ~0 и std ~1
     assert np.abs(test_emb.mean(0)).max() > 1e-3 or np.abs(test_emb.std(0) - test_emb.std(0).mean()).max() > 0
 
 

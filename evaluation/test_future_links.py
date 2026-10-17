@@ -1,4 +1,4 @@
-"""Synthetic tests; no claims about real LANL performance."""
+"""Тесты на синтетике; про LANL ничего не утверждают."""
 import numpy as np
 import pandas as pd
 import pytest

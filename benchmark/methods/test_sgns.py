@@ -7,16 +7,16 @@ from benchmark.methods.sgns import SkipGram, hs_loss_grads, huffman, neg_loss_gr
 from benchmark.methods.walks import walk_corpus
 
 
-# ------------------------------------------------------------------ Huffman tree
+# ------------------------------------------------------------------ дерево Хаффмана
 def test_huffman_codes_are_prefix_free_and_complete():
-    freq = np.array([45, 13, 12, 16, 9, 5], dtype=float)           # the textbook example
+    freq = np.array([45, 13, 12, 16, 9, 5], dtype=float)           # пример из учебника
     paths, codes, lens = huffman(freq)
     words = ["".join(map(str, codes[i, :lens[i]])) for i in range(len(freq))]
     assert not any(a != b and b.startswith(a) for a in words for b in words)
-    assert sum(2.0 ** -l for l in lens) == pytest.approx(1.0)       # Kraft equality for a full binary tree
-    assert lens[0] == 1 and lens[4] == lens[5] == 4               # most frequent shortest, rarest deepest
-    assert (paths[:, 0] == paths[0, 0]).all()                      # every path starts at the root
-    assert paths.max() == len(freq) - 2                            # inner nodes are 0..n-2
+    assert sum(2.0 ** -l for l in lens) == pytest.approx(1.0)       # равенство Крафта для полного двоичного дерева
+    assert lens[0] == 1 and lens[4] == lens[5] == 4               # самые частые — короче всех, самые редкие — глубже
+    assert (paths[:, 0] == paths[0, 0]).all()                      # каждый путь начинается в корне
+    assert paths.max() == len(freq) - 2                            # внутренние узлы 0..n-2
 
 
 def test_huffman_two_nodes_and_errors():
@@ -31,7 +31,7 @@ def test_huffman_is_deterministic_with_ties():
     assert all(np.array_equal(a, b) for a, b in zip(huffman(f), huffman(f)))
 
 
-# ------------------------------------------------------------------ gradient checks (finite differences)
+# ------------------------------------------------------------------ проверка градиентов (конечные разности)
 def numerical_grad(f, W, eps=1e-6):
     g = np.zeros_like(W)
     for idx in np.ndindex(*W.shape):
@@ -55,7 +55,7 @@ def test_negative_sampling_gradients_match_finite_differences():
     rng = np.random.default_rng(0)
     n, d = 7, 4
     W_in, W_out = rng.normal(size=(n, d)) * 0.5, rng.normal(size=(n, d)) * 0.5
-    c, pos = np.array([0, 1, 1, 3, 0]), np.array([2, 2, 4, 5, 6])        # repeated centres and contexts
+    c, pos = np.array([0, 1, 1, 3, 0]), np.array([2, 2, 4, 5, 6])        # повторяющиеся центры и контексты
     negs = rng.integers(0, n, (5, 3))
     loss, g_in, oi, og = neg_loss_grads(W_in, W_out, c, pos, negs)
     f = lambda: neg_loss_grads(W_in, W_out, c, pos, negs)[0]
@@ -87,7 +87,7 @@ def test_hs_probabilities_over_all_leaves_sum_to_one():
         for x in range(n):
             loss = hs_loss_grads(W_in, W_out, np.array([c]), np.array([x]), paths, codes, lens)[0]
             total += np.exp(-loss)
-        assert total == pytest.approx(1.0)                         # a proper distribution over contexts
+        assert total == pytest.approx(1.0)                         # настоящее распределение по контекстам
 
 
 def test_scatter_sub_sums_repeated_indices():
@@ -100,7 +100,7 @@ def test_scatter_sub_sums_repeated_indices():
     assert np.allclose(W, ref)
 
 
-# ------------------------------------------------------------------ trainer
+# ------------------------------------------------------------------ обучение
 def planted(n_half=25, seed=0):
     rng = np.random.default_rng(seed)
     n = 2 * n_half
@@ -146,7 +146,7 @@ def test_pairs_respect_the_window_and_both_directions():
     c, x = sg._pairs(walks)
     assert (np.abs(c - x) <= 3).all() and (c != x).all()
     pairs = set(zip(c.tolist(), x.tolist()))
-    assert (5, 6) in pairs and (6, 5) in pairs                      # adjacent nodes pair up in both directions
+    assert (5, 6) in pairs and (6, 5) in pairs                      # соседние вершины образуют пары в обе стороны
 
 
 def test_invalid_arguments_are_rejected():

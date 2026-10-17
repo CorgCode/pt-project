@@ -13,8 +13,8 @@ def test_undirected_weights_count_both_directions_and_drop_self_flows():
     g = from_flows(flows([("a", "b")] * 3 + [("b", "a")] * 2 + [("a", "c"), ("c", "c")]))
     assert list(g.nodes) == ["a", "b", "c"] and g.n_edges == 2
     a = g.adjacency().toarray()
-    assert a[0, 1] == a[1, 0] == pytest.approx(np.log1p(5))          # 3 + 2 flows
-    assert a[0, 2] == a[2, 0] == pytest.approx(np.log1p(1)) and a[2, 2] == 0   # self flow dropped
+    assert a[0, 1] == a[1, 0] == pytest.approx(np.log1p(5))          # 3 + 2 потока
+    assert a[0, 2] == a[2, 0] == pytest.approx(np.log1p(1)) and a[2, 2] == 0   # петля выброшена
 
 
 def test_weight_modes():
@@ -33,7 +33,7 @@ def test_csr_is_symmetric_sorted_and_positive():
     assert (abs(a - a.T) > 1e-12).nnz == 0 and (g.weights > 0).all()
     for v in range(g.n):
         nb = g.neighbors(v)
-        assert (np.diff(nb) > 0).all()                               # sorted, no duplicates
+        assert (np.diff(nb) > 0).all()                               # по возрастанию, без дублей
     assert list(g.nodes) == sorted(g.nodes)
 
 

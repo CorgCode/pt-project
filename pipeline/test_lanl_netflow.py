@@ -21,7 +21,7 @@ def test_headerless_bz2_maps_to_canonical(tmp_path):
     assert list(df.columns) == FLOW_COLUMNS
     r = df.iloc[0]
     assert (r.src, r.dst, r.dst_port, r.proto) == ("Comp001", "Comp002", "443", "6")
-    assert (r.bytes, r.packets, r.ts) == (1500, 3, 100)               # originator direction
+    assert (r.bytes, r.packets, r.ts) == (1500, 3, 100)               # направление инициатора
     assert (r.resp_bytes, r.resp_packets, r.duration, r.src_port) == (900, 2, 2, "Port5555")
     assert df.iloc[1].dst == "Mail" and df.iloc[1].dst_port == "53"
 
@@ -29,8 +29,8 @@ def test_headerless_bz2_maps_to_canonical(tmp_path):
 def test_host_ids_are_preserved_verbatim(tmp_path):
     text = "1,0, Comp007 ,comp007,6,1,80,1,1,1,1\n2,0,007,7,6,1,80,1,1,1,1\n"
     (df,) = list(read_canonical(write(tmp_path, text)))
-    assert df.src.tolist() == ["Comp007", "007"]          # stripped only
-    assert df.dst.tolist() == ["comp007", "7"]            # case / leading zeros are distinct hosts
+    assert df.src.tolist() == ["Comp007", "007"]          # только обрезка пробелов
+    assert df.dst.tolist() == ["comp007", "7"]            # регистр и ведущие нули — разные хосты
 
 
 def test_ports_stay_strings(tmp_path):

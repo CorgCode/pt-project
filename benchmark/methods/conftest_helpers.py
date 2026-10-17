@@ -1,9 +1,9 @@
-"""Shared helpers for method tests (not a conftest: imported explicitly)."""
+"""Общие помощники для тестов методов (не conftest: импортируются явно)."""
 from pipeline.data import ProcessedData
 
 
 class TrainOnlyGuard(ProcessedData):
-    """Raises if fitting touches any window but train (flows or graph)."""
+    """Ошибка, если обучение трогает любое окно, кроме train (потоки или граф)."""
     fitting = False
 
     def flows(self, window):

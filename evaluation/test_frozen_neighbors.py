@@ -1,4 +1,4 @@
-"""Fixed reference neighbors must be shared and validated before scoring."""
+"""Замороженные соседи общие для всех и проверяются до оценки."""
 from __future__ import annotations
 
 import json
@@ -105,8 +105,8 @@ def test_common_evaluator_prefers_frozen_reference(case, tmp_path):
     assert first["metrics"]["consistency@10_mean"] == pytest.approx(1)
     assert first["reference_info"]["neighbors_sha256"] is not None
 
-    # Ensure the evaluator is genuinely reading the fixed neighbor file:
-    # replace one complete neighbor list with a different (valid) ordering.
+    # убеждаемся, что оценка действительно читает файл соседей:
+    # заменяем один список соседей другим (корректным) порядком
     table = pd.read_csv(neighbors)
     anchor = table.iloc[0]["host_id"]
     mask = table.host_id == anchor

@@ -20,10 +20,10 @@ def mk(edges, n=None):
     return from_edges(e[:, 0], e[:, 1], np.ones(len(e)), np.array([f"h{i}" for i in range(n)], dtype=object))
 
 
-# ------------------------------------------------------------------ base features (hand-derived)
+# ------------------------------------------------------------------ базовые признаки (посчитаны вручную)
 def test_base_features_triangle_star_path_and_clique():
     tri = base_features(mk([(0, 1), (1, 2), (0, 2)]))
-    assert (tri == [2, 2, 3, 0]).all()                                  # deg 2, egonet edges 3, none leave
+    assert (tri == [2, 2, 3, 0]).all()                                  # степень 2, рёбер в эго-сети 3, наружу ни одного
     star = base_features(mk([(0, 1), (0, 2), (0, 3)]))
     assert star[0].tolist() == [3, 3, 3, 0] and star[1].tolist() == [1, 1, 1, 2]
     path = base_features(mk([(0, 1), (1, 2)]))
@@ -34,7 +34,7 @@ def test_base_features_triangle_star_path_and_clique():
 
 
 def test_egonet_identity_holds_on_random_graphs():
-    """edges inside + leaving the egonet account for every edge incident to a neighbour: sum deg(u) = 2T + deg + out."""
+    """Рёбра внутри и наружу эго-сети покрывают все рёбра соседей: sum deg(u) = 2T + deg + out."""
     rng = np.random.default_rng(0)
     e = {tuple(sorted(rng.integers(0, 40, 2))) for _ in range(160)}
     g = mk([x for x in e if x[0] != x[1]], n=40)
@@ -63,17 +63,17 @@ def test_aggregate_sum_and_mean_over_neighbours():
     B.data[:] = 1.0
     F = np.array([[1.0], [2.0], [3.0], [4.0]])
     out = aggregate(B, F)
-    assert out[:, 0].tolist() == [5.0, 1.0, 5.0, 3.0]                   # sums over neighbours
-    assert out[:, 1].tolist() == [2.5, 1.0, 2.5, 3.0]                   # means
+    assert out[:, 0].tolist() == [5.0, 1.0, 5.0, 3.0]                   # суммы по соседям
+    assert out[:, 1].tolist() == [2.5, 1.0, 2.5, 3.0]                   # средние
 
 
-# ------------------------------------------------------------------ binning and pruning
+# ------------------------------------------------------------------ корзины и прореживание
 def test_log_bin_example_ties_and_monotonicity():
     assert log_bin(np.array([1, 1, 2, 3, 3, 3, 10, 10])).tolist() == [0, 0, 0, 1, 1, 1, 3, 3]
     x = np.random.default_rng(0).normal(size=500)
     b = log_bin(x)
-    assert (np.diff(b[np.argsort(x)]) >= 0).all()                       # monotone in the value
-    assert len(set(log_bin(np.full(10, 7.0)).tolist())) == 1                     # equal values always share one bin
+    assert (np.diff(b[np.argsort(x)]) >= 0).all()                       # монотонно по значению
+    assert len(set(log_bin(np.full(10, 7.0)).tolist())) == 1                     # равные значения всегда в одной корзине
 
 
 def test_log_bin_sizes_are_geometric():
@@ -82,15 +82,15 @@ def test_log_bin_sizes_are_geometric():
 
 
 def test_refex_prunes_duplicates_and_constants():
-    star = mk([(0, i) for i in range(1, 8)])                            # strength == degree here
+    star = mk([(0, i) for i in range(1, 8)])                            # здесь сила == степени
     F, names = refex(star, rounds=0)
     assert "strength" not in names and "degree" in names
     with pytest.raises(ValueError, match="non-constant"):
-        refex(mk([(i, (i + 1) % 10) for i in range(10)]))                # a ring: every feature is constant
+        refex(mk([(i, (i + 1) % 10) for i in range(10)]))                # кольцо: все признаки постоянны
 
 
 def test_recursion_refines_the_partition_of_nodes():
-    """Aggregating over neighbours distinguishes nodes that the local features cannot (k-hop structure)."""
+    """Агрегация по соседям различает вершины, которые локальные признаки не различают (k-шаговая структура)."""
     rng = np.random.default_rng(2)
     g = mk([x for x in {tuple(sorted(rng.integers(0, 80, 2))) for _ in range(190)} if x[0] != x[1]], n=80)
     distinct = lambda F: len({tuple(np.round(r, 9)) for r in F})
@@ -107,15 +107,15 @@ def test_rounds_max_features_and_similarity_control_the_feature_count():
     n2 = refex(g, rounds=2)[0].shape[1]
     assert n2 > n0
     assert refex(g, rounds=2, max_features=5)[0].shape[1] <= 5
-    assert refex(g, rounds=2, s=2)[0].shape[1] < n2                      # a looser similarity prunes more
+    assert refex(g, rounds=2, s=2)[0].shape[1] < n2                      # более мягкая похожесть прореживает сильнее
 
 
-# ------------------------------------------------------------------ NMF and MDL
+# ------------------------------------------------------------------ NMF и MDL
 def test_nmf_roles_shape_nonnegativity_determinism():
     V = prepare_matrix(np.random.default_rng(0).random((50, 8)) * 20)
     G = nmf_roles(V, 4, 0)
     assert G.shape == (50, 4) and (G >= 0).all() and np.array_equal(G, nmf_roles(V, 4, 0))
-    assert nmf_roles(V, 99, 0).shape[1] == 8                              # capped by the number of features
+    assert nmf_roles(V, 99, 0).shape[1] == 8                              # не больше числа признаков
 
 
 def test_prepare_matrix_is_nonnegative_and_scaled():
@@ -135,7 +135,7 @@ def test_mdl_mechanics():
     assert best == mdl_roles(V, 2, 5, 0)[0]
 
 
-# ------------------------------------------------------------------ the point of RolX: structural roles across components
+# ------------------------------------------------------------------ смысл RolX: структурные роли в разных компонентах
 def roles_graph(K=8, L=10):
     edges, roles, comp, nid = [], [], [], 0
     for k in range(K):
@@ -152,7 +152,7 @@ def roles_graph(K=8, L=10):
 def other_component_role_accuracy(E, roles, comp):
     E = E / np.linalg.norm(E, axis=1, keepdims=True)
     S = E @ E.T
-    S[comp[:, None] == comp[None, :]] = -9                                # candidates: other components only
+    S[comp[:, None] == comp[None, :]] = -9                                # кандидаты — только из других компонент
     nn = S.argmax(1)
     return {r: float(np.mean(roles[nn[roles == r]] == r)) for r in ("hub", "attached", "leaf", "clique")}
 
@@ -163,8 +163,8 @@ def test_nodes_with_the_same_structural_role_match_across_disconnected_component
     assert all(v >= 0.95 for v in acc.values()), acc
     dw = DeepWalk(dim=16, seed=0, num_walks=8, walk_length=30, window=5, epochs=2).embed_graph(g)
     contrast = other_component_role_accuracy(dw, roles, comp)
-    # DeepWalk has no mechanism for roles (it only sees co-occurrence inside a component); whatever role signal it
-    # carries is incidental (e.g. word2vec vectors encode node frequency, hence degree), and it fails for some roles
+    # у DeepWalk нет механизма для ролей (он видит только совместные появления внутри компоненты); сигнал роли
+    # у него случаен (word2vec кодирует частоту вершины, то есть степень) и для части ролей не работает
     assert min(contrast.values()) < 0.5 and np.mean(list(acc.values())) > np.mean(list(contrast.values())) + 0.4
 
 
@@ -172,17 +172,17 @@ def test_embedding_is_invariant_to_node_relabelling():
     g, roles, comp = roles_graph(K=5)
     perm = np.random.default_rng(0).permutation(g.n)
     a = g.adjacency()
-    P = sp.csr_matrix((np.ones(g.n), (perm, np.arange(g.n))), shape=(g.n, g.n))      # node i -> perm[i]
+    P = sp.csr_matrix((np.ones(g.n), (perm, np.arange(g.n))), shape=(g.n, g.n))      # вершина i -> perm[i]
     ap = (P @ a @ P.T).tocoo()
     keep = ap.row < ap.col
     g2 = from_edges(ap.row[keep], ap.col[keep], ap.data[keep], g.nodes)
     E1 = RolX(dim=5, seed=0).embed_graph(g)
     E2 = RolX(dim=5, seed=0).embed_graph(g2)
     n1, n2 = E1 / np.linalg.norm(E1, axis=1, keepdims=True), E2 / np.linalg.norm(E2, axis=1, keepdims=True)
-    assert np.allclose((n1 @ n1.T), (n2 @ n2.T)[np.ix_(perm, perm)], atol=1e-4)      # same similarity structure
+    assert np.allclose((n1 @ n1.T), (n2 @ n2.T)[np.ix_(perm, perm)], atol=1e-4)      # та же структура похожести
 
 
-# ------------------------------------------------------------------ the method wrapper
+# ------------------------------------------------------------------ обёртка метода
 @pytest.fixture(scope="module")
 def data(processed):
     return TrainOnlyGuard(processed)
@@ -201,7 +201,7 @@ def test_output_contract_determinism_and_normalisation(data):
     e = mk_()
     X = e.to_numpy()
     assert list(e.index) == data.cohort and X.shape == (len(data.cohort), 6) and (X >= 0).all()
-    assert np.allclose(X.sum(axis=1), 1.0)                                # L1-normalised role memberships
+    assert np.allclose(X.sum(axis=1), 1.0)                                # принадлежность ролям нормирована по L1
     assert np.array_equal(X, mk_().to_numpy())
     raw = RolX(dim=6, seed=1, normalize=False).fit(data).embed(data, "train").to_numpy()
     assert not np.allclose(raw.sum(axis=1), 1.0)

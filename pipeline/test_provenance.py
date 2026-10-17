@@ -1,4 +1,4 @@
-"""Regression tests: unverified or synthetic input must never be presented as LANL."""
+"""Регрессия: непроверенные и синтетические данные никогда не выдаются за LANL."""
 import bz2
 import json
 import shutil
@@ -16,7 +16,7 @@ CFG = PipelineConfig(windows={"train": (0, 300), "test": (400, 700)}, min_events
 
 
 def write_netflow(directory, name="netflow_day-02.bz2", n_hosts=40, seed=0, ids=None):
-    """A small netflow file whose device IDs are NOT the fixture generator's progression."""
+    """Маленький файл NetFlow, где ID устройств НЕ идут прогрессией генератора."""
     rng = np.random.default_rng(seed)
     nums = rng.choice(np.arange(100000, 999999), n_hosts, replace=False) if ids is None else ids
     hosts = [f"Comp{n}" for n in nums]
@@ -55,7 +55,7 @@ def test_lanl_declaration_requires_lanl_file_names(tmp_path):
     p = write_netflow(tmp_path / "raw", name="my_traffic.bz2")
     with pytest.raises(PipelineError, match="netflow_day-NN"):
         classify([p], "lanl", "from somewhere")
-    assert classify([p])["kind"] == KIND_UNVERIFIED          # without a claim it is simply unverified
+    assert classify([p])["kind"] == KIND_UNVERIFIED          # без заявления — просто unverified
 
 
 def test_declared_lanl_is_stamped_declared_not_verified_in_every_artifact(tmp_path):
@@ -69,7 +69,7 @@ def test_fixture_with_marker_removed_is_still_recognised_as_synthetic(raw_fixtur
     raw = tmp_path / "raw"
     raw.mkdir()
     for f in raw_fixture.glob("netflow_day-*.bz2"):
-        shutil.copy(f, raw / f.name)                           # NO marker file copied
+        shutil.copy(f, raw / f.name)                           # маркер НЕ копируется
     files = sorted(raw.glob("*.bz2"))
     c = classify(files)
     assert c["kind"] == KIND_SYNTHETIC and c["basis"] == "fixture_signature"
@@ -86,7 +86,7 @@ def test_fixture_signature_function():
     assert fixture_signature({f"Comp{100000 + 7 * i:06d}" for i in range(50)})
     rng = np.random.default_rng(1)
     assert not fixture_signature({f"Comp{n}" for n in rng.choice(np.arange(100000, 999999), 50, replace=False)})
-    assert not fixture_signature({f"Comp{100000 + 7 * i:06d}" for i in range(5)})       # too few to conclude
+    assert not fixture_signature({f"Comp{100000 + 7 * i:06d}" for i in range(5)})       # слишком мало, чтобы делать вывод
     assert not fixture_signature({"Mail", "Comp100007"})
 
 

@@ -8,7 +8,7 @@ from benchmark.baselines.make_synthetic_reference import make_flows
 
 
 def test_self_excluded_even_with_duplicates():
-    X = np.zeros((6, 3))                      # all identical -> self may not be first
+    X = np.zeros((6, 3))                      # все одинаковые -> сам хост может быть не первым
     nn = top_k_neighbors(X, 3, metric="euclidean")
     assert nn.shape == (6, 3)
     assert all(i not in nn[i] for i in range(6))
@@ -83,9 +83,9 @@ def test_duplicate_host_ids_raise(which):
 def test_missing_or_mismatched_host_ids_raise():
     emb, ref = _small()
     with pytest.raises(ValueError, match="different host IDs"):
-        evaluate_embedding(emb, ref.iloc[:-1])            # host missing in reference
+        evaluate_embedding(emb, ref.iloc[:-1])            # хоста нет в эталоне
     with pytest.raises(ValueError, match="different host IDs"):
-        evaluate_embedding(emb.iloc[1:], ref)             # host missing in embedding
+        evaluate_embedding(emb.iloc[1:], ref)             # хоста нет в эмбеддинге
     renamed = ref.rename(index={"h0": "other"})
     with pytest.raises(ValueError, match="different host IDs"):
-        evaluate_embedding(emb, renamed)                  # same size, different IDs
+        evaluate_embedding(emb, renamed)                  # размер тот же, ID другие

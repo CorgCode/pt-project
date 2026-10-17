@@ -32,7 +32,7 @@ def test_is_deterministic(processed, reference, tuned):
 
 def test_never_reads_the_test_reference(processed, reference, tmp_path):
     only_val = tmp_path / "ref"
-    shutil.copytree(reference / "validation", only_val / "validation")          # no test directory at all
+    shutil.copytree(reference / "validation", only_val / "validation")          # папки test нет вовсе
     out = tune(processed, only_val, "deepwalk", {"num_walks": [2]}, dim=4, metric="pair_roc_auc", fast=True)
     assert out["target_reference"] == "validation"
     r = subprocess.run([sys.executable, "-m", "experiments.tune_methods", "--processed-dir", str(processed),
@@ -43,7 +43,7 @@ def test_never_reads_the_test_reference(processed, reference, tmp_path):
 
 def test_validation_split_is_used_for_scoring(processed, reference, tuned):
     r = tuned["results"][0]["metrics"]
-    assert "pair_roc_auc" in r and "link_learned_roc_auc" not in r              # learned scorer needs an earlier fit window
+    assert "pair_roc_auc" in r and "link_learned_roc_auc" not in r              # обученному классификатору связей нужно более раннее окно
 
 
 def test_input_errors(processed, reference, tmp_path):

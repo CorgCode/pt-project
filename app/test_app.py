@@ -77,9 +77,9 @@ def test_dashboard_renders_every_tab_for_the_demo_bundle():
 
     at = AppTest.from_file("streamlit_app.py", default_timeout=120).run()
     assert not at.exception
-    assert any("SYNTHETIC FIXTURE" in w.value and "not LANL" in w.value for w in at.warning)   # always labelled
+    assert any("SYNTHETIC FIXTURE" in w.value and "not LANL" in w.value for w in at.warning)   # пометка всегда есть
     assert len(at.tabs) == 8 and [t.label for t in at.tabs][:3] == ["Overview", "Leaderboard", "Link prediction"]
-    # interact: switch the leaderboard to another metric family and the reference window
+    # взаимодействие: переключить группу метрик и окно эталона
     at.selectbox(key="lb_group").select("Future links (predictive)").run()
     assert not at.exception
     at.radio(key="lb_target").set_value("validation").run()
@@ -128,7 +128,7 @@ def test_dashboard_degrades_gracefully_when_artifacts_are_missing(monkeypatch, t
     assert not at.exception
     text = " ".join(w.value for w in at.warning)
     assert "host-level views are unavailable" in text and "No audit.json" in text
-    assert any("SYNTHETIC FIXTURE" in w.value for w in at.warning)          # still labelled
+    assert any("SYNTHETIC FIXTURE" in w.value for w in at.warning)          # пометка на месте
 
 
 def test_unverified_and_declared_bundles_get_their_own_banner(monkeypatch, tmp_path):

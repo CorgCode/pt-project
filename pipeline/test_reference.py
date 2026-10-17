@@ -15,7 +15,7 @@ def test_each_target_has_complete_reference(reference):
         d = reference / target
         for name in ("features.csv", "neighbors.csv", "edges.csv", "pairs.csv", "triplets.csv", "manifest.json"):
             assert (d / name).exists(), (target, name)
-        assert not (d / "labels.csv").exists()               # no fabricated labels
+        assert not (d / "labels.csv").exists()               # метки не выдумываются
 
 
 def test_manifest_provenance(reference, processed):
@@ -43,7 +43,7 @@ def test_pairs_and_triplets_are_valid_and_judged_only(reference):
     assert (p.host_a < p.host_b).all() and not p.duplicated(["host_a", "host_b"]).any()
     score = p.ref_score.astype(float)
     lab = p.label.astype(int)
-    assert (score[lab == 1] >= m["tau_pos"]).all() and (score[lab == 0] == 0).all()   # unjudged excluded
+    assert (score[lab == 1] >= m["tau_pos"]).all() and (score[lab == 0] == 0).all()   # неразмеченные исключены
     assert m["n_unjudged_pairs"] > 0
     t = pd.read_csv(reference / "test" / "triplets.csv", dtype=str)
     assert len(t) > 0 and (t.anchor != t.positive).all() and (t.anchor != t.negative).all()
