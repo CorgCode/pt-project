@@ -3,7 +3,7 @@
     "synthetic": false,
     "kind": "lanl_declared",
     "label": "LANL (заявлено)",
-    "source_commit": "cad28c2181018f165f48c2eaf1f2b90769e82d98",
+    "source_commit": "eb2e2770299c5991035518312da2c564efdf0aa5",
     "source_path": "results/lanl_day02",
     "hosts": 2242,
     "seed": 0,
@@ -379,6 +379,19 @@
     },
     "rows": [
       {
+        "method": "hybrid_services",
+        "service": false,
+        "score": 49.6,
+        "dim": 105,
+        "values": {
+          "consistency@10_mean": 0.2584745762711864,
+          "link_learned_roc_auc": 0.9936199298872945,
+          "partner_new_mrr": 0.2353352441694848,
+          "pair_roc_auc": 0.9530028549238525,
+          "identity_top1": 0.1623550401427297
+        }
+      },
+      {
         "method": "hybrid_weighted",
         "service": false,
         "score": 48.9,
@@ -509,6 +522,19 @@
         }
       },
       {
+        "method": "node2vec_services",
+        "service": false,
+        "score": 33.4,
+        "dim": 32,
+        "values": {
+          "consistency@10_mean": 0.08782337198929527,
+          "link_learned_roc_auc": 0.8221073144993335,
+          "partner_new_mrr": 0.18141496320605457,
+          "pair_roc_auc": 0.9056709371104213,
+          "identity_top1": 0.19982158786797502
+        }
+      },
+      {
         "method": "deepwalk",
         "service": false,
         "score": 33.2,
@@ -532,6 +558,19 @@
           "partner_new_mrr": 0.21511029186300343,
           "pair_roc_auc": 0.9812342675836699,
           "identity_top1": 0.05976806422836753
+        }
+      },
+      {
+        "method": "deepwalk_services",
+        "service": false,
+        "score": 29.1,
+        "dim": 32,
+        "values": {
+          "consistency@10_mean": 0.0847457627118644,
+          "link_learned_roc_auc": 0.7943171780465299,
+          "partner_new_mrr": 0.16912880626676016,
+          "pair_roc_auc": 0.9062694905532589,
+          "identity_top1": 0.08563782337198929
         }
       },
       {
@@ -582,7 +621,7 @@
       ],
       "link_learned_roc_auc": [
         0.6392304914645376,
-        0.7630201922594116
+        0.7660800524041758
       ],
       "partner_new_mrr": [
         0.06517239183471678,
