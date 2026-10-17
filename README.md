@@ -12,6 +12,29 @@
 
 Данные — [LANL 2017](https://csr.lanl.gov/data/2017/). Разметки «кто есть кто» нет.
 
+## С чего начать
+
+| хочу | куда |
+|---|---|
+| посмотреть результаты | [таблица](scoreboard/README.md), [сайт](https://corgcode.github.io/pt-project/), `streamlit run app/streamlit_app.py` |
+| проверить свой метод | [3 шага в таблице](scoreboard/README.md#как-добавить-свой-метод) |
+| понять, что значат метрики | [`evaluation/README.md`](evaluation/README.md) |
+| понять, можно ли верить числам | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) |
+| повторить прогон на LANL | [`experiments/lanl/README.md`](experiments/lanl/README.md) |
+| сделать PR | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+
+## Словарь
+
+| слово | что значит |
+|---|---|
+| хост | компьютер или сервер в сети (`Comp123456`, `ActiveDirectory`) |
+| поток | одна запись NetFlow: кто, кому, порт, сколько байт |
+| эмбеддинг | вектор чисел, который метод строит для хоста |
+| окно | отрезок времени: train — учимся, validation — подбираем, test — проверяем |
+| когорта | хосты, которых оцениваем (активные в train) |
+| эталон | заранее посчитанное по логам «кто на кого похож»; с ним сравниваем эмбеддинг |
+| балл | одно число 0–100: 0 — как у случайных векторов, 100 — идеально |
+
 ## Как это работает
 
 ```text
@@ -40,13 +63,14 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 
 | папка | что |
 |---|---|
-| [`scoreboard/`](scoreboard/README.md) | общая таблица результатов |
+| [`scoreboard/`](scoreboard/README.md) | общая таблица результатов и шаблон своего метода |
+| [`results/`](results/README.md) | итоги прогонов на LANL |
 | [`evaluation/`](evaluation/README.md) | метрики |
 | [`benchmark/`](benchmark/README.md) | методы и бейзлайны |
 | [`pipeline/`](pipeline/README.md) | подготовка данных |
 | [`experiments/`](experiments/README.md) | запуски, в том числе [на LANL](experiments/lanl/README.md) |
 | [`app/`](app/README.md) | дашборд |
-| `docs/` | сайт и [методология](docs/METHODOLOGY.md) |
+| [`docs/`](docs/README.md) | сайт и [методология](docs/METHODOLOGY.md) |
 | [`research/`](research/README.md) | ресёрч участников |
 
 ## Результаты на LANL
