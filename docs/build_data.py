@@ -28,6 +28,10 @@ def _git_sha() -> str:
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 
 
+DETAIL = ["consistency@5_mean", "consistency@10_mean", "consistency@20_mean", "link_roc_auc", "link_learned_roc_auc",
+          "link_new_roc_auc", "partner_new_mrr", "pair_roc_auc", "identity_top1"]
+
+
 def team_table(results_dir: Path = ROOT / "scoreboard" / "results") -> dict:
     """Общая таблица команды: балл 0–100, размерность и главные метрики каждого метода."""
     results = sb.load_results(results_dir)
@@ -38,7 +42,9 @@ def team_table(results_dir: Path = ROOT / "scoreboard" / "results") -> dict:
     for m in list(order.index) + sorted(sb.SERVICE & set(by)):
         r = by[m]
         rows.append({"method": m, "service": m in sb.SERVICE, "score": None if score[m] != score[m] else round(float(score[m]), 1),
-                     "dim": r.get("dim"), "values": {k: r["metrics"].get(k) for k in cols}})
+                     "dim": r.get("dim"), "values": {k: r["metrics"].get(k) for k in cols},
+                     "tasks": {g: round(v, 1) for g, v in sb.task_scores(r, cols).items()},
+                     "detail": {k: r["metrics"].get(k) for k in DETAIL}})
     chance = {}
     for r in results:
         if r["method"] in sb.SERVICE:
@@ -48,7 +54,13 @@ def team_table(results_dir: Path = ROOT / "scoreboard" / "results") -> dict:
                 chance.setdefault(s["metric"], []).append(s["chance"])
     pers = next((r["metric_details"]["future_link_prediction"].get("persistence_baseline", {}).get("roc_auc")
                  for r in results if r.get("metric_details", {}).get("future_link_prediction")), None)
-    return {"columns": cols, "rows": rows, "persistence_auc": pers,
+    groups: dict[str, list[str]] = {}                       # задача -> её колонки
+    for r in results:
+        for x in r.get("summary", []):
+            ms = groups.setdefault(x.get("group") or x["metric"], [])
+            if x["metric"] not in ms:
+                ms.append(x["metric"])
+    return {"columns": cols, "rows": rows, "persistence_auc": pers, "tasks": groups,
             "chance": {k: [min(v), max(v)] for k, v in chance.items()}}
 
 

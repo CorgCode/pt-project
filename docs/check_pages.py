@@ -19,8 +19,8 @@ DATA = ROOT / "data" / "results.json"
 LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
 PAGES = ["index.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
-CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "chartScore", "leaderboard"]
-SECTIONS = ["overview", "highlights", "readiness", "methods", "baselines", "results", "team", "architecture", "next"]
+CHARTS = ["leaderboard", "chartMetric"]
+SECTIONS = ["overview", "results", "findings", "metrics", "methods", "status"]
 
 
 class Page(HTMLParser):
@@ -67,13 +67,13 @@ def check() -> None:
     idx, ip = pages["index.html"]
     for sid in SECTIONS + CHARTS:
         assert sid in ip.ids, f"index.html: missing #{sid}"
-    assert idx.count(LABEL) >= 6, "у каждого графика должна быть подпись источника данных"
-    for needle in ("Neighborhood Consistency@k", "docs/build_data.py",
-                   "Чего вывести нельзя", "Что измеряется", "Как читать", "pull/62", "pull/64", "pull/65", "issues/60"):
+    assert idx.count(LABEL) >= len(CHARTS), "у каждого графика должна быть подпись источника данных"
+    for needle in ("docs/build_data.py", "Что измеряем", "Оговорка", "issues/60", "scoreboard/README.md"):
         assert needle in idx, needle
-    assert idx.count("Чего вывести нельзя") >= 5
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
-    assert "Ожидаются результаты эксперимента" in js
+    for task in info["team"]["tasks"]:
+        assert f'"{task}"' in js, f"задача {task} не показана на сайте"
+    assert all(set(r["tasks"]) <= set(info["team"]["tasks"]) for r in info["team"]["rows"])
     assert 'fetch("./data/results.json"' in js
     # у каждого графового метода есть числа и узнаваемость во времени
     for m in GRAPH_METHODS:

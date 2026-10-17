@@ -1,7 +1,7 @@
 """Проверка сайта в настоящем headless Chromium, раздаётся из docs/ так же, как публикует Pages.
 
 На 1440 / 768 / 390 px: нет ошибок страницы и горизонтальной прокрутки, все графики нарисованы при первой загрузке,
-подписи источника и графовые методы видны, переключатель split перерисовывает. --shots DIR — ещё и снимки страниц.
+подписи источника и графовые методы видны, вкладки метрик перерисовывают. --shots DIR — ещё и снимки страниц.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent
 SIZES = ((1440, 900), (768, 1024), (390, 844))
-CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "chartScore", "leaderboard"]
+CHARTS = ["leaderboard", "chartMetric"]
 
 
 class Quiet(SimpleHTTPRequestHandler):
@@ -53,7 +53,7 @@ def main() -> None:
             if sw > w:
                 problems.append(f"{w}px: horizontal overflow (scrollWidth {sw})")
             body = page.inner_text("body")
-            for needle in ("LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН", "node2vec", "Чего вывести нельзя"):
+            for needle in ("LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН", "node2vec", "Какой метод лучше"):
                 if needle not in body:
                     problems.append(f"{w}px: missing text {needle!r}")
             if page.locator("svg text").count() < 20:
@@ -64,11 +64,11 @@ def main() -> None:
                     return b.width && (b.right > r.right + 1 || b.left < r.left - 1); }).map(t => t.textContent); })""")
             if clipped:
                 problems.append(f"{w}px: clipped chart labels {clipped[:3]}")
-            before = page.inner_html("#chartConsistency")
-            page.click("button[data-split=validation]")
-            if page.inner_html("#chartConsistency") == before:
-                problems.append(f"{w}px: split toggle did not change chartConsistency")
-            page.click("button[data-split=test]")
+            before = page.inner_html("#chartMetric")
+            page.click("button[data-metric=links]")
+            if page.inner_html("#chartMetric") == before:
+                problems.append(f"{w}px: metric tabs did not change chartMetric")
+            page.click("button[data-metric=neighbors]")
             page.goto(base + "/index.html", wait_until="networkidle")
             page.keyboard.press("Tab")
             if page.evaluate("document.activeElement.className") != "skip":
@@ -81,7 +81,7 @@ def main() -> None:
     server.shutdown()
     if problems:
         raise SystemExit("Browser check FAILED:\n- " + "\n- ".join(problems))
-    print("OK: графики, подписи источника и переключатель окна на 1440/768/390 px.")
+    print("OK: графики, подписи источника и вкладки метрик на 1440/768/390 px.")
 
 
 if __name__ == "__main__":
