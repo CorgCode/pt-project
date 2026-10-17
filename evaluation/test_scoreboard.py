@@ -155,4 +155,18 @@ def test_overall_score_maps_chance_to_0_and_perfect_to_100():
     assert column_scores(r, {"auc": "AUC", "top1": "Top-1"}) == {"auc": 50.0, "top1": 20.0}
     worse = {"method": "w", "metrics": {"auc": 0.4, "top1": 0.0}, "summary": summary}   # ниже случайного — 0
     s = overall_score([r, worse], {"auc": "AUC", "top1": "Top-1"})
-    assert s["m"] == 35.0 and s["w"] == 0.0
+    assert abs(s["m"] - 1000 ** 0.5) < 1e-9 and s["w"] == 1.0          # геометрическое: √(50·20); ноль → 1
+
+
+def test_overall_score_weighs_tasks_equally_and_punishes_a_failed_task():
+    from evaluation.scoreboard import overall_score, task_scores
+    summary = [{"metric": "a", "group": "Связи", "chance": 0.0}, {"metric": "b", "group": "Связи", "chance": 0.0},
+               {"metric": "c", "group": "Узнаваемость", "chance": 0.0}]
+    cols = {"a": "A", "b": "B", "c": "C"}
+    r = {"method": "m", "metrics": {"a": 0.8, "b": 0.2, "c": 0.4}, "summary": summary}
+    assert task_scores(r, cols) == pytest.approx({"Связи": 40.0, "Узнаваемость": 40.0})   # √(80·20) = 40
+    balanced = {"method": "bal", "metrics": {"a": 0.4, "b": 0.4, "c": 0.4}, "summary": summary}
+    lopsided = {"method": "lop", "metrics": {"a": 0.9, "b": 0.9, "c": 0.01}, "summary": summary}
+    s = overall_score([r, balanced, lopsided], cols)
+    assert s["m"] == pytest.approx(40.0) and s["bal"] == pytest.approx(40.0)
+    assert s["lop"] < s["bal"]                         # среднее было бы 63 против 40, здесь — 9.5 против 40

@@ -3,7 +3,7 @@
     "synthetic": false,
     "kind": "lanl_declared",
     "label": "LANL (заявлено)",
-    "source_commit": "eb2e2770299c5991035518312da2c564efdf0aa5",
+    "source_commit": "29fa016e329b69fe6eca39a6bd918bdc3780e82c",
     "source_path": "results/lanl_day02",
     "hosts": 2242,
     "seed": 0,
@@ -381,7 +381,7 @@
       {
         "method": "hybrid_services",
         "service": false,
-        "score": 49.6,
+        "score": 35.4,
         "dim": 105,
         "values": {
           "consistency@10_mean": 0.2584745762711864,
@@ -394,7 +394,7 @@
       {
         "method": "hybrid_weighted",
         "service": false,
-        "score": 48.9,
+        "score": 33.6,
         "dim": 89,
         "values": {
           "consistency@10_mean": 0.26150758251561107,
@@ -407,7 +407,7 @@
       {
         "method": "hybrid_behavioral_node2vec_spectral",
         "service": false,
-        "score": 48.2,
+        "score": 32.6,
         "dim": 89,
         "values": {
           "consistency@10_mean": 0.17653880463871544,
@@ -418,22 +418,9 @@
         }
       },
       {
-        "method": "hybrid_behavioral_deepwalk",
-        "service": false,
-        "score": 48.0,
-        "dim": 73,
-        "values": {
-          "consistency@10_mean": 0.19107939339875113,
-          "link_learned_roc_auc": 0.9918787317565189,
-          "partner_new_mrr": 0.21965086859202415,
-          "pair_roc_auc": 0.9714742014476614,
-          "identity_top1": 0.1391614629794826
-        }
-      },
-      {
         "method": "hybrid_behavioral_node2vec",
         "service": false,
-        "score": 47.8,
+        "score": 32.1,
         "dim": 73,
         "values": {
           "consistency@10_mean": 0.17903657448706511,
@@ -444,9 +431,22 @@
         }
       },
       {
+        "method": "hybrid_behavioral_deepwalk",
+        "service": false,
+        "score": 31.4,
+        "dim": 73,
+        "values": {
+          "consistency@10_mean": 0.19107939339875113,
+          "link_learned_roc_auc": 0.9918787317565189,
+          "partner_new_mrr": 0.21965086859202415,
+          "pair_roc_auc": 0.9714742014476614,
+          "identity_top1": 0.1391614629794826
+        }
+      },
+      {
         "method": "behavioral",
         "service": false,
-        "score": 47.3,
+        "score": 31.0,
         "dim": 57,
         "values": {
           "consistency@10_mean": 0.26926851025869764,
@@ -459,7 +459,7 @@
       {
         "method": "behavioral_pca",
         "service": false,
-        "score": 45.8,
+        "score": 28.0,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.2418376449598573,
@@ -472,7 +472,7 @@
       {
         "method": "behavioral_svd",
         "service": false,
-        "score": 45.8,
+        "score": 28.0,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.24192685102586975,
@@ -483,48 +483,9 @@
         }
       },
       {
-        "method": "graph_spectral",
-        "service": false,
-        "score": 42.9,
-        "dim": 16,
-        "values": {
-          "consistency@10_mean": 0.07685102586975914,
-          "link_learned_roc_auc": 0.9797344357738079,
-          "partner_new_mrr": 0.19570667639637657,
-          "pair_roc_auc": 0.9843847895341302,
-          "identity_top1": 0.020517395182872437
-        }
-      },
-      {
-        "method": "rolx",
-        "service": false,
-        "score": 34.8,
-        "dim": 16,
-        "values": {
-          "consistency@10_mean": 0.05856378233719894,
-          "link_learned_roc_auc": 0.9714422470419913,
-          "partner_new_mrr": 0.1684104990347096,
-          "pair_roc_auc": 0.8155408578645909,
-          "identity_top1": 0.02230151650312221
-        }
-      },
-      {
-        "method": "graphsage",
-        "service": false,
-        "score": 33.7,
-        "dim": 16,
-        "values": {
-          "consistency@10_mean": 0.12885816235504013,
-          "link_learned_roc_auc": 0.9167351110909395,
-          "partner_new_mrr": 0.1678552655891405,
-          "pair_roc_auc": 0.8345288919566088,
-          "identity_top1": 0.013380909901873328
-        }
-      },
-      {
         "method": "node2vec_services",
         "service": false,
-        "score": 33.4,
+        "score": 23.8,
         "dim": 32,
         "values": {
           "consistency@10_mean": 0.08782337198929527,
@@ -535,35 +496,9 @@
         }
       },
       {
-        "method": "deepwalk",
-        "service": false,
-        "score": 33.2,
-        "dim": 16,
-        "values": {
-          "consistency@10_mean": 0.07488849241748441,
-          "link_learned_roc_auc": 0.8005972406274598,
-          "partner_new_mrr": 0.20390673698578313,
-          "pair_roc_auc": 0.9766749108638931,
-          "identity_top1": 0.04192685102586976
-        }
-      },
-      {
-        "method": "node2vec",
-        "service": false,
-        "score": 32.6,
-        "dim": 16,
-        "values": {
-          "consistency@10_mean": 0.0731935771632471,
-          "link_learned_roc_auc": 0.776198794998388,
-          "partner_new_mrr": 0.21511029186300343,
-          "pair_roc_auc": 0.9812342675836699,
-          "identity_top1": 0.05976806422836753
-        }
-      },
-      {
         "method": "deepwalk_services",
         "service": false,
-        "score": 29.1,
+        "score": 18.3,
         "dim": 32,
         "values": {
           "consistency@10_mean": 0.0847457627118644,
@@ -574,9 +509,74 @@
         }
       },
       {
+        "method": "node2vec",
+        "service": false,
+        "score": 17.6,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.0731935771632471,
+          "link_learned_roc_auc": 0.776198794998388,
+          "partner_new_mrr": 0.21511029186300343,
+          "pair_roc_auc": 0.9812342675836699,
+          "identity_top1": 0.05976806422836753
+        }
+      },
+      {
+        "method": "deepwalk",
+        "service": false,
+        "score": 16.3,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.07488849241748441,
+          "link_learned_roc_auc": 0.8005972406274598,
+          "partner_new_mrr": 0.20390673698578313,
+          "pair_roc_auc": 0.9766749108638931,
+          "identity_top1": 0.04192685102586976
+        }
+      },
+      {
+        "method": "graph_spectral",
+        "service": false,
+        "score": 15.0,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.07685102586975914,
+          "link_learned_roc_auc": 0.9797344357738079,
+          "partner_new_mrr": 0.19570667639637657,
+          "pair_roc_auc": 0.9843847895341302,
+          "identity_top1": 0.020517395182872437
+        }
+      },
+      {
+        "method": "graphsage",
+        "service": false,
+        "score": 13.2,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.12885816235504013,
+          "link_learned_roc_auc": 0.9167351110909395,
+          "partner_new_mrr": 0.1678552655891405,
+          "pair_roc_auc": 0.8345288919566088,
+          "identity_top1": 0.013380909901873328
+        }
+      },
+      {
+        "method": "rolx",
+        "service": false,
+        "score": 12.4,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.05856378233719894,
+          "link_learned_roc_auc": 0.9714422470419913,
+          "partner_new_mrr": 0.1684104990347096,
+          "pair_roc_auc": 0.8155408578645909,
+          "identity_top1": 0.02230151650312221
+        }
+      },
+      {
         "method": "struc2vec",
         "service": false,
-        "score": 13.8,
+        "score": 3.8,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.026761819803746655,
@@ -589,7 +589,7 @@
       {
         "method": "random",
         "service": true,
-        "score": 0.5,
+        "score": 1.2,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.004415700267618199,
@@ -602,7 +602,7 @@
       {
         "method": "reference_ceiling",
         "service": true,
-        "score": 70.8,
+        "score": 55.1,
         "dim": 57,
         "values": {
           "consistency@10_mean": 1.0,

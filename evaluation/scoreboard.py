@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -93,9 +94,27 @@ def column_scores(r: dict, cols) -> dict[str, float]:
     return out
 
 
+FLOOR = 1.0     # колонка ниже 1 балла считается за 1: иначе один ноль обнуляет весь балл
+
+
+def _geo(xs) -> float:
+    xs = [max(x, FLOOR) for x in xs]
+    return float(math.exp(sum(math.log(x) for x in xs) / len(xs)))
+
+
+def task_scores(r: dict, cols) -> dict[str, float]:
+    """Балл по задачам (группам колонок): среднее геометрическое баллов колонок задачи."""
+    group = {s["metric"]: s.get("group") or s["metric"] for s in r.get("summary", [])}
+    by: dict[str, list[float]] = {}
+    for k, v in column_scores(r, cols).items():
+        by.setdefault(group.get(k, k), []).append(v)
+    return {g: _geo(v) for g, v in by.items()}
+
+
 def overall_score(results: list[dict], cols) -> pd.Series:
-    """Общий балл 0–100: среднее баллов по колонкам, которые есть у метода."""
-    return pd.Series({r["method"]: (sum(cs.values()) / len(cs) if (cs := column_scores(r, cols)) else float("nan"))
+    """Общий балл 0–100: среднее геометрическое по задачам. Каждая задача весит одинаково,
+    провал в одной тянет вниз весь балл, рост в k раз в любой колонке весит одинаково."""
+    return pd.Series({r["method"]: (_geo(ts.values()) if (ts := task_scores(r, cols)) else float("nan"))
                       for r in results})
 
 
