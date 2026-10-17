@@ -85,11 +85,13 @@ def headline_table(results: list[dict]) -> str:
     cols, values, order = ranking(results)
     if not cols:
         return "Нет главных метрик (результаты без поля summary).\n"
-    chance = {}
+    chance: dict[str, list[float]] = {}
     for r in results:
+        if r["method"] in SERVICE:
+            continue
         for s in r.get("summary", []):
             if s.get("chance") is not None:
-                chance.setdefault(s["metric"], s["chance"])
+                chance.setdefault(s["metric"], []).append(s["chance"])
     real = values.loc[order.index]
     best = {k: real[k].max() for k in cols if real[k].notna().any()}
     lines = ["| место | метод | " + " | ".join(cols.values()) + " | средний ранг |",
@@ -112,7 +114,13 @@ def headline_table(results: list[dict]) -> str:
         lines.append(row(str(i), m, f"{order[m]:.1f}"))
     for m in sorted(SERVICE & set(by_name)):
         lines.append(row("—", m, "—"))
-    lines.append("| | *случайный уровень* | " + " | ".join(_fmt(chance.get(k)) for k in cols) + " | |")
+    def chance_cell(vals):                         # у некоторых метрик уровень зависит от метода (размерности)
+        if not vals:
+            return "—"
+        lo, hi = min(vals), max(vals)
+        return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
+
+    lines.append("| | *случайный уровень* | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
     return "\n".join(lines) + "\n"
 
 

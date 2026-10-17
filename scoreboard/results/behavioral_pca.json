@@ -94,6 +94,7 @@
       "n_fit": 57796,
       "pr_auc": 0.9678727521014999,
       "pr_auc_lift": 1.9357455042029998,
+      "random_roc_auc": 0.6392304914645376,
       "roc_auc": 0.9733592648657273
     },
     "pairwise_auc": {
@@ -230,6 +231,7 @@
     "identity": "ok",
     "knn_consistency": "ok",
     "linear_probe": "unavailable: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)",
+    "link_learned": "ok",
     "pairwise_pr_auc": "ok",
     "pairwise_roc_auc": "ok",
     "partner_ranking": "ok",
@@ -261,6 +263,7 @@
     "jaccard@5_std": 0.2527153338332387,
     "link_learned_pr_auc": 0.9678727521014999,
     "link_learned_pr_auc_lift": 1.9357455042029998,
+    "link_learned_random_roc_auc": 0.6392304914645376,
     "link_learned_roc_auc": 0.9733592648657273,
     "link_new_pr_auc": 0.06276993442948746,
     "link_new_roc_auc": 0.20401675705547817,
@@ -458,15 +461,15 @@
       "value": 0.2418376449598573
     },
     {
-      "chance": 0.5,
+      "chance": 0.6392304914645376,
       "ci": [
-        0.23998380881855047,
-        0.314223131883928
+        0.9609121889500766,
+        0.9792709864867312
       ],
       "group": "Будущие связи",
-      "metric": "link_roc_auc",
+      "metric": "link_learned_roc_auc",
       "title": "Связь, AUC",
-      "value": 0.27188967680681064
+      "value": 0.9733592648657273
     },
     {
       "chance": 0.06517239183471678,
@@ -489,17 +492,6 @@
       "metric": "pair_roc_auc",
       "title": "Пары, AUC",
       "value": 0.9556149896284423
-    },
-    {
-      "chance": 0.5,
-      "ci": [
-        0.9404695790985912,
-        0.9716788299431288
-      ],
-      "group": "Общие собеседники",
-      "metric": "triplet_accuracy",
-      "title": "Тройки",
-      "value": 0.957697486535009
     },
     {
       "chance": 0.0008920606601248885,

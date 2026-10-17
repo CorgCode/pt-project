@@ -65,6 +65,7 @@ class Metric:
     headline: str                # главное число для таблицы результатов
     chance: Callable[[dict], float | None]
     also: tuple[str, ...] = ()   # дополнительные статусы, которые ставит та же функция
+    show: bool = True            # показывать ли главное число в таблице результатов
 
 
 # ---- метрики ------------------------------------------------------------------------------
@@ -111,11 +112,17 @@ def _links(c: Context) -> None:
         lr = score_learned(c.emb_full, load_candidate_edges(fit_edges), edges,
                            fit_split=fit_split, eval_split=c.split, seed=c.seed, n_boot=c.n_boot)
         m["link_learned_roc_auc"], m["link_learned_pr_auc"] = lr["roc_auc"], lr["pr_auc"]
+        m["link_learned_random_roc_auc"] = lr["random_roc_auc"]
         m["link_learned_pr_auc_lift"] = lr["pr_auc_lift"]
         c.ci("link_learned_roc_auc", lr["roc_auc_ci"], lr["ci_method"])
         c.result["metric_details"]["link_learned"] = {k: v for k, v in lr.items() if not k.endswith("_ci")}
         c.result["reference_info"]["fit_reference_files_sha256"] = {
             f: _sha(c.fit_ref / f) for f in REFERENCE_FILES if (c.fit_ref / f).exists()}
+
+
+def _links_learned(c: Context) -> None:
+    if "link_learned_roc_auc" not in c.result["metrics"]:
+        raise _Unavailable("нет эталона validation или его хостов в эмбеддинге — классификатору не на чем учиться")
 
 
 def _partners(c: Context) -> None:
@@ -194,8 +201,10 @@ def _knn_chance(r: dict) -> float | None:
 METRICS: list[Metric] = [
     Metric("knn_consistency", "Поведение", "Соседи@10", ("neighbors.csv", "features.csv"),
            _knn, "consistency@10_mean", _knn_chance),
-    Metric("future_link_prediction", "Будущие связи", "Связь, AUC", ("edges.csv",),
-           _links, "link_roc_auc", lambda r: 0.5),
+    Metric("future_link_prediction", "Будущие связи", "Связь, косинус", ("edges.csv",),
+           _links, "link_roc_auc", lambda r: 0.5, show=False),
+    Metric("link_learned", "Будущие связи", "Связь, AUC", ("edges.csv",),
+           _links_learned, "link_learned_roc_auc", lambda r: r["metrics"].get("link_learned_random_roc_auc")),
     Metric("partner_ranking", "Будущие связи", "Новые собеседники, MRR", ("partners.csv",),
            _partners, "partner_new_mrr", lambda r: max(filter(None, [r["metrics"].get("partner_new_history_mrr"),
                                                                      r["metrics"].get("partner_new_popularity_mrr")]),
@@ -203,7 +212,7 @@ METRICS: list[Metric] = [
     Metric("pairwise_roc_auc", "Общие собеседники", "Пары, AUC", ("pairs.csv",),
            _pairs, "pair_roc_auc", lambda r: 0.5, also=("pairwise_pr_auc", "precision_at_k", "recall_at_k")),
     Metric("triplet_accuracy", "Общие собеседники", "Тройки", ("triplets.csv",),
-           _triplets, "triplet_accuracy", lambda r: 0.5),
+           _triplets, "triplet_accuracy", lambda r: 0.5, show=False),
     Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
 ]
@@ -284,7 +293,7 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
                 result["unavailable_metrics"].append(f"{k}: {reason}")
             else:
                 result["metric_status"][k] = "ok"
-        if not reason:
+        if not reason and m.show:
             summary.append({"group": m.group, "metric": m.headline, "title": m.title,
                             "value": result["metrics"].get(m.headline),
                             "ci": result["metrics_ci"].get(m.headline), "chance": m.chance(result)})
