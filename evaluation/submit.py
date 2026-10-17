@@ -99,7 +99,7 @@ def is_fresh(sub: Path) -> bool:
 def render() -> None:
     """Пересобрать scoreboard/README.md и scoreboard.csv из results/."""
     results = scoreboard.load_results(RESULTS)
-    known = {d.name for d in SUBMISSIONS.iterdir() if d.is_dir()} if SUBMISSIONS.exists() else set()
+    known = {d.name for d in SUBMISSIONS.iterdir() if d.is_dir() and not d.name.startswith(".")} if SUBMISSIONS.exists() else set()
     for r in results:                                   # результат без отправки — устарел
         if r["method"] not in known:
             (RESULTS / f"{r['method']}.json").unlink()

@@ -102,11 +102,11 @@ class Bundle:
         d = self.run / "results" / target
         if not d.exists():
             raise BundleError(f"нет результатов для окна {target!r}")
-        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("*.json"))}
+        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("[!.]*.json"))}
 
     def identity(self, target: str) -> dict[str, dict]:
         d = self.run / "identity" / target
-        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("*.json"))} if d.exists() else {}
+        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("[!.]*.json"))} if d.exists() else {}
 
     def audit(self) -> dict | None:
         p = self.run / "audit.json"

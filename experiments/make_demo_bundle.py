@@ -58,7 +58,7 @@ def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200,
         (output / "ablation").mkdir()
         for name in ("ablation.json", "ablation.md"):                       # абляция без портов (#43)
             shutil.copy(work / "ablation" / name, output / "ablation" / name)
-        for path in output.rglob("*.json"):
+        for path in output.rglob("[!.]*.json"):
             data = json.loads(path.read_text(encoding="utf-8"))
             path.write_text(json.dumps(_clean(data, str(work)), indent=2, sort_keys=True) + "\n", encoding="utf-8")
         for path in output.rglob("*.md"):

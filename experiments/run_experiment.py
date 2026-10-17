@@ -90,7 +90,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                    n_boot: int = 200, submissions_dir: Path | None = None, do_audit: bool = True,
                    audit_configs: int = 12, null_draws: int = 30, methods: list[str] | None = None,
                    method_config: dict | None = None, fast_methods: bool = False,
-                   port_free_baselines: bool = False) -> dict:
+                   port_free_baselines: bool = False, reuse_embeddings: bool = False) -> dict:
     processed_dir, reference_dir, out_dir = Path(processed_dir), Path(reference_dir), Path(out_dir)
     data = ProcessedData(processed_dir)
     targets = [t for t in TARGETS if (reference_dir / t).exists() and t in data.windows]
@@ -112,15 +112,26 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     todo = [*default_baselines(dim, seed, port_free_baselines), *graph_methods_run]
     for i, b in enumerate(todo, 1):
         t0 = time.perf_counter()
+        saved = out_dir / "embeddings" / b.name
+        files = {w: saved / f"{w}.csv" for w in ("train", *targets)}
+        if reuse_embeddings and all(f.exists() for f in files.values()) and (saved / "info.json").exists():
+            emb[b.name] = {w: load_embeddings(f) for w, f in files.items()}
+            meta[b.name] = json.loads((saved / "info.json").read_text(encoding="utf-8"))
+            _log(f"взято с диска {i}/{len(todo)}: {b.name}")
+            continue
         _log(f"обучение {i}/{len(todo)}: {b.name}")
         b.fit(data)
         emb[b.name] = {"train": b.embed(data, "train"),
                        **{t: b.embed(data, t, hosts_by_target[t]) for t in targets}}
         meta[b.name] = b.info()
+        for w, f in files.items():                      # сразу на диск: падение на оценке не стоит переобучения
+            _write(f, emb[b.name][w])
+        (saved / "info.json").write_text(json.dumps(meta[b.name], indent=2, sort_keys=True, default=str) + "\n",
+                                         encoding="utf-8")
         _log(f"готово: {b.name}", t0)
     external, external_provenance = [], {}
     if submissions_dir and Path(submissions_dir).exists():
-        for d in sorted(p for p in Path(submissions_dir).iterdir() if (p / "embeddings.csv").exists()):
+        for d in sorted(p for p in Path(submissions_dir).iterdir() if not p.name.startswith(".") and (p / "embeddings.csv").exists()):
             declared = _read_training_windows(d)
             if declared is not None and set(declared) - {"train"}:
                 raise ValueError(f"отправка {d.name!r} обучалась на {sorted(set(declared) - {'train'})}; "
@@ -365,6 +376,8 @@ def main() -> None:
                     help="tiny hyper-parameters for every selected method (smoke tests only; results not meaningful)")
     ap.add_argument("--port-free-baselines", action="store_true",
                     help="also run the port-free behavioural baselines (feature ablation, issue #43)")
+    ap.add_argument("--reuse-embeddings", action="store_true",
+                    help="не обучать заново методы, чьи эмбеддинги всех окон уже лежат в <out-dir>/embeddings")
     ap.add_argument("--no-audit", action="store_true")
     ap.add_argument("--audit-configs", type=int, default=12)
     ap.add_argument("--null-draws", type=int, default=30)
@@ -372,7 +385,8 @@ def main() -> None:
     m = run_experiment(a.processed_dir, a.reference_dir, a.out_dir, dim=a.dim, seed=a.seed, n_boot=a.bootstrap,
                        submissions_dir=a.submissions_dir, do_audit=not a.no_audit,
                        audit_configs=a.audit_configs, null_draws=a.null_draws, methods=a.methods,
-                       method_config=_load_config(a.method_config), fast_methods=a.fast_methods, port_free_baselines=a.port_free_baselines)
+                       method_config=_load_config(a.method_config), fast_methods=a.fast_methods, port_free_baselines=a.port_free_baselines,
+                       reuse_embeddings=a.reuse_embeddings)
     print(json.dumps({k: m[k] for k in ("data_kind", "methods", "missing_expected_methods")}, indent=2))
     print(f"report: {a.out_dir / 'report.md'}")
 

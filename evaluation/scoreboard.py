@@ -20,7 +20,7 @@ import pandas as pd
 
 def load_results(results_dir: Path) -> list[dict]:
     out = []
-    for path in sorted(Path(results_dir).glob("*.json")):
+    for path in sorted(p for p in Path(results_dir).glob("*.json") if not p.name.startswith(".")):   # ._* — служебные файлы macOS
         data = json.loads(path.read_text(encoding="utf-8"))
         data.setdefault("method", path.stem)
         out.append(data)

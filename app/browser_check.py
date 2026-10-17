@@ -36,7 +36,7 @@ def stress_bundle(src: Path, dst: Path, scenario: str) -> Path:
         old = "behavioral_pca"
         for f in sorted(run.rglob(f"*{old}*"), key=lambda p: len(p.parts), reverse=True):   # сначала самые глубокие
             f.rename(f.with_name(f.name.replace(old, LONG)))
-        for f in run.rglob("*.json"):
+        for f in run.rglob("[!.]*.json"):
             f.write_text(f.read_text().replace(old, LONG))
         for f in run.glob("*.csv"):
             f.write_text(f.read_text().replace(old, LONG))
