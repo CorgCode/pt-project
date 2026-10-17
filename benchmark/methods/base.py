@@ -53,7 +53,7 @@ class GraphEmbeddingMethod(Baseline):
     def _window(self, data: ProcessedData, window: str, hosts: list[str]) -> tuple[Graph, np.ndarray]:
         if window not in self._graphs:
             flows = data.training_flows() if window == "train" else data.flows(window)
-            self._graphs[window] = from_flows(flows, self.params.get("weight", "log1p"))
+            self._graphs[window] = from_flows(flows, self.params.get("weight", "log1p"), self.params.get("graph", "hosts"))
         g = self._graphs[window]
         focus_set = None
         if self.uses_focus:

@@ -129,6 +129,10 @@ def render() -> None:
         cs = scoreboard.column_scores(r, cols)
         parts = "; ".join(f"{cols[k]} {r['metrics'][k]:.3f} → {v:.0f}" for k, v in cs.items())
         example = f"Пример, `{m}`: {parts}. Среднее — **{order.iloc[0]:.1f}**."
+    pers = next((r["metric_details"].get("future_link_prediction", {}).get("persistence_baseline")
+                 for r in results if r.get("metric_details", {}).get("future_link_prediction")), None)
+    baseline = (f"Без эмбеддинга: правило «пара уже общалась» предсказывает связи с AUC {pers['roc_auc']:.3f}.\n\n"
+                if pers else "")
     text = f"""# Таблица результатов
 
 ## Как добавить свой метод
@@ -146,7 +150,8 @@ def render() -> None:
 Данные: {kind}. Хостов: {results[0].get('n_hosts')}. {leader}
 
 {scoreboard.headline_table(results)}
-- **Жирным** — лучшее в колонке.
+{baseline}- **Жирным** — лучшее в колонке.
+- «разм.» — размерность вектора. Сравнивать честнее при равной размерности.
 - В скобках — 95% интервал. Сильно перекрываются — разница может быть случайной.
 - *Курсивом* — ориентиры: `random` (хуже нельзя) и `reference_ceiling` (лучше нельзя). В рейтинге не участвуют.
 

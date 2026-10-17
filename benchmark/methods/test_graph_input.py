@@ -67,3 +67,44 @@ def test_degree_strength_and_cumulative_weights():
 def test_from_edges_roundtrip():
     g = from_edges(np.array([0, 1]), np.array([1, 2]), np.array([1.0, 2.0]), np.array(["x", "y", "z"], dtype=object))
     assert g.n == 3 and g.n_edges == 2 and g.adjacency().toarray()[1, 2] == 2.0
+
+
+def _toy_flows():
+    import pandas as pd
+    rows = []
+    for i in range(6):                       # 6 клиентов ходят на web-сервер и DNS
+        rows += [(f"c{i}", "web", "6", "443"), (f"c{i}", "dns", "17", "53")]
+    rows += [("c0", "c1", "6", "Port1"), ("x", "web", "6", "443")]
+    return pd.DataFrame(rows, columns=["src", "dst", "proto", "dst_port"])
+
+
+def test_hosts_graph_is_unchanged_by_the_new_options():
+    import numpy as np
+    from benchmark.methods.graph_input import from_flows
+    f = _toy_flows()
+    g = from_flows(f)
+    assert set(g.nodes) == {"c0", "c1", "c2", "c3", "c4", "c5", "web", "dns", "x"}
+    assert np.isclose(g.weights[g.indptr[0]:g.indptr[1]].max(), np.log1p(1))
+
+
+def test_service_graph_connects_hosts_that_use_the_same_services():
+    from benchmark.methods.graph_input import from_flows
+    g = from_flows(_toy_flows(), graph="services", min_service_hosts=5)
+    assert "uses:6/443" in set(g.nodes)                                           # общий сервис клиентов
+    assert "serves:6/443" in set(g.nodes)            # редкий, но у web других сервисов нет — оставлен, чтобы не изолировать
+    c0, svc = g.index_of(["c0"])[0], g.index_of(["uses:6/443"])[0]
+    assert svc in set(g.neighbors(c0)) and "uses:6/Port1" not in set(g.nodes)     # редкий порт выброшен
+    assert all(g.degree[g.index_of([h])[0]] > 0 for h in ("web", "dns"))          # сервер с одними редкими — не изолирован
+
+
+def test_hub_norm_weakens_edges_of_hubs():
+    import numpy as np
+    from benchmark.methods.graph_input import from_flows
+    f = _toy_flows()
+    plain, norm = from_flows(f), from_flows(f, weight="hub_norm")
+    web = plain.index_of(["web"])[0]
+    w_plain = plain.weights[plain.indptr[web]:plain.indptr[web + 1]].mean()
+    w_norm = norm.weights[norm.indptr[web]:norm.indptr[web + 1]].mean()
+    assert w_norm < w_plain / 2                                                   # у хаба веса ощутимо меньше
+    with __import__("pytest").raises(ValueError, match="graph"):
+        from_flows(f, graph="nope")

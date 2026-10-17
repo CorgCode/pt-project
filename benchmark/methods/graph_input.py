@@ -1,8 +1,14 @@
-"""Взвешенный неориентированный граф хостов по потокам (CSR), общий для всех графовых методов.
+"""Взвешенный неориентированный граф по потокам (CSR), общий для всех графовых методов.
 
-Вершины — ВСЕ хосты окна (когорта и их собеседники), по возрастанию host_id; вес ребра —
-log1p(число потоков в обе стороны) (или count / binary). Петли выброшены. Соседи в строке отсортированы,
-поэтому проверка ребра — бинарный поиск.
+graph="hosts"     вершины — все хосты окна, ребро — хосты общались;
+graph="services"  двудольный граф хост — сервис: «uses:proto/port» для инициатора, «serves:proto/port» для получателя;
+                  хосты с одинаковыми сервисами оказываются рядом (роль хоста определяют в основном сервисы);
+graph="both"      оба вида рёбер сразу.
+Сервисы, которыми пользуются меньше min_service_hosts хостов, выбрасываются (обезличенные редкие порты — шум).
+
+weight: log1p(число потоков) | count | binary | hub_norm — log1p, делённый на sqrt(степень_a * степень_b),
+чтобы хабы (сервер каталога, почта) не забирали на себя все случайные блуждания.
+Вершины отсортированы; петли выброшены; соседи в строке отсортированы — проверка ребра бинарным поиском.
 """
 from __future__ import annotations
 
@@ -13,7 +19,9 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 
-WEIGHTS = ("log1p", "count", "binary")
+WEIGHTS = ("log1p", "count", "binary", "hub_norm")
+GRAPHS = ("hosts", "services", "both")
+SERVICE_PREFIXES = ("serves:", "uses:")
 
 
 @dataclass(frozen=True)
@@ -81,17 +89,47 @@ def from_edges(src: np.ndarray, dst: np.ndarray, w: np.ndarray, nodes: np.ndarra
                  indices=a.indices.astype(np.int64), weights=a.data.astype(np.float64))
 
 
-def from_flows(flows: pd.DataFrame, weight: str = "log1p") -> Graph:
+def _weights(lo: np.ndarray, hi: np.ndarray, counts: np.ndarray, n: int, weight: str) -> np.ndarray:
+    w = {"log1p": np.log1p(counts), "count": counts.astype(float), "binary": np.ones(len(counts)),
+         "hub_norm": np.log1p(counts)}[weight]
+    if weight == "hub_norm":
+        deg = np.bincount(np.r_[lo, hi], minlength=n).astype(float)
+        w = w / np.sqrt(deg[lo] * deg[hi])
+    return w
+
+
+def _service_pairs(flows: pd.DataFrame, min_service_hosts: int) -> pd.DataFrame:
+    """Пары (хост, сервис) с числом потоков; редкие сервисы выброшены."""
+    proto = flows["proto"].astype(str) if "proto" in flows else pd.Series("", index=flows.index)
+    svc = proto + "/" + flows["dst_port"].astype(str)
+    pairs = pd.concat([pd.DataFrame({"a": flows["src"].astype(str), "b": "uses:" + svc}),
+                       pd.DataFrame({"a": flows["dst"].astype(str), "b": "serves:" + svc})], ignore_index=True)
+    pairs = pairs.groupby(["a", "b"]).size().rename("count").reset_index()
+    users = pairs.groupby("b")["a"].nunique()
+    common = pairs["b"].isin(users[users >= min_service_hosts].index)
+    alone = ~pairs["a"].isin(pairs.loc[common, "a"])            # хост только с редкими сервисами — оставляем их
+    return pairs[common | alone]
+
+
+def from_flows(flows: pd.DataFrame, weight: str = "log1p", graph: str = "hosts", min_service_hosts: int = 5) -> Graph:
     if weight not in WEIGHTS:
         raise ValueError(f"weight должен быть одним из {WEIGHTS}")
-    f = flows[["src", "dst"]].astype(str)
-    f = f[f["src"] != f["dst"]]
+    if graph not in GRAPHS:
+        raise ValueError(f"graph должен быть одним из {GRAPHS}")
+    f = flows[flows["src"].astype(str) != flows["dst"].astype(str)]
     if f.empty:
         raise ValueError("нет потоков между разными хостами: граф не построить")
-    nodes, inv = np.unique(np.concatenate([f["src"].to_numpy(), f["dst"].to_numpy()]), return_inverse=True)
-    a, b = inv[:len(f)], inv[len(f):]
-    lo, hi = np.minimum(a, b), np.maximum(a, b)
+    parts = []
+    if graph in ("hosts", "both"):
+        parts.append(pd.DataFrame({"a": f["src"].astype(str), "b": f["dst"].astype(str)}).assign(count=1))
+    if graph in ("services", "both"):
+        parts.append(_service_pairs(f, min_service_hosts))
+    e = pd.concat(parts, ignore_index=True)
+    nodes = np.unique(np.concatenate([e["a"].to_numpy(), e["b"].to_numpy()]).astype(object))
+    ia, ib = np.searchsorted(nodes, e["a"].to_numpy()), np.searchsorted(nodes, e["b"].to_numpy())
+    lo, hi = np.minimum(ia, ib), np.maximum(ia, ib)
     key = lo.astype(np.int64) * len(nodes) + hi
-    ukey, counts = np.unique(key, return_counts=True)
-    w = {"log1p": np.log1p(counts), "count": counts.astype(float), "binary": np.ones(len(counts))}[weight]
-    return from_edges(ukey // len(nodes), ukey % len(nodes), w, nodes)
+    ukey, inv = np.unique(key, return_inverse=True)
+    counts = np.bincount(inv, weights=e["count"].to_numpy(float))
+    lo, hi = ukey // len(nodes), ukey % len(nodes)
+    return from_edges(lo, hi, _weights(lo, hi, counts, len(nodes), weight), nodes)

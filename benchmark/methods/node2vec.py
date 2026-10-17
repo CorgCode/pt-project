@@ -19,7 +19,7 @@ class Node2Vec(GraphEmbeddingMethod):
     description = "second-order biased random walks (p, q) + skip-gram with negative sampling"
     reference = "Grover & Leskovec, node2vec: Scalable Feature Learning for Networks, KDD 2016"
     default_params = {"p": 1.0, "q": 1.0, "walk_length": 80, "num_walks": 10, "window": 10, "epochs": 1,
-                      "lr": 0.025, "negative": 5, "batch_size": 512, "weight": "log1p"}
+                      "lr": 0.025, "negative": 5, "batch_size": 512, "weight": "log1p", "graph": "hosts"}
     fast_params = {"num_walks": 2, "walk_length": 10, "window": 3}
 
     def __init__(self, dim: int = 16, seed: int = 0, **params):

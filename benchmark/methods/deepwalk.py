@@ -19,7 +19,7 @@ class DeepWalk(GraphEmbeddingMethod):
     reference = "Perozzi et al., DeepWalk: Online Learning of Social Representations, KDD 2014"
     # пересечение с эталонами — как у всех графовых методов
     default_params = {"walk_length": 80, "num_walks": 10, "window": 10, "epochs": 1, "lr": 0.025,
-                      "objective": "hs", "negative": 5, "batch_size": 512, "weight": "log1p"}
+                      "objective": "hs", "negative": 5, "batch_size": 512, "weight": "log1p", "graph": "hosts"}
 
     fast_params = {"num_walks": 2, "walk_length": 10, "window": 3}
 

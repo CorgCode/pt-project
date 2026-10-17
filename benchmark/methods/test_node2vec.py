@@ -99,3 +99,38 @@ def test_runs_through_the_runner_and_the_tuner(processed, reference, tmp_path):
     assert res["metric_status"]["pairwise_roc_auc"] == "ok"
     out = tune(processed, reference, "node2vec", {"p": [0.5, 2.0], "q": [0.5, 2.0]}, dim=4, metric="pair_roc_auc", fast=True)
     assert out["n_configurations"] == 4 and set(out["best_config"]) == {"p", "q"} and out["test_reference_read"] is False
+
+
+def test_service_graph_separates_roles_that_share_the_same_servers():
+    """Роли различаются только сервисами (портами), а серверы у всех общие: граф «кто с кем» роли
+    не видит, граф «хост — сервис» — видит."""
+    import numpy as np
+    import pandas as pd
+    from benchmark.methods.graph_input import from_flows
+    from benchmark.methods.node2vec import Node2Vec
+
+    rng = np.random.default_rng(0)
+    servers = [f"s{j}" for j in range(4)]
+    ports = {0: ["22", "3389"], 1: ["80", "443"], 2: ["53", "123"]}
+    rows, role = [], {}
+    for r, ps in ports.items():
+        for i in range(15):
+            h = f"r{r}h{i}"
+            role[h] = r
+            for _ in range(30):
+                rows.append((h, rng.choice(servers), "6", rng.choice(ps)))
+    flows = pd.DataFrame(rows, columns=["src", "dst", "proto", "dst_port"])
+    hosts = sorted(role)
+
+    def separation(graph):
+        g = from_flows(flows, graph=graph)
+        m = Node2Vec(dim=8, seed=0, num_walks=10, walk_length=20, window=4, epochs=2)
+        x = m.embed_graph(g)[g.index_of(hosts)]
+        x = x / np.linalg.norm(x, axis=1, keepdims=True)
+        sim = x @ x.T
+        same = np.array([[role[a] == role[b] for b in hosts] for a in hosts])
+        np.fill_diagonal(same, False)
+        off = ~np.eye(len(hosts), dtype=bool)
+        return sim[same].mean() - sim[off & ~same].mean()
+
+    assert separation("services") > separation("hosts") + 0.2

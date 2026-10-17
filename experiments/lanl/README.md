@@ -32,6 +32,24 @@ PYTHONUNBUFFERED=1 python -m experiments.run_experiment --processed-dir $W/lanl/
 
 Смотреть прогресс: `LANL_WORKDIR=$W experiments/lanl/status.sh --watch`.
 
+### Улучшенный прогон (v2)
+
+Что меняется и почему:
+
+- **граф «хост — сервис»** (`graph: both`): роль хоста определяют сервисы (порты), а не только собеседники;
+  в примере, где роли различаются лишь портами, обычный граф ролей не видит (0.00), новый — видит (+0.55);
+- **ослабление хабов** (`weight: hub_norm`): 5 серверов общаются с 70–80% сети, и блуждания уходили в них;
+- **10 блужданий на вершину** вместо 5 и **одинаковая размерность 32** у всех методов — честное сравнение;
+- **node2vec: p = 0.5, q = 2** — подобраны на validation по «новым собеседникам» (`results/lanl_day02/tune_node2vec.json`).
+
+```bash
+PYTHONUNBUFFERED=1 python -m experiments.run_experiment --processed-dir $W/lanl/processed \
+    --reference-dir $W/lanl/reference --out-dir $W/lanl/run_v2 --methods deepwalk node2vec --dim 32 \
+    --method-config experiments/lanl/methods_v2.json --reuse-embeddings > $W/logs/experiment_v2.log 2>&1
+```
+
+Около 1 часа (DeepWalk и node2vec на 10 блужданий). Потом — `publish.py` и `combine.py` для гибридов.
+
 ## 4. Перенести итоги в репозиторий
 
 ```bash

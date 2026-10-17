@@ -248,7 +248,7 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
     protocol = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.exists() else {}
     split = split or protocol.get("split", "test")
     result: dict = {
-        "method": method, "submission": str(embeddings_path), "n_hosts": int(len(emb)),
+        "method": method, "submission": str(embeddings_path), "n_hosts": int(len(emb)), "dim": int(emb.shape[1]),
         "n_embedded_hosts": int(len(emb_full)),
         "split": split, "n_bootstrap": n_boot, "seed": seed,
         "metrics": {}, "metrics_ci": {}, "metric_details": {},

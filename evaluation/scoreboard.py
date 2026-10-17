@@ -118,8 +118,8 @@ def headline_table(results: list[dict]) -> str:
     real = values.loc[order.index]
     best = {k: real[k].max() for k in cols if real[k].notna().any()}
     score, ranks = overall_score(results, cols), average_rank(values)
-    lines = ["| место | метод | **балл** | " + " | ".join(cols.values()) + " | средний ранг |",
-             "|---|---|---|" + "---|" * len(cols) + "---|"]
+    lines = ["| место | метод | **балл** | разм. | " + " | ".join(cols.values()) + " | средний ранг |",
+             "|---|---|---|---|" + "---|" * len(cols) + "---|"]
     by_name = {r["method"]: r for r in results}
 
     def row(place: str, m: str, rank: str) -> str:
@@ -135,7 +135,8 @@ def headline_table(results: list[dict]) -> str:
         sc = "—" if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
-        return f"| {place} | {name} | {sc} | " + " | ".join(cells) + f" | {rank} |"
+        dim = r.get("dim") or "—"
+        return f"| {place} | {name} | {sc} | {dim} | " + " | ".join(cells) + f" | {rank} |"
 
     for i, m in enumerate(order.index, 1):
         lines.append(row(str(i), m, f"{ranks[m]:.1f}"))
@@ -147,7 +148,7 @@ def headline_table(results: list[dict]) -> str:
         lo, hi = min(vals), max(vals)
         return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
 
-    lines.append("| | *случайный уровень* | 0 | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
+    lines.append("| | *случайный уровень* | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
     return "\n".join(lines) + "\n"
 
 
