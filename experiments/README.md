@@ -43,6 +43,7 @@ python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config 
 | `python -m experiments.tune_methods …` | подбор гиперпараметров метода только на validation |
 | `python -m experiments.feature_ablation …` | абляция признаков: профиль с портами и без (#43) |
 | `python -m experiments.robustness --processed-dir … --out-dir … --methods deepwalk` | устойчивость к удалению связей (идея Тихона, #40) |
+| `experiments/lanl/` | как повторить прогон на настоящих данных LANL: скачивание, конфиг, статус, перенос итогов |
 | `python -m experiments.make_demo_bundle` | пересобрать синтетический пример в `demo/synthetic_run` для дашборда и сайта |
 
 ### Устойчивость к удалению связей
