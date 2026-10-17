@@ -16,6 +16,7 @@
     <nav class="main" aria-label="Разделы">
       <ul>
         <li><a href="#overview">Обзор</a></li>
+        <li><a href="#highlights">Главное</a></li>
         <li><a href="#readiness">Готовность</a></li>
         <li><a href="#methods">Методы</a></li>
         <li><a href="#baselines">Базовые модели</a></li>
@@ -61,6 +62,30 @@
   </div>
 </section>
 
+<section class="block" id="highlights" aria-labelledby="h-highlights">
+  <div class="wrap">
+    <h2 id="h-highlights"><span class="sec-id">A</span>Главное</h2>
+    <div class="kpis" role="list">
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="best-score">—</span><span class="kpi-l">лучший общий балл из 100<br><small data-kpi="best-method"></small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="link">—</span><span class="kpi-l">AUC прогноза связей<br><small>правило «уже общались» — <span data-kpi="persistence">—</span></small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="partners">—</span><span class="kpi-l">лучше прогноза без эмбеддинга<br><small>новые собеседники через похожих хостов</small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="identity">—</span><span class="kpi-l">хост узнан через 30 минут<br><small>случайно — <span data-kpi="identity-chance">—</span></small></span></div>
+    </div>
+    <ul class="steps">
+      <li><b>Лучше всех — гибриды:</b> поведенческий профиль хоста + графовый эмбеддинг (node2vec / DeepWalk). Поведение даёт роль, граф — связи.</li>
+      <li><b>Эмбеддинги знают больше, чем видно в логах:</b> связи предсказываются лучше правила «пара уже общалась».</li>
+      <li><b>Слабые места:</b> узнать конкретный хост через время и найти его новых собеседников — до 22%. Здесь и есть работа на следующий этап.</li>
+    </ul>
+    <h3>Данные</h3>
+    <div class="kpis small" role="list">
+      <div class="kpi" role="listitem"><span class="kpi-v" data-ds="rows">—</span><span class="kpi-l">записей NetFlow за день LANL<br><small>битых — <span data-ds="invalid">—</span></small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-ds="train-flows">—</span><span class="kpi-l">потоков в train-окне<br><small><span data-ds="train-min"></span> минут</small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-ds="cohort">—</span><span class="kpi-l">активных хостов в когорте<br><small>≥ 300 событий в час</small></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-ds="evaluated">—</span><span class="kpi-l">хостов оценено на test<br><small><span data-ds="test-min"></span> минут после train</small></span></div>
+    </div>
+  </div>
+</section>
+
 <section class="block" id="readiness" aria-labelledby="h-readiness">
   <div class="wrap">
     <h2 id="h-readiness"><span class="sec-id">B</span>Готовность к требованиям ментора</h2>
@@ -76,7 +101,8 @@
         <tr><td>Беспортовая поведенческая модель</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>)</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
         <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): AUC по парам «тот же хост / другой» — сведён в общий модуль <code>evaluation/identity.py</code></td><td><span class="tag ok">В общей оценке</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): «собеседники через похожих» и устойчивость к удалению связей перенесены в общую оценку; прямой прогноз уже покрыт ROC-AUC связей</td><td><span class="tag ok">В общей оценке</span> <span class="tag ok">LANL</span></td></tr>
-        <tr><td>Единая оценка и таблица результатов</td><td>Все метрики одной командой, сгруппированы по вопросу; таблица с интервалами и случайным уровнем — <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md"><code>evaluation/README.md</code></a> (issue <a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>)</td><td><span class="tag ok">Готово</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Единая оценка и таблица результатов</td><td>Все метрики сводятся в один балл 0–100; свой метод попадает в таблицу коммитом — <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">scoreboard</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>)</td><td><span class="tag ok">Готово</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Гибриды и подбор параметров</td><td>Поведенческий профиль + графовый эмбеддинг, веса подобраны на validation; лидер таблицы</td><td><span class="tag ok">Готово</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Эксперимент на реальных данных</td><td>Issue <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a> открыт; нужен доступ к LANL</td><td><span class="tag none">Требуются реальные данные</span></td></tr>
         <tr><td>Личная ответственность и умение объяснить код</td><td>См. раздел «Команда»: по git почти весь код методов принадлежит одному автору. Это вопрос к команде, сайт его не решает.</td><td><span class="tag none">Не подтверждено</span></td></tr>
       </tbody>
@@ -206,9 +232,16 @@
     </div>
 
     <div class="chart">
-      <h3>6. Сводная таблица</h3>
-      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span data-split-label>тестовое окно</span></div><div id="leaderboard"></div></div>
-      <p>Таблица упорядочена по согласию соседей @10. Общий рейтинг по всем метрикам — в <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">таблице результатов</a>.</p>
+      <h3>6. Общая таблица команды</h3>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>общий балл, test</span></div><div id="chartScore"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>все методы</span></div><div id="leaderboard"></div></div>
+      <div class="read">
+        <p><b>Что измеряется.</b> Пять главных метрик сводятся в балл 0–100: 0 — как у случайных векторов, 100 — идеал. Место — по баллу.</p>
+        <p><b>Как читать.</b> «разм.» — длина вектора: при разной размерности сравнение не совсем честное. Жирным — лучшее в колонке.</p>
+        <p><b>Что показывают результаты.</b> Гибриды впереди; чистый поведенческий профиль сразу за ними; графовые методы сами по себе слабее, а struc2vec почти на случайном уровне.</p>
+        <p><b>Чего вывести нельзя.</b> Часть колонок не может дойти до 100 даже в принципе: поведение хоста за полчаса меняется само. Реально достижимый балл — около 55–65.</p>
+      </div>
+      <p>Свой метод добавляется в таблицу коммитом — <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">scoreboard</a>.</p>
     </div>
   </div>
 </section>
@@ -259,10 +292,10 @@
   <div class="wrap">
     <h2 id="h-next"><span class="sec-id">H</span>Дальнейшие шаги</h2>
     <ol class="steps">
-      <li><b>Реальный эксперимент на LANL</b> — все методы на общих эталонах (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Блокеры: доступ к данным и машина для обучения.</li>
+      <li><b>Граф «хост — сервис»</b> — графовые методы видят, какими сервисами пользуется хост, а хабы ослаблены. Прогон на LANL идёт.</li>
+      <li><b>Больше данных</b> — несколько дней и окна длиннее 30 минут: поведение стабильнее, узнаваемость выше (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>).</li>
+      <li><b>Кластеры и аномалии</b> — группы хостов и подозрительные изменения поведения (<a href="https://github.com/CorgCode/pt-project/issues/21">#21</a>, PR #67).</li>
       <li><b>Независимый эталон сходства</b> — проверить, что оценка не зависит от тех же признаков, что и модель (<a href="https://github.com/CorgCode/pt-project/issues/45">#45</a>).</li>
-      <li><b>Взаимное ревью</b> — #62, #64, #65 влиты без ревью; их метрики уже в общей оценке (<a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>), осталось проверить код командой.</li>
-      <li><b>Кластеризация и аномалии</b> — оценка на уровне ролей и отклонений (<a href="https://github.com/CorgCode/pt-project/issues/21">#21</a>); линейный зонд (<a href="https://github.com/CorgCode/pt-project/issues/25">#25</a>).</li>
     </ol>
   </div>
 </section>

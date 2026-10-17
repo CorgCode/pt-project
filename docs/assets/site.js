@@ -12,7 +12,11 @@
     random: "Случайный (нижняя граница)",
     reference_ceiling: "Потолок эталона (утечка)",
     deepwalk: "DeepWalk", node2vec: "node2vec", graphsage: "GraphSAGE",
-    struc2vec: "struc2vec", rolx: "RolX"
+    struc2vec: "struc2vec", rolx: "RolX",
+    hybrid_weighted: "Гибрид: поведение×6 + node2vec + спектр",
+    hybrid_behavioral_node2vec_spectral: "Гибрид: поведение + node2vec + спектр",
+    hybrid_behavioral_deepwalk: "Гибрид: поведение + DeepWalk",
+    hybrid_behavioral_node2vec: "Гибрид: поведение + node2vec"
   };
   var PENDING_TEXT = "Ожидаются результаты эксперимента";
   var state = { data: null, split: "test" };
@@ -79,7 +83,7 @@
         var v = r.values[0];
         var leak = r.key === "reference_ceiling";
         svg.appendChild(el("rect", { x: plotX, y: cy - 8, width: Math.max(1, X(v) - plotX), height: 16, fill: leak ? "none" : accent, stroke: leak ? warn : "none", "stroke-dasharray": leak ? "4 2" : "none" }));
-        svg.appendChild(el("text", { x: Math.min(X(v) + 6, W - 40), y: cy + 4 }, fmt(v)));
+        svg.appendChild(el("text", { x: Math.min(X(v) + 6, W - 40), y: cy + 4 }, opts.valueFmt ? opts.valueFmt(v) : fmt(v)));
       } else {
         var xs = [];
         r.values.forEach(function (v, s) {
@@ -153,26 +157,54 @@
 
   function leaderboard(host) {
     host.textContent = "";
-    var d = state.data, res = d.results[state.split];
-    var cols = [["consistency@10_mean", "Согласие соседей @10"], ["link_roc_auc", "ROC-AUC будущих связей"], ["pair_roc_auc", "ROC-AUC пар"], ["triplet_accuracy", "Точность триплетов"]];
+    var t = state.data.team, keys = Object.keys(t.columns);
+    var best = {};
+    keys.forEach(function (k) {
+      t.rows.forEach(function (r) { var v = r.values[k]; if (!r.service && v != null && (best[k] == null || v > best[k])) best[k] = v; });
+    });
     var tb = html("table"), head = html("tr");
-    head.appendChild(html("th", null, "Метод"));
-    cols.forEach(function (c) { head.appendChild(html("th", { "class": "num" }, c[1])); });
-    head.appendChild(html("th", null, "Статус"));
+    ["Место", "Метод", "Балл", "разм."].forEach(function (h, i) { head.appendChild(html("th", i > 1 ? { "class": "num" } : null, h)); });
+    keys.forEach(function (k) { head.appendChild(html("th", { "class": "num" }, t.columns[k])); });
     tb.appendChild(head);
-    var ms = d.meta.methods.slice().sort(function (a, b) { return res[b]["consistency@10_mean"] - res[a]["consistency@10_mean"]; });
-    ms.forEach(function (m) {
-      var tr = html("tr"); tr.appendChild(html("td", null, name(m)));
-      cols.forEach(function (c) { tr.appendChild(html("td", { "class": "num" }, fmt(res[m][c[0]]))); });
-      var st = m === "reference_ceiling" ? "утечка: не метод" : m === "random" ? "нижняя граница" : d.meta.label;
-      var td = html("td"); td.appendChild(html("span", { "class": "tag syn" }, st)); tr.appendChild(td); tb.appendChild(tr);
+    var place = 0;
+    t.rows.forEach(function (r) {
+      var tr = html("tr");
+      tr.appendChild(html("td", null, r.service ? "—" : String(++place)));
+      var nm = html("td", null, name(r.method)); if (r.service) nm.style.fontStyle = "italic"; tr.appendChild(nm);
+      var sc = html("td", { "class": "num" }, r.score == null ? "—" : r.score.toFixed(1).replace(".", ","));
+      if (place === 1 && !r.service) sc.style.fontWeight = "700";
+      tr.appendChild(sc);
+      tr.appendChild(html("td", { "class": "num" }, r.dim == null ? "—" : String(r.dim)));
+      keys.forEach(function (k) {
+        var td = html("td", { "class": "num" }, fmt(r.values[k]));
+        if (!r.service && r.values[k] != null && Math.abs(r.values[k] - best[k]) < 1e-12) td.style.fontWeight = "700";
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
     });
-    d.meta.missing.slice().sort().forEach(function (m) {
-      var tr = html("tr"); tr.appendChild(html("td", { "class": "mut" }, name(m)));
-      var td = html("td", { colspan: String(cols.length) }, PENDING_TEXT); td.style.color = css("--muted"); tr.appendChild(td);
-      var st = html("td"); st.appendChild(html("span", { "class": "tag pend" }, "не запускался")); tr.appendChild(st); tb.appendChild(tr);
-    });
+    var tr = html("tr"); tr.appendChild(html("td")); tr.appendChild(html("td", null, "случайный уровень"));
+    tr.appendChild(html("td", { "class": "num" }, "0")); tr.appendChild(html("td"));
+    keys.forEach(function (k) { var c = t.chance[k]; tr.appendChild(html("td", { "class": "num" }, !c ? "—" : (c[1] - c[0] < 1e-9 ? fmt(c[0]) : fmt(c[0]) + "–" + fmt(c[1])))); });
+    tr.style.color = css("--muted"); tb.appendChild(tr);
     var wrap = html("div", { "class": "tablewrap" }); wrap.appendChild(tb); host.appendChild(wrap);
+  }
+
+  function fillHighlights() {
+    var t = state.data.team, ds = state.data.dataset;
+    var real = t.rows.filter(function (r) { return !r.service; });
+    function bestOf(k) { return Math.max.apply(null, real.map(function (r) { return r.values[k] == null ? -1 : r.values[k]; })); }
+    function set(sel, txt) { document.querySelectorAll(sel).forEach(function (n) { n.textContent = txt; }); }
+    function num(v) { return v == null ? "—" : Number(v).toLocaleString("ru-RU"); }
+    set("[data-kpi=best-score]", real[0].score.toFixed(1).replace(".", ","));
+    set("[data-kpi=best-method]", name(real[0].method));
+    set("[data-kpi=link]", fmt(bestOf("link_learned_roc_auc")));
+    set("[data-kpi=persistence]", fmt(t.persistence_auc));
+    set("[data-kpi=partners]", "×" + (bestOf("partner_new_mrr") / t.chance.partner_new_mrr[0]).toFixed(1).replace(".", ","));
+    set("[data-kpi=identity]", Math.round(bestOf("identity_top1") * 100) + "%");
+    set("[data-kpi=identity-chance]", (t.chance.identity_top1[0] * 100).toFixed(1).replace(".", ",") + "%");
+    set("[data-ds=rows]", num(ds.valid_rows)); set("[data-ds=invalid]", num(ds.invalid_rows));
+    set("[data-ds=train-flows]", num(ds.windows.train.flows)); set("[data-ds=train-min]", ds.windows.train.minutes);
+    set("[data-ds=cohort]", num(ds.cohort)); set("[data-ds=evaluated]", num(ds.evaluated)); set("[data-ds=test-min]", ds.windows.test.minutes);
   }
 
   function renderAll() {
@@ -195,6 +227,10 @@
         { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: ids.behavioral.chance_top1, refLabel: "случайное угадывание", title: "Точность top-1 при поиске того же хоста в следующем окне", legend: ["без выравнивания", "с выравниванием (Прокруст)"] });
     }
     var sEl = document.getElementById("chartHosts"); if (sEl) scatter(sEl, d.projection.points);
+    var cEl = document.getElementById("chartScore");
+    if (cEl) draw(cEl, d.team.rows.filter(function (r) { return r.score != null; }).map(function (r) { return { key: r.method, pending: false, values: [r.score] }; }),
+      { kind: "bar", min: 0, max: 100, ticks: [0, 25, 50, 75, 100], title: "Общий балл методов (0 — случайно, 100 — идеал)", valueLabel: "балл",
+        valueFmt: function (v) { return v.toFixed(1).replace(".", ","); } });
     var bEl = document.getElementById("leaderboard"); if (bEl) leaderboard(bEl);
     document.querySelectorAll("[data-split-label]").forEach(function (n) { n.textContent = state.split === "test" ? "тестовое окно" : "валидационное окно"; });
     document.querySelectorAll(".tabs [data-split]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.split === state.split)); });
@@ -225,7 +261,7 @@
     fetch("./data/results.json", { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status); return r.json();
     }).then(function (d) {
-      state.data = d; fillMeta(); renderAll();
+      state.data = d; fillMeta(); fillHighlights(); renderAll();
       document.documentElement.setAttribute("data-charts", "ready");
     }).catch(function (e) {
       document.querySelectorAll(".fig").forEach(function (n) { n.textContent = "Не удалось загрузить data/results.json (" + e.message + ")."; });

@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.results import Bundle  # noqa: E402
+from evaluation import scoreboard as sb  # noqa: E402
 
 KEYS = ["consistency@5_mean", "consistency@10_mean", "consistency@20_mean", "jaccard@10_mean", "ndcg@10_mean",
         "link_roc_auc", "link_learned_roc_auc", "link_new_roc_auc", "link_pr_auc_lift", "partner_new_mrr",
@@ -25,6 +26,41 @@ KEYS = ["consistency@5_mean", "consistency@10_mean", "consistency@20_mean", "jac
 
 def _git_sha() -> str:
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+
+def team_table(results_dir: Path = ROOT / "scoreboard" / "results") -> dict:
+    """Общая таблица команды: балл 0–100, размерность и главные метрики каждого метода."""
+    results = sb.load_results(results_dir)
+    cols, values, order = sb.ranking(results)
+    score = sb.overall_score(results, cols)
+    by = {r["method"]: r for r in results}
+    rows = []
+    for m in list(order.index) + sorted(sb.SERVICE & set(by)):
+        r = by[m]
+        rows.append({"method": m, "service": m in sb.SERVICE, "score": None if score[m] != score[m] else round(float(score[m]), 1),
+                     "dim": r.get("dim"), "values": {k: r["metrics"].get(k) for k in cols}})
+    chance = {}
+    for r in results:
+        if r["method"] in sb.SERVICE:
+            continue
+        for s in r.get("summary", []):
+            if s.get("chance") is not None:
+                chance.setdefault(s["metric"], []).append(s["chance"])
+    pers = next((r["metric_details"]["future_link_prediction"].get("persistence_baseline", {}).get("roc_auc")
+                 for r in results if r.get("metric_details", {}).get("future_link_prediction")), None)
+    return {"columns": cols, "rows": rows, "persistence_auc": pers,
+            "chance": {k: [min(v), max(v)] for k, v in chance.items()}}
+
+
+def dataset_facts(bundle_dir: Path) -> dict:
+    pm = Bundle(bundle_dir).processed_manifest or {}
+    w = pm.get("windows", {})
+    coh = pm.get("cohort", {})
+    return {"valid_rows": pm.get("counts", {}).get("valid_rows"), "invalid_rows": sum(pm.get("invalid_rows", {}).values()),
+            "windows": {k: {"minutes": round((v["end"] - v["start"]) / 60), "flows": v.get("n_flows"),
+                            "edges": v.get("graph_edges")} for k, v in w.items()},
+            "cohort": coh.get("n_hosts"), "evaluated": (coh.get("evaluable") or {}).get("test") if isinstance(coh.get("evaluable"), dict) else None,
+            "rule": coh.get("rule")}
 
 
 def build(bundle_dir: Path, projection_method: str = "behavioral") -> dict:
@@ -45,6 +81,8 @@ def build(bundle_dir: Path, projection_method: str = "behavioral") -> dict:
                  "methods": sorted(results["test"]), "missing": m.get("missing_expected_methods", []),
                  "cohort_policy": (m.get("cohort") or {}).get("policy")},
         "results": results,
+        "team": team_table(),
+        "dataset": dataset_facts(bundle_dir),
         "identity": identity,
         "audit": {"prevalence": audit.get("prevalence"), "random_null": audit.get("random_null")},
         "projection": {"method": projection_method,

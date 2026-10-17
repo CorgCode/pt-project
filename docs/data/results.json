@@ -3,7 +3,7 @@
     "synthetic": false,
     "kind": "lanl_declared",
     "label": "LANL (заявлено)",
-    "source_commit": "c3c3ee18193027771ea483b26362af9889d9ffab",
+    "source_commit": "cad28c2181018f165f48c2eaf1f2b90769e82d98",
     "source_path": "results/lanl_day02",
     "hosts": 2242,
     "seed": 0,
@@ -368,6 +368,259 @@
         "recall@3": 0.45022133509489815
       }
     }
+  },
+  "team": {
+    "columns": {
+      "consistency@10_mean": "Соседи@10",
+      "link_learned_roc_auc": "Связь, AUC",
+      "partner_new_mrr": "Новые собеседники, MRR",
+      "pair_roc_auc": "Пары, AUC",
+      "identity_top1": "Узнаваемость, Top-1"
+    },
+    "rows": [
+      {
+        "method": "hybrid_weighted",
+        "service": false,
+        "score": 48.9,
+        "dim": 89,
+        "values": {
+          "consistency@10_mean": 0.26150758251561107,
+          "link_learned_roc_auc": 0.9933990829437233,
+          "partner_new_mrr": 0.22107215796389626,
+          "pair_roc_auc": 0.9564239507311698,
+          "identity_top1": 0.13470115967885815
+        }
+      },
+      {
+        "method": "hybrid_behavioral_node2vec_spectral",
+        "service": false,
+        "score": 48.2,
+        "dim": 89,
+        "values": {
+          "consistency@10_mean": 0.17653880463871544,
+          "link_learned_roc_auc": 0.9933936979227815,
+          "partner_new_mrr": 0.21587345879544045,
+          "pair_roc_auc": 0.9627608447079611,
+          "identity_top1": 0.1784121320249777
+        }
+      },
+      {
+        "method": "hybrid_behavioral_deepwalk",
+        "service": false,
+        "score": 48.0,
+        "dim": 73,
+        "values": {
+          "consistency@10_mean": 0.19107939339875113,
+          "link_learned_roc_auc": 0.9918787317565189,
+          "partner_new_mrr": 0.21965086859202415,
+          "pair_roc_auc": 0.9714742014476614,
+          "identity_top1": 0.1391614629794826
+        }
+      },
+      {
+        "method": "hybrid_behavioral_node2vec",
+        "service": false,
+        "score": 47.8,
+        "dim": 73,
+        "values": {
+          "consistency@10_mean": 0.17903657448706511,
+          "link_learned_roc_auc": 0.99298850993443,
+          "partner_new_mrr": 0.21611178799142072,
+          "pair_roc_auc": 0.958674260113604,
+          "identity_top1": 0.16681534344335414
+        }
+      },
+      {
+        "method": "behavioral",
+        "service": false,
+        "score": 47.3,
+        "dim": 57,
+        "values": {
+          "consistency@10_mean": 0.26926851025869764,
+          "link_learned_roc_auc": 0.9831508173289721,
+          "partner_new_mrr": 0.2040713277444545,
+          "pair_roc_auc": 0.9540981605562511,
+          "identity_top1": 0.10347903657448707
+        }
+      },
+      {
+        "method": "behavioral_pca",
+        "service": false,
+        "score": 45.8,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.2418376449598573,
+          "link_learned_roc_auc": 0.9733592648657273,
+          "partner_new_mrr": 0.19053855818730442,
+          "pair_roc_auc": 0.9556149896284423,
+          "identity_top1": 0.08117752007136485
+        }
+      },
+      {
+        "method": "behavioral_svd",
+        "service": false,
+        "score": 45.8,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.24192685102586975,
+          "link_learned_roc_auc": 0.9733345464551727,
+          "partner_new_mrr": 0.19021460156131428,
+          "pair_roc_auc": 0.9556138374331681,
+          "identity_top1": 0.08117752007136485
+        }
+      },
+      {
+        "method": "graph_spectral",
+        "service": false,
+        "score": 42.9,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.07685102586975914,
+          "link_learned_roc_auc": 0.9797344357738079,
+          "partner_new_mrr": 0.19570667639637657,
+          "pair_roc_auc": 0.9843847895341302,
+          "identity_top1": 0.020517395182872437
+        }
+      },
+      {
+        "method": "rolx",
+        "service": false,
+        "score": 34.8,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.05856378233719894,
+          "link_learned_roc_auc": 0.9714422470419913,
+          "partner_new_mrr": 0.1684104990347096,
+          "pair_roc_auc": 0.8155408578645909,
+          "identity_top1": 0.02230151650312221
+        }
+      },
+      {
+        "method": "graphsage",
+        "service": false,
+        "score": 33.7,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.12885816235504013,
+          "link_learned_roc_auc": 0.9167351110909395,
+          "partner_new_mrr": 0.1678552655891405,
+          "pair_roc_auc": 0.8345288919566088,
+          "identity_top1": 0.013380909901873328
+        }
+      },
+      {
+        "method": "deepwalk",
+        "service": false,
+        "score": 33.2,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.07488849241748441,
+          "link_learned_roc_auc": 0.8005972406274598,
+          "partner_new_mrr": 0.20390673698578313,
+          "pair_roc_auc": 0.9766749108638931,
+          "identity_top1": 0.04192685102586976
+        }
+      },
+      {
+        "method": "node2vec",
+        "service": false,
+        "score": 32.6,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.0731935771632471,
+          "link_learned_roc_auc": 0.776198794998388,
+          "partner_new_mrr": 0.21511029186300343,
+          "pair_roc_auc": 0.9812342675836699,
+          "identity_top1": 0.05976806422836753
+        }
+      },
+      {
+        "method": "struc2vec",
+        "service": false,
+        "score": 13.8,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.026761819803746655,
+          "link_learned_roc_auc": 0.8422369160140452,
+          "partner_new_mrr": 0.10359383297013347,
+          "pair_roc_auc": 0.5301910687823372,
+          "identity_top1": 0.003568242640499554
+        }
+      },
+      {
+        "method": "random",
+        "service": true,
+        "score": 0.5,
+        "dim": 16,
+        "values": {
+          "consistency@10_mean": 0.004415700267618199,
+          "link_learned_roc_auc": 0.5980600840974959,
+          "partner_new_mrr": 0.06281540379135145,
+          "pair_roc_auc": 0.5113910105484678,
+          "identity_top1": 0.0
+        }
+      },
+      {
+        "method": "reference_ceiling",
+        "service": true,
+        "score": 70.8,
+        "dim": 57,
+        "values": {
+          "consistency@10_mean": 1.0,
+          "link_learned_roc_auc": null,
+          "partner_new_mrr": 0.23013320024856737,
+          "pair_roc_auc": 0.9734292607911188,
+          "identity_top1": null
+        }
+      }
+    ],
+    "persistence_auc": 0.9391165676336944,
+    "chance": {
+      "consistency@10_mean": [
+        0.004462293618920125,
+        0.004462293618920125
+      ],
+      "link_learned_roc_auc": [
+        0.6392304914645376,
+        0.7630201922594116
+      ],
+      "partner_new_mrr": [
+        0.06517239183471678,
+        0.06517239183471678
+      ],
+      "pair_roc_auc": [
+        0.5,
+        0.5
+      ],
+      "identity_top1": [
+        0.0008920606601248885,
+        0.0008920606601248885
+      ]
+    }
+  },
+  "dataset": {
+    "valid_rows": 115949436,
+    "invalid_rows": 0,
+    "windows": {
+      "test": {
+        "minutes": 30,
+        "flows": 4970376,
+        "edges": 69253
+      },
+      "train": {
+        "minutes": 60,
+        "flows": 9368480,
+        "edges": 94243
+      },
+      "validation": {
+        "minutes": 30,
+        "flows": 4526585,
+        "edges": 70129
+      }
+    },
+    "cohort": 6453,
+    "evaluated": 2242,
+    "rule": "active (as src or dst, excluding self flows) >= 300 events in the train window"
   },
   "identity": {
     "behavioral": {
