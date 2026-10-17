@@ -13,7 +13,10 @@
     reference_ceiling: "Потолок эталона (утечка)",
     deepwalk: "DeepWalk", node2vec: "node2vec", graphsage: "GraphSAGE",
     struc2vec: "struc2vec", rolx: "RolX",
+    hybrid_services: "Гибрид: поведение×4 + сервисы + спектр",
     hybrid_weighted: "Гибрид: поведение×6 + node2vec + спектр",
+    node2vec_services: "node2vec (хост — сервис)",
+    deepwalk_services: "DeepWalk (хост — сервис)",
     hybrid_behavioral_node2vec_spectral: "Гибрид: поведение + node2vec + спектр",
     hybrid_behavioral_deepwalk: "Гибрид: поведение + DeepWalk",
     hybrid_behavioral_node2vec: "Гибрид: поведение + node2vec"
