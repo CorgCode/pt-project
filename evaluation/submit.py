@@ -108,46 +108,70 @@ def render() -> None:
         return
     scoreboard.check_compatible(results)
     scoreboard.full_table(results).to_csv(BOARD / "scoreboard.csv", index=False)
-    _, _, order = scoreboard.ranking(results)
+    cols, values, order = scoreboard.ranking(results)
     info = results[0].get("reference_info") or {}
-    leader = f"**Лидер: `{order.index[0]}`** (средний ранг {order.iloc[0]:.1f} по главным метрикам)." if len(order) else ""
     kind = {"synthetic_fixture": "синтетика в формате LANL — проверка кода, а не результат на реальной сети",
             "lanl_declared": "заявленные данные LANL"}.get(info.get("data_kind"), "непроверенные данные")
+    leader = f"**Лидер: `{order.index[0]}`** (средний ранг {order.iloc[0]:.1f})." if len(order) else ""
+    example = ""
+    if len(order):
+        m = order.index[0]
+        places = values.loc[order.index].rank(ascending=False).loc[m]
+        parts = [(cols[k].split(": ", 1)[-1], places[k]) for k in cols if values.loc[m].notna()[k]]
+        nums = " + ".join(f"{p:g}" for _, p in parts)
+        example = ("Пример — лидер `" + m + "`: места в колонках " + ", ".join(f"{t} — {p:g}" for t, p in parts)
+                   + f". Средний ранг = ({nums}) / {len(parts)} = {order.iloc[0]:.1f}.")
     text = f"""# Таблица результатов
 
-Данные: **{kind}**; оцениваемых хостов: {results[0].get('n_hosts')}; эталон: test-окно.
+## Как попасть в таблицу — 3 шага
+
+1. Обучите свой метод на общих данных — **только на train-окне**:
+   `ProcessedData("scoreboard/data/processed").training_flows()` (подробнее — ниже).
+2. Сохраните результат в `scoreboard/submissions/<имя_метода>/embeddings.csv` — строка на хост: `host_id, emb_0, emb_1, …`.
+3. Сделайте коммит и `git push` в свою ветку. Всё. CI сам посчитает метрики и допишет ваш метод в эту таблицу
+   (в той же ветке, через минуту-две). Проверить у себя заранее: `python -m evaluation.submit scoreboard/submissions/<имя_метода>`.
+
+Данные: **{kind}**; оцениваемых хостов: {results[0].get('n_hosts')}; оценка на test-окне.
 {leader}
 
 {scoreboard.headline_table(results)}
-**Жирным** — лучшее значение в колонке. В скобках — 95% бутстреп-интервал. *Курсивом* — ориентиры, а не методы:
-`random` — случайные векторы, `reference_ceiling` — копия эталона (потолок, «утекает» намеренно).
-«Случайный уровень» — чего ждать от бесполезного эмбеддинга (для собеседников — лучший прогноз без эмбеддинга).
-Средний ранг считается по главным метрикам, которые есть у метода. Все метрики — [`scoreboard.csv`](scoreboard.csv),
-полные результаты — `results/<метод>.json`, что значит каждая метрика — [`evaluation/README.md`](../evaluation/README.md).
+**Жирным** — лучшее значение в колонке. В скобках — 95% интервал: если интервалы двух методов сильно перекрываются,
+разница между ними может быть случайной. *Курсивом* — ориентиры, а не участники: `random` (случайные векторы — ниже
+быть нельзя) и `reference_ceiling` (копия эталона — потолок). «Случайный уровень» — что набирает бесполезный эмбеддинг.
 
-## Как попасть в таблицу
+## Как считается место
 
-1. Обучите метод **только на train-окне** общих данных:
+Метрики разные по смыслу и масштабу (совпадение соседей ≈ 0.2, ROC-AUC ≈ 0.9), поэтому их не складывают напрямую.
+Вместо этого:
 
-   ```python
-   from pipeline.data import ProcessedData
-   d = ProcessedData("scoreboard/data/processed")
-   flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort   # учиться можно только на этом
-   test_flows = d.flows("test")                                             # только чтобы встроить test-окно
-   ```
+1. В каждой колонке методы упорядочиваются: лучший получает место 1, следующий — 2 и т. д. (при равенстве — среднее место).
+2. **Средний ранг** метода — среднее его мест по всем колонкам. Чем меньше, тем лучше.
+3. Место в таблице — по среднему рангу. Ориентиры (`random`, `reference_ceiling`) в рейтинге не участвуют.
+4. Если у метода нет какой-то колонки (например, не прислан `test.csv` для «узнаваемости»), среднее считается по тем, что есть.
 
-2. Положите файлы в `scoreboard/submissions/<имя_метода>/`:
-   - `embeddings.csv` — эмбеддинг train-окна для всех хостов `d.cohort`: `host_id, emb_0, emb_1, …`;
-   - `test.csv` — по желанию: эмбеддинг test-окна (тем же методом) для узнаваемости во времени;
-   - `SHARED_COORDINATES` — пустой файл, если у окон одна система координат.
-3. Откройте PR — CI сам оценит отправку и допишет результат и таблицу в ваш PR.
-   Или локально: `python -m evaluation.submit scoreboard/submissions/<имя_метода>`.
+{example}
+
+Что значит каждая колонка — [`evaluation/README.md`](../evaluation/README.md). Все метрики — [`scoreboard.csv`](scoreboard.csv),
+полные результаты — `results/<метод>.json`.
+
+## Подробнее про отправку
+
+```python
+from pipeline.data import ProcessedData
+d = ProcessedData("scoreboard/data/processed")
+flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort   # учиться можно только на этом
+test_flows = d.flows("test")                                             # только чтобы встроить test-окно
+```
+
+- `embeddings.csv` — эмбеддинг train-окна для всех хостов `d.cohort`;
+- `test.csv` — по желанию: эмбеддинг test-окна тем же методом — добавит колонку «узнаваемость»;
+- `SHARED_COORDINATES` — пустой файл, если у обоих окон одна система координат.
 
 Подбирать параметры по этой таблице нельзя — это test. Для подбора: `python -m experiments.tune_methods` (validation).
 
 ## Когда будут настоящие данные LANL
 
-Пересобрать `scoreboard/data/` из настоящих файлов и пересчитать всех (старые отправки придётся обучить заново):
+Пересобрать `scoreboard/data/` из настоящих файлов и пересчитать всех (см. `experiments/lanl/README.md`):
 
 ```bash
 python -m pipeline.prepare run --netflow /path/netflow_day-*.bz2 --config cfg.json --output-dir scoreboard/data/processed --data-kind lanl --source-note "форма LANL, <дата>, <кто>"

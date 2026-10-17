@@ -1,8 +1,12 @@
 name: Scoreboard
 
-# Кто-то положил эмбеддинг в scoreboard/submissions/<метод>/ и открыл PR —
-# оцениваем его и дописываем результат и таблицу прямо в этот PR.
+# Кто-то закоммитил эмбеддинг в scoreboard/submissions/<метод>/ в своей ветке —
+# оцениваем его и дописываем результат и таблицу прямо в эту ветку (и в её PR).
 on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "scoreboard/submissions/**"
   pull_request:
     paths:
       - "scoreboard/submissions/**"

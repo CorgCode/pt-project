@@ -68,7 +68,8 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 ## Таблица результатов
 
 Все методы на одних данных и эталонах, лучший выделен — [`scoreboard/README.md`](scoreboard/README.md).
-Положил эмбеддинг в `scoreboard/submissions/<метод>/`, открыл PR — CI сам оценит и допишет таблицу.
+Положил эмбеддинг в `scoreboard/submissions/<метод>/embeddings.csv`, сделал коммит и push — CI сам посчитает метрики
+и допишет метод в таблицу. Как считается место — там же.
 
 ## Где мы сейчас
 

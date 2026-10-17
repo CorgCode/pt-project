@@ -109,8 +109,8 @@ Comp002,0.06,0.25,0.81
 ## Как подключить свой метод
 
 **Быстрый путь — общая таблица.** Обучитесь на `scoreboard/data/processed` (только train-окно), положите
-`embeddings.csv` (и, по желанию, `test.csv`) в `scoreboard/submissions/<метод>/` и откройте PR — CI оценит
-и допишет результат. Локально: `python -m evaluation.submit scoreboard/submissions/<метод>`.
+`embeddings.csv` (и, по желанию, `test.csv`) в `scoreboard/submissions/<метод>/`, сделайте коммит и push — CI оценит
+и допишет результат в вашу ветку. Локально: `python -m evaluation.submit scoreboard/submissions/<метод>`.
 Подробно — [`scoreboard/README.md`](../scoreboard/README.md).
 
 **Код в репозитории.** Новый модуль в `benchmark/methods/` с наследником `GraphEmbeddingMethod`
