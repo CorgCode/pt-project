@@ -29,7 +29,7 @@ def test_identical_protocol_for_every_variant(ablation, reference):
     hashes = json.loads((reference / "test" / "manifest.json").read_text())["files_sha256"]
     assert rep["protocol"]["reference_files_sha256"] == hashes
     scored = {pd.read_csv(out / "embeddings" / n / "train.csv", dtype={"host_id": str}).shape[0] for n in rep["protocol"]["variants"]}
-    assert len(scored) == 1                                                       # every variant embeds the same hosts
+    assert len(scored) == 1                                                       # все варианты встраивают одних и тех же хостов
 
 
 def test_paired_difference_equals_the_difference_of_reported_means(ablation):
@@ -95,7 +95,7 @@ def test_runner_adds_the_variants_on_request_with_the_same_reference(processed, 
     assert r[0]["reference_info"]["files_sha256"] == r[1]["reference_info"]["files_sha256"] and r[0]["n_hosts"] == r[1]["n_hosts"]
     audit = json.loads((tmp_path / "b" / "audit.json").read_text())
     assert "MINUS the port block" in audit["information_overlap"]["behavioral_portfree"]["neighbors"]
-    assert "behavioral_portfree" in pd.read_csv(tmp_path / "b" / "leaderboard_test.csv").method.tolist()
+    assert "behavioral_portfree" in pd.read_csv(tmp_path / "b" / "scoreboard_test.csv").method.tolist()
 
 
 def test_report_renders_without_a_bootstrap(processed, reference, tmp_path):

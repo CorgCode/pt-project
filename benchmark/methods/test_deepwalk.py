@@ -84,7 +84,7 @@ def test_hierarchical_softmax_and_negative_sampling_both_work(data):
 
 
 def test_learns_structure_that_random_vectors_do_not(processed, reference, tmp_path, fitted, data):
-    """Shared-peer pair judgments and behavioural neighbours are far above chance for a trained embedding."""
+    """Пары по общим собеседникам и поведенческие соседи у обученного эмбеддинга сильно выше случайного уровня."""
     p = tmp_path / "dw.csv"
     fitted.embed(data, "train").to_csv(p)
     r = run(p, reference / "test", "dw")["metrics"]
@@ -115,7 +115,7 @@ def test_audit_table_shows_the_method_declared_overlap(processed, reference, tmp
                        methods=["deepwalk"], method_config={"deepwalk": dict(num_walks=2, walk_length=10, window=3)})
     audit = json.loads((tmp_path / "o" / "audit.json").read_text())
     assert audit["information_overlap"]["deepwalk"]["edges"].startswith("strong")
-    assert "random" in audit["information_overlap"]                       # baselines keep their rows
+    assert "random" in audit["information_overlap"]                       # бейзлайны сохраняют свои строки
 
 
 def test_all_and_fast_selection(processed, reference, tmp_path):
@@ -123,9 +123,9 @@ def test_all_and_fast_selection(processed, reference, tmp_path):
     fast = M.create(["all"], dim=4, fast=True)
     assert {m.name for m in fast} == set(M.available()) and fast[0].params["num_walks"] == 2
     full = M.create(["deepwalk"], dim=4)[0]
-    assert full.params["num_walks"] == 10                               # paper default without --fast
+    assert full.params["num_walks"] == 10                               # значение по статье без --fast
     over = M.create(["deepwalk"], dim=4, config={"deepwalk": {"num_walks": 7}}, fast=True)[0]
-    assert over.params["num_walks"] == 7 and over.params["walk_length"] == 10      # overrides win, fast fills the rest
+    assert over.params["num_walks"] == 7 and over.params["walk_length"] == 10      # переопределения важнее, fast заполняет остальное
     m = run_experiment(processed, reference, tmp_path / "o", dim=4, n_boot=0, do_audit=False,
                        methods=["all"], fast_methods=True)
     assert set(M.available()) <= set(m["methods"])

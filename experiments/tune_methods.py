@@ -1,13 +1,12 @@
-"""Tune a graph method's hyper-parameters on the VALIDATION reference only.
+"""Подбор гиперпараметров графового метода ТОЛЬКО на validation.
 
     python -m experiments.tune_methods --processed-dir data/processed --reference-dir data/reference \
         --method node2vec --grid '{"p": [0.25, 1, 4], "q": [0.25, 1, 4]}' --metric pair_roc_auc --out runs/tune_node2vec.json
 
-Every configuration of the grid is fitted on the TRAIN window and scored on `reference/validation`; the TEST
-reference is never read (and `--target test` is refused). Choose the selection metric BEFORE looking at results:
-all metrics are reported, the best configuration is picked by that one metric only, and the report states how many
-configurations were tried (more configurations => a more optimistic validation score). Freeze the chosen
-configuration, then run the final experiment once on the test reference.
+Каждая точка сетки обучается на train и оценивается на reference/validation; test не читается
+(--target test запрещён). Метрику выбора фиксируйте ДО просмотра результатов; отчёт пишет, сколько точек
+перепробовано (больше точек — оптимистичнее лучший результат). Выбранную конфигурацию замораживаем
+и один раз прогоняем на test.
 """
 from __future__ import annotations
 

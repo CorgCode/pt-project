@@ -43,30 +43,199 @@
   },
   "data_kind": "synthetic_fixture",
   "environment": {
-    "git_sha": "485dacbc31bc67a857eea8295219c887be04c411",
+    "git_sha": "cfdd7c1a974f6ad05f5fc93d80f7c668fc142127",
     "numpy": "2.5.4",
     "pandas": "3.0.6",
-    "python": "3.13.7",
+    "python": "3.12.13",
     "sklearn": "1.9.1"
   },
   "external_methods": [],
   "external_provenance": {},
-  "graph_methods": {},
+  "graph_methods": {
+    "deepwalk": {
+      "description": "uniform weighted random walks + skip-gram with hierarchical softmax",
+      "dim": 16,
+      "fit_seconds": {
+        "test": 3.22,
+        "train": 3.23,
+        "validation": 3.22
+      },
+      "fit_windows": [
+        "train"
+      ],
+      "name": "deepwalk",
+      "overlap": {
+        "edges": "strong: link persistence (peers seen in train recur)",
+        "neighbors": "weak: peers/degree structure correlates with behaviour",
+        "pairs": "strong: shared peers = shared neighbourhood"
+      },
+      "params": {
+        "batch_size": 512,
+        "epochs": 1,
+        "lr": 0.025,
+        "negative": 5,
+        "num_walks": 10,
+        "objective": "hs",
+        "walk_length": 80,
+        "weight": "log1p",
+        "window": 10
+      },
+      "reference": "Perozzi et al., DeepWalk: Online Learning of Social Representations, KDD 2014",
+      "seed": 0,
+      "shared_coordinate_system": false
+    },
+    "graphsage": {
+      "description": "unsupervised GraphSAGE (mean aggregator, 2 layers, neighbour sampling); inductive",
+      "dim": 16,
+      "final_training_loss": 14.880370503987999,
+      "fit_seconds": {
+        "train": 1.73
+      },
+      "fit_windows": [
+        "train"
+      ],
+      "name": "graphsage",
+      "overlap": {
+        "edges": "strong: link persistence through the neighbourhood aggregation",
+        "neighbors": "strong with features='behavioral': same feature definitions as the behavioural reference",
+        "pairs": "strong: shared peers = shared neighbourhood"
+      },
+      "params": {
+        "batch_size": 256,
+        "epochs": 2,
+        "features": "behavioral",
+        "hidden": 64,
+        "lr": 0.01,
+        "negatives": 20,
+        "num_walks": 10,
+        "samples": [
+          25,
+          10
+        ],
+        "walk_length": 5,
+        "weight": "log1p",
+        "window": 2
+      },
+      "reference": "Hamilton, Ying, Leskovec, Inductive Representation Learning on Large Graphs, NeurIPS 2017",
+      "seed": 0,
+      "shared_coordinate_system": true
+    },
+    "node2vec": {
+      "description": "second-order biased random walks (p, q) + skip-gram with negative sampling",
+      "dim": 16,
+      "fit_seconds": {
+        "test": 2.96,
+        "train": 2.95,
+        "validation": 3.02
+      },
+      "fit_windows": [
+        "train"
+      ],
+      "name": "node2vec",
+      "overlap": {
+        "edges": "strong: link persistence (peers seen in train recur)",
+        "neighbors": "weak: peers/degree structure correlates with behaviour",
+        "pairs": "strong: shared peers = shared neighbourhood"
+      },
+      "params": {
+        "batch_size": 512,
+        "epochs": 1,
+        "lr": 0.025,
+        "negative": 5,
+        "num_walks": 10,
+        "p": 1.0,
+        "q": 1.0,
+        "walk_length": 80,
+        "weight": "log1p",
+        "window": 10
+      },
+      "reference": "Grover & Leskovec, node2vec: Scalable Feature Learning for Networks, KDD 2016",
+      "seed": 0,
+      "shared_coordinate_system": false
+    },
+    "rolx": {
+      "description": "ReFeX recursive structural features + NMF role memberships (structural-role embedding)",
+      "dim": 16,
+      "fit_seconds": {
+        "test": 0.04,
+        "train": 0.05,
+        "validation": 0.04
+      },
+      "fit_windows": [
+        "train"
+      ],
+      "n_structural_features": 55,
+      "name": "rolx",
+      "overlap": {
+        "edges": "weak: structural roles, not specific peers, so link persistence is not encoded",
+        "neighbors": "weak: degree/volume-like structure correlates with behaviour",
+        "pairs": "weak: shared peers are not encoded (roles ignore identity)"
+      },
+      "params": {
+        "bin_fraction": 0.5,
+        "max_features": 200,
+        "n_roles": null,
+        "nmf_iter": 400,
+        "normalize": true,
+        "rounds": 3,
+        "similarity_bins": 0,
+        "weight": "log1p"
+      },
+      "reference": "Henderson et al., RolX: Structural Role Extraction & Mining in Large Graphs, KDD 2012",
+      "seed": 0,
+      "shared_coordinate_system": false
+    },
+    "struc2vec": {
+      "description": "multilayer structural-similarity graph (DTW of ring degree sequences) + biased walks + skip-gram",
+      "dim": 16,
+      "fit_seconds": {
+        "test": 4.94,
+        "train": 5.44,
+        "validation": 5.06
+      },
+      "fit_windows": [
+        "train"
+      ],
+      "n_candidate_pairs": 2655,
+      "name": "struc2vec",
+      "overlap": {
+        "edges": "weak: structural identity, not specific peers, so link persistence is not encoded",
+        "neighbors": "weak: degree structure correlates with behaviour",
+        "pairs": "weak: shared peers are not encoded (structure ignores identity)"
+      },
+      "params": {
+        "batch_size": 512,
+        "candidates_per_side": null,
+        "epochs": 1,
+        "layers": 3,
+        "lr": 0.025,
+        "negative": 5,
+        "num_walks": 10,
+        "objective": "hs",
+        "stay_prob": 0.3,
+        "walk_length": 80,
+        "weight": "log1p",
+        "window": 10
+      },
+      "reference": "Ribeiro et al., struc2vec: Learning Node Representations from Structural Identity, KDD 2017",
+      "seed": 0,
+      "shared_coordinate_system": false
+    }
+  },
   "methods": [
     "behavioral",
     "behavioral_pca",
     "behavioral_svd",
-    "graph_spectral",
-    "random",
-    "reference_ceiling"
-  ],
-  "missing_expected_methods": [
-    "node2vec",
     "deepwalk",
+    "graph_spectral",
     "graphsage",
-    "struc2vec",
-    "rolx"
+    "node2vec",
+    "random",
+    "reference_ceiling",
+    "rolx",
+    "struc2vec"
   ],
+  "missing_expected_methods": [],
   "n_hosts": 300,
   "processed_manifest": "<workdir>/processed/manifest.json",
   "provenance": {
@@ -86,6 +255,7 @@
       "features.csv": "fde28e85fa6e2177c607063649a3683b7ab5d1b31e2af5c6455117ed6047fac7",
       "neighbors.csv": "8e07551ca89d01dfa48c306cc3f018ecab9716b9d421c2376f9c3bfbf6139283",
       "pairs.csv": "01d5f5efcd5b710cf02aa27e086ecca77c06d78cccbd89d4cb6e13f7cb98ac25",
+      "partners.csv": "cc0a5cd353506ed212f50bce432cb5868d1564ebb47df7d3edb72842c1d045d3",
       "triplets.csv": "171ad68c6eca53df1d77b212094c6f1880a63cbe9bf944ef3b3e2c86aa7772be"
     },
     "validation": {
@@ -94,6 +264,7 @@
       "features.csv": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
       "neighbors.csv": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
       "pairs.csv": "650beb11ab46987ce21e252f02f6b6204d1b988430f4dcb4b4e4f13a8fe317a8",
+      "partners.csv": "131aa081fd5d9567511bf508dd066bbf8fe06419391372deee0efe33bf48204b",
       "triplets.csv": "93bdbcb16b0b496e37e477e2ae86dabe4994ca0208cec19ece5102d09dd89f63"
     }
   },

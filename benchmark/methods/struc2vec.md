@@ -1,17 +1,15 @@
 # struc2vec
 
 Ribeiro, Saverese, Figueiredo, *struc2vec: Learning Node Representations from Structural Identity*, KDD 2017.
-Implementation: `struc2vec.py`.
+Код: `struc2vec.py`.
 
-Ring degree sequences, DTW distances accumulated over layers, a multilayer similarity graph and layer-staying biased
-walks (see the module docstring for the exact definitions). Parameters: `layers` (K, default 3), `stay_prob` (q in the
-paper, 0.3), `candidates_per_side` (OPT2 candidates per node; default `ceil(log2 n)` on each side).
+Последовательности степеней в кольцах, DTW-расстояния, накопленные по слоям, многослойный граф похожести
+и блуждания, которые остаются в слое (точные определения — в docstring модуля). Параметры: `layers` (K, по умолчанию 3),
+`stay_prob` (q в статье, 0.3), `candidates_per_side` (кандидаты OPT2 на вершину; по умолчанию `ceil(log2 n)` с каждой стороны).
 
-* Only the hosts to be embedded become nodes of the multilayer graph (`uses_focus`); degrees come from the full window graph.
-* The shared `GraphEmbeddingMethod` passes the hosts to embed and extends the focus if a later call asks for more.
-* **Scale** (measured on heavy-tailed random graphs, 3 layers, one core): DTW dominates at ~0.5 ms per candidate pair
-  (memoised). Distances: 1,000 nodes 2 s, 3,000 nodes 13 s, 8,000 nodes 54 s; skip-gram adds ~30 s at 8,000 nodes. Growth is
-  roughly n log n, so ~5 min at 20,000 and ~30 min at 100,000 hosts are extrapolations; real hubs lengthen rings but
-  not (much) the compressed sequences. Untested on real data.
-* On the synthetic fixture it aligns only weakly with the references (pair AUC 0.61, kNN@10 0.09), as its declared overlap
-  predicts, while recovering structural roles across disconnected components (>= 95% for every role).
+* Вершины многослойного графа — только нужные хосты (`uses_focus`); степени берутся по полному графу окна.
+* **Масштаб** (графы с тяжёлым хвостом, 3 слоя, одно ядро): основное время — DTW, ≈0.5 мс на пару (с кэшем).
+  1 000 вершин — 2 с, 3 000 — 13 с, 8 000 — 54 с; skip-gram добавляет ≈30 с на 8 000. Рост ≈ n log n, поэтому
+  ≈5 мин на 20 000 и ≈30 мин на 100 000 хостов — экстраполяция. На реальных данных не проверялось.
+* С эталонами бенчмарка совпадает слабо, как и предсказывает заявленное пересечение, зато находит структурные роли
+  в несвязанных компонентах (≥ 95% для каждой роли).

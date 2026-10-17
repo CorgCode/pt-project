@@ -1,29 +1,24 @@
-"""Unsupervised GraphSAGE with the mean aggregator (Hamilton, Ying, Leskovec, NeurIPS 2017).
+"""GraphSAGE без учителя с усреднением соседей (Hamilton, Ying, Leskovec, NeurIPS 2017).
 
-Two layers; for a node v with sampled neighbour set S(v) (uniform, with replacement, sizes `samples` = (S1, S2)):
+Два слоя; для вершины v с выборкой соседей S(v) (равномерно, с повторами, размеры samples = (S1, S2)):
 
     h1_v = relu( W1 [ x_v || mean_{u in S1(v)} x_u ] ),         n1_v = h1_v / |h1_v|
-    h2_v =       W2 [ n1_v || mean_{u in S2(v)} n1_u ],         z_v  = h2_v / |h2_v|        (paper Alg. 1, mean aggregator)
+    h2_v =       W2 [ n1_v || mean_{u in S2(v)} n1_u ],         z_v  = h2_v / |h2_v|
 
-(the final layer is linear, as in the reference implementation). Training uses the paper's graph-based loss on
-co-occurring pairs from short random walks, with negatives drawn from degree^0.75 and SHARED by every pair of a
-minibatch (also as in the reference code):
+Обучение — функция потерь из статьи на парах, встретившихся в коротких блужданиях; отрицательные ~ степень^0.75,
+общие для всего батча:
 
     J = -log s(z_u . z_v) - sum_{q=1..Q} log s(-z_u . z_{n_q})
 
-Gradients are computed by hand (backward pass through the L2 normalisations, linear layers, ReLU and mean
-aggregation) and verified against finite differences in the tests. Optimiser: Adam.
+Градиенты выписаны вручную и сверены с конечными разностями в тестах. Оптимизатор — Adam.
 
-Node features x_v are not learned. `features`:
-  behavioral  the train-window behavioural profile (volume, degree, direction, ports, protocols, hour of day) -
-              the same feature definitions as the behavioural reference (a documented information overlap);
-  structural  [log degree, log strength, log mean neighbour degree, clustering coefficient];
-  degree      [log degree].
-They are standardised with TRAIN statistics only.
+Признаки вершин x_v (features), нормируются по статистике train:
+  behavioral  поведенческий профиль train-окна — те же признаки, что у поведенческого эталона (пересечение задокументировано);
+  structural  [log степени, log силы, log средней степени соседей, коэффициент кластеризации];
+  degree      [log степени].
 
-GraphSAGE is INDUCTIVE: after training on the train window the same weights embed any later window's graph and
-features (full-neighbourhood mean aggregation, deterministic), so embeddings of different windows share one
-coordinate system (`shared_coordinate_system = True`; the inputs themselves drift between windows).
+GraphSAGE ИНДУКТИВЕН: обученные на train веса применяются к графу любого позднего окна, поэтому у окон
+общая система координат (shared_coordinate_system = True), хотя сами входы дрейфуют.
 """
 from __future__ import annotations
 
@@ -42,7 +37,7 @@ from evaluation.knn_consistency import build_reference_features
 EPS = 1e-12
 
 
-# ------------------------------------------------------------------------------------ features
+# ------------------------------------------------------------------------------------ признаки
 def structural_features(g: Graph) -> np.ndarray:
     B = g.adjacency().copy()
     B.data[:] = 1.0
@@ -57,7 +52,7 @@ def structural_features(g: Graph) -> np.ndarray:
 
 
 class Features:
-    """Node feature builder fitted on the train window and re-applied to later windows."""
+    """Признаки вершин: подбираются на train и применяются к поздним окнам."""
 
     def __init__(self, kind: str):
         if kind not in ("behavioral", "structural", "degree"):
@@ -84,9 +79,9 @@ class Features:
         return (self._raw(flows, g, False) - self._mu) / self._sd
 
 
-# ------------------------------------------------------------------------------------ model
+# ------------------------------------------------------------------------------------ модель
 def sample_neighbors(g: Graph, nodes: np.ndarray, size: int, rng: np.random.Generator) -> np.ndarray:
-    """`size` neighbours per node, uniform with replacement (every node has degree >= 1)."""
+    """size соседей на вершину, равномерно с повторами (степень каждой вершины >= 1)."""
     deg = g.degree[nodes]
     off = np.minimum((rng.random((len(nodes), size)) * deg[:, None]).astype(np.int64), deg[:, None] - 1)
     return g.indices[g.indptr[nodes][:, None] + off]
@@ -98,7 +93,7 @@ def _unit(P: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 class Batch:
-    """Everything sampled for one minibatch (so the loss is a deterministic function of the weights)."""
+    """Всё случайное для одного батча (чтобы потери были детерминированной функцией весов)."""
 
     def __init__(self, targets, nbr2, nbr1, pu, pv, neg):
         self.targets, self.nbr2, self.nbr1, self.pu, self.pv, self.neg = targets, nbr2, nbr1, pu, pv, neg
@@ -130,22 +125,22 @@ def loss_and_grads(W1, W2, X, b: Batch, want_grads: bool = True):
     np.add.at(dZ, b.pu, d_pos[:, None] * Zv + d_neg @ Zn)
     np.add.at(dZ, b.pv, d_pos[:, None] * Zu)
     np.add.at(dZ, b.neg, d_neg.T @ Zu)
-    dP2 = (dZ - Z * (Z * dZ).sum(1, keepdims=True)) / P2n                 # through z = h / |h|
+    dP2 = (dZ - Z * (Z * dZ).sum(1, keepdims=True)) / P2n                 # через z = h / |h|
     dW2 = C2.T @ dP2
     dC2 = dP2 @ W2.T
     dN1 = np.zeros_like(N1)
     dN1[:T] += dC2[:, :h]
-    dN1[T:] += np.repeat(dC2[:, h:] / S2, S2, axis=0)                      # mean over S2 sampled neighbours
+    dN1[T:] += np.repeat(dC2[:, h:] / S2, S2, axis=0)                      # среднее по S2 выбранным соседям
     dH1 = (dN1 - N1 * (N1 * dN1).sum(1, keepdims=True)) / H1n
     dP1 = dH1 * (P1 > 0)
     return loss, (C1.T @ dP1, dW2)
 
 
 def infer(W1: np.ndarray, W2: np.ndarray, g: Graph, X: np.ndarray) -> np.ndarray:
-    """Deterministic embedding of every node: full-neighbourhood mean aggregation with the trained weights."""
+    """Детерминированный эмбеддинг всех вершин: среднее по всем соседям с обученными весами."""
     A = g.adjacency().copy()
     A.data[:] = 1.0
-    P = sp.diags(1.0 / np.maximum(np.asarray(A.sum(axis=1)).ravel(), 1.0)) @ A            # row-stochastic mean operator
+    P = sp.diags(1.0 / np.maximum(np.asarray(A.sum(axis=1)).ravel(), 1.0)) @ A            # оператор среднего (строки суммируются в 1)
     N1, _ = _unit(np.maximum(np.hstack([X, P @ X]) @ W1, 0.0))
     return _unit(np.hstack([N1, P @ N1]) @ W2)[0]
 
@@ -166,7 +161,7 @@ class Adam:
 
 def train(g: Graph, X: np.ndarray, dim: int, *, hidden: int, samples: tuple[int, int], walk_length: int,
           num_walks: int, window: int, negatives: int, batch_size: int, epochs: int, lr: float, seed: int):
-    """Returns (W1, W2, loss_history)."""
+    """Вернуть (W1, W2, история потерь)."""
     rng = np.random.default_rng(seed)
     d0 = X.shape[1]
     W1 = rng.normal(0, np.sqrt(2.0 / (2 * d0)), (2 * d0, hidden))
@@ -201,7 +196,7 @@ def train(g: Graph, X: np.ndarray, dim: int, *, hidden: int, samples: tuple[int,
     return W1, W2, history
 
 
-# ------------------------------------------------------------------------------------ the benchmark method
+# ------------------------------------------------------------------------------------ метод бенчмарка
 class GraphSAGE(GraphEmbeddingMethod):
     name = "graphsage"
     shared_coordinate_system = True
@@ -219,10 +214,10 @@ class GraphSAGE(GraphEmbeddingMethod):
         s = self.params["samples"]
         if len(s) != 2 or min(s) < 1:
             raise ValueError("graphsage: samples must be two positive integers (layer-1 and layer-2 neighbours)")
-        Features(self.params["features"])                                       # validates the feature name
+        Features(self.params["features"])                                       # проверяет имя набора признаков
         self.W1 = self.W2 = self.features_ = None
         self.loss_history: list[float] = []
-        self._embedded: dict[str, tuple[Graph, np.ndarray]] = {}                # own cache: independent of the base layout
+        self._embedded: dict[str, tuple[Graph, np.ndarray]] = {}                # свой кэш, независимый от базового класса
 
     def fit(self, data):
         p = self.params
@@ -248,7 +243,7 @@ class GraphSAGE(GraphEmbeddingMethod):
         if self.W1 is None:
             raise RuntimeError("graphsage: call fit(data) first")
         if window not in self._embedded:
-            flows = data.flows(window)                                           # inference only: weights stay fixed
+            flows = data.flows(window)                                           # только применение: веса не меняются
             g = from_flows(flows, self.params["weight"])
             self._embedded[window] = (g, infer(self.W1, self.W2, g, self.features_.transform(flows, g)))
         return self._embedded[window]

@@ -1,57 +1,52 @@
-# Experiments
+# Эксперименты
 
-Install dependencies once: `pip install -r requirements.txt`.
-
-Run every method on the SAME cohort, windows, references and candidate pairs.
+Все методы на **одних** хостах, окнах, эталонах и кандидатах — одной командой.
 
 ```bash
-# everything from raw netflow (real data) ...
-python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 \
-    --config my_config.json --workdir runs/lanl [--submissions-dir submissions] \
-    --data-kind lanl --source-note "LANL form, <date>, <who>"
+pip install -r requirements.txt
 
-# ... without --data-kind lanl the run is labelled `unverified`, never LANL.
-# ... or a smoke run on a synthetic LANL-format fixture (no download)
-python -m experiments.end_to_end --fixture --workdir runs/synthetic_demo
+# синтетика в формате LANL, без скачивания
+python -m experiments.end_to_end --fixture --workdir runs/demo
+
+# настоящие данные (без --data-kind lanl прогон помечается 'unverified', а не LANL)
+python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config my_config.json \
+    --workdir runs/lanl --data-kind lanl --source-note "форма LANL, <дата>, <кто>" \
+    --methods all [--submissions-dir submissions]
 ```
 
-Stages (also usable separately): `pipeline.prepare` → `pipeline.reference` →
-`experiments.run_experiment`. Output of the last stage in `<workdir>/run`:
+Этапы можно запускать по отдельности: `pipeline.prepare` → `pipeline.reference` → `experiments.run_experiment`.
 
-| path | content |
+## Что получится в `<workdir>/run`
+
+| файл | что внутри |
 |---|---|
-| `report.md`, `figures/` | tables with bootstrap CIs, scorecards, identity and audit plots |
-| `results/<target>/<method>.json` | full evaluator output (metrics, CIs, details, reference fingerprints) |
-| `identity/<target>/<method>.json` | identity retrieval, raw and Procrustes |
-| `leaderboard_<target>.csv` | built by `benchmark.build_leaderboard` (refuses mixed references) |
-| `audit.json` | weight sensitivity, window stability, random-null bands, prevalence, overlap |
-| `manifest.json` | data kind (synthetic/real), cohort/reference hashes, seeds, environment, git SHA |
+| `report.md`, `figures/` | отчёт: таблицы с интервалами, графики, аудит |
+| `scoreboard_<окно>.md` / `.csv` | таблица результатов (`evaluation.scoreboard`): главные числа по группам и случайный уровень |
+| `results/<окно>/<метод>.json` | полный результат оценки: метрики, интервалы, детали, хеши эталонов |
+| `identity/<окно>/<метод>.json` | узнаётся ли хост через время: без выравнивания и с Procrustes |
+| `audit.json` | чувствительность эталона к весам признаков, стабильность окон, случайный уровень, пересечение с эталонами |
+| `manifest.json` | тип данных, хеши когорты и эталонов, seed, версии библиотек, git SHA |
 
-**Provenance label.** Every run is `synthetic_fixture`, `unverified` (default) or `lanl_declared`; the report,
-the manifest and the dashboard state which, and that provenance is *declared, never verified*.
+## Какие методы участвуют
 
-**Cohort.** `--cohort-policy train_only` (default) evaluates the hosts active in the train window and scores
-each later window on the hosts still active there (coverage is reported); `all_windows` is the transductive
-stable-host variant and the report says so.
+Бейзлайны (`random`, `behavioral`, `behavioral_pca`, `behavioral_svd`, `graph_spectral`), графовые методы
+из `--methods` (`all` — все пять), потолок `reference_ceiling` (копия эталона, «утекает» намеренно) и любые
+`--submissions-dir/<метод>/embeddings.csv`. Как подготовить свой файл — [`evaluation/README.md`](../evaluation/README.md).
+Методы, которые ждали, но не получили, перечисляются в отчёте как «не оценены» — ничего не симулируется.
 
-Methods: `random`, `behavioral`, `behavioral_pca`, `behavioral_svd`, `graph_spectral` (all fitted on the
-train window only), the leaking `reference_ceiling`, and anything in `--submissions-dir/<method>/embeddings.csv`
-(source-window embedding; `<method>/validation.csv` / `<method>/test.csv` enable identity retrieval;
-an empty `SHARED_COORDINATES` file declares one coordinate system). A `provenance.json`
-`{"trained_on_windows": ["train"]}` is required to claim the method used no later window: a declaration that
-includes `validation` or `test` is refused (temporal leakage); a missing file is flagged as *undeclared* in the
-report. These declarations cannot be verified by code. Expected methods that were not supplied
-(node2vec, deepwalk, graphsage, struc2vec, rolx) are listed as missing, never simulated.
+Перед тем как делать выводы по числам, прочитайте [`docs/METHODOLOGY.md`](../docs/METHODOLOGY.md).
 
-Read `docs/METHODOLOGY.md` before interpreting any number.
+## Другие команды
 
-## Feature ablation (port-free baseline, issue #43)
+| команда | что делает |
+|---|---|
+| `python -m experiments.tune_methods …` | подбор гиперпараметров метода только на validation |
+| `python -m experiments.feature_ablation …` | абляция признаков: профиль с портами и без (#43) |
+| `python -m experiments.robustness --processed-dir … --out-dir … --methods deepwalk` | устойчивость к удалению связей (идея Тихона, #40) |
+| `python -m experiments.make_demo_bundle` | пересобрать синтетический пример в `demo/synthetic_run` для дашборда и сайта |
 
-```bash
-python -m experiments.feature_ablation --processed-dir data/processed --reference-dir data/reference --out-dir runs/ablation
-```
+### Устойчивость к удалению связей
 
-Compares the behavioural profile with and without each feature block on identical hosts, windows and references; writes
-`ablation.json` and `ablation.md` (paired confidence intervals for full vs port-free, leave-one-block-out table, a
-port-free-reference diagnostic, and the methodological implications). The report carries the data-kind banner
-(synthetic / unverified / declared LANL).
+Удаляем долю случайных пар хостов (все потоки между ними) из train-окна, обучаем метод заново и сравниваем
+с эмбеддингом на полном графе: доля общих k ближайших соседей и косинус после поворота. «Шум» — тот же метод
+с другим seed без удаления: это потолок, выше которого ждать нечего.

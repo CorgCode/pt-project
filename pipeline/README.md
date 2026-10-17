@@ -1,74 +1,64 @@
-# Data pipeline: LANL netflow → windows → graph → frozen references
+# Данные: LANL → окна → граф → эталоны
 
-Raw LANL logs → canonical flows → train / validation / test windows → fixed host cohort →
-per-window communication graphs → frozen evaluation references. Every step is a CLI and is
-covered by tests. Nothing is invented about the LANL files: only documented fields are used.
+Сырые логи → нормализованные потоки → окна train / validation / test → фиксированная когорта хостов →
+граф на каждое окно → замороженные эталоны для оценки. Каждый шаг — отдельная команда с тестами.
+Про файлы LANL ничего не додумываем: используются только задокументированные поля.
 
-## Source format (LANL Unified Host and Network Dataset, 2017, `netflow_day-NN.bz2`)
+## Источник: `netflow_day-NN.bz2`
 
-Documented at <https://csr.lanl.gov/data/2017/> (access requires the form on that page):
-bzip2, comma-separated, **no header**, one record per line, fields in this order:
+LANL Unified Host and Network Dataset (2017), <https://csr.lanl.gov/data/2017/> (скачивание через форму).
+bzip2, CSV **без заголовка**, запись на строку, поля по порядку:
 
-| # | field | meaning (verbatim from the source) |
+| # | поле | смысл (из описания источника) |
 |---|---|---|
-| 1 | `Time` | start time of the event, "epoch time format" |
-| 2 | `Duration` | duration in seconds |
-| 3 | `SrcDevice` | the device that likely initiated the event |
-| 4 | `DstDevice` | the receiving device |
-| 5 | `Protocol` | the protocol number |
-| 6 | `SrcPort` | port used by SrcDevice |
-| 7 | `DstPort` | port used by DstDevice |
-| 8 | `SrcPackets` | packets sent by SrcDevice |
-| 9 | `DstPackets` | packets sent by DstDevice |
-| 10 | `SrcBytes` | bytes sent by SrcDevice |
-| 11 | `DstBytes` | bytes sent by DstDevice |
+| 1 | `Time` | время начала события, «epoch time format» |
+| 2 | `Duration` | длительность, с |
+| 3 | `SrcDevice` | устройство, которое, вероятно, начало соединение |
+| 4 | `DstDevice` | принимающее устройство |
+| 5 | `Protocol` | номер протокола |
+| 6 | `SrcPort` | порт на стороне SrcDevice |
+| 7 | `DstPort` | порт на стороне DstDevice |
+| 8 | `SrcPackets` | пакетов от SrcDevice |
+| 9 | `DstPackets` | пакетов от DstDevice |
+| 10 | `SrcBytes` | байт от SrcDevice |
+| 11 | `DstBytes` | байт от DstDevice |
 
-Devices are anonymised (`Comp132598`, some named such as `Mail`); non-well-known ports are
-anonymised (`Port12597`). **The unit/origin of `Time` is not specified by the source**, so the
-pipeline never converts it to a calendar date: windows are given in the same units as `Time`.
-Use `describe` to read the real range before declaring windows.
+Устройства обезличены (`Comp132598`, иногда имена вроде `Mail`), редкие порты тоже (`Port12597`).
+**Единицы и начало отсчёта `Time` источник не указывает**, поэтому в даты мы его не переводим: окна задаются
+в тех же единицах. Перед выбором окон посмотрите реальный диапазон командой `describe`.
+Логи событий Windows (`wls_day-NN.bz2`) не поддерживаются — работаем только с NetFlow.
 
-The Windows host-event logs (`wls_day-NN.bz2`) are **not** supported here; the benchmark
-works from netflow only.
+**Нормализованный поток:** `src, dst, dst_port, proto, bytes, packets, ts` (+ `src_port, duration, resp_bytes, resp_packets`):
+`src=SrcDevice, dst=DstDevice, dst_port=DstPort, proto=Protocol, bytes=SrcBytes, packets=SrcPackets, ts=Time`.
+Направление — от инициатора к получателю; поведенческие признаки считаются только по стороне инициатора.
+`host_id` — строка устройства как есть (регистр важен, `007` и `7` — разные хосты).
 
-### Canonical flows
+Битые строки (пустое устройство, нечисловые или отрицательные значения, пустой протокол или порт) выбрасываются
+и **считаются по причинам** в `manifest.json`. Неверное число полей — ошибка, с `--lenient` — просто считается.
 
-`src, dst, dst_port, proto, bytes, packets, ts` (+ `src_port, duration, resp_bytes, resp_packets`):
-
-`src=SrcDevice, dst=DstDevice, dst_port=DstPort, proto=Protocol, bytes=SrcBytes,
-packets=SrcPackets, ts=Time`. Direction is originator → responder; the responder's counters
-are kept as `resp_*` but the behavioural features (`evaluation.knn_consistency`) use only the
-originator direction. `host_id` is the device string as found (stripped; case-sensitive;
-`007` and `7` are different hosts).
-
-Invalid rows (blank device, non-numeric/negative values, blank protocol/port) are dropped
-and **counted by reason** in `manifest.json`; wrong field counts raise an error unless
-`--lenient` is given (then they are counted).
-
-## Run
+## Запуск
 
 ```bash
-# 1. look at the real Time range (no output files)
+# 1. посмотреть реальный диапазон Time (файлов не пишет)
 python -m pipeline.prepare describe --netflow data/raw/netflow_day-0*.bz2
 
-# 2. declare windows BEFORE looking at any model scores (see pipeline/example_config.json)
+# 2. объявить окна ДО просмотра любых результатов (пример — pipeline/example_config.json)
 python -m pipeline.prepare run --netflow data/raw/netflow_day-0*.bz2 \
     --config my_config.json --output-dir data/processed \
-    --data-kind lanl --source-note "LANL download form, <date>, <who>"   # omit both => 'unverified'
+    --data-kind lanl --source-note "форма LANL, <дата>, <кто>"   # без этих флагов данные помечаются 'unverified'
 
-# 3. freeze the evaluation references (validation and test targets)
+# 3. заморозить эталоны для оценки
 python -m pipeline.reference --processed-dir data/processed --output-dir data/reference
 ```
 
-Output of step 2 (`data/processed`): `flows/{train,validation,test}.csv`, `cohort.csv` (events per window and `evaluable_<window>`),
-`graph/edges_<window>.csv`, `manifest.json` (schema, config, per-reason invalid counts,
-SHA-256 of every input file, window statistics, leakage checks).
+Шаг 2 пишет в `data/processed`: `flows/{train,validation,test}.csv`, `cohort.csv` (активность хостов по окнам),
+`graph/edges_<окно>.csv`, `manifest.json` (схема, конфиг, причины отбраковки, SHA-256 входных файлов, проверки утечек).
 
-Output of step 3 (`data/reference/{validation,test}`): `features.csv`, `neighbors.csv`,
-`edges.csv`, `pairs.csv`, `triplets.csv`, `eval_hosts.csv`, `manifest.json` (+ `labels.csv` only when external
-labels are supplied with `--labels F --labels-source "…"`).
+Шаг 3 пишет в `data/reference/{validation,test}`: `features.csv`, `neighbors.csv`, `edges.csv`, `partners.csv`,
+`pairs.csv`, `triplets.csv`, `eval_hosts.csv`, `manifest.json` (+ `labels.csv`, только если переданы внешние метки
+через `--labels F --labels-source "…"`). Что в каждом файле — [`evaluation/README.md`](../evaluation/README.md).
 
-Models read only `ProcessedData.training_flows()` / `training_graph()` and the cohort:
+Модели читают только train-окно:
 
 ```python
 from pipeline.data import ProcessedData
@@ -76,82 +66,59 @@ d = ProcessedData("data/processed")
 flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort
 ```
 
-## Provenance: what the pipeline can and cannot claim
+## Происхождение данных
 
-LANL publishes no checksums this pipeline can compare against, so origin is **never verified**.
-Every processed dataset, reference and result carries one of three kinds (`pipeline/provenance.py`):
+LANL не публикует контрольных сумм, поэтому происхождение файлов **никогда не проверяется**. Каждый результат
+несёт одну из трёх пометок (`pipeline/provenance.py`):
 
-| `data_kind` | meaning |
+| `data_kind` | смысл |
 |---|---|
-| `synthetic_fixture` | `pipeline.fixtures` output (marker file, or the generator's device-ID signature even if the marker was deleted) |
-| `unverified` | **default for any other input**: nothing is claimed about where the bytes came from |
-| `lanl_declared` | the operator ran `--data-kind lanl --source-note "where/when obtained"`; file names must look like `netflow_day-NN.bz2` and the data must not match the fixture signature |
+| `synthetic_fixture` | синтетика из `pipeline.fixtures` (есть файл-маркер или узнаваемые ID генератора) |
+| `unverified` | **по умолчанию** для любых других файлов: про их происхождение ничего не утверждаем |
+| `lanl_declared` | оператор заявил `--data-kind lanl --source-note "…"`; имена файлов должны быть `netflow_day-NN.bz2` |
 
-`provenance_verified` is always `false`; a declaration is recorded as a declaration, with the note,
-the sanity-check results and per-file format statistics (`manifest.json: provenance`). Contradictory claims
-(a marker or fixture signature together with `--data-kind lanl`, a LANL claim without a source note) are
-refused. Reports and the dashboard print which kind applies; unverified or synthetic input is never
-presented as LANL.
+`provenance_verified` всегда `false`. Противоречивые заявления (синтетика с `--data-kind lanl`, LANL без
+`--source-note`) отклоняются. Отчёты и дашборд всегда показывают пометку; синтетика никогда не выдаётся за LANL.
 
-## Cohort policy and selection bias
+## Когорта: каких хостов оцениваем
 
-Which hosts are evaluated is decided in `prepare` before any model exists:
+Решается в `prepare`, до появления моделей:
 
-| `cohort_policy` | cohort | evaluable hosts per later window |
+| `cohort_policy` | когорта | кого оцениваем в позднем окне |
 |---|---|---|
-| `train_only` (**default**) | hosts active in the **train** window only | the cohort hosts also active in that window; references and metrics use them, coverage is reported |
-| `all_windows` | hosts active in **every** window | all (by construction) |
+| `train_only` (**по умолчанию**) | хосты, активные в train | те из них, кто активен и в этом окне; покрытие пишется в отчёт |
+| `all_windows` | хосты, активные во **всех** окнах | всех |
 
-`all_windows` lets *future* activity decide who is in the benchmark: it is a transductive **stable-host**
-benchmark. Models still receive no future flows or edges, but scores condition on host survival and
-overstate persistence, identity and link persistence for prospective use. It is kept for comparison.
-With `train_only`, hosts that vanish are simply not evaluable in that window; the manifest reports the
-coverage and a survivorship diagnostic (median train-window activity of hosts active in every window vs
-the others). A host-level cold-start or "disappeared host" analysis is not part of the metrics.
+`all_windows` выбирает хостов по их будущей активности: результаты завышают стабильность «выживших» хостов.
+Оставлен только для сравнения.
 
-## Temporal design and leakage prevention
+## Время и защита от утечки
 
-| window | used for |
+| окно | для чего |
 |---|---|
-| `train` | the only window models may fit on (flows, graph, features) |
-| `validation` | tuning decisions; references in `reference/validation` |
-| `test` | final reporting only; references in `reference/test` |
+| `train` | единственное окно, на котором учатся модели |
+| `validation` | подбор параметров; эталоны в `reference/validation` |
+| `test` | только итоговые числа; эталоны в `reference/test` |
 
-- Windows are half-open `[start, end)`, strictly ordered, non-overlapping (validated).
-- Flows are assigned by start time and **dropped if still running at the window end**
-  (`Time + Duration >= end`), so no flow carries information across a boundary.
-- One **cohort** is fixed in `prepare`, before any model exists (policy above); every method is evaluated
-  on the same hosts. The default policy uses no information from the validation or test windows.
-- References are built from the *target* window (later than `train`), from logs only.
-- Reference views are different questions and are never mixed (see `evaluation/` docs):
-  behavioural neighbours (`neighbors.csv`), future links (`edges.csv`), shared-peer structure
-  (`pairs.csv`, `triplets.csv`), and external labels (`labels.csv`, only if they exist).
-- `pairs`/`triplets` judge only clear cases (positive: peer-set Jaccard ≥ τ, negative: 0);
-  everything between is **unjudged and never treated as negative**.
-- No role labels are generated. A linear probe is *unavailable* unless real external labels
-  are supplied.
+- Окна — полуинтервалы `[start, end)`, строго по порядку, без пересечений (проверяется).
+- Поток относится к окну по времени начала и **выбрасывается**, если ещё идёт на границе (`Time + Duration >= end`).
+- Одна когорта на все методы, зафиксированная до моделей.
+- Эталоны строятся по более позднему окну и только из логов.
+- Разные эталоны — разные вопросы, их не смешиваем. Пары и тройки размечаются только в явных случаях;
+  всё между — не размечено и **не** считается «непохожим».
+- Метки ролей не генерируются. Линейный зонд недоступен без настоящих внешних меток.
 
-## Synthetic fixture (tests, CI, smoke runs)
+## Синтетика (тесты, CI, демо)
 
-`python -m pipeline.fixtures --output-dir data/fixture` writes files in the **exact LANL
-layout** plus a `SYNTHETIC_FIXTURE` marker; everything built from them is stamped
-`synthetic: true` and the marker cannot be overridden with `--data-kind lanl`. Results on
-the fixture say nothing about LANL.
+`python -m pipeline.fixtures --output-dir data/fixture` пишет файлы **ровно в формате LANL** и маркер
+`SYNTHETIC_FIXTURE`; всё, что из них построено, помечено `synthetic: true`. Результаты на синтетике ничего не говорят о LANL.
 
-## What is needed to run the real experiment
+## Что нужно для настоящего эксперимента
 
-1. Download `netflow_day-NN.bz2` files via the LANL form (one file is one day; a few days
-   suffice for a first run). The download links issued by the form are tokenised and expire.
-2. `describe` them, choose train/validation/test windows in `Time` units, run steps 2–3.
-3. Provide embeddings from the real methods (`host_id, emb_*`, one file per method trained
-   on the `train` window only), or use the baselines in `benchmark/baselines`.
+1. Скачать файлы `netflow_day-NN.bz2` через форму LANL (один файл — один день; для начала хватит нескольких дней).
+   Ссылки из формы одноразовые.
+2. `describe`, выбрать окна train / validation / test в единицах `Time`, выполнить шаги 2–3.
+3. Прогнать методы: `python -m experiments.end_to_end … --methods all` (см. [`experiments/README.md`](../experiments/README.md)).
 
-## Credit
-
-The first outline of a "normalised events → graph → reference" builder came from PR #37
-(`kalivixZ`); this pipeline replaces its single-window prototype with a LANL reader,
-temporal windows, a fixed cohort and leakage checks.
-
-## Tests
-
-`python -m pytest -q pipeline`
+Тесты: `python -m pytest -q pipeline`. Первый набросок «события → граф → эталон» был в PR #37 (Даня);
+этот пайплайн заменил его однооконный прототип.

@@ -1,4 +1,4 @@
-"""Access to a processed dataset with the training/held-out boundary made explicit."""
+"""Доступ к подготовленному датасету с явной границей «обучение / отложенные окна»."""
 from __future__ import annotations
 
 import json
@@ -30,7 +30,7 @@ class ProcessedData:
 
     @property
     def kind(self) -> str:
-        """synthetic_fixture | unverified | lanl_declared (see pipeline.provenance)."""
+        """synthetic_fixture | unverified | lanl_declared (см. pipeline.provenance)."""
         return self.manifest.get("data_kind", "unverified")
 
     @property
@@ -38,7 +38,7 @@ class ProcessedData:
         return self.manifest["cohort"].get("policy", "all_windows")
 
     def evaluable(self, window: str) -> list[str]:
-        """Cohort hosts active in `window` (all cohort hosts for the train window)."""
+        """Хосты когорты, активные в окне (для train — вся когорта)."""
         if window == "train":
             return list(self.cohort)
         if window not in self._evaluable:
@@ -47,11 +47,11 @@ class ProcessedData:
 
     @property
     def windows(self) -> list[str]:
-        """Window names in chronological order (train, validation, test)."""
+        """Окна по времени (train, validation, test)."""
         return [w for w in ORDER if w in self.manifest["windows"]]
 
     def flows(self, window: str) -> pd.DataFrame:
-        """Canonical flows of one window (any window; prefer training_flows for model fitting)."""
+        """Потоки одного окна (для обучения используйте training_flows)."""
         if window not in self.manifest["windows"]:
             raise KeyError(f"unknown window {window!r}; have {self.windows}")
         return pd.read_csv(self.root / "flows" / f"{window}.csv", dtype=FLOW_DTYPES)
@@ -60,7 +60,7 @@ class ProcessedData:
         return pd.read_csv(self.root / "graph" / f"edges_{window}.csv",
                            dtype={"host_a": "string", "host_b": "string"})
 
-    # --- model inputs: ONLY the training window -------------------------------------------
+    # --- вход моделей: ТОЛЬКО train-окно -------------------------------------------------
     def training_flows(self) -> pd.DataFrame:
         return self.flows("train")
 

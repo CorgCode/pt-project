@@ -1,9 +1,8 @@
-"""Read-only access to a benchmark run bundle (no Streamlit import; unit-testable).
+"""Чтение результата прогона только на чтение (без Streamlit, легко тестировать).
 
-A bundle is either `demo/synthetic_run` (run/, reference/, processed_manifest.json) or the
-`--workdir` of `experiments.end_to_end` (run/, reference/, processed/). Everything shown by the
-dashboard comes from these verified artifacts; nothing is recomputed except per-host views that
-are derived from the saved embeddings and the frozen reference neighbours.
+Прогон — это demo/synthetic_run (run/, reference/, processed_manifest.json) или --workdir от
+experiments.end_to_end (run/, reference/, processed/). Дашборд показывает только сохранённые файлы;
+пересчитываются лишь виды по хостам из сохранённых эмбеддингов и замороженных соседей.
 """
 from __future__ import annotations
 
@@ -42,11 +41,11 @@ CHANCE = {"link_roc_auc": 0.5, "link_learned_roc_auc": 0.5, "link_new_roc_auc": 
 
 
 class BundleError(ValueError):
-    """The directory is not a valid run bundle."""
+    """Папка не является прогоном."""
 
 
 def discover(repo_root: Path) -> list[Path]:
-    """Bundles found in the repo: the committed demo plus any runs/<name>."""
+    """Прогоны в репозитории: демо и любые runs/<имя>."""
     found = []
     demo = repo_root / "demo" / "synthetic_run"
     if (demo / "run" / "manifest.json").exists():
@@ -63,15 +62,15 @@ class Bundle:
             raise BundleError(f"{root}: no run/manifest.json (run `python -m experiments.end_to_end` first)")
         self.root, self.run = root, run
         self.manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
-        self.kind = self.manifest.get("data_kind", "unverified")      # old bundles without a kind: unverified
+        self.kind = self.manifest.get("data_kind", "unverified")      # старые прогоны без пометки — unverified
         self.synthetic = self.kind == "synthetic_fixture"
-        self.provenance_verified = False                              # the pipeline never verifies provenance
+        self.provenance_verified = False                              # пайплайн никогда не проверяет происхождение
         base = run.parent
         self.ref_dir = base / "reference"
         pm = [base / "processed_manifest.json", base / "processed" / "manifest.json"]
         self.processed_manifest = next((json.loads(p.read_text()) for p in pm if p.exists()), None)
 
-    # ------------------------------------------------------------------ basic info
+    # ------------------------------------------------------------------ общие сведения
     @property
     def targets(self) -> list[str]:
         return [t for t in TARGET_ORDER if (self.run / "results" / t).exists()]
@@ -113,9 +112,9 @@ class Bundle:
         p = self.ref_dir / target / "manifest.json"
         return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
-    # ------------------------------------------------------------------ tables
+    # ------------------------------------------------------------------ таблицы
     def board(self, target: str, keys: list[str] | None = None) -> pd.DataFrame:
-        """methods x metric (point estimates); missing metrics are NaN, never filled."""
+        """Методы x метрики; пропущенные метрики — NaN, ничем не заполняются."""
         res = self.results(target)
         keys = keys or [k for g in METRIC_GROUPS.values() for k, _ in g]
         rows = {m: {k: r["metrics"].get(k, np.nan) for k in keys} for m, r in res.items()}
@@ -136,7 +135,7 @@ class Bundle:
                 "share_positives_seen_in_source": d.get("share_positives_seen_in_source"),
                 "n_examples": d.get("n_examples")}
 
-    # ------------------------------------------------------------------ embeddings and neighbourhoods
+    # ------------------------------------------------------------------ эмбеддинги и соседи
     def embedding(self, method: str) -> pd.DataFrame:
         p = self.run / "embeddings" / method / "train.csv"
         if not p.exists():
@@ -144,14 +143,14 @@ class Bundle:
         return load_embeddings(p)
 
     def eval_hosts(self) -> list[str]:
-        """Hosts the saved test reference covers (the evaluable hosts of the test window)."""
+        """Хосты, которые покрывает сохранённый test-эталон."""
         p = self.ref_dir / "test" / "eval_hosts.csv"
         if p.exists():
             return pd.read_csv(p, dtype=str)["host_id"].tolist()
         return sorted(self.reference_neighbors()["host_id"].unique())
 
     def scored_embedding(self, method: str) -> pd.DataFrame:
-        """The embedding restricted to the hosts that were actually scored."""
+        """Эмбеддинг только по реально оцененным хостам."""
         emb = self.embedding(method)
         return emb.loc[self.eval_hosts()] if self.has_neighbors() else emb
 
@@ -165,7 +164,7 @@ class Bundle:
         return pd.read_csv(p, dtype={"host_id": str, "neighbor_id": str})
 
     def per_host_agreement(self, method: str, k: int = 10) -> pd.Series:
-        """Per-host Consistency@k between the embedding neighbours and the frozen reference."""
+        """Consistency@k по каждому хосту между соседями в эмбеддинге и замороженными соседями."""
         emb = self.scored_embedding(method)
         ref = read_frozen_neighbors(self.ref_dir / "test" / "neighbors.csv", list(emb.index), k_max=k, split="test")
         ph = neighborhood_metrics(ref[:, :k], top_k_neighbors(emb.to_numpy(float), k))
@@ -173,7 +172,7 @@ class Bundle:
         return ph["consistency"]
 
     def projection(self, method: str, k: int = 10) -> pd.DataFrame:
-        """2D PCA of the scored embedding; per-host agreement attached when the reference is present."""
+        """2D PCA оцениваемого эмбеддинга; совпадение по хостам, если есть эталон."""
         emb = self.scored_embedding(method)
         if emb.shape[1] < 2:
             raise BundleError("embedding has a single dimension; no 2D projection")
@@ -184,7 +183,7 @@ class Bundle:
         return df
 
     def neighborhood(self, method: str, host: str, k: int = 10) -> pd.DataFrame:
-        """Embedding neighbours of `host` with cosine and whether the reference also lists them."""
+        """Соседи host в эмбеддинге с косинусом и пометкой, есть ли они в эталоне."""
         emb = self.scored_embedding(method)
         if host not in emb.index:
             raise BundleError(f"unknown host {host!r}")

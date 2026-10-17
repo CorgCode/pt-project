@@ -1,4 +1,4 @@
-"""Tests for cross-window reference generation (synthetic flows, NOT LANL)."""
+"""Тесты эталона из другого окна (синтетические потоки, НЕ LANL)."""
 from __future__ import annotations
 
 import json
@@ -45,7 +45,7 @@ def test_generates_reference_and_evaluates(tmp_path):
     assert 0 <= manifest["reference_neighbor_stability"]["consistency@5"] <= 1
     assert json.loads((tmp_path / "reference" / "manifest.json").read_text()) == manifest
 
-    # Existing evaluator runs unchanged using the generated held-out reference.
+    # оценка работает без изменений на построенном отложенном эталоне
     rng = np.random.default_rng(0)
     embeddings = pd.DataFrame(rng.normal(size=(25, 4)),
                               columns=[f"emb_{i}" for i in range(4)])
@@ -91,7 +91,7 @@ def test_refuses_bad_input(tmp_path, col, value):
     first, _ = flows_file(tmp_path, "train.csv")
     df = pd.read_csv(first)
     if col == "ts":
-        df[col] = df[col].astype(object)  # pandas >=3 disallows strings in int columns
+        df[col] = df[col].astype(object)  # pandas >= 3 не пускает строки в int-колонки
     df.loc[0, col] = value
     df.to_csv(first, index=False)
     with pytest.raises(ValueError):

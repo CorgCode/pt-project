@@ -1,4 +1,4 @@
-"""Protocol-level regression tests for the experiment runner (review of #51)."""
+"""Регрессионные тесты протокола запуска экспериментов (ревью #51)."""
 import bz2
 import json
 import shutil
@@ -21,7 +21,7 @@ FAST = dict(dim=6, n_boot=0, audit_configs=2, null_draws=3)
 
 
 def rewrite(src_dir, dst_dir, fn, keep_marker=True):
-    """Copy a fixture, mapping each raw line through fn(fields) -> fields | None."""
+    """Скопировать синтетику, пропустив каждую сырую строку через fn(fields) -> fields | None."""
     dst_dir.mkdir(parents=True, exist_ok=True)
     for f in sorted(src_dir.glob("netflow_day-*.bz2")):
         with bz2.open(f, "rt") as fh:
@@ -47,10 +47,10 @@ def base_raw(tmp_path_factory):
     return d
 
 
-# ------------------------------------------------------------------ attrition under the train-only cohort
+# ---------------------------------------------------------------- выбывание хостов при когорте train_only
 @pytest.fixture(scope="module")
 def attrition(base_raw, tmp_path_factory):
-    silent = {f"Comp{100000 + 7 * i:06d}" for i in range(0, 130, 6)}              # ~17% vanish in the test window
+    silent = {f"Comp{100000 + 7 * i:06d}" for i in range(0, 130, 6)}              # ~17% пропадают в test-окне
     raw = rewrite(base_raw, tmp_path_factory.mktemp("attr_raw"),
                   lambda f: None if float(f[0]) >= 32400 and (f[2] in silent or f[3] in silent) else f)
     tmp = tmp_path_factory.mktemp("attr")
@@ -98,10 +98,10 @@ def test_all_windows_policy_changes_the_population_and_says_so(base_raw, tmp_pat
     assert "transductive" in (tmp_path / "run" / "report.md").read_text()
 
 
-# ------------------------------------------------------------------ leakage: scored embeddings depend on train only
+# ---------------------------------------------------------------- утечка: оцениваемые эмбеддинги зависят только от train
 def test_scored_embeddings_do_not_depend_on_future_windows(base_raw, tmp_path):
     a, _ = pipeline_for(base_raw, tmp_path / "a")
-    shifted = rewrite(base_raw, tmp_path / "raw_b",                   # perturb ONLY flows after the train window
+    shifted = rewrite(base_raw, tmp_path / "raw_b",                   # меняем ТОЛЬКО потоки после train-окна
                       lambda f: f if float(f[0]) < 21600 else [*f[:6], "9999", f[7], f[8], str(int(float(f[9])) * 7 + 3), f[10]])
     b, _ = pipeline_for(shifted, tmp_path / "b")
     da, db = ProcessedData(a), ProcessedData(b)
@@ -112,7 +112,7 @@ def test_scored_embeddings_do_not_depend_on_future_windows(base_raw, tmp_path):
         np.testing.assert_allclose(ea.to_numpy(), eb.to_numpy(), err_msg=ba.name)
 
 
-# ------------------------------------------------------------------ reproducibility
+# ---------------------------------------------------------------- воспроизводимость
 def _canon(path, root):
     t = path.read_text(encoding="utf-8").replace(str(root), "<run>")
     return json.loads(t) if path.suffix == ".json" else t
@@ -142,9 +142,9 @@ def test_different_seed_changes_random_baseline_but_not_deterministic_ones(proce
     assert load("s0", "behavioral")["triplet_accuracy"] == load("s1", "behavioral")["triplet_accuracy"]
 
 
-# ------------------------------------------------------------------ reports never blur synthetic / unverified / declared
+# ---------------------------------------------------------------- отчёты никогда не путают синтетику / непроверенное / заявленное
 def relabelled(base_raw, tmp, seed=1):
-    """Same traffic, device IDs remapped to random numbers, marker removed: no fixture signature."""
+    """Тот же трафик, ID устройств заменены случайными, маркер убран: подписи генератора нет."""
     rng = np.random.default_rng(seed)
     ids = sorted({f[2] for f in _lines(base_raw)} | {f[3] for f in _lines(base_raw)})
     new = dict(zip(ids, (f"Comp{n}" for n in rng.choice(np.arange(100000, 999999), len(ids), replace=False))))
@@ -197,7 +197,7 @@ def test_every_result_file_carries_the_kind(other_kinds, attrition):
             assert json.loads(p.read_text())["reference_info"]["data_kind"] == kind
 
 
-# ------------------------------------------------------------------ external submissions and leakage
+# ---------------------------------------------------------------- внешние методы и утечка
 def submission(tmp, processed, name="mymodel", provenance=None):
     d = ProcessedData(processed)
     sub = tmp / "subs" / name

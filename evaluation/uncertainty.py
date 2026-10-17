@@ -1,4 +1,4 @@
-"""Bootstrap uncertainty and prevalence handling for sampled evaluations."""
+"""Бутстреп-интервалы и поправка на долю положительных в выборке."""
 from __future__ import annotations
 
 from typing import Callable
@@ -10,11 +10,10 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 
 def bootstrap_ci(stat: Callable[[np.ndarray], float], n_items: int, *, n_boot: int = 200,
                  seed: int = 0, level: float = 0.95) -> tuple[float, float] | None:
-    """Percentile CI of stat(index_array) over resampled items (rows/hosts/pairs).
+    """Процентильный интервал stat(индексы) по пересэмплированным элементам (строкам, хостам, парам).
 
-    Resampling units are the evaluation items; it captures sampling variability of the
-    fixed evaluation set, NOT variability from model training seeds or reference choice.
-    Returns None if n_boot == 0 or no valid replicate exists.
+    Описывает только случайность выбора оцениваемых элементов, а не разброс по seed модели или выбору эталона.
+    None, если n_boot == 0 или не получилось ни одного валидного повтора.
     """
     if n_boot <= 0 or n_items < 2:
         return None
@@ -23,7 +22,7 @@ def bootstrap_ci(stat: Callable[[np.ndarray], float], n_items: int, *, n_boot: i
     for _ in range(n_boot):
         try:
             v = stat(rng.integers(0, n_items, n_items))
-        except ValueError:                       # e.g. a replicate with a single class
+        except ValueError:                       # например, в повторе остался один класс
             continue
         if np.isfinite(v):
             vals.append(v)
@@ -34,19 +33,18 @@ def bootstrap_ci(stat: Callable[[np.ndarray], float], n_items: int, *, n_boot: i
 
 
 def host_index(*columns) -> tuple[list[np.ndarray], int]:
-    """Integer host indices for parallel columns of host IDs (same ID -> same integer)."""
+    """Целые индексы хостов для параллельных колонок ID (один ID — одно число)."""
     flat = pd.Index(pd.unique(np.concatenate([np.asarray(c, dtype=object) for c in columns])))
     return [flat.get_indexer(np.asarray(c, dtype=object)) for c in columns], len(flat)
 
 
 def dyadic_bootstrap_ci(stat: Callable[[np.ndarray], float], host_cols: list[np.ndarray], n_hosts: int, *,
                         n_boot: int = 200, seed: int = 0, level: float = 0.95) -> tuple[float, float] | None:
-    """Host-cluster bootstrap for metrics over pairs/triplets that SHARE hosts.
+    """Бутстреп по хостам для метрик на парах и тройках, которые делят хостов.
 
-    Pairs are not independent (a host appears in many of them), so resampling pairs understates the
-    variance. Here HOSTS are resampled with replacement; an item involving hosts (a, b[, c]) gets weight
-    count[a] * count[b] [* count[c]], i.e. it appears as often as all its endpoints were drawn together.
-    `stat(weights)` must compute the weighted metric. Still covers evaluation-set sampling only.
+    Пары не независимы (хост встречается во многих), и пересэмплирование пар занижает разброс.
+    Здесь пересэмплируются ХОСТЫ; элемент с хостами (a, b[, c]) получает вес count[a] * count[b] [* count[c]].
+    stat(weights) должен считать взвешенную метрику.
     """
     if n_boot <= 0 or n_hosts < 3:
         return None
@@ -59,7 +57,7 @@ def dyadic_bootstrap_ci(stat: Callable[[np.ndarray], float], host_cols: list[np.
             w = w * counts[col]
         try:
             v = stat(w)
-        except ValueError:                       # a replicate that lost a class
+        except ValueError:                       # в повторе пропал один из классов
             continue
         if np.isfinite(v):
             vals.append(v)
@@ -71,10 +69,10 @@ def dyadic_bootstrap_ci(stat: Callable[[np.ndarray], float], host_cols: list[np.
 
 def auc_with_ci(labels: np.ndarray, scores: np.ndarray, *, n_boot: int = 200, seed: int = 0,
                 hosts: tuple[list[np.ndarray], int] | None = None) -> dict:
-    """ROC-AUC / PR-AUC with bootstrap intervals.
+    """ROC-AUC / PR-AUC с бутстреп-интервалами.
 
-    hosts=(index columns, n_hosts) selects the host-cluster bootstrap (pairs share hosts); without it
-    the items are resampled independently (valid only if they really are independent).
+    hosts=(колонки индексов, n_hosts) — бутстреп по хостам (пары делят хостов); без него элементы
+    пересэмплируются независимо (корректно, только если они правда независимы).
     """
     labels = np.asarray(labels).astype(int)
     out = {"roc_auc": float(roc_auc_score(labels, scores)),
@@ -97,12 +95,11 @@ def auc_with_ci(labels: np.ndarray, scores: np.ndarray, *, n_boot: int = 200, se
 
 def reweighted_average_precision(labels: np.ndarray, scores: np.ndarray,
                                  target_prevalence: float) -> float:
-    """AP as if the candidate pool had positive rate `target_prevalence`.
+    """PR-AUC (AP) так, будто доля положительных среди кандидатов равна target_prevalence.
 
-    Negatives are up-weighted so that  sum(w_neg)/sum(w_pos) = (1-pi)/pi. This corrects the
-    class prior of a sampled candidate set (e.g. 1:1 sampling) so PR-AUC is comparable with
-    a natural, much lower positive rate. It does not remove sampling bias in WHICH negatives
-    were drawn (uniform random pairs are easier than hard negatives).
+    Отрицательные получают вес, чтобы sum(w_neg)/sum(w_pos) = (1-pi)/pi. Так PR-AUC на выборке 1:1
+    сравним с настоящей, гораздо меньшей долей. Сложность самих отрицательных (случайные пары проще
+    «трудных») это не исправляет.
     """
     labels = np.asarray(labels).astype(int)
     if not 0 < target_prevalence < 1:

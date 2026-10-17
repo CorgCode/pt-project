@@ -31,7 +31,7 @@ def test_flows_stay_inside_their_windows(processed):
     for w, (lo, hi) in CONFIG.windows.items():
         f = d.flows(w)
         assert f.ts.min() >= lo and f.ts.max() < hi
-        assert ((f.ts + f.duration) < hi).all()          # nothing straddles the boundary
+        assert ((f.ts + f.duration) < hi).all()          # через границу ничего не проходит
 
 
 def test_no_temporal_leakage_between_windows(processed):
@@ -75,7 +75,7 @@ def test_training_inputs_are_train_window_only(processed):
 def test_deterministic_rerun(raw_fixture, tmp_path):
     files = sorted(raw_fixture.glob("netflow_day-*.bz2"))
     a = prepare(files, CONFIG, tmp_path / "a")
-    b = prepare(files, CONFIG, tmp_path / "b", chunksize=3000)    # different chunking
+    b = prepare(files, CONFIG, tmp_path / "b", chunksize=3000)    # другое разбиение на куски
     assert a["cohort"]["sha256"] == b["cohort"]["sha256"]
     for w in ("train", "validation", "test"):
         da = pd.read_csv(tmp_path / "a" / "flows" / f"{w}.csv").sort_values(list(pd.read_csv(tmp_path / "a" / "flows" / f"{w}.csv").columns)).reset_index(drop=True)
@@ -122,8 +122,8 @@ def test_straddling_flows_dropped_and_counted(tmp_path):
         f.write("\n".join(rows) + "\n")
     cfg = PipelineConfig(windows={"train": (0, 300), "test": (300, 400)}, min_events_per_window=1)
     m = prepare([raw / "netflow_day-01.bz2"], cfg, tmp_path / "o")
-    assert m["counts"]["straddling_dropped_train"] == 30      # t=299, duration 50 crosses 300
-    assert m["windows"]["train"]["n_flows"] == 120       # 4 per host
+    assert m["counts"]["straddling_dropped_train"] == 30      # t=299, длительность 50 — пересекает 300
+    assert m["windows"]["train"]["n_flows"] == 120       # по 4 на хост
 
 
 def test_describe_reports_time_range(raw_fixture):

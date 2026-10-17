@@ -29,7 +29,7 @@ def test_registered_with_defaults_and_validation():
         with pytest.raises(ValueError, match="positive"):
             Node2Vec(dim=4, **bad)
     with pytest.raises(ValueError, match="unknown parameter"):
-        Node2Vec(dim=4, objective="hs")                 # node2vec is negative sampling only
+        Node2Vec(dim=4, objective="hs")                 # node2vec — только negative sampling
     assert m.info()["params"]["q"] == 1.0 and m.info()["reference"]
 
 
@@ -37,7 +37,7 @@ def test_p_and_q_equal_to_one_reproduce_deepwalk_with_negative_sampling(data):
     kw = dict(dim=6, seed=3)
     n2v = Node2Vec(**kw, **FAST).fit(data).embed(data, "train")
     dw = DeepWalk(**kw, **FAST, objective="neg").fit(data).embed(data, "train")
-    assert np.array_equal(n2v.to_numpy(), dw.to_numpy())             # identical walks, objective and seeds
+    assert np.array_equal(n2v.to_numpy(), dw.to_numpy())             # одинаковые блуждания, цель и seed
 
 
 def test_bias_changes_the_embedding_and_is_recorded(data):
@@ -68,7 +68,7 @@ def community_gap(q, seed):
 
 
 def test_low_q_separates_communities_better_than_high_q():
-    """The paper's homophily claim (DFS-like walks, q < 1): a consistent, monotone effect across graphs."""
+    """Утверждение статьи про гомофилию (блуждания вглубь, q < 1): устойчивый монотонный эффект на разных графах."""
     gaps = {q: np.mean([community_gap(q, s) for s in range(4)]) for q in (0.25, 1.0, 4.0)}
     assert gaps[0.25] > gaps[1.0] > gaps[4.0], gaps
     assert gaps[0.25] - gaps[4.0] > 0.05

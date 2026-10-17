@@ -17,7 +17,7 @@ class Guard(ProcessedData):
 
 
 class PortsShuffled(ProcessedData):
-    """Same data with the destination-port column permuted in EVERY window."""
+    """Те же данные, но колонка порта назначения перемешана в КАЖДОМ окне."""
 
     def _shuf(self, df):
         out = df.copy()
@@ -55,7 +55,7 @@ def test_port_free_embedding_is_invariant_to_port_values_but_the_full_one_is_not
             hosts = d.evaluable("test")
             a = cls().fit(d).embed(d, window, hosts).to_numpy()
             b = cls().fit(s).embed(s, window, hosts).to_numpy()
-            assert np.array_equal(a, b), window                                       # bit for bit
+            assert np.array_equal(a, b), window                                       # бит в бит
     assert not np.array_equal(BehavioralBaseline().fit(d).embed(d, "train").to_numpy(),
                               BehavioralBaseline().fit(s).embed(s, "train").to_numpy())
 

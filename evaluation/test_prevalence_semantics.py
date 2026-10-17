@@ -1,8 +1,8 @@
-"""Regression tests for the prevalence semantics of the shared-peer judgments (review of #50).
+"""Смысл доли положительных у пар по общим собеседникам (ревью #50).
 
-The positive rate computed from the manifest's judged counts is conditional on a pair being judged
-(J >= tau or J == 0). It must not be called natural/population prevalence, and a large unjudged share
-must change the population rate but not the judged-conditional quantities.
+Доля, посчитанная по размеченным парам манифеста, — условная (пара размечена: J >= tau или J == 0).
+Её нельзя называть долей «по всем парам», а большая доля неразмеченных должна менять долю по всем парам,
+но не условные величины.
 """
 import json
 import shutil
@@ -27,7 +27,7 @@ def emb_path(processed, tmp_path_factory):
 
 
 def with_judgments(reference, tmp_path, **changes):
-    """Copy the test reference and rewrite counts in its manifest (the pairs file is untouched)."""
+    """Скопировать test-эталон и переписать счётчики в манифесте (файл пар не трогаем)."""
     dst = tmp_path / "ref"
     shutil.copytree(reference / "test", dst)
     m = json.loads((dst / "manifest.json").read_text())
@@ -42,7 +42,7 @@ def test_no_pair_metric_is_called_natural(reference, emb_path):
     assert "pair_pr_auc_at_judged_prevalence" in r["metrics"]
     d = r["metric_details"]["pairwise_auc"]
     assert {"judged_population_prevalence", "population_positive_rate", "unjudged_share"} <= set(d)
-    assert "judged" in d["interpretation"] and "not a population AP" in d["interpretation"]
+    assert "размеченных" in d["interpretation"] and "не среди всех пар" in d["interpretation"]
 
 
 def test_judged_prevalence_is_conditional_on_judged_pairs(reference, emb_path):
@@ -52,7 +52,7 @@ def test_judged_prevalence_is_conditional_on_judged_pairs(reference, emb_path):
         j["n_positive_pairs"] / (j["n_positive_pairs"] + j["n_negative_pairs"]))
     assert d["population_positive_rate"] == pytest.approx(j["n_positive_pairs"] / j["n_possible_pairs"])
     assert d["unjudged_share"] == pytest.approx(j["n_unjudged_pairs"] / j["n_possible_pairs"])
-    assert d["population_positive_rate"] < d["judged_population_prevalence"]       # unjudged share is large
+    assert d["population_positive_rate"] < d["judged_population_prevalence"]       # неразмеченных много
 
 
 def test_large_unjudged_share_moves_population_rate_not_judged_quantities(reference, emb_path, tmp_path):
@@ -64,8 +64,8 @@ def test_large_unjudged_share_moves_population_rate_not_judged_quantities(refere
     big = run(emb_path, ref2, "m")
     b, g = base["metric_details"]["pairwise_auc"], big["metric_details"]["pairwise_auc"]
     assert g["unjudged_share"] > b["unjudged_share"]
-    assert g["population_positive_rate"] < b["population_positive_rate"] / 5     # population rate collapses
-    assert g["judged_population_prevalence"] == b["judged_population_prevalence"]    # judged-conditional unchanged
+    assert g["population_positive_rate"] < b["population_positive_rate"] / 5     # доля по всем парам падает
+    assert g["judged_population_prevalence"] == b["judged_population_prevalence"]    # условные величины не меняются
     assert big["metrics"]["pair_pr_auc_at_judged_prevalence"] == base["metrics"]["pair_pr_auc_at_judged_prevalence"]
 
 
@@ -92,7 +92,7 @@ def test_pair_auc_has_no_natural_prevalence_argument():
 
 
 def test_link_natural_prevalence_is_over_all_cohort_pairs(reference, emb_path, processed):
-    """Link labels are complete (every pair either communicated or not), so natural prevalence is well defined."""
+    """Метки связей полные (пара либо общалась, либо нет), поэтому настоящая доля определена."""
     r = run(emb_path, reference / "test", "m")
     n = r["n_hosts"]
     ed = pd.read_csv(reference / "test" / "edges.csv")
@@ -100,7 +100,7 @@ def test_link_natural_prevalence_is_over_all_cohort_pairs(reference, emb_path, p
     assert r["metric_details"]["future_link_prediction"]["natural_prevalence"] == pytest.approx(expected)
 
 
-# ---------------------------------------------------------------- evaluable-host subsetting (train_only cohort)
+# ---------------------------------------------------------------- оцениваемые хосты (когорта train_only)
 def test_evaluator_scores_exactly_the_evaluable_hosts(reference, emb_path, processed):
     r = run(emb_path, reference / "test", "m")
     ev = pd.read_csv(reference / "test" / "eval_hosts.csv").host_id.tolist()
@@ -114,7 +114,7 @@ def test_embedding_missing_an_evaluable_host_is_refused(reference, emb_path, tmp
     short = df[df.host_id != ev[0]]
     p = tmp_path / "short.csv"
     short.to_csv(p, index=False)
-    with pytest.raises(ValueError, match="evaluable hosts"):
+    with pytest.raises(ValueError, match="оцениваемых хостов"):
         run(p, reference / "test", "m")
 
 
@@ -129,15 +129,15 @@ def test_extra_non_evaluable_hosts_in_the_embedding_do_not_change_scores(referen
 
 
 def test_the_scored_host_list_is_part_of_the_reference_fingerprint(reference, emb_path, tmp_path):
-    """eval_hosts.csv decides which hosts are scored, so a change in it must change the fingerprint."""
+    """eval_hosts.csv решает, кого оценивать, поэтому его изменение меняет отпечаток."""
     r = run(emb_path, reference / "test", "m")
     assert "eval_hosts.csv" in r["reference_info"]["files_sha256"]
     other = tmp_path / "ref"
     shutil.copytree(reference / "test", other)
     hosts = pd.read_csv(other / "eval_hosts.csv", dtype=str)
-    hosts.iloc[:-1].to_csv(other / "eval_hosts.csv", index=False)               # one host fewer
+    hosts.iloc[:-1].to_csv(other / "eval_hosts.csv", index=False)               # на одного хоста меньше
     try:
         r2 = run(emb_path, other, "m")
     except ValueError:
-        return                                                                  # inconsistent reference refused outright
+        return                                                                  # несогласованный эталон отклоняется сразу
     assert r2["reference_info"]["files_sha256"]["eval_hosts.csv"] != r["reference_info"]["files_sha256"]["eval_hosts.csv"]

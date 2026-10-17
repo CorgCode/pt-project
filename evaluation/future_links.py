@@ -1,16 +1,13 @@
-"""Future-link prediction with ONE frozen candidate pool shared by all methods.
+"""Прогноз будущих связей на ОДНОМ замороженном наборе кандидатов для всех методов.
 
-This evaluates presence/absence of a communication edge in a *later* window.
-It is NOT a classification of host functional roles.
+Проверяем, будет ли связь между парой хостов в более позднем окне. Это не классификация ролей.
 
-Usage:
   python -m evaluation.future_links build --source-flows train.csv \
     --target-flows test.csv --hosts embeddings.csv --output reference/edges.csv
   python -m evaluation.future_links score --embeddings embeddings.csv \
     --edges reference/edges.csv --output results/link_prediction.json
 
-Required canonical flows: src,dst,dst_port,proto,bytes,packets,ts.
-Undirected edge = >=1 observed flow in either direction.
+Связь (неориентированная) — хотя бы один поток в любую сторону.
 """
 from __future__ import annotations
 
@@ -53,11 +50,10 @@ def build_edges(
     negatives_per_positive: int = 1,
     split: str = "test",
 ) -> pd.DataFrame:
-    """Generate deterministic balanced-ish candidate pairs for an explicit cohort.
+    """Детерминированный набор кандидатов для заданной когорты: положительные + случайные отрицательные.
 
-    No per-method candidate generation. Uses rejection sampling among all
-    possible unordered host pairs to avoid O(n^2) candidate enumeration.
-    Sampling is conditional on this population; PR-AUC is NOT deployment AP.
+    Отрицательные выбираются случайно с отбраковкой, без перебора всех O(n^2) пар.
+    PR-AUC на такой выборке — не PR-AUC «в бою».
     """
     if not 0 < negatives_per_positive <= 100:
         raise ValueError("negatives_per_positive must be from 1 to 100")
@@ -83,8 +79,8 @@ def build_edges(
     rng = np.random.default_rng(seed)
     negatives: set[tuple[str, str]] = set()
     pos_set = set(positives)
-    # Rejection sampling is fast when candidate negatives are not too dense.
-    # Sampling never relies on embedding scores.
+    # отбраковка быстрая, пока отрицательных не слишком много
+    # эмбеддинги в выборе не участвуют
     retries = 0
     max_retries = max(10000, requested * 100)
     while len(negatives) < requested:
@@ -94,8 +90,8 @@ def build_edges(
             negatives.add(pair)
         retries += 1
         if retries > max_retries:
-            # Near-exhausted space: an explicit enumeration is only acceptable
-            # for sufficiently small networks.
+            # пространство почти исчерпано: полный перебор допустим только
+            # для небольших сетей
             if all_pairs_count > 1_000_000:
                 raise RuntimeError(
                     "Rejection sampling exhausted. Reduce negative ratio or "
@@ -128,8 +124,8 @@ def build_edges(
         for a, b in sorted(negatives)
     ]
     out = pd.DataFrame(rows, columns=FIELDS)
-    # Persisting links (already seen in the source window) are far easier to predict
-    # than genuinely new ones; keep the flag so both can be reported separately.
+    # связи, которые уже были в source-окне, предсказать гораздо проще, чем новые;
+    # сохраняем флаг, чтобы считать их отдельно
     seen = observed_edges(source, population)
     out["seen_in_source"] = [
         _pair(a, b) in seen for a, b in zip(out["host_a"], out["host_b"])
@@ -163,7 +159,7 @@ def score_embeddings(
     embedding: pd.DataFrame, edges: pd.DataFrame,
     *, split: str = "test", n_boot: int = 0, seed: int = 0,
 ) -> dict:
-    """Score EXACT saved candidates. Unknown hosts are an error, not filtered."""
+    """Оценить РОВНО сохранённых кандидатов. Неизвестный хост — ошибка, а не пропуск."""
     edges = edges[edges["split"] == split]
     if edges.empty:
         raise ValueError(f"No candidate edges for split={split}")
@@ -186,7 +182,7 @@ def score_embeddings(
     index = {host: j for j, host in enumerate(embedding.index)}
     a = np.array([index[x] for x in edges["host_a"]])
     b = np.array([index[x] for x in edges["host_b"]])
-    # Vectorized per-pair cosine: avoids constructing a full N*N similarity matrix.
+    # косинус по парам без полной матрицы N*N
     norms = np.linalg.norm(emb, axis=1)
     cosine = np.einsum("ij,ij->i", emb[a], emb[b]) / (norms[a] * norms[b])
     window = edges.iloc[0]
@@ -196,8 +192,8 @@ def score_embeddings(
     extra: dict = {
         "roc_auc_ci": auc["roc_auc_ci"], "pr_auc_ci": auc["pr_auc_ci"], "ci_method": auc["ci_method"],
         "pr_auc_lift": auc["pr_auc"] / float(labels.mean()),
-        # PR-AUC as if the pool had the natural positive rate (observed target edges over
-        # all cohort pairs); removes the class-prior effect of 1:1 sampling only.
+        # PR-AUC при настоящей доле положительных (связи в целевом окне / все пары когорты);
+        # убирает только эффект выборки 1:1
         "natural_prevalence": natural,
         "pr_auc_at_natural_prevalence": (reweighted_average_precision(labels, cosine, natural)
                                          if 0 < natural < 1 else None),
@@ -242,14 +238,12 @@ def _window_bounds(window: str) -> tuple[pd.Timestamp, pd.Timestamp]:
 def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: pd.DataFrame, *,
                   fit_split: str = "validation", eval_split: str = "test", seed: int = 0,
                   n_boot: int = 0) -> dict:
-    """Edge classifier on frozen embeddings: LogisticRegression on [|e_a - e_b|, e_a * e_b].
+    """Классификатор связей на замороженных эмбеддингах: LogisticRegression на [|e_a - e_b|, e_a * e_b].
 
-    Fit on the candidates of an EARLIER target window (validation), scored on the later one
-    (test); the embedding is the same source-window embedding in both cases. This is the
-    standard edge-classification protocol and does not use cosine, which is the wrong score for
-    heterophilous traffic (clients link to servers, not to look-alike clients). The fit window
-    must end before the evaluation window starts and use the same source window; otherwise it is
-    refused (no tuning on, or peeking at, the evaluation window). C=1 fixed, never tuned on test.
+    Учится на кандидатах БОЛЕЕ РАННЕГО целевого окна (validation), оценивается на позднем (test);
+    эмбеддинг в обоих случаях один — из source-окна. Косинус для трафика плох: клиенты связаны
+    с серверами, а не с похожими клиентами. Окно обучения должно закончиться до окна оценки и иметь
+    тот же source, иначе — отказ. C=1 фиксирован и на test не подбирается.
     """
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
@@ -286,7 +280,7 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
 
 
 def persistence_baseline(edges: pd.DataFrame, split: str = "test") -> dict | None:
-    """Embedding-free reference point: score = 1 if the pair already communicated in the source window."""
+    """Точка отсчёта без эмбеддинга: 1, если пара уже общалась в source-окне."""
     e = edges[edges["split"] == split]
     if "seen_in_source" not in e.columns:
         return None

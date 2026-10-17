@@ -1,4 +1,4 @@
-"""Cohort selection: no future information in the default policy; the stable-host policy is explicit."""
+"""Выбор когорты: в политике по умолчанию нет информации из будущего; «стабильные хосты» — только явно."""
 import bz2
 import json
 
@@ -13,9 +13,9 @@ from pipeline.reference import build_reference
 from pipeline.windows import PipelineConfig
 
 W = {"train": (0, 1000), "validation": (1000, 2000), "test": (2000, 3000)}
-STABLE = [f"S{i:02d}" for i in range(40)]            # active in every window
-EARLY = [f"E{i:02d}" for i in range(12)]            # train only
-MID = [f"M{i:02d}" for i in range(12)]              # train + validation, gone in test
+STABLE = [f"S{i:02d}" for i in range(40)]            # активен во всех окнах
+EARLY = [f"E{i:02d}" for i in range(12)]            # только train
+MID = [f"M{i:02d}" for i in range(12)]              # train + validation, в test пропал
 PEERS = [f"P{i:02d}" for i in range(15)]
 
 
@@ -73,14 +73,14 @@ def test_all_windows_policy_is_explicitly_the_transductive_stable_host_benchmark
 
 
 def test_train_only_cohort_does_not_depend_on_future_windows(tmp_path):
-    a = write(tmp_path / "a", STABLE)                        # everybody active in test
-    b = write(tmp_path / "b", STABLE[:30])                   # 10 hosts silent in test
+    a = write(tmp_path / "a", STABLE)                        # в test активны все
+    b = write(tmp_path / "b", STABLE[:30])                   # 10 хостов молчат в test
     ma = prepare([a], cfg("train_only"), tmp_path / "oa")
     mb = prepare([b], cfg("train_only"), tmp_path / "ob")
-    assert ProcessedData(tmp_path / "oa").cohort == ProcessedData(tmp_path / "ob").cohort       # same population
+    assert ProcessedData(tmp_path / "oa").cohort == ProcessedData(tmp_path / "ob").cohort       # та же совокупность
     assert ma["cohort"]["n_hosts"] == mb["cohort"]["n_hosts"]
-    assert mb["cohort"]["evaluable"]["test"] < ma["cohort"]["evaluable"]["test"]               # coverage shows it
-    # ... whereas the legacy policy lets future activity change who is in the cohort
+    assert mb["cohort"]["evaluable"]["test"] < ma["cohort"]["evaluable"]["test"]               # это видно по покрытию
+    # ... а старая политика позволяет будущей активности менять состав когорты
     la = prepare([a], cfg("all_windows"), tmp_path / "la")
     lb = prepare([b], cfg("all_windows"), tmp_path / "lb")
     assert la["cohort"]["n_hosts"] != lb["cohort"]["n_hosts"]
@@ -100,7 +100,7 @@ def test_selection_diagnostic_reports_survivorship(raw, tmp_path):
 
 
 def test_too_few_evaluable_hosts_in_a_window_is_an_error(tmp_path):
-    p = write(tmp_path / "r", STABLE[:10])                   # only 10 hosts active in test
+    p = write(tmp_path / "r", STABLE[:10])                   # в test активны только 10 хостов
     with pytest.raises(PipelineError, match="evaluable in test"):
         prepare([p], cfg("train_only"), tmp_path / "o")
 

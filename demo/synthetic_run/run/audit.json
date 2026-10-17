@@ -25,10 +25,25 @@
       "neighbors": "same feature definitions, earlier window (feature overlap)",
       "pairs": "weak: behaviour correlates with peers"
     },
+    "deepwalk": {
+      "edges": "strong: link persistence (peers seen in train recur)",
+      "neighbors": "weak: peers/degree structure correlates with behaviour",
+      "pairs": "strong: shared peers = shared neighbourhood"
+    },
     "graph_spectral": {
       "edges": "strong: link persistence (peers seen in train recur)",
       "neighbors": "weak: degree/volume leaks into the spectrum",
       "pairs": "strong: peer sets persist across windows"
+    },
+    "graphsage": {
+      "edges": "strong: link persistence through the neighbourhood aggregation",
+      "neighbors": "strong with features='behavioral': same feature definitions as the behavioural reference",
+      "pairs": "strong: shared peers = shared neighbourhood"
+    },
+    "node2vec": {
+      "edges": "strong: link persistence (peers seen in train recur)",
+      "neighbors": "weak: peers/degree structure correlates with behaviour",
+      "pairs": "strong: shared peers = shared neighbourhood"
     },
     "random": {
       "edges": "none",
@@ -39,6 +54,16 @@
       "edges": "none",
       "neighbors": "identical by construction (target-window features)",
       "pairs": "weak"
+    },
+    "rolx": {
+      "edges": "weak: structural roles, not specific peers, so link persistence is not encoded",
+      "neighbors": "weak: degree/volume-like structure correlates with behaviour",
+      "pairs": "weak: shared peers are not encoded (roles ignore identity)"
+    },
+    "struc2vec": {
+      "edges": "weak: structural identity, not specific peers, so link persistence is not encoded",
+      "neighbors": "weak: degree structure correlates with behaviour",
+      "pairs": "weak: shared peers are not encoded (structure ignores identity)"
     }
   },
   "prevalence": {
@@ -190,6 +215,66 @@
         "p95": 0.5384092518485581,
         "std": 0.020843043332601473
       },
+      "partner_history_mrr": {
+        "mean": 0.8376243386243385,
+        "p5": 0.8376243386243387,
+        "p95": 0.8376243386243387,
+        "std": 2.2584051416334807e-16
+      },
+      "partner_lift": {
+        "mean": -0.5866861935632735,
+        "p5": -0.6105450244434276,
+        "p95": -0.565715914045669,
+        "std": 0.017436560355215253
+      },
+      "partner_mrr": {
+        "mean": 0.34620170376087095,
+        "p5": 0.326216966324532,
+        "p95": 0.36376692027257196,
+        "std": 0.014605287335420542
+      },
+      "partner_new_history_mrr": {
+        "mean": 0.007551010343536498,
+        "p5": 0.0075510103435364965,
+        "p95": 0.0075510103435364965,
+        "std": 1.7643790169011568e-18
+      },
+      "partner_new_lift": {
+        "mean": -0.0398335801756673,
+        "p5": -0.1195586944141969,
+        "p95": 0.06860225990137778,
+        "std": 0.06349918500888563
+      },
+      "partner_new_mrr": {
+        "mean": 0.15834166412560308,
+        "p5": 0.14519414407023376,
+        "p95": 0.1762238885131196,
+        "std": 0.01047169159151185
+      },
+      "partner_new_popularity_mrr": {
+        "mean": 0.16491064554681317,
+        "p5": 0.16491064554681314,
+        "p95": 0.16491064554681314,
+        "std": 2.823006427041851e-17
+      },
+      "partner_new_recall@10": {
+        "mean": 0.0401340710909243,
+        "p5": 0.03641393995808537,
+        "p95": 0.043354130879596116,
+        "std": 0.0023381516247128475
+      },
+      "partner_popularity_mrr": {
+        "mean": 0.44848385783483774,
+        "p5": 0.44848385783483785,
+        "p95": 0.44848385783483785,
+        "std": 1.1292025708167404e-16
+      },
+      "partner_recall@10": {
+        "mean": 0.0628850733237854,
+        "p5": 0.05720822154600712,
+        "p95": 0.06812397497348248,
+        "std": 0.003665359765999644
+      },
       "precision@1": {
         "mean": 0.21646090534979426,
         "p5": 0.16604938271604938,
@@ -276,18 +361,23 @@
     }
   },
   "split_agreement": {
-    "consistency@10_mean": 0.7142857142857143,
-    "link_roc_auc": 0.0,
-    "pair_roc_auc": 1.0,
-    "triplet_accuracy": 0.9258200997725515
+    "consistency@10_mean": 0.8888888888888888,
+    "link_roc_auc": 0.7037037037037037,
+    "pair_roc_auc": 0.7777777777777777,
+    "triplet_accuracy": 0.8956037224108794
   },
   "weight_sensitivity": {
     "canonical_scores": {
       "behavioral": 0.28,
       "behavioral_pca": 0.2820000000000001,
       "behavioral_svd": 0.2820000000000001,
+      "deepwalk": 0.18733333333333335,
       "graph_spectral": 0.24400000000000002,
-      "random": 0.03666666666666667
+      "graphsage": 0.24533333333333338,
+      "node2vec": 0.206,
+      "random": 0.03666666666666667,
+      "rolx": 0.08133333333333333,
+      "struc2vec": 0.08933333333333333
     },
     "chance_agreement": 0.033444816053511704,
     "configs": [
@@ -300,8 +390,13 @@
           "behavioral": 0.28400000000000003,
           "behavioral_pca": 0.285,
           "behavioral_svd": 0.285,
+          "deepwalk": 0.189,
           "graph_spectral": 0.2426666666666667,
-          "random": 0.039
+          "graphsage": 0.24933333333333338,
+          "node2vec": 0.20566666666666666,
+          "random": 0.039,
+          "rolx": 0.08133333333333333,
+          "struc2vec": 0.09033333333333333
         },
         "weights": {
           "hourly": 1.198172557684509,
@@ -315,14 +410,19 @@
       {
         "config": 1,
         "dropped_block": null,
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9545454545454546,
         "reference_agreement": 0.7883333333333334,
         "scores": {
           "behavioral": 0.26566666666666666,
           "behavioral_pca": 0.267,
           "behavioral_svd": 0.267,
+          "deepwalk": 0.18233333333333335,
           "graph_spectral": 0.24200000000000002,
-          "random": 0.03833333333333333
+          "graphsage": 0.22700000000000004,
+          "node2vec": 0.201,
+          "random": 0.03833333333333333,
+          "rolx": 0.08133333333333333,
+          "struc2vec": 0.08566666666666668
         },
         "weights": {
           "hourly": 1.020877947247225,
@@ -336,14 +436,19 @@
       {
         "config": 2,
         "dropped_block": "volume",
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9090909090909091,
         "reference_agreement": 0.7043333333333334,
         "scores": {
           "behavioral": 0.26666666666666666,
           "behavioral_pca": 0.2683333333333333,
           "behavioral_svd": 0.2683333333333333,
+          "deepwalk": 0.19,
           "graph_spectral": 0.24733333333333335,
-          "random": 0.038
+          "graphsage": 0.23866666666666664,
+          "node2vec": 0.20233333333333334,
+          "random": 0.038,
+          "rolx": 0.085,
+          "struc2vec": 0.08266666666666667
         },
         "weights": {
           "hourly": 0.8537216473586475,
@@ -357,14 +462,19 @@
       {
         "config": 3,
         "dropped_block": null,
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9545454545454546,
         "reference_agreement": 0.7739999999999999,
         "scores": {
           "behavioral": 0.2723333333333333,
           "behavioral_pca": 0.2743333333333333,
           "behavioral_svd": 0.2743333333333333,
+          "deepwalk": 0.18800000000000003,
           "graph_spectral": 0.24200000000000002,
-          "random": 0.04
+          "graphsage": 0.23733333333333334,
+          "node2vec": 0.2046666666666667,
+          "random": 0.04,
+          "rolx": 0.078,
+          "struc2vec": 0.085
         },
         "weights": {
           "hourly": 1.5710357116747415,
@@ -378,14 +488,19 @@
       {
         "config": 4,
         "dropped_block": null,
-        "kendall_tau": 0.5555555555555556,
+        "kendall_tau": 0.8636363636363636,
         "reference_agreement": 0.7986666666666667,
         "scores": {
           "behavioral": 0.27133333333333337,
           "behavioral_pca": 0.26866666666666666,
           "behavioral_svd": 0.26866666666666666,
+          "deepwalk": 0.18933333333333333,
           "graph_spectral": 0.25933333333333336,
-          "random": 0.035333333333333335
+          "graphsage": 0.24300000000000002,
+          "node2vec": 0.21000000000000002,
+          "random": 0.035333333333333335,
+          "rolx": 0.085,
+          "struc2vec": 0.08566666666666665
         },
         "weights": {
           "hourly": 0.6036208006069895,
@@ -399,14 +514,19 @@
       {
         "config": 5,
         "dropped_block": "peers",
-        "kendall_tau": 0.5555555555555556,
+        "kendall_tau": 0.8636363636363636,
         "reference_agreement": 0.6503333333333334,
         "scores": {
           "behavioral": 0.26366666666666666,
           "behavioral_pca": 0.26000000000000006,
           "behavioral_svd": 0.26000000000000006,
+          "deepwalk": 0.19300000000000003,
           "graph_spectral": 0.249,
-          "random": 0.03666666666666667
+          "graphsage": 0.24700000000000003,
+          "node2vec": 0.21133333333333335,
+          "random": 0.03666666666666667,
+          "rolx": 0.073,
+          "struc2vec": 0.07866666666666668
         },
         "weights": {
           "hourly": 0.7211455391554594,
@@ -420,14 +540,19 @@
       {
         "config": 6,
         "dropped_block": null,
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9545454545454546,
         "reference_agreement": 0.7413333333333334,
         "scores": {
           "behavioral": 0.266,
           "behavioral_pca": 0.2683333333333333,
           "behavioral_svd": 0.2683333333333333,
+          "deepwalk": 0.182,
           "graph_spectral": 0.24,
-          "random": 0.04133333333333333
+          "graphsage": 0.23900000000000002,
+          "node2vec": 0.19866666666666666,
+          "random": 0.04133333333333333,
+          "rolx": 0.082,
+          "struc2vec": 0.08333333333333333
         },
         "weights": {
           "hourly": 1.959986747796305,
@@ -441,14 +566,19 @@
       {
         "config": 7,
         "dropped_block": null,
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9545454545454546,
         "reference_agreement": 0.7086666666666667,
         "scores": {
           "behavioral": 0.2690000000000001,
           "behavioral_pca": 0.27066666666666667,
           "behavioral_svd": 0.27066666666666667,
+          "deepwalk": 0.19766666666666666,
           "graph_spectral": 0.24733333333333335,
-          "random": 0.037333333333333336
+          "graphsage": 0.24300000000000002,
+          "node2vec": 0.21833333333333332,
+          "random": 0.037333333333333336,
+          "rolx": 0.08233333333333334,
+          "struc2vec": 0.08566666666666667
         },
         "weights": {
           "hourly": 2.461614498638674,
@@ -462,14 +592,19 @@
       {
         "config": 8,
         "dropped_block": "ports",
-        "kendall_tau": 0.5555555555555556,
+        "kendall_tau": 0.8636363636363636,
         "reference_agreement": 0.7016666666666667,
         "scores": {
           "behavioral": 0.26733333333333337,
           "behavioral_pca": 0.2656666666666666,
           "behavioral_svd": 0.2656666666666666,
+          "deepwalk": 0.185,
           "graph_spectral": 0.25166666666666665,
-          "random": 0.03333333333333333
+          "graphsage": 0.24233333333333335,
+          "node2vec": 0.2036666666666667,
+          "random": 0.03333333333333333,
+          "rolx": 0.07966666666666666,
+          "struc2vec": 0.08700000000000001
         },
         "weights": {
           "hourly": 0.5250925575287513,
@@ -483,14 +618,19 @@
       {
         "config": 9,
         "dropped_block": null,
-        "kendall_tau": 0.5555555555555556,
+        "kendall_tau": 0.8636363636363636,
         "reference_agreement": 0.782,
         "scores": {
           "behavioral": 0.27133333333333337,
           "behavioral_pca": 0.2690000000000001,
           "behavioral_svd": 0.2690000000000001,
+          "deepwalk": 0.18733333333333335,
           "graph_spectral": 0.25066666666666665,
-          "random": 0.034333333333333334
+          "graphsage": 0.24066666666666667,
+          "node2vec": 0.202,
+          "random": 0.034333333333333334,
+          "rolx": 0.08566666666666667,
+          "struc2vec": 0.08600000000000001
         },
         "weights": {
           "hourly": 0.5571610437153638,
@@ -504,14 +644,19 @@
       {
         "config": 10,
         "dropped_block": null,
-        "kendall_tau": 1.0,
+        "kendall_tau": 0.9545454545454546,
         "reference_agreement": 0.717,
         "scores": {
           "behavioral": 0.27366666666666667,
           "behavioral_pca": 0.27666666666666667,
           "behavioral_svd": 0.27666666666666667,
+          "deepwalk": 0.19733333333333333,
           "graph_spectral": 0.25566666666666665,
-          "random": 0.03666666666666667
+          "graphsage": 0.23900000000000002,
+          "node2vec": 0.21566666666666667,
+          "random": 0.03666666666666667,
+          "rolx": 0.08399999999999999,
+          "struc2vec": 0.08433333333333333
         },
         "weights": {
           "hourly": 1.9351415834390613,
@@ -525,14 +670,19 @@
       {
         "config": 11,
         "dropped_block": "volume",
-        "kendall_tau": 0.5555555555555556,
+        "kendall_tau": 0.9090909090909091,
         "reference_agreement": 0.5843333333333334,
         "scores": {
           "behavioral": 0.25,
           "behavioral_pca": 0.24133333333333334,
           "behavioral_svd": 0.24133333333333334,
+          "deepwalk": 0.18566666666666667,
           "graph_spectral": 0.22866666666666668,
-          "random": 0.03733333333333333
+          "graphsage": 0.23600000000000004,
+          "node2vec": 0.2026666666666667,
+          "random": 0.03733333333333333,
+          "rolx": 0.06766666666666667,
+          "struc2vec": 0.07033333333333334
         },
         "weights": {
           "hourly": 0.7342148938133297,
@@ -545,9 +695,9 @@
       }
     ],
     "k": 10,
-    "mean_kendall_tau": 0.8148148148148148,
+    "mean_kendall_tau": 0.9204545454545454,
     "mean_reference_agreement": 0.7374722222222223,
-    "min_kendall_tau": 0.5555555555555556,
+    "min_kendall_tau": 0.8636363636363636,
     "min_reference_agreement": 0.5843333333333334
   }
 }

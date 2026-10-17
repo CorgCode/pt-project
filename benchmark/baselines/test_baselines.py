@@ -62,7 +62,7 @@ def test_sanity_ordering_and_unavailable_metrics(reference_dir, generated, tmp_p
     c10 = {n: r["metrics"]["consistency@10_mean"] for n, r in res.items()}
     assert c10["reference_identity"] >= c10["pca"] > c10["random"]
     assert c10["svd"] > c10["random"]
-    # metrics whose reference artifacts are absent stay unavailable, never invented
+    # метрики без эталонных файлов остаются недоступными, ничего не придумывается
     r = res["random"]
     assert any(m.startswith("triplet_accuracy") for m in r["unavailable_metrics"])
     assert "triplet_accuracy" not in "".join(r["metrics"])

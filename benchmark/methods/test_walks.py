@@ -58,13 +58,13 @@ def test_first_order_transitions_are_proportional_to_edge_weights():
     assert chisquare(obs, 40000 * np.array([0.1, 0.2, 0.7])).pvalue > 1e-3
 
 
-# ---- node2vec second-order bias, compared with the analytic distribution --------------------------
-#   t=0 -> v=1;   neighbours of v: 0 (t, return), 2 (adjacent to t), 3 and 4 (distance 2 from t)
+# ---- перекос node2vec против аналитического распределения --------------------------------
+#   t=0 -> v=1; соседи v: 0 (t, возврат), 2 (сосед t), 3 и 4 (на расстоянии 2 от t)
 BIAS = graph([(0, 1), (1, 2), (1, 3), (1, 4), (0, 2)], weights=[1.0, 1.0, 1.0, 3.0, 1.0])
 
 
 def analytic(p, q):
-    w = {0: 1.0 / p, 2: 1.0, 3: 1.0 / q, 4: 3.0 / q}                 # w(v,x) * alpha(t,x); edge weights 1,1,1,3 around v=1
+    w = {0: 1.0 / p, 2: 1.0, 3: 1.0 / q, 4: 3.0 / q}                 # w(v,x) * alpha(t,x); веса рёбер вокруг v=1: 1,1,1,3
     s = sum(w.values())
     return np.array([w[0], w[2], w[3], w[4]]) / s
 
@@ -79,10 +79,10 @@ def test_second_order_step_matches_the_node2vec_distribution(p, q):
 
 
 def test_exact_fallback_agrees_when_rejection_is_forced_to_give_up():
-    p, q = 0.01, 100.0                          # acceptance probability ~1e-4 for most proposals
+    p, q = 0.01, 100.0                          # вероятность принятия ~1e-4 для большинства предложений
     n = 4000
     t, v = np.zeros(n, dtype=np.int64), np.ones(n, dtype=np.int64)
-    nxt = second_order_step(BIAS, t, v, p, q, np.random.default_rng(5), max_rounds=1)    # almost all exact
+    nxt = second_order_step(BIAS, t, v, p, q, np.random.default_rng(5), max_rounds=1)    # почти всё — точным перебором
     obs = np.array([(nxt == x).sum() for x in (0, 2, 3, 4)])
     assert chisquare(obs, n * analytic(p, q)).pvalue > 1e-3
 
@@ -92,15 +92,15 @@ def test_return_parameter_controls_backtracking():
     rates = []
     for p in (0.2, 1.0, 5.0):
         w = random_walks(g, np.arange(g.n).repeat(40), 30, p=p, q=1.0, rng=np.random.default_rng(2))
-        rates.append((w[:, 2:] == w[:, :-2]).mean())                # share of immediate returns
+        rates.append((w[:, 2:] == w[:, :-2]).mean())                # доля немедленных возвратов
     assert rates[0] > rates[1] > rates[2]
 
 
 def test_inout_parameter_controls_exploration():
-    # on a path-of-cliques-like graph, large q (stay close) keeps walks in a smaller neighbourhood than small q
+    # на графе из цепочки клик большой q (держаться рядом) оставляет блуждание в меньшей окрестности, чем малый q
     g = graph([(i, j) for i in range(5) for j in range(i + 1, 5)] + [(4, 5)] + [(i, j) for i in range(5, 10) for j in range(i + 1, 10)])
     spans = []
     for q in (0.2, 5.0):
         w = random_walks(g, np.zeros(2000, dtype=int), 25, p=1.0, q=q, rng=np.random.default_rng(0))
-        spans.append((w >= 5).mean())                                # share of time in the far clique
+        spans.append((w >= 5).mean())                                # доля времени в дальней клике
     assert spans[0] > spans[1]

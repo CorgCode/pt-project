@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка собственного CSV — PT-05</title>
+<meta name="description" content="Вспомогательный инструмент: оценка согласия соседей для собственного файла embeddings.csv прямо в браузере.">
+<link rel="stylesheet" href="./assets/site.css">
+<script src="./assets/playground.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./">PT-05 · эмбеддинги хостов</a>
+    <nav class="main" aria-label="Разделы"><ul><li><a href="./">← На главную</a></li><li><a href="#how">Как пользоваться</a></li><li><a href="#limits">Ограничения</a></li></ul></nav>
+  </div>
+</header>
+<main id="main">
+<section class="hero">
+  <div class="wrap">
+    <p class="kicker">Вспомогательный инструмент</p>
+    <h1>Проверка собственного файла эмбеддингов</h1>
+    <p class="lede">Загрузите <code>embeddings.csv</code> и посмотрите, насколько ближайшие соседи ваших векторов совпадают с учебным эталоном. Файл обрабатывается в вашем браузере и никуда не отправляется.</p>
+    <div class="note" role="note"><strong>Это учебный пример.</strong> Эталон — синтетический набор из 300 хостов (<code>h0 … h299</code>), а не реальные данные LANL. Результат не заменяет полный отчёт исследования.</div>
+  </div>
+</section>
+<section class="block" id="how">
+  <div class="wrap">
+    <h2>Как пользоваться</h2>
+    <ol class="steps">
+      <li>Нажмите «Скачать пример CSV», чтобы увидеть формат: столбец <code>host_id</code> (значения <code>h0 … h299</code>) и столбцы <code>emb_0 … emb_d</code>.</li>
+      <li>Выберите свой файл и нажмите «Оценить эмбеддинги».</li>
+      <li>Сравните строку «Загруженный CSV» с двумя ориентирами: случайными векторами и эталонным максимумом (модель с утечкой).</li>
+    </ol>
+    <div class="upload">
+      <p style="margin-top:0"><button class="btn alt" id="sample" type="button">Скачать пример CSV</button></p>
+      <p><label for="file">Файл embeddings.csv (до 8 МБ)</label><br><input id="file" type="file" accept=".csv,text/csv"></p>
+      <p style="margin-bottom:0"><button class="btn" id="run" type="button">Оценить эмбеддинги</button></p>
+      <p id="status" role="status" aria-live="polite" style="margin-bottom:0"></p>
+    </div>
+    <div id="results" hidden>
+      <div class="chart"><h3>Сводка</h3><div class="tablewrap"><table id="board"></table></div></div>
+      <div class="chart"><h3>Согласие соседей по k</h3><div class="fig"><div class="prov"><span>УЧЕБНЫЙ ЭТАЛОН — НЕ ДАННЫЕ LANL</span></div><div id="bars"></div></div></div>
+      <div class="chart"><h3>Проекция: первые две координаты</h3><div class="fig"><div id="scatter"></div></div></div>
+    </div>
+  </div>
+</section>
+<section class="block" id="limits">
+  <div class="wrap">
+    <h2>Ограничения</h2>
+    <p>Здесь считаются только согласие соседей (Consistency), Jaccard и nDCG для k = 5, 10, 20 по косинусной близости. Остальные метрики — парный ROC-AUC, точность триплетов, прогноз связей, линейный зонд — доступны в основном Python-оценщике при наличии эталонов (<a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">METRICS.md</a>).</p>
+  </div>
+</section>
+</main>
+<footer><div class="wrap"><p><a href="./">На главную</a> · <a href="https://github.com/CorgCode/pt-project">Репозиторий</a></p></div></footer>
+</body>
+</html>

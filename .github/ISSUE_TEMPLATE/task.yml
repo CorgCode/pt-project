@@ -1,45 +1,34 @@
-name: Task
-description: Create a team task
-title: "[Task] "
+name: Задача
+description: Новая задача для команды
+title: "Область: коротко, что сделать"
 body:
   - type: textarea
     id: goal
     attributes:
-      label: Goal
-      description: What needs to be done and why?
-      placeholder: Describe the expected result.
+      label: Зачем
+      description: Какую проблему решаем и что получим в итоге.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: What to do
-      description: Break the task into concrete steps.
+      label: Что сделать
       placeholder: |
-        - [ ] Step 1
-        - [ ] Step 2
-        - [ ] Step 3
+        - [ ] Шаг 1
+        - [ ] Шаг 2
     validations:
       required: true
   - type: textarea
     id: done
     attributes:
-      label: Definition of done
-      description: How do we know the task is finished?
+      label: Готово, когда
       placeholder: |
-        - [ ] Code/research is committed
-        - [ ] Results are documented
-        - [ ] PR is opened and linked to this issue
+        - [ ] Код и тесты в PR, PR связан с этим issue
+        - [ ] Результат описан в README
     validations:
       required: true
-  - type: input
-    id: branch
-    attributes:
-      label: Suggested branch
-      description: Optional branch name.
-      placeholder: dasha/research-node2vec
   - type: textarea
     id: notes
     attributes:
-      label: Notes / links
-      description: Datasets, papers, references, screenshots, or constraints.
+      label: Ссылки и заметки
+      description: Статьи, данные, ограничения.

@@ -13,6 +13,8 @@
     "ndcg@5_mean": "item bootstrap (hosts / anchors resampled)",
     "pair_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
     "pair_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "partner_mrr": "item bootstrap (hosts / anchors resampled)",
+    "partner_new_mrr": "item bootstrap (hosts / anchors resampled)",
     "precision@1": "item bootstrap (hosts / anchors resampled)",
     "precision@3": "item bootstrap (hosts / anchors resampled)",
     "precision@5": "item bootstrap (hosts / anchors resampled)",
@@ -56,7 +58,7 @@
       "target_window": "1970-01-01T06:00:00Z/1970-01-01T08:59:58Z"
     },
     "pairwise_auc": {
-      "interpretation": "Relevance is judged only for pairs with peer-set Jaccard >= tau (positive) or == 0 (negative). judged_population_prevalence is the positive rate AMONG JUDGED pairs; the unjudged pairs (0 < J < tau) are excluded, so it is not the positive rate of all host pairs (population_positive_rate) and pair_pr_auc_at_judged_prevalence is a conditional AP, not a population AP.",
+      "interpretation": "\u0420\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e \u044f\u0432\u043d\u044b\u0435 \u043f\u0430\u0440\u044b: Jaccard >= tau (\u043f\u043e\u0445\u043e\u0436\u0438) \u0438\u043b\u0438 0 (\u043d\u0435 \u043f\u043e\u0445\u043e\u0436\u0438). \u0414\u043e\u043b\u044f \u043f\u043e\u043b\u043e\u0436\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u2014 \u0441\u0440\u0435\u0434\u0438 \u0440\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u043d\u044b\u0445, \u0430 \u043d\u0435 \u0441\u0440\u0435\u0434\u0438 \u0432\u0441\u0435\u0445 \u043f\u0430\u0440 \u0445\u043e\u0441\u0442\u043e\u0432.",
       "judged_population_prevalence": 0.07203593775068186,
       "n_pairs": 820,
       "n_positive": 162,
@@ -64,6 +66,56 @@
       "positive_rate": 0.1975609756097561,
       "split": "validation",
       "unjudged_share": 0.861025641025641
+    },
+    "partner_ranking": {
+      "all": {
+        "embedding": {
+          "mrr": 0.7618412698412698,
+          "mrr_ci": [
+            0.7222466269841269,
+            0.793325
+          ],
+          "n_hosts": 300,
+          "recall_at_n": 0.18478077570250892
+        },
+        "history": {
+          "mrr": 0.8358359788359788,
+          "n_hosts": 300,
+          "recall_at_n": 0.3258206890935292
+        },
+        "lift_vs_best_baseline": -0.08852778639387751,
+        "popularity": {
+          "mrr": 0.441428165224796,
+          "n_hosts": 300,
+          "recall_at_n": 0.07863352584925763
+        }
+      },
+      "k_neighbors": 10,
+      "n_candidates": 300,
+      "new": {
+        "embedding": {
+          "mrr": 0.15463773704214992,
+          "mrr_ci": [
+            0.12889827342200735,
+            0.18132446892881113
+          ],
+          "n_hosts": 300,
+          "recall_at_n": 0.03937510948230763
+        },
+        "history": {
+          "mrr": 0.0075510103435364965,
+          "n_hosts": 300,
+          "recall_at_n": 0.0
+        },
+        "lift_vs_best_baseline": 0.03183649502044136,
+        "popularity": {
+          "mrr": 0.14986651256126238,
+          "n_hosts": 300,
+          "recall_at_n": 0.03815989414209228
+        }
+      },
+      "target_coverage": 1.0,
+      "top_n": 10
     },
     "retrieval": {
       "by_k": {
@@ -137,9 +189,10 @@
   "metric_status": {
     "future_link_prediction": "ok",
     "knn_consistency": "ok",
-    "linear_probe": "unavailable: labels.csv missing (no external host labels exist; none are fabricated)",
+    "linear_probe": "unavailable: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)",
     "pairwise_pr_auc": "ok",
     "pairwise_roc_auc": "ok",
+    "partner_ranking": "ok",
     "precision_at_k": "ok",
     "recall_at_k": "ok",
     "triplet_accuracy": "ok"
@@ -182,6 +235,16 @@
     "pair_pr_auc_at_judged_prevalence": 0.8117025058081465,
     "pair_pr_auc_lift": 4.533519910394238,
     "pair_roc_auc": 0.9445194941648842,
+    "partner_history_mrr": 0.8358359788359788,
+    "partner_lift": -0.08852778639387751,
+    "partner_mrr": 0.7618412698412698,
+    "partner_new_history_mrr": 0.0075510103435364965,
+    "partner_new_lift": 0.03183649502044136,
+    "partner_new_mrr": 0.15463773704214992,
+    "partner_new_popularity_mrr": 0.14986651256126238,
+    "partner_new_recall@10": 0.03937510948230763,
+    "partner_popularity_mrr": 0.441428165224796,
+    "partner_recall@10": 0.18478077570250892,
     "precision@1": 0.8908045977011494,
     "precision@3": 0.5528942115768463,
     "precision@5": 0.37460317460317466,
@@ -246,6 +309,14 @@
       0.8868304124962546,
       0.9795380651314604
     ],
+    "partner_mrr": [
+      0.7222466269841269,
+      0.793325
+    ],
+    "partner_new_mrr": [
+      0.12889827342200735,
+      0.18132446892881113
+    ],
     "precision@1": [
       0.8390804597701149,
       0.9311781609195402
@@ -290,6 +361,7 @@
       "features.csv": "d2bca81484afdfd3cd76980f10d0018581e44a1e9c33afcceb434753e60bc648",
       "neighbors.csv": "d7c482d66bff924af527eed2eceab1d61f64da658075252c5c854bbc044268cd",
       "pairs.csv": "650beb11ab46987ce21e252f02f6b6204d1b988430f4dcb4b4e4f13a8fe317a8",
+      "partners.csv": "131aa081fd5d9567511bf508dd066bbf8fe06419391372deee0efe33bf48204b",
       "triplets.csv": "93bdbcb16b0b496e37e477e2ae86dabe4994ca0208cec19ece5102d09dd89f63"
     },
     "fit_reference_files_sha256": null,
@@ -311,7 +383,64 @@
   "seed": 0,
   "split": "validation",
   "submission": "<workdir>/run/embeddings/graph_spectral/train.csv",
+  "summary": [
+    {
+      "chance": 0.033444816053511704,
+      "ci": [
+        0.22965833333333335,
+        0.2756833333333334
+      ],
+      "group": "\u041f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435",
+      "metric": "consistency@10_mean",
+      "title": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435 \u0441\u043e\u0441\u0435\u0434\u0435\u0439 (k=10)",
+      "value": 0.253
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.4549484566694861,
+        0.5039124374288336
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "link_roc_auc",
+      "title": "\u041f\u0440\u043e\u0433\u043d\u043e\u0437 \u0441\u0432\u044f\u0437\u0438, ROC-AUC",
+      "value": 0.47900463285040423
+    },
+    {
+      "chance": 0.14986651256126238,
+      "ci": [
+        0.12889827342200735,
+        0.18132446892881113
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "partner_new_mrr",
+      "title": "\u041d\u043e\u0432\u044b\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438 \u0447\u0435\u0440\u0435\u0437 \u043f\u043e\u0445\u043e\u0436\u0438\u0445, MRR",
+      "value": 0.15463773704214992
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.8868304124962546,
+        0.9795380651314604
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "pair_roc_auc",
+      "title": "\u041f\u0430\u0440\u044b, ROC-AUC",
+      "value": 0.9445194941648842
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.8415399751449876,
+        0.9937765278663966
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "triplet_accuracy",
+      "title": "\u0422\u0440\u043e\u0439\u043a\u0438, \u0442\u043e\u0447\u043d\u043e\u0441\u0442\u044c",
+      "value": 0.9368029739776952
+    }
+  ],
   "unavailable_metrics": [
-    "linear_probe: labels.csv missing (no external host labels exist; none are fabricated)"
+    "linear_probe: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)"
   ]
 }

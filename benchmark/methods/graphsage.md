@@ -1,18 +1,17 @@
 # GraphSAGE
 
-Hamilton, Ying, Leskovec, *Inductive Representation Learning on Large Graphs*, NeurIPS 2017. Implementation: `graphsage.py`.
+Hamilton, Ying, Leskovec, *Inductive Representation Learning on Large Graphs*, NeurIPS 2017. Код: `graphsage.py`.
 
-Unsupervised, mean aggregator, two layers (module docstring has the equations). Hand-written backward pass verified
-against finite differences.
+Без учителя, усреднение соседей, два слоя (формулы — в docstring модуля). Обратный проход написан вручную и сверен
+с конечными разностями.
 
-* **Inductive:** weights are trained once on the train window; later windows are embedded by deterministic
-  full-neighbourhood inference with those weights (~10 ms for 8,000 nodes), so embeddings of different windows share ONE
-  coordinate system (`shared_coordinate_system: True`; the raw-coordinate identity score is meaningful, though the inputs
-  drift between windows).
-* **Features** (`features`): `behavioral` (default; train-window behavioural profile, standardised with TRAIN statistics; the
-  same feature definitions as the behavioural reference, a documented overlap), `structural`, or `degree`. With degree or
-  structural features it is much weaker on this benchmark's references (fixture: pair AUC 0.62 vs 0.88).
-* **Loss floor:** embeddings are L2-normalised, so negatives cannot score below about 0 on average; with Q = 20 the per-pair loss
-  cannot fall under ~14.1 (it starts near 15), so a small absolute decrease is expected.
-* **Scale** (measured, one core, paper sampling sizes 25/10, hidden 64): ~25k training pairs/s; default settings (10 walks of
-  length 5, window 2, 2 epochs) are ~4 min at 20,000 hosts and ~19 min at 100,000 (extrapolated).
+* **Индуктивность:** веса обучаются один раз на train; поздние окна встраиваются детерминированно с теми же весами
+  (≈10 мс на 8 000 вершин), поэтому у всех окон ОДНА система координат (`shared_coordinate_system: True`;
+  узнаваемость в сырых координатах осмысленна, хотя входные признаки дрейфуют).
+* **Признаки** (`features`): `behavioral` (по умолчанию; поведенческий профиль train, нормировка по статистике TRAIN —
+  те же признаки, что у поведенческого эталона, пересечение задокументировано), `structural` или `degree`.
+  Со структурными признаками или только степенью на эталонах бенчмарка он заметно слабее.
+* **Нижняя граница потерь:** эмбеддинги нормированы, поэтому при Q = 20 потери на пару не опускаются ниже ≈14.1
+  (старт ≈15) — маленькое абсолютное снижение ожидаемо.
+* **Масштаб** (одно ядро, выборки 25/10, скрытый слой 64): ≈25 тыс. обучающих пар/с; настройки по умолчанию
+  (10 блужданий длины 5, окно 2, 2 эпохи) — ≈4 мин на 20 000 хостов и ≈19 мин на 100 000 (экстраполяция).

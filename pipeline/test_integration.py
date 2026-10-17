@@ -1,4 +1,4 @@
-"""Raw-format fixture -> pipeline -> frozen reference -> common evaluator -> leaderboard."""
+"""Синтетика в формате LANL -> пайплайн -> эталоны -> общая оценка -> таблица результатов."""
 import json
 import subprocess
 import sys
@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.build_leaderboard import main as board_main
+from evaluation.scoreboard import build as build_board
 from evaluation.evaluate import run
 from pipeline.data import ProcessedData
 from pipeline.reference import build_reference
@@ -38,7 +38,7 @@ def test_every_applicable_metric_runs_and_probe_is_unavailable(reference, cohort
         assert r["metric_status"][name] == "ok", name
     assert r["metric_status"]["linear_probe"].startswith("unavailable")
     assert any(u.startswith("linear_probe") for u in r["unavailable_metrics"])
-    assert not any(k.startswith("probe_") for k in r["metrics"])           # no fabricated probe score
+    assert not any(k.startswith("probe_") for k in r["metrics"])           # зонд без меток не выдумывается
     assert r["split"] == "test" and r["reference_info"]["synthetic"] is True
     assert r["reference_info"]["data_kind"] == "synthetic_fixture"
     assert set(r["reference_info"]["files_sha256"]) >= {"pairs.csv", "edges.csv", "triplets.csv"}
@@ -97,7 +97,7 @@ def test_probe_needs_declared_provenance(processed, cohort, tmp_path):
     ok = run(e, ref / "test", "m")
     assert ok["metric_status"]["linear_probe"] == "ok" and "probe_accuracy" in ok["metrics"]
     assert ok["metric_details"]["linear_probe"]["labels_source"] == "unit-test labels"
-    # same labels file but provenance removed from the manifest -> refused, not computed
+    # тот же файл меток, но источник убран из манифеста -> отказ, а не расчёт
     mf = ref / "test" / "manifest.json"
     m = json.loads(mf.read_text())
     m["labels_source"] = None
@@ -114,23 +114,21 @@ def test_cli_and_leaderboard_roundtrip(reference, cohort, tmp_path, monkeypatch)
                         "--reference-dir", str(reference / "test"), "--method", name,
                         "--bootstrap", "10", "--output", str(out / f"{name}.json")],
                        check=True, capture_output=True)
-    monkeypatch.setattr(sys, "argv", ["b", "--results-dir", str(out), "--output", str(tmp_path / "board.csv")])
-    board_main()
+    build_board(out, tmp_path / "board.csv")
     board = pd.read_csv(tmp_path / "board.csv")
     assert set(board.method) == {"m1", "m2"} and "triplet_accuracy" in board.columns
 
 
 def test_leaderboard_rejects_scores_from_two_references(reference, cohort, processed, tmp_path, monkeypatch):
     other = tmp_path / "other"
-    build_reference(processed, other, seed=7)               # different candidate sample
+    build_reference(processed, other, seed=7)               # другая выборка кандидатов
     out = tmp_path / "res"
     out.mkdir()
     p = random_emb(cohort, tmp_path)
     for name, ref in [("a", reference / "test"), ("b", other / "test")]:
         (out / f"{name}.json").write_text(json.dumps(run(p, ref, name)))
-    monkeypatch.setattr(sys, "argv", ["b", "--results-dir", str(out), "--output", str(tmp_path / "x.csv")])
-    with pytest.raises(ValueError, match="different or unknown reference"):
-        board_main()
+    with pytest.raises(ValueError, match="разных эталонах"):
+        build_board(out, tmp_path / "x.csv")
 
 
 def test_identity_cli(cohort, tmp_path):
@@ -139,7 +137,7 @@ def test_identity_cli(cohort, tmp_path):
     B = A + rng.normal(scale=0.05, size=A.shape)
     pa, pb = write_emb(tmp_path / "A.csv", A), write_emb(tmp_path / "B.csv", B)
     out = tmp_path / "id.json"
-    subprocess.run([sys.executable, "-m", "evaluation.identity_retrieval", "--embeddings-a", str(pa),
+    subprocess.run([sys.executable, "-m", "evaluation.identity", "--embeddings-a", str(pa),
                     "--embeddings-b", str(pb), "--method", "m", "--shared-coordinate-system",
                     "--bootstrap", "10", "--output", str(out)], check=True, capture_output=True)
     res = json.loads(out.read_text())
@@ -147,7 +145,7 @@ def test_identity_cli(cohort, tmp_path):
     assert res["shared_coordinate_system_declared"] is True
 
 
-# ---------------------------------------------------------------- learned link scorer
+# ---------------------------------------------------------------- обученный классификатор связей
 def test_learned_link_scorer_fit_on_earlier_window_only(reference, cohort, tmp_path):
     from evaluation.future_links import load_candidate_edges, persistence_baseline, score_learned
     emb = pd.DataFrame(np.random.default_rng(0).normal(size=(len(cohort), 6)), index=cohort)
@@ -155,12 +153,12 @@ def test_learned_link_scorer_fit_on_earlier_window_only(reference, cohort, tmp_p
     test = load_candidate_edges(reference / "test" / "edges.csv")
     r = score_learned(emb, val, test, fit_split="validation", eval_split="test")
     assert 0.4 < r["roc_auc"] < 0.6 and r["n_fit"] == len(val) and r["n_eval"] == len(test)
-    with pytest.raises(ValueError, match="temporal leakage"):          # fit on the LATER window
+    with pytest.raises(ValueError, match="temporal leakage"):          # обучение на БОЛЕЕ ПОЗДНЕМ окне
         score_learned(emb, test, val, fit_split="test", eval_split="validation")
     with pytest.raises(ValueError, match="before the evaluation window"):
         score_learned(emb, test, test, fit_split="test", eval_split="test")
     p = persistence_baseline(test, "test")
-    assert p["roc_auc"] > 0.55                                          # persistence carries real signal
+    assert p["roc_auc"] > 0.55                                          # «связь уже была» несёт настоящий сигнал
 
 
 def test_evaluator_reports_learned_link_score_and_fingerprints_fit_reference(reference, cohort, tmp_path):

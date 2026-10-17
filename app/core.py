@@ -1,4 +1,4 @@
-"""UI-independent logic for the Streamlit demo. Metrics come from the shared evaluator."""
+"""Логика демо без интерфейса. Метрики — из общей оценки."""
 from __future__ import annotations
 
 import contextlib
@@ -12,7 +12,7 @@ from sklearn.decomposition import PCA
 
 from benchmark.baselines.make_synthetic_reference import make
 from benchmark.baselines.run_all import generate
-from benchmark.validate_submission import validate_submission
+from evaluation.validate import validate_submission
 from evaluation.evaluate import run
 
 KS = (5, 10, 20)
@@ -22,17 +22,17 @@ BASELINES = {"random": "random", "pca": "pca", "svd": "svd", "reference_identity
 
 
 class UploadError(ValueError):
-    """The uploaded file is malformed; the message is safe to show to the user."""
+    """Загруженный файл некорректен; сообщение можно показать пользователю."""
 
 
 def make_demo_reference(directory: Path, n_hosts: int = 300, seed: int = 0) -> Path:
-    """Synthetic reference/features.csv (demo only, not real data)."""
+    """Синтетический reference/features.csv (только для демо)."""
     make(Path(directory), n_hosts=n_hosts, seed=seed)
     return Path(directory)
 
 
 def validate_upload(data: bytes, workdir: Path) -> Path:
-    """Save the upload and check it with the existing submission validator."""
+    """Сохранить загруженный файл и проверить его общим валидатором."""
     if not data.strip():
         raise UploadError("The file is empty.")
     path = Path(workdir) / "embeddings.csv"
@@ -57,10 +57,10 @@ def check_hosts(path: Path, reference_dir: Path) -> None:
 
 
 def run_comparison(path: Path, reference_dir: Path, workdir: Path, seed: int = 0) -> dict[str, dict]:
-    """Evaluate the upload and the baselines (same dimension) with the common evaluator."""
+    """Оценить загруженный файл и бейзлайны (той же размерности) общей оценкой."""
     path, workdir = Path(path), Path(workdir)
     dim = len([c for c in pd.read_csv(path, nrows=1).columns if c.startswith("emb_")])
-    with warnings.catch_warnings():  # dim is capped for pca/svd on small feature sets
+    with warnings.catch_warnings():  # для pca/svd размерность ограничена числом признаков
         warnings.simplefilter("ignore")
         baseline_paths = generate(reference_dir, workdir / "baselines", dim=dim, seed=seed)
     results = {UPLOADED: run(path, reference_dir, UPLOADED)}
@@ -70,7 +70,7 @@ def run_comparison(path: Path, reference_dir: Path, workdir: Path, seed: int = 0
 
 
 def leaderboard(results: dict[str, dict]) -> pd.DataFrame:
-    """Methods x metric@k (mean), sorted by Consistency@10."""
+    """Методы x metric@k (среднее), по убыванию Consistency@10."""
     rows = []
     for method, res in results.items():
         row = {"method": method}
@@ -83,7 +83,7 @@ def leaderboard(results: dict[str, dict]) -> pd.DataFrame:
 
 
 def metric_long(board: pd.DataFrame, metric: str) -> pd.DataFrame:
-    """Long format (method, k, value) for charting one metric."""
+    """Длинный формат (метод, k, значение) для графика одной метрики."""
     cols = [f"{metric}@{k}" for k in KS]
     out = board[cols].copy()
     out.columns = [str(k) for k in KS]
@@ -95,7 +95,7 @@ def unavailable(results: dict[str, dict]) -> list[str]:
 
 
 def pca_projection(path: Path) -> pd.DataFrame:
-    """2D PCA of the uploaded embedding, indexed by host_id."""
+    """2D PCA загруженного эмбеддинга, индекс — host_id."""
     df = pd.read_csv(path)
     X = df[[c for c in df.columns if c.startswith("emb_")]].to_numpy(float)
     if X.shape[1] < 2 or X.shape[0] < 2:
@@ -105,7 +105,7 @@ def pca_projection(path: Path) -> pd.DataFrame:
 
 
 def sample_embedding(reference_dir: Path, workdir: Path, dim: int = 8, seed: int = 0) -> bytes:
-    """A valid example upload (PCA baseline) so users can try the demo."""
+    """Корректный пример файла (бейзлайн PCA), чтобы попробовать демо."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         paths = generate(reference_dir, Path(workdir) / "sample", dim=dim, seed=seed, methods=["pca"])
@@ -113,7 +113,7 @@ def sample_embedding(reference_dir: Path, workdir: Path, dim: int = 8, seed: int
 
 
 def evaluate_upload(data: bytes, reference_dir: Path, workdir: Path | None = None) -> dict:
-    """Validate -> check hosts -> compare. Returns everything the UI needs."""
+    """Проверка -> хосты -> сравнение. Возвращает всё, что нужно интерфейсу."""
     with tempfile.TemporaryDirectory() if workdir is None else contextlib.nullcontext(workdir) as wd:
         wd = Path(wd)
         path = validate_upload(data, wd)

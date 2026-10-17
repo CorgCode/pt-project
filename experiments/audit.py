@@ -1,14 +1,11 @@
-"""Methodological audit of a benchmark run (see docs/METHODOLOGY.md).
+"""Аудит методологии прогона (docs/METHODOLOGY.md). Каждая функция отвечает на один вопрос:
 
-Each function answers one validity question and returns plain JSON-able data:
-
-  weight_sensitivity   does the behavioural proxy (and the method ranking) survive different
-                       feature weightings?
-  reference_stability  how much does a host's behavioural neighbourhood change across windows?
-  random_null          what scores does pure noise reach? (chance band per metric)
-  split_agreement      do validation and test rank the methods the same way?
-  prevalence           candidate-pool positive rates versus natural prevalence
-  OVERLAP              which method/reference pairs share information by construction
+  weight_sensitivity   устойчив ли поведенческий эталон (и порядок методов) к другим весам признаков?
+  reference_stability  насколько меняется поведенческое соседство хоста между окнами?
+  random_null          сколько набирает чистый шум? (случайный уровень по каждой метрике)
+  split_agreement      одинаково ли validation и test упорядочивают методы?
+  prevalence           доля положительных среди кандидатов против настоящей
+  OVERLAP              какие пары «метод — эталон» делят информацию по построению
 """
 from __future__ import annotations
 
@@ -25,7 +22,7 @@ from evaluation.temporal_reference import load_flows
 
 BLOCKS = ("volume", "peers", "ratio", "ports", "proto", "hourly")
 
-# Information shared between a method's INPUT and a reference's SOURCE, by construction.
+# Что вход метода делит с ИСТОЧНИКОМ эталона по построению.
 OVERLAP = {
     "random": {"neighbors": "none", "edges": "none", "pairs": "none"},
     "behavioral": {"neighbors": "same feature definitions, earlier window (feature overlap)",
@@ -49,12 +46,11 @@ OVERLAP = {
 def weight_sensitivity(processed_dir: Path, hosts: list[str], target: str,
                        embeddings: dict[str, pd.DataFrame], *, n_configs: int = 12, seed: int = 0,
                        k: int = 10) -> dict:
-    """Re-derive the behavioural reference under perturbed block weights.
+    """Пересобрать поведенческий эталон со случайно изменёнными весами блоков.
 
-    Each config multiplies every block weight by exp(N(0, 0.5)) and independently zeroes one
-    random block in a third of the configs. For every config: neighbour agreement with the
-    canonical reference (Consistency@k of alt-vs-canonical) and each method's Consistency@k under
-    the alternative reference; ranking agreement with the canonical ordering is Kendall tau.
+    Каждая конфигурация умножает вес блока на exp(N(0, 0.5)), в трети конфигураций ещё обнуляет случайный блок.
+    Для каждой: совпадение соседей с основным эталоном и Consistency@k каждого метода по новому эталону;
+    согласие порядка методов с основным — тау Кендалла.
     """
     flows = load_flows(Path(processed_dir) / "flows" / f"{target}.csv")
     canon = build_reference_features(flows, hosts=hosts)
@@ -90,7 +86,7 @@ def weight_sensitivity(processed_dir: Path, hosts: list[str], target: str,
 
 
 def reference_stability(processed_dir: Path, hosts: list[str], windows: list[str], k: int = 10) -> dict:
-    """Neighbour agreement between behavioural references built from different windows."""
+    """Совпадение соседей между поведенческими эталонами разных окон."""
     feats = {w: build_reference_features(load_flows(Path(processed_dir) / "flows" / f"{w}.csv"), hosts=hosts)
              for w in windows}
     out = {}
@@ -105,10 +101,10 @@ def reference_stability(processed_dir: Path, hosts: list[str], windows: list[str
 
 def random_null(reference_dir: Path, hosts: list[str], tmp_dir: Path, *, dim: int = 16,
                 n: int = 30, seed: int = 0, fit_reference_dir: Path | None = None) -> dict:
-    """Metric distribution of random embeddings on the real reference (chance band).
+    """Распределение метрик у случайных эмбеддингов на настоящем эталоне (случайный уровень).
 
-    Note the learned link score is NOT centred on 0.5 for random embeddings: random vectors are
-    host identifiers, so a classifier can memorise hub hosts seen in the fit window.
+    Обученный классификатор связей у случайных векторов НЕ 0.5: случайный вектор — это идентификатор хоста,
+    и классификатор может запомнить хабы из окна обучения.
     """
     tmp_dir = Path(tmp_dir)
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -127,7 +123,7 @@ def random_null(reference_dir: Path, hosts: list[str], tmp_dir: Path, *, dim: in
 
 
 def split_agreement(results: dict[str, dict[str, dict]], metrics: list[str]) -> dict:
-    """Kendall tau between validation and test method orderings, per metric."""
+    """Тау Кендалла между порядком методов на validation и на test, по каждой метрике."""
     out = {}
     val, test = results.get("validation", {}), results.get("test", {})
     names = sorted(set(val) & set(test))

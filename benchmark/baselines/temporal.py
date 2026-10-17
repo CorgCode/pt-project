@@ -1,22 +1,15 @@
-"""Baselines that follow the temporal protocol: FIT on the train window only.
+"""Бейзлайны по временному протоколу: обучение ТОЛЬКО на train-окне.
 
-Each baseline has
-    fit(data)                    reads only data.training_flows() / training_graph() / cohort
-    embed(data, window, hosts)   -> DataFrame[host_id x emb_*] for `hosts` (default: the cohort),
-                                 from THAT window's flows. For a later window pass the hosts that are
-                                 evaluable there; inactive hosts have no data in that window.
-and declares `shared_coordinate_system`: True if embeddings of different windows live in one
-coordinate system (fixed, train-fitted transform), False if every window is fitted separately
-(then cross-window comparison needs alignment, see evaluation.identity_retrieval).
+У каждого бейзлайна
+    fit(data)                    читает только data.training_flows() / training_graph() / cohort
+    embed(data, window, hosts)   -> DataFrame host_id x emb_* по потокам ЭТОГО окна (по умолчанию — вся когорта)
+и признак shared_coordinate_system: True, если все окна в одной системе координат (преобразование
+подобрано на train и не меняется), False, если каждое окно обучается отдельно — тогда сравнение
+между окнами требует выравнивания (evaluation.identity).
 
-Scored embedding = embed(data, "train") (the source window); the later windows are used for
-reference building and identity retrieval only.
-
-Information overlap with the references (see docs/METHODOLOGY.md): behavioural baselines use the
-same feature definitions as the behavioural-neighbour reference (different, later window);
-the graph baseline uses peer structure like the shared-peer / future-link references (later
-window). Overlap is by design for baselines and is why they are calibration points, not
-independent evidence.
+Оценивается embed(data, "train"); поздние окна нужны только для эталонов и узнаваемости.
+Поведенческие бейзлайны используют те же признаки, что и эталон соседей (но другое окно), графовый —
+структуру собеседников, как эталоны связей и пар. Поэтому это точки калибровки, а не независимое доказательство.
 """
 from __future__ import annotations
 
@@ -61,9 +54,9 @@ class RandomBaseline(Baseline):
 
     def embed(self, data, window, hosts=None):
         hosts = list(hosts) if hosts is not None else data.cohort
-        offset = sum(ord(c) for c in window)                 # stable per-window stream
+        offset = sum(ord(c) for c in window)                 # свой поток случайных чисел на окно
         rng = np.random.default_rng(self.seed * 1000 + offset)
-        full = rng.standard_normal((len(data.cohort), self.dim))     # one row per cohort host
+        full = rng.standard_normal((len(data.cohort), self.dim))     # строка на каждого хоста когорты
         return _frame(full[[data.cohort.index(h) for h in hosts]], hosts)
 
 
@@ -123,7 +116,7 @@ class BehavioralPCA(BehavioralBaseline):
 
 
 class BehavioralPortFree(BehavioralBaseline):
-    """The behavioural profile WITHOUT any port-derived feature (issue #43)."""
+    """Поведенческий профиль БЕЗ единого признака по портам (#43)."""
     name = "behavioral_portfree"
     exclude_blocks = ("ports",)
     description = ("standardised behavioural profile (volume, degree, direction, protocols, hour-of-day) with the "
@@ -187,7 +180,7 @@ class GraphSpectral(Baseline):
 
 
 def default_baselines(dim: int = 16, seed: int = 0, port_free: bool = False) -> list[Baseline]:
-    """The standard baselines; `port_free=True` adds the port-free behavioural ablation (issue #43)."""
+    """Стандартные бейзлайны; port_free=True добавляет варианты без портов (#43)."""
     out = [RandomBaseline(dim, seed), BehavioralBaseline(), BehavioralPCA(dim, seed),
            BehavioralSVD(dim, seed), GraphSpectral(dim, seed)]
     if port_free:

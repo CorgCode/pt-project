@@ -1,20 +1,14 @@
-"""k-NN consistency / neighborhood preservation for host embeddings.
+"""Совпадение соседей (k-NN consistency): сохраняет ли эмбеддинг поведенческое соседство хостов.
 
-Idea: for every host take its top-k neighbours under an independent reference
-similarity (built from raw behaviour) and its top-k neighbours in embedding
-space, then compare the two sets. Higher overlap => the embedding preserves
-behavioural similarity.
+Для каждого хоста берём k ближайших по эталонной похожести (из логов) и k ближайших по эмбеддингу
+и сравниваем два множества. Больше пересечение — лучше эмбеддинг сохраняет поведенческую похожесть.
 
-Leakage rule: the reference must not be the evaluated embedding representation.
-Behavioural features may be reused carefully if the method trained on related
-features; prefer held-out feature groups, different time windows, or independent
-similarity views (see evaluation/README_knn_consistency.md).
+Утечка: эталон не может быть самим оцениваемым эмбеддингом. Если метод учился на похожих признаках,
+лучше брать эталон из другого окна времени или другие группы признаков.
 
-Public API (plug-in friendly):
-    build_reference_features(flows, hosts=None) -> pd.DataFrame
-    evaluate_embedding(embedding, reference, ks=(5, 10, 20)) -> pd.DataFrame
-    neighborhood_metrics(ref_nn, emb_nn) -> pd.DataFrame (per host)
-    summarize(per_host) -> pd.DataFrame
+    build_reference_features(flows, hosts=None) -> DataFrame   поведенческий профиль
+    evaluate_embedding(embedding, reference, ks=(5, 10, 20))    сводка по k
+    neighborhood_metrics(ref_nn, emb_nn)                         метрики по каждому хосту
 """
 from __future__ import annotations
 
@@ -24,7 +18,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
 # --------------------------------------------------------------------------
-# 1. Reference similarity (independent of any embedding)
+# 1. Эталонная похожесть (без участия эмбеддингов)
 # --------------------------------------------------------------------------
 
 def _row_normalize(x: pd.DataFrame) -> pd.DataFrame:
@@ -44,31 +38,24 @@ def build_reference_features(
     return_fitted: bool = False,
     exclude_blocks: tuple[str, ...] = (),
 ):
-    """Hand-crafted behavioural profile per host, one row per host.
+    """Поведенческий профиль хоста: строка на хост.
 
-    fitted / return_fitted: fit the standardisation, the port list and the protocol list on
-    one window (return_fitted=True returns (features, fitted)) and reuse them on another
-    window (fitted=...), so both windows live in ONE coordinate system.
+    fitted / return_fitted: нормировку, список портов и протоколов подбираем на одном окне
+    (return_fitted=True вернёт (признаки, fitted)) и применяем к другому (fitted=...) —
+    тогда оба окна в одной системе координат.
 
-    exclude_blocks: feature blocks to drop ENTIRELY (they are not even computed), e.g. ("ports",) for a
-    port-free profile. Every block is standardised and normalised on its own, so the kept columns are
-    identical to the same columns of the full profile (tested). A `fitted` state remembers what was
-    excluded and refuses to be applied with a different setting.
+    exclude_blocks: блоки признаков, которые не считаются вовсе, например ("ports",) — профиль без портов.
+    Каждый блок нормируется отдельно, поэтому оставшиеся колонки совпадают с полным профилем (есть тест).
 
-    `flows` columns: src, dst, dst_port, proto, bytes, packets, ts (datetime or
-    unix seconds). Blocks (each scaled to equal norm, then weighted):
-      volume   - log1p of flows/bytes/packets, out and in
-      peers    - log1p of distinct out/in peers (degree only, NOT peer identity)
-      ratio    - out/(out+in) share for flows and bytes
-      ports    - distribution over the top-N destination ports (as server+client)
-      proto    - distribution over protocols
-      hourly   - 24-bin activity histogram (temporal profile)
-    Leakage: the reference must never be the evaluated embedding itself (or a
-    copy / linear transform of it). Behavioural features may overlap with what the
-    method was trained on only with care; preferred options are held-out feature
-    groups, a different time window, or an independent similarity view. Peer
-    *identity* is excluded by default for this reason: graph embeddings
-    (node2vec etc.) trained on the same communication graph would reproduce it.
+    Колонки flows: src, dst, dst_port, proto, bytes, packets, ts. Блоки (одинаковая норма, затем веса):
+      volume - log1p числа потоков, байт, пакетов (исходящих и входящих)
+      peers  - log1p числа разных собеседников (только количество, не кто именно)
+      ratio  - доля исходящего для потоков и байт
+      ports  - распределение по популярным портам назначения
+      proto  - распределение по протоколам
+      hourly - активность по 24 часам
+    Кто именно собеседники — специально не используется: графовые методы, обученные на том же графе,
+    воспроизвели бы это по построению.
     """
     exclude = tuple(sorted(set(exclude_blocks)))
     unknown = set(exclude) - set(BLOCKS)
@@ -143,7 +130,7 @@ def build_reference_features(
             z = sc.transform(b.values)
         scalers[name] = sc
         z = np.nan_to_num(z)
-        z = z / np.sqrt(max(z.shape[1], 1))          # equal total variance per block
+        z = z / np.sqrt(max(z.shape[1], 1))          # у каждого блока одинаковая суммарная дисперсия
         parts.append(pd.DataFrame(z * w[name], index=idx).add_prefix(f"{name}_"))
     features = pd.concat(parts, axis=1)
     if return_fitted:
@@ -155,11 +142,11 @@ def build_reference_features(
 
 
 # --------------------------------------------------------------------------
-# 2. Neighbour search (self excluded)
+# 2. Поиск соседей (сам хост исключён)
 # --------------------------------------------------------------------------
 
 def top_k_neighbors(X: np.ndarray, k: int, metric: str = "cosine") -> np.ndarray:
-    """(n, k) array of neighbour indices, sorted by similarity, self excluded."""
+    """Индексы соседей (n, k) по убыванию похожести, без самого хоста."""
     X = np.asarray(X, dtype=float)
     n = len(X)
     if not 1 <= k < n:
@@ -168,23 +155,22 @@ def top_k_neighbors(X: np.ndarray, k: int, metric: str = "cosine") -> np.ndarray
     idx = nn.kneighbors(X, return_distance=False)
     out = np.empty((n, k), dtype=int)
     for i, row in enumerate(idx):
-        row = row[row != i]          # duplicates may push self out of position 0
+        row = row[row != i]          # из-за дубликатов сам хост может оказаться не на первом месте
         out[i] = row[:k]
     return out
 
 
 # --------------------------------------------------------------------------
-# 3. Metrics
+# 3. Метрики
 # --------------------------------------------------------------------------
 
 def neighborhood_metrics(ref_nn: np.ndarray, emb_nn: np.ndarray) -> pd.DataFrame:
-    """Per-host Consistency@k, Jaccard@k and rank-aware nDCG@k.
+    """Consistency@k, Jaccard@k и nDCG@k по каждому хосту.
 
     consistency = |R ∩ E| / k
     jaccard     = |R ∩ E| / |R ∪ E|
-    ndcg        = DCG of embedding list with graded relevance (k - ref_rank) for
-                  reference neighbours, 0 otherwise, normalised by the ideal DCG.
-                  Rewards putting the closest reference neighbours first.
+    ndcg        = DCG списка по эмбеддингу с весом (k - ранг в эталоне) для эталонных соседей,
+                  делённый на идеальный DCG: награда за то, что ближайшие эталонные соседи стоят первыми.
     """
     n, k = ref_nn.shape
     discounts = 1.0 / np.log2(np.arange(2, k + 2))
@@ -212,11 +198,10 @@ def evaluate_embedding(
     ref_metric: str = "cosine",
     return_per_host: bool = False,
 ):
-    """Compare an embedding to the reference over several k.
+    """Сравнить эмбеддинг с эталоном для нескольких k.
 
-    Both inputs must have the same host order (DataFrames are aligned by index).
-    Returns a summary DataFrame indexed by (k, metric) with mean/median/std,
-    and optionally {k: per-host DataFrame}.
+    Таблицы выравниваются по индексу. Возвращает сводку с индексом (k, метрика) и колонками
+    mean/median/std и, по желанию, {k: таблица по хостам}.
     """
     if isinstance(embedding, pd.DataFrame) and isinstance(reference, pd.DataFrame):
         for name, df in (("embedding", embedding), ("reference", reference)):

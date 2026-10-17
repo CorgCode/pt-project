@@ -18,12 +18,12 @@ def ring_chords(n=12):
     return from_edges(e[:, 0], e[:, 1], np.ones(len(e)), np.array([f"h{i}" for i in range(n)], dtype=object))
 
 
-# ------------------------------------------------------------------ gradients (the manual backward pass)
+# ------------------------------------------------------------------ градиенты (ручной обратный проход)
 def tiny_batch(rng, g, S2=2, S1=3):
     targets = np.array([0, 2, 5, 7, 9])
     nb2 = sample_neighbors(g, targets, S2, rng)
     nb1 = sample_neighbors(g, np.concatenate([targets, nb2.ravel()]), S1, rng)
-    return Batch(targets, nb2, nb1, np.array([0, 1, 1, 3, 3]), np.array([2, 2, 4, 0, 1]), np.array([3, 4, 3]))   # repeated indices
+    return Batch(targets, nb2, nb1, np.array([0, 1, 1, 3, 3]), np.array([2, 2, 4, 0, 1]), np.array([3, 4, 3]))   # повторяющиеся индексы
 
 
 def numerical(f, W, eps=1e-6):
@@ -52,22 +52,22 @@ def test_backward_pass_matches_finite_differences(seed):
 
 
 def test_loss_at_zero_scores_is_the_chance_value():
-    """With orthogonal-ish normalised embeddings the loss is about (1 + Q) log 2 per pair."""
+    """При почти ортогональных нормированных эмбеддингах потери ≈ (1 + Q) log 2 на пару."""
     rng = np.random.default_rng(0)
     g = ring_chords()
     X = rng.normal(size=(g.n, 3))
     W1, W2 = rng.normal(size=(6, 4)), rng.normal(size=(8, 3))
     b = tiny_batch(rng, g)
     loss = loss_and_grads(W1, W2, X, b, False)[0]
-    assert 0.3 * (1 + 3) < loss < 1.31 * (1 + 3)                      # between the best (s=+/-1) and worst cases
+    assert 0.3 * (1 + 3) < loss < 1.31 * (1 + 3)                      # между лучшим (s=+/-1) и худшим случаями
 
 
-# ------------------------------------------------------------------ neighbour sampling
+# ------------------------------------------------------------------ выбор соседей
 def test_sampled_neighbours_are_real_uniform_and_drawn_with_replacement():
     g = ring_chords()
     rng = np.random.default_rng(0)
     nodes = np.arange(g.n)
-    s = sample_neighbors(g, nodes, 6, rng)                            # degree is 4, so some repeats are certain
+    s = sample_neighbors(g, nodes, 6, rng)                            # степень 4, значит повторы неизбежны
     assert g.has_edge(np.repeat(nodes, 6), s.ravel()).all()
     big = sample_neighbors(g, np.zeros(20000, dtype=np.int64), 1, rng).ravel()
     nb = g.neighbors(0)
@@ -75,7 +75,7 @@ def test_sampled_neighbours_are_real_uniform_and_drawn_with_replacement():
     assert chisquare(obs, np.full(len(nb), 20000 / len(nb))).pvalue > 1e-3
 
 
-# ------------------------------------------------------------------ inference
+# ------------------------------------------------------------------ применение
 def dense_infer(W1, W2, A, X):
     P = A / A.sum(1, keepdims=True)
     n1 = np.maximum(np.hstack([X, P @ X]) @ W1, 0.0)
@@ -102,11 +102,11 @@ def test_inference_is_equivariant_to_relabelling_and_inductive():
     perm = rng.permutation(g.n)
     A = g.adjacency().toarray()
     Ap = np.zeros_like(A)
-    Ap[np.ix_(perm, perm)] = A                                         # node i becomes node perm[i]
+    Ap[np.ix_(perm, perm)] = A                                         # вершина i становится perm[i]
     Xp = np.zeros_like(X)
     Xp[perm] = X
     ep = dense_infer(W1, W2, (Ap > 0).astype(float), Xp)
-    assert np.allclose(ep[perm], infer(W1, W2, g, X))                  # the same weights embed ANY graph (inductive)
+    assert np.allclose(ep[perm], infer(W1, W2, g, X))                  # те же веса встраивают ЛЮБОЙ граф (индуктивность)
     bigger = ring_chords(30)
     assert infer(W1, W2, bigger, rng.normal(size=(30, 3))).shape == (30, 3)
 
@@ -116,7 +116,7 @@ def test_adam_first_step_is_lr_times_the_sign_and_it_minimises_a_quadratic():
     p = np.array([5.0, -3.0])
     opt = Adam([p], lr=0.1)
     opt.step([p], [np.array([2.0, -4.0])])
-    assert np.allclose(p, [5.0 - 0.1, -3.0 + 0.1], atol=1e-6)         # bias-corrected first step = lr * g / |g|
+    assert np.allclose(p, [5.0 - 0.1, -3.0 + 0.1], atol=1e-6)         # первый шаг с поправкой смещения = lr * g / |g|
     q = np.array([4.0, -2.0])
     o2 = Adam([q], lr=0.2)
     for _ in range(300):
@@ -124,7 +124,7 @@ def test_adam_first_step_is_lr_times_the_sign_and_it_minimises_a_quadratic():
     assert np.abs(q).max() < 0.05
 
 
-# ------------------------------------------------------------------ learning
+# ------------------------------------------------------------------ обучение
 def planted(seed, h=40):
     rng = np.random.default_rng(seed)
     n = 2 * h
@@ -143,7 +143,7 @@ def gap(E, h):
 
 
 def test_training_amplifies_a_weak_feature_signal_through_the_neighbourhood():
-    """Noisy community-indicator features: raw and untrained embeddings barely separate communities, trained ones do."""
+    """Шумные признаки сообщества: сырые и необученные эмбеддинги почти не разделяют сообщества, обученные — разделяют."""
     for seed in range(3):
         g, h = planted(seed)
         rng = np.random.default_rng(100 + seed)
@@ -167,12 +167,12 @@ def test_training_is_deterministic_and_seed_sensitive():
     assert np.array_equal(a[0], b[0]) and np.array_equal(a[1], b[1]) and not np.array_equal(a[0], c[0])
 
 
-# ------------------------------------------------------------------ features
+# ------------------------------------------------------------------ признаки
 def test_structural_features_are_correct_on_a_known_graph():
     tri = from_edges(np.array([0, 1, 0, 2]), np.array([1, 2, 2, 3]), np.ones(4), np.array(list("abcd"), dtype=object))
-    F = structural_features(tri)                                        # triangle a,b,c plus pendant d on c
+    F = structural_features(tri)                                        # треугольник a,b,c и висячая d на c
     assert F[:, 0].tolist() == pytest.approx(np.log1p([2, 2, 3, 1]).tolist())
-    assert F[:, 3].tolist() == pytest.approx([1.0, 1.0, 1 / 3, 0.0])     # clustering coefficient
+    assert F[:, 3].tolist() == pytest.approx([1.0, 1.0, 1 / 3, 0.0])     # коэффициент кластеризации
 
 
 def test_features_validate_and_standardise_with_train_statistics(processed):
@@ -193,10 +193,10 @@ def test_features_validate_and_standardise_with_train_statistics(processed):
         gt = from_flows(te_flows)
         Xt = f.transform(te_flows, gt)
         assert Xt.shape[1] == X.shape[1] and np.isfinite(Xt).all()
-        assert not np.allclose(Xt.mean(0), 0, atol=1e-8)                 # NOT re-standardised on the later window
+        assert not np.allclose(Xt.mean(0), 0, atol=1e-8)                 # на позднем окне НЕ перенормируется
 
 
-# ------------------------------------------------------------------ the benchmark method
+# ------------------------------------------------------------------ метод бенчмарка
 @pytest.fixture(scope="module")
 def data(processed):
     return TrainOnlyGuard(processed)
@@ -222,7 +222,7 @@ def test_output_contract_and_determinism(data):
     mk = lambda s: GraphSAGE(dim=5, seed=s, **FAST).fit(data).embed(data, "train")
     e = mk(1)
     assert list(e.index) == data.cohort and e.shape == (len(data.cohort), 5)
-    assert np.isfinite(e.to_numpy()).all() and np.allclose(np.linalg.norm(e.to_numpy(), axis=1), 1.0)   # unit vectors
+    assert np.isfinite(e.to_numpy()).all() and np.allclose(np.linalg.norm(e.to_numpy(), axis=1), 1.0)   # единичные векторы
     assert np.array_equal(e.to_numpy(), mk(1).to_numpy()) and not np.array_equal(e.to_numpy(), mk(2).to_numpy())
 
 
@@ -231,8 +231,8 @@ def test_later_windows_use_the_same_weights(data):
     w1, w2 = m.W1.copy(), m.W2.copy()
     hosts = data.evaluable("test")
     e = m.embed(data, "test", hosts)
-    assert list(e.index) == hosts and np.array_equal(w1, m.W1) and np.array_equal(w2, m.W2)     # inference never trains
-    assert np.array_equal(e.to_numpy(), m.embed(data, "test", hosts).to_numpy())                  # cached, deterministic
+    assert list(e.index) == hosts and np.array_equal(w1, m.W1) and np.array_equal(w2, m.W2)     # применение никогда не обучает
+    assert np.array_equal(e.to_numpy(), m.embed(data, "test", hosts).to_numpy())                  # кэшируется, детерминированно
 
 
 def test_fit_reads_only_the_train_window(processed):
@@ -259,7 +259,7 @@ def test_runs_through_the_runner_with_shared_coordinates_and_the_tuner(processed
     assert "graphsage" in m["methods"] and "graphsage" not in m["missing_expected_methods"]
     assert m["graph_methods"]["graphsage"]["shared_coordinate_system"] is True
     ident = json.loads((tmp_path / "o" / "identity" / "test" / "graphsage.json").read_text())
-    assert ident["shared_coordinate_system_declared"] is True and "top1" in ident["none"]       # raw coordinates are meaningful
+    assert ident["shared_coordinate_system_declared"] is True and "top1" in ident["none"]       # сырые координаты осмысленны
     res = json.loads((tmp_path / "o" / "results" / "test" / "graphsage.json").read_text())
     assert res["metric_status"]["pairwise_roc_auc"] == "ok"
     out = tune(processed, reference, "graphsage", {"hidden": [8, 16], "lr": [0.01, 0.02]}, dim=4, metric="pair_roc_auc", fast=True)

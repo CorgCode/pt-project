@@ -1,18 +1,17 @@
 # RolX
 
-Henderson et al., *RolX: Structural Role Extraction & Mining in Large Graphs*, KDD 2012 (ReFeX: KDD 2011).
-Implementation: `rolx.py`.
+Henderson et al., *RolX: Structural Role Extraction & Mining in Large Graphs*, KDD 2012 (ReFeX — KDD 2011).
+Код: `rolx.py`.
 
-ReFeX recursive structural features (degree, strength, egonet edges inside/outside; sum and mean over neighbours;
-logarithmic binning with similarity pruning) followed by KL-divergence NMF; the L1-normalised role memberships are the
-embedding. `n_roles` defaults to the embedding dimension (`--dim`); `n_roles: "mdl"` selects it by minimum description
-length.
+Рекурсивные структурные признаки ReFeX (степень, сила, рёбра внутри и наружу эго-сети; сумма и среднее по соседям;
+логарифмические корзины с прореживанием) → NMF с KL-дивергенцией; эмбеддинг — принадлежность ролям, нормированная по L1.
+`n_roles` по умолчанию = размерность (`--dim`); `n_roles: "mdl"` — выбор по минимальной длине описания.
 
-* **What it is for:** structural roles are recovered across disconnected components (on 8 copies of a
-  hub/leaf/bridge/clique component the nearest other-component node has the same role for >= 95% of nodes of every role);
-  proximity methods such as DeepWalk have no mechanism for that.
-* **What it is not for:** the references of this benchmark reward shared peers and behaviour, so RolX is expected to align
-  only weakly with them (declared overlap: weak). On the synthetic fixture: pair AUC 0.59, kNN@10 0.07.
-* **MDL caveat:** on clean role graphs the model cost dominates and MDL picks the minimum number of roles (2); this is a
-  property of the criterion at these feature counts, not evidence about the true number of roles.
-* **Cost:** negligible (0.1 s for 300 hosts); triangles are counted row-chunked so hubs do not exhaust memory.
+* **Для чего:** находит структурные роли даже в несвязанных компонентах (на 8 копиях компоненты хаб/лист/мост/клика
+  ближайшая вершина из другой компоненты имеет ту же роль для ≥ 95% вершин каждой роли). У DeepWalk и подобных
+  механизма для этого нет.
+* **Для чего не подходит:** эталоны бенчмарка поощряют общих собеседников и похожее поведение, поэтому с ними RolX
+  совпадает слабо (заявленное пересечение: слабое). Это ожидаемо, а не ошибка.
+* **Оговорка про MDL:** на чистых графах ролей стоимость модели перевешивает, и MDL выбирает минимум ролей (2) —
+  это свойство критерия, а не знание об истинном числе ролей.
+* **Стоимость:** ничтожная (0.1 с на 300 хостов); треугольники считаются кусками строк, чтобы хабы не съели память.

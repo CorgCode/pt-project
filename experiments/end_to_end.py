@@ -1,15 +1,15 @@
-"""One command: raw netflow -> windows -> frozen references -> all methods -> report.
+"""Одна команда: сырые логи -> окна -> эталоны -> все методы -> таблица и отчёт.
 
-    # real data (files from the LANL form); without --data-kind lanl the run is labelled 'unverified':
+    # настоящие данные; без --data-kind lanl прогон помечается 'unverified':
     python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 \
         --config my_config.json --workdir runs/lanl \
-        --data-kind lanl --source-note "LANL form, <date>, <who>"
+        --data-kind lanl --source-note "форма LANL, <дата>, <кто>"
 
-    # pipeline smoke test on a SYNTHETIC LANL-format fixture (no download needed):
+    # синтетика в формате LANL (без скачивания):
     python -m experiments.end_to_end --fixture --workdir runs/synthetic_demo
 
-Stages and outputs under --workdir: processed/ (pipeline.prepare), reference/
-(pipeline.reference), run/ (experiments.run_experiment: report.md, figures/, results/, audit.json).
+В --workdir: processed/ (pipeline.prepare), reference/ (pipeline.reference),
+run/ (experiments.run_experiment: report.md, scoreboard_*.md, figures/, results/, audit.json).
 """
 from __future__ import annotations
 

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from evaluation.identity_retrieval import identity_retrieval
+from evaluation.identity import identity_retrieval
 from evaluation.io import ReferenceError, cosine_pairs, load_embeddings
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.retrieval import load_pairs, pair_auc, precision_recall_at_k
@@ -21,7 +21,7 @@ def trip(rows, split="test"):
     return pd.DataFrame([(a, p, n, split) for a, p, n in rows], columns=["anchor", "positive", "negative", "split"])
 
 
-# ---------------------------------------------------------------- triplet accuracy
+# ---------------------------------------------------------------- точность по тройкам
 def test_triplet_perfect_inverted_and_chance_tie():
     assert triplet_accuracy(E, trip([("a", "p", "n")]))["accuracy"] == 1.0
     assert triplet_accuracy(E, trip([("a", "n", "p")]))["accuracy"] == 0.0
@@ -70,7 +70,7 @@ def test_triplet_zero_vector_rejected():
         triplet_accuracy(z, trip([("a", "p", "n")]))
 
 
-# ---------------------------------------------------------------- pair AUC and P@k / R@k
+# ---------------------------------------------------------------- AUC по парам и P@k / R@k
 def pairs(rows, split="test"):
     return pd.DataFrame([(a, b, str(l), split) for a, b, l in rows], columns=["host_a", "host_b", "label", "split"])
 
@@ -94,7 +94,7 @@ def test_pair_loader_rejects_bad_files(tmp_path):
 
 
 def retr_emb():
-    # anchor x; candidates ordered by closeness: r1 (rel) > i1 (irrel) > r2 (rel) > i2
+    # хост x; кандидаты по близости: r1 (похож) > i1 (нет) > r2 (похож) > i2
     return emb({"x": [1, 0], "r1": [1, 0.05], "i1": [1, 0.5], "r2": [1, 1.0], "i2": [0, 1]})
 
 
@@ -104,9 +104,9 @@ def retr_pairs():
 
 def test_precision_recall_hand_computed():
     r = precision_recall_at_k(retr_emb(), retr_pairs(), ks=(1, 2, 4))["by_k"]
-    # only anchor x has |C| >= k for all candidates... other hosts have 1 candidate (excluded for k>1)
+    # только у x |C| >= k; у остальных по 1 кандидату (при k>1 исключаются)
     assert r["2"]["eligible_anchors"] == 1
-    assert r["1"]["precision"] == pytest.approx(1.0)       # eligible anchors with >=1 relevant: x, r1, r2
+    assert r["1"]["precision"] == pytest.approx(1.0)       # участвуют хосты с хотя бы одним похожим: x, r1, r2
     assert r["2"]["precision"] == pytest.approx(0.5) and r["2"]["recall"] == pytest.approx(0.5)
     assert r["4"]["precision"] == pytest.approx(0.5) and r["4"]["recall"] == pytest.approx(1.0)
     assert r["2"]["oracle_precision"] == 1.0 and r["2"]["chance_precision"] == 0.5
@@ -114,14 +114,14 @@ def test_precision_recall_hand_computed():
 
 def test_unjudged_pairs_are_not_negatives():
     base = precision_recall_at_k(retr_emb(), retr_pairs(), ks=(2,))["by_k"]["2"]
-    # adding a nearest-by-embedding host WITHOUT any judgment must not change the result
+    # ближайший по эмбеддингу хост БЕЗ разметки не должен менять результат
     e = pd.concat([retr_emb(), emb({"u": [1, 0.0]})])
     again = precision_recall_at_k(e, retr_pairs(), ks=(2,))["by_k"]["2"]
     assert again["precision"] == base["precision"] and again["recall"] == base["recall"]
 
 
 def test_ineligible_anchors_excluded_and_coverage_reported():
-    P = pairs([("x", "r1", 1), ("x", "i1", 0), ("y", "i1", 0), ("y", "i2", 0)])   # y has no relevant
+    P = pairs([("x", "r1", 1), ("x", "i1", 0), ("y", "i1", 0), ("y", "i2", 0)])   # у y нет похожих
     e = precision_recall_at_k(pd.concat([retr_emb(), emb({"y": [0.5, 0.5]})]), P, ks=(2,))["by_k"]["2"]
     assert e["eligible_anchors"] == 1 and 0 < e["coverage"] < 1
     none = precision_recall_at_k(retr_emb(), pairs([("x", "i1", 0), ("x", "i2", 0)]), ks=(1,))
@@ -143,7 +143,7 @@ def test_retrieval_split_isolation():
     assert t != v
 
 
-# ---------------------------------------------------------------- prevalence and uncertainty
+# ---------------------------------------------------------------- доля положительных и неопределённость
 def test_reweighted_ap_matches_ap_at_sample_prevalence_and_drops_when_rarer():
     rng = np.random.default_rng(0)
     y = np.r_[np.ones(200), np.zeros(200)].astype(int)
@@ -170,7 +170,7 @@ def test_auc_with_ci_chance_interval_includes_half():
     assert lo < r["roc_auc"] < hi and hi - lo < 0.2 and lo > 0.35 and hi < 0.65
 
 
-# ---------------------------------------------------------------- linear probe
+# ---------------------------------------------------------------- линейный зонд
 def probe_data(n=60, seed=0, sep=3.0):
     rng = np.random.default_rng(seed)
     y = np.array(["web", "db", "dns"])[rng.integers(0, 3, n)]
@@ -215,9 +215,9 @@ def test_probe_requires_provenance_and_valid_splits():
 def test_probe_never_trains_on_evaluation_rows():
     e, lab = probe_data(seed=2)
     r1 = linear_probe(e, lab, labels_source="x")
-    flipped = lab.copy()                                   # scramble TEST labels only
+    flipped = lab.copy()                                   # перемешиваем только метки TEST
     flipped.loc[flipped.split == "test", "target"] = np.roll(flipped.loc[flipped.split == "test", "target"].to_numpy(), 7)
-    # training rows identical => the fitted model is identical => predictions on test identical
+    # строки train те же => модель та же => предсказания на test те же
     r2 = linear_probe(e, flipped, labels_source="x")
     assert r1["n_train"] == r2["n_train"] and r1["accuracy"] != r2["accuracy"]
 
@@ -232,7 +232,7 @@ def test_probe_reports_unseen_test_class_and_rejects_duplicate_hosts(tmp_path):
         load_labels(p)
 
 
-# ---------------------------------------------------------------- identity retrieval
+# ---------------------------------------------------------------- узнаваемость во времени
 def rand_orth(d, seed):
     q, _ = np.linalg.qr(np.random.default_rng(seed).normal(size=(d, d)))
     return q
@@ -277,13 +277,13 @@ def test_identity_constant_embedding_scores_exactly_chance():
 
 def test_identity_input_validation():
     A, B, hosts = windows(n=40)
-    with pytest.raises(ValueError, match="different host IDs"):
+    with pytest.raises(ValueError, match="разные хосты"):
         identity_retrieval(A, B.iloc[:-1])
-    with pytest.raises(ValueError, match="equal dimensions"):
+    with pytest.raises(ValueError, match="размерности"):
         identity_retrieval(A, B.iloc[:, :4], alignment="procrustes")
     with pytest.raises(ValueError, match="alignment"):
         identity_retrieval(A, B, alignment="magic")
-    with pytest.raises(ValueError, match="at least 20"):
+    with pytest.raises(ValueError, match="20 хостов"):
         identity_retrieval(A.iloc[:10], B.iloc[:10])
 
 
@@ -294,7 +294,7 @@ def test_identity_row_order_independent_and_seeded():
     assert a["top1"] == b["top1"] and a["mrr"] == b["mrr"]
 
 
-# ---------------------------------------------------------------- loaders
+# ---------------------------------------------------------------- загрузчики
 def test_load_embeddings_rejects_bad_files(tmp_path):
     p = tmp_path / "e.csv"
     for text, msg in [("host_id,emb_0\nA,1\nA,2\n", "duplicate"), ("host_id,emb_0\nA,nan\n", "NaN"),

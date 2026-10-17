@@ -1,4 +1,4 @@
-"""Data-layer tests against the committed (synthetic) demo bundle."""
+"""Тесты слоя данных на закоммиченном (синтетическом) демо."""
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +30,7 @@ def test_board_has_every_method_and_nan_for_missing_metrics(b):
     t = b.board("test")
     assert set(t.index) == set(b.methods)
     assert t.loc["reference_ceiling", "consistency@10_mean"] == pytest.approx(1.0)
-    assert t["probe_accuracy"].isna().all()                  # unavailable stays NaN, never filled
+    assert t["probe_accuracy"].isna().all()                  # недоступное остаётся NaN, ничем не заполняется
     assert any(u.startswith("linear_probe") for u in b.unavailable())
 
 
@@ -54,7 +54,7 @@ def test_projection_and_agreement(b):
     p = b.projection("behavioral")
     assert {"PC1", "PC2", "agreement"} <= set(p.columns) and p.agreement.between(0, 1).all()
     ceiling = b.per_host_agreement("reference_ceiling", 10)
-    assert (ceiling == 1.0).all()                           # identical by construction
+    assert (ceiling == 1.0).all()                           # совпадают по построению
     assert b.per_host_agreement("random", 10).mean() < 0.1
 
 

@@ -1,19 +1,14 @@
-"""Linear / logistic probe on frozen embeddings with EXTERNAL labels (reference/labels.csv).
+"""Линейный зонд на замороженных эмбеддингах с ВНЕШНИМИ метками (reference/labels.csv).
 
-Protocol: StandardScaler + LogisticRegression(C=1, seed 0) is fit on rows with split=train
-only and scored on split=test (or validation). Embeddings are never changed. No tuning on the
-evaluation split. Reported: accuracy, macro-F1, weighted-F1, balanced accuracy, and the
-MAJORITY-CLASS baseline (train majority predicted for every test host) for context.
+StandardScaler + LogisticRegression(C=1, seed 0) учатся только на split=train и оцениваются на test
+(или validation). Эмбеддинги не меняются, на оценочном split ничего не подбирается. Выводятся accuracy,
+macro-F1, weighted-F1, balanced accuracy и бейзлайн «самый частый класс».
 
-Label provenance: the probe is only meaningful if the labels are an independent, externally
-determined host property that was not used to build the embedding. The code cannot verify
-that, so the reference manifest MUST declare `labels_source`; without it the probe is refused
-(reported as unavailable). Pseudo-labels derived from the same logs, from the embedding, or
-from LLM guesses are not valid ground truth. A host in labels.csv but absent from the
-embedding is an error; embedding hosts without a label are simply not probed (coverage is
-reported).
+Зонд имеет смысл, только если метки — независимое внешнее свойство хоста. Код это проверить не может,
+поэтому в манифесте эталона ОБЯЗАТЕЛЕН labels_source, иначе зонд недоступен. Метки из тех же логов,
+из эмбеддинга или от LLM не годятся. Хост с меткой, но без эмбеддинга — ошибка.
 
-Original implementation: PR #39 (ElliOrNora); validation, provenance rule, baselines, CI added.
+Первая версия — PR #39 (Даша); проверки, правило источника меток, бейзлайны и CI добавлены.
 """
 from __future__ import annotations
 
