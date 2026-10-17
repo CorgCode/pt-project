@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-from benchmark.baselines.temporal import BehavioralBaseline
+from methods.baselines.temporal import BehavioralBaseline
 from evaluation.evaluate import run
 from evaluation.frozen_neighbors import evaluate_frozen_neighbors, save_frozen_neighbors
 from evaluation.future_links import load_candidate_edges

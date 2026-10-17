@@ -23,8 +23,8 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import orthogonal_procrustes
 
-from benchmark import methods as graph_methods
-from benchmark.baselines.temporal import default_baselines
+from methods import graph as graph_methods
+from methods.baselines.temporal import default_baselines
 from pipeline.data import ProcessedData
 
 

@@ -24,6 +24,7 @@
     "recall@5": "item bootstrap (hosts / anchors resampled)",
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
+  "dim": 16,
   "inputs_sha256": "db2c6c127f6ef7af0807a8fcc3ae48ca72e05723097ae81dd32639215a79f961",
   "method": "rolx",
   "metric_details": {
@@ -94,6 +95,7 @@
       "n_fit": 57796,
       "pr_auc": 0.9604019655155521,
       "pr_auc_lift": 1.9208039310311043,
+      "random_roc_auc": 0.6392304914645376,
       "roc_auc": 0.9714422470419913
     },
     "pairwise_auc": {
@@ -230,6 +232,7 @@
     "identity": "ok",
     "knn_consistency": "ok",
     "linear_probe": "unavailable: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)",
+    "link_learned": "ok",
     "pairwise_pr_auc": "ok",
     "pairwise_roc_auc": "ok",
     "partner_ranking": "ok",
@@ -261,6 +264,7 @@
     "jaccard@5_std": 0.10178121079695791,
     "link_learned_pr_auc": 0.9604019655155521,
     "link_learned_pr_auc_lift": 1.9208039310311043,
+    "link_learned_random_roc_auc": 0.6392304914645376,
     "link_learned_roc_auc": 0.9714422470419913,
     "link_new_pr_auc": 0.07282249262443197,
     "link_new_roc_auc": 0.32110285064335925,
@@ -458,15 +462,15 @@
       "value": 0.05856378233719894
     },
     {
-      "chance": 0.5,
+      "chance": 0.6392304914645376,
       "ci": [
-        0.28741618852155065,
-        0.3837357659698596
+        0.9583884530902059,
+        0.9780468886082642
       ],
       "group": "Будущие связи",
-      "metric": "link_roc_auc",
+      "metric": "link_learned_roc_auc",
       "title": "Связь, AUC",
-      "value": 0.3259755004568544
+      "value": 0.9714422470419913
     },
     {
       "chance": 0.06517239183471678,
@@ -489,17 +493,6 @@
       "metric": "pair_roc_auc",
       "title": "Пары, AUC",
       "value": 0.8155408578645909
-    },
-    {
-      "chance": 0.5,
-      "ci": [
-        0.8063173213851346,
-        0.8583874843327733
-      ],
-      "group": "Общие собеседники",
-      "metric": "triplet_accuracy",
-      "title": "Тройки",
-      "value": 0.832697486535009
     },
     {
       "chance": 0.0008920606601248885,

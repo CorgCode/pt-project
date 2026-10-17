@@ -8,7 +8,7 @@ git switch main && git pull
 git switch -c physcorgi/feature-68-my-method
 
 # 2. работа, тесты
-python -m pytest -q evaluation benchmark app pipeline experiments
+python -m pytest -q evaluation methods app pipeline experiments
 
 # 3. коммит и push
 git add -A
@@ -47,7 +47,7 @@ python scoreboard/my_method.py                             # обучит, со�
 
 - Комментарии — по-русски и коротко. Имена в коде — по-английски.
 - Тест рядом с модулем: `test_<модуль>.py`.
-- Новый метод — `benchmark/methods/`, новая метрика — `evaluation/`.
+- Новый метод — `methods/graph/`, новая метрика — `evaluation/`.
 
 ## Нельзя
 

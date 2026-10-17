@@ -125,10 +125,14 @@ def render() -> None:
     example = ""
     if len(order):
         m = order.index[0]
-        places = values.loc[order.index].rank(ascending=False).loc[m]
-        parts = [(cols[k].split(": ", 1)[-1], places[k]) for k in cols if values.loc[m].notna()[k]]
-        nums = " + ".join(f"{p:g}" for _, p in parts)
-        example = (f"Пример: у `{m}` места ({nums}) / {len(parts)} = {order.iloc[0]:.1f}.")
+        r = next(x for x in results if x["method"] == m)
+        cs = scoreboard.column_scores(r, cols)
+        parts = "; ".join(f"{cols[k]} {r['metrics'][k]:.3f} → {v:.0f}" for k, v in cs.items())
+        example = f"Пример, `{m}`: {parts}. Среднее — **{order.iloc[0]:.1f}**."
+    pers = next((r["metric_details"].get("future_link_prediction", {}).get("persistence_baseline")
+                 for r in results if r.get("metric_details", {}).get("future_link_prediction")), None)
+    baseline = (f"Без эмбеддинга: правило «пара уже общалась» предсказывает связи с AUC {pers['roc_auc']:.3f}.\n\n"
+                if pers else "")
     text = f"""# Таблица результатов
 
 ## Как добавить свой метод
@@ -146,15 +150,21 @@ def render() -> None:
 Данные: {kind}. Хостов: {results[0].get('n_hosts')}. {leader}
 
 {scoreboard.headline_table(results)}
-- **Жирным** — лучшее в колонке.
+{baseline}- **Жирным** — лучшее в колонке.
+- «разм.» — размерность вектора. Сравнивать честнее при равной размерности.
 - В скобках — 95% интервал. Сильно перекрываются — разница может быть случайной.
 - *Курсивом* — ориентиры: `random` (хуже нельзя) и `reference_ceiling` (лучше нельзя). В рейтинге не участвуют.
 
-## Как считается место
+## Как считается балл
 
-1. В каждой колонке методы получают места: лучший — 1, следующий — 2 и т. д.
-2. Средний ранг — среднее этих мест. Чем меньше, тем лучше.
-3. Значения не складываем: у метрик разный масштаб.
+Все метрики сводятся в одно число от 0 до 100:
+
+1. В каждой колонке: **0** — случайный уровень (строка внизу), **100** — идеальный результат (1.0).
+   Например, AUC 0.75 при случайном уровне 0.5 — это 50.
+2. **Балл** — среднее по колонкам. Место в таблице — по баллу.
+3. Балл не зависит от других методов: добавили новый метод — баллы остальных не меняются.
+
+Рядом — средний ранг: какое место метод в среднем занимает по колонкам. Чем меньше, тем лучше.
 
 {example}
 
@@ -171,8 +181,8 @@ def render() -> None:
 
 def builtin(names: list[str], dim: int = 16) -> None:
     """Обучить бейзлайны и графовые методы на общих данных и положить их как обычные отправки."""
-    from benchmark import methods as graph_methods
-    from benchmark.baselines.temporal import default_baselines
+    from methods import graph as graph_methods
+    from methods.baselines.temporal import default_baselines
     from pipeline.data import ProcessedData
 
     data = ProcessedData(processed_dir())

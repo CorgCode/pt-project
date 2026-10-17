@@ -70,30 +70,56 @@ SERVICE = {"random", "reference_ceiling"}      # ориентиры, а не м�
 
 
 def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
-    """Колонки главных метрик, значения и средний ранг методов (по убыванию качества)."""
+    """Колонки главных метрик, значения и общий балл методов (по убыванию)."""
     cols = {}
     for r in results:
         for s in r.get("summary", []):
             cols.setdefault(s["metric"], s["title"])
     values = pd.DataFrame({r["method"]: {k: r["metrics"].get(k) for k in cols} for r in results}).T.astype(float)
-    real = values.drop(index=[m for m in values.index if m in SERVICE])
-    order = real.rank(ascending=False).mean(axis=1).sort_values() if len(real) else pd.Series(dtype=float)
+    score = overall_score(results, cols)
+    order = score.drop(index=[m for m in score.index if m in SERVICE]).sort_values(ascending=False)
     return cols, values, order
+
+
+def column_scores(r: dict, cols) -> dict[str, float]:
+    """Балл метода в каждой колонке: 0 — случайный уровень, 100 — идеал (1.0)."""
+    chance = {s["metric"]: s.get("chance") for s in r.get("summary", [])}
+    out = {}
+    for k in cols:
+        v, c = r["metrics"].get(k), chance.get(k)
+        if v is None or c is None or c >= 1:
+            continue
+        out[k] = 100 * min(max((v - c) / (1 - c), 0.0), 1.0)
+    return out
+
+
+def overall_score(results: list[dict], cols) -> pd.Series:
+    """Общий балл 0–100: среднее баллов по колонкам, которые есть у метода."""
+    return pd.Series({r["method"]: (sum(cs.values()) / len(cs) if (cs := column_scores(r, cols)) else float("nan"))
+                      for r in results})
+
+
+def average_rank(values: pd.DataFrame) -> pd.Series:
+    real = values.drop(index=[m for m in values.index if m in SERVICE])
+    return real.rank(ascending=False).mean(axis=1)
 
 
 def headline_table(results: list[dict]) -> str:
     cols, values, order = ranking(results)
     if not cols:
         return "Нет главных метрик (результаты без поля summary).\n"
-    chance = {}
+    chance: dict[str, list[float]] = {}
     for r in results:
+        if r["method"] in SERVICE:
+            continue
         for s in r.get("summary", []):
             if s.get("chance") is not None:
-                chance.setdefault(s["metric"], s["chance"])
+                chance.setdefault(s["metric"], []).append(s["chance"])
     real = values.loc[order.index]
     best = {k: real[k].max() for k in cols if real[k].notna().any()}
-    lines = ["| место | метод | " + " | ".join(cols.values()) + " | средний ранг |",
-             "|---|---|" + "---|" * len(cols) + "---|"]
+    score, ranks = overall_score(results, cols), average_rank(values)
+    lines = ["| место | метод | **балл** | разм. | " + " | ".join(cols.values()) + " | средний ранг |",
+             "|---|---|---|---|" + "---|" * len(cols) + "---|"]
     by_name = {r["method"]: r for r in results}
 
     def row(place: str, m: str, rank: str) -> str:
@@ -106,13 +132,23 @@ def headline_table(results: list[dict]) -> str:
                 c = f"**{c}**"
             cells.append(c)
         name = f"*`{m}`*" if m in SERVICE else f"`{m}`"
-        return f"| {place} | {name} | " + " | ".join(cells) + f" | {rank} |"
+        sc = "—" if pd.isna(score.get(m)) else f"{score[m]:.1f}"
+        if len(order) and m == order.index[0]:
+            sc = f"**{sc}**"
+        dim = r.get("dim") or "—"
+        return f"| {place} | {name} | {sc} | {dim} | " + " | ".join(cells) + f" | {rank} |"
 
     for i, m in enumerate(order.index, 1):
-        lines.append(row(str(i), m, f"{order[m]:.1f}"))
+        lines.append(row(str(i), m, f"{ranks[m]:.1f}"))
     for m in sorted(SERVICE & set(by_name)):
         lines.append(row("—", m, "—"))
-    lines.append("| | *случайный уровень* | " + " | ".join(_fmt(chance.get(k)) for k in cols) + " | |")
+    def chance_cell(vals):                         # у некоторых метрик уровень зависит от метода (размерности)
+        if not vals:
+            return "—"
+        lo, hi = min(vals), max(vals)
+        return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
+
+    lines.append("| | *случайный уровень* | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
     return "\n".join(lines) + "\n"
 
 

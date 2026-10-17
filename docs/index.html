@@ -69,7 +69,7 @@
     <table>
       <thead><tr><th>Требование ментора</th><th>Что есть в репозитории</th><th>Статус</th></tr></thead>
       <tbody>
-        <tr><td>Базовая модель 1</td><td>Поведенческий профиль (+ варианты PCA и SVD): <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/baselines/temporal.py"><code>benchmark/baselines/temporal.py</code></a></td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Базовая модель 1</td><td>Поведенческий профиль (+ варианты PCA и SVD): <a href="https://github.com/CorgCode/pt-project/blob/main/methods/baselines/temporal.py"><code>methods/baselines/temporal.py</code></a></td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Базовая модель 2</td><td>Спектральное вложение графа коммуникаций (<code>graph_spectral</code>) в том же файле</td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>Пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Все прогнаны на одном дне LANL — результаты ниже.</td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Какие три метода показываем</td><td>Решение команды не зафиксировано в репозитории. <b>Предложение:</b> node2vec (случайные обходы, обобщает DeepWalk), struc2vec (структурные роли), GraphSAGE (индуктивная нейросетевая модель) — три разных семейства. DeepWalk и RolX остаются дополнительными.</td><td><span class="tag prop">Предложение</span></td></tr>
@@ -94,29 +94,29 @@
       <header><h3>node2vec</h3><span class="tag prop">в предложенной тройке</span><span class="tag ok">код в main</span></header>
       <p><b>Идея.</b> Случайные блуждания по графу превращаются в «предложения» из хостов; модель skip-gram учит вектора так, чтобы хосты, встречающиеся рядом в блужданиях, были близки. Параметры <code>p</code> и <code>q</code> смещают обход к ближайшему окружению или к дальним областям.</p>
       <p><b>Отличие.</b> От DeepWalk — управляемое смещение обхода и отрицательная выборка вместо иерархического softmax.</p>
-      <dl class="io"><dt>Вход</dt><dd>взвешенный граф «хост — хост» обучающего окна</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code> — по строке на хост когорты</dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/node2vec.py">node2vec.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/node2vec.md">описание</a></dd></dl>
+      <dl class="io"><dt>Вход</dt><dd>взвешенный граф «хост — хост» обучающего окна</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code> — по строке на хост когорты</dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/node2vec.py">node2vec.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/node2vec.md">описание</a></dd></dl>
     </article>
     <article class="method prio">
       <header><h3>struc2vec</h3><span class="tag prop">в предложенной тройке</span><span class="tag ok">код в main</span></header>
       <p><b>Идея.</b> Близкими считаются хосты с похожей <em>ролью</em>, даже если они далеки друг от друга в сети: сравниваются последовательности степеней соседей на разных расстояниях (динамическое выравнивание), по ним строится вспомогательный многослойный граф и по нему — обходы.</p>
       <p><b>Отличие.</b> DeepWalk и node2vec кодируют «кто рядом», struc2vec — «как устроено окружение». Метод дороже по вычислениям.</p>
-      <dl class="io"><dt>Вход</dt><dd>граф обучающего окна (используются степени и структура окрестностей)</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code></dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/struc2vec.py">struc2vec.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/struc2vec.md">описание</a></dd></dl>
+      <dl class="io"><dt>Вход</dt><dd>граф обучающего окна (используются степени и структура окрестностей)</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code></dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/struc2vec.py">struc2vec.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/struc2vec.md">описание</a></dd></dl>
     </article>
     <article class="method prio">
       <header><h3>GraphSAGE</h3><span class="tag prop">в предложенной тройке</span><span class="tag ok">код в main</span></header>
       <p><b>Идея.</b> Вектор хоста вычисляется как функция его признаков и усреднённых признаков соседей. Обучение без учителя: соседние по обходам хосты сближаются, случайные — отдаляются.</p>
       <p><b>Отличие.</b> Метод индуктивный: обученную функцию можно применить к хосту или окну, которых не было при обучении, поэтому координаты общие для разных окон — важно для сравнения во времени.</p>
-      <dl class="io"><dt>Вход</dt><dd>граф и признаки хостов обучающего окна</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code>; общая система координат</dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/graphsage.py">graphsage.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/graphsage.md">описание</a></dd></dl>
+      <dl class="io"><dt>Вход</dt><dd>граф и признаки хостов обучающего окна</dd><dt>Выход</dt><dd>CSV: <code>host_id</code>, <code>emb_*</code>; общая система координат</dd><dt>Код</dt><dd><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/graphsage.py">graphsage.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/graphsage.md">описание</a></dd></dl>
     </article>
     <article class="method">
       <header><h3>DeepWalk</h3><span class="tag ok">код в main</span></header>
-      <p>Равномерные случайные блуждания + skip-gram с иерархическим softmax. Простейший метод семейства; служит опорой для сравнения с node2vec. <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/deepwalk.py">deepwalk.py</a></p>
+      <p>Равномерные случайные блуждания + skip-gram с иерархическим softmax. Простейший метод семейства; служит опорой для сравнения с node2vec. <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/deepwalk.py">deepwalk.py</a></p>
     </article>
     <article class="method">
       <header><h3>RolX</h3><span class="tag ok">код в main</span></header>
-      <p>Рекурсивные структурные признаки хоста (ReFeX) раскладываются неотрицательной факторизацией на «роли»; вектор хоста — его принадлежность ролям. Хорошо интерпретируется. <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/rolx.py">rolx.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/rolx.md">описание</a></p>
+      <p>Рекурсивные структурные признаки хоста (ReFeX) раскладываются неотрицательной факторизацией на «роли»; вектор хоста — его принадлежность ролям. Хорошо интерпретируется. <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/rolx.py">rolx.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/rolx.md">описание</a></p>
     </article>
-    <p><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/README.md">Общий README методов</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">контракт формата</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a></p>
+    <p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/README.md">Общий README методов</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">контракт формата</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a></p>
   </div>
 </section>
 

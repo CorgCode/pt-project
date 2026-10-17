@@ -23,6 +23,7 @@
     "recall@5": "item bootstrap (hosts / anchors resampled)",
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
+  "dim": 57,
   "inputs_sha256": "12086c118b10e983f10f60ba6293ddcc581e77bdd4f6dca31a274692ad2c002a",
   "method": "reference_ceiling",
   "metric_details": {
@@ -184,6 +185,7 @@
     "identity": "unavailable: нет test.csv (эмбеддинга test-окна)",
     "knn_consistency": "ok",
     "linear_probe": "unavailable: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)",
+    "link_learned": "unavailable: нет эталона validation или его хостов в эмбеддинге — классификатору не на чем учиться",
     "pairwise_pr_auc": "ok",
     "pairwise_roc_auc": "ok",
     "partner_ranking": "ok",
@@ -390,17 +392,6 @@
       "value": 1.0
     },
     {
-      "chance": 0.5,
-      "ci": [
-        0.23423249889557063,
-        0.29573226348044035
-      ],
-      "group": "Будущие связи",
-      "metric": "link_roc_auc",
-      "title": "Связь, AUC",
-      "value": 0.2602650716141737
-    },
-    {
       "chance": 0.06517239183471678,
       "ci": [
         0.2124610374368942,
@@ -421,20 +412,10 @@
       "metric": "pair_roc_auc",
       "title": "Пары, AUC",
       "value": 0.9734292607911188
-    },
-    {
-      "chance": 0.5,
-      "ci": [
-        0.9496977472180158,
-        0.9773220297754436
-      ],
-      "group": "Общие собеседники",
-      "metric": "triplet_accuracy",
-      "title": "Тройки",
-      "value": 0.9647666068222621
     }
   ],
   "unavailable_metrics": [
+    "link_learned: нет эталона validation или его хостов в эмбеддинге — классификатору не на чем учиться",
     "linear_probe: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)",
     "identity: нет test.csv (эмбеддинга test-окна)"
   ]

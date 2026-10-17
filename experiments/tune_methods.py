@@ -16,7 +16,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from benchmark import methods as graph_methods
+from methods import graph as graph_methods
 from evaluation.evaluate import run
 from pipeline.data import ProcessedData
 

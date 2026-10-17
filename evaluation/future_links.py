@@ -273,6 +273,10 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
     clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
     score = clf.predict_proba(feats(ev))[:, 1]
     out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed, hosts=host_index(ev.host_a, ev.host_b))
+    # случайный уровень: тот же классификатор на случайных векторах той же размерности (запоминает хабы)
+    z = pd.DataFrame(np.random.default_rng(seed).standard_normal(z.shape), index=z.index)
+    rnd = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
+    out["random_roc_auc"] = float(roc_auc_score(ye, rnd.predict_proba(feats(ev))[:, 1]))
     out.update(n_fit=int(len(fit)), n_eval=int(len(ev)), fit_split=fit_split, eval_split=eval_split,
                fit_target_window=fw["target_window"], eval_target_window=ew["target_window"],
                pr_auc_lift=out["pr_auc"] / float(ye.mean()))
