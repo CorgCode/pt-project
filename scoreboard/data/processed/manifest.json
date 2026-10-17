@@ -1,0 +1,198 @@
+{
+  "canonical_columns": [
+    "src",
+    "dst",
+    "dst_port",
+    "proto",
+    "bytes",
+    "packets",
+    "ts",
+    "src_port",
+    "duration",
+    "resp_bytes",
+    "resp_packets"
+  ],
+  "canonical_mapping": {
+    "bytes": "SrcBytes",
+    "dst": "DstDevice",
+    "dst_port": "DstPort",
+    "duration": "Duration",
+    "packets": "SrcPackets",
+    "proto": "Protocol",
+    "resp_bytes": "DstBytes",
+    "resp_packets": "DstPackets",
+    "src": "SrcDevice",
+    "src_port": "SrcPort",
+    "ts": "Time"
+  },
+  "cohort": {
+    "evaluable": {
+      "test": 300,
+      "validation": 300
+    },
+    "n_hosts": 300,
+    "policy": "train_only",
+    "rule": "active (as src or dst, excluding self flows) >= 5 events in the train window",
+    "selection": {
+      "coverage": {
+        "test": 1.0,
+        "validation": 1.0
+      },
+      "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+      "median_train_events": {
+        "active_in_every_window": 151.0,
+        "not_active_in_every_window": null
+      },
+      "n_cohort": 300,
+      "n_evaluable": {
+        "test": 300,
+        "validation": 300
+      },
+      "n_hosts_active_in_every_window": 300,
+      "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+      "policy": "train_only"
+    },
+    "sha256": "8cf9b0fd4ea30a03d9bfe96a361336e5b739218bc85dedec114f1b18c51b2d4e"
+  },
+  "config": {
+    "cohort_policy": "train_only",
+    "drop_straddling": true,
+    "min_cohort_size": 25,
+    "min_events_per_window": 5,
+    "seed": 0,
+    "windows": {
+      "test": [
+        32400.0,
+        43200.0
+      ],
+      "train": [
+        0.0,
+        21600.0
+      ],
+      "validation": [
+        21600.0,
+        32400.0
+      ]
+    }
+  },
+  "counts": {
+    "outside_all_windows": 0,
+    "self_flows_test": 48,
+    "self_flows_train": 92,
+    "self_flows_validation": 45,
+    "straddling_dropped_test": 0,
+    "straddling_dropped_train": 1,
+    "straddling_dropped_validation": 1,
+    "valid_rows": 61731
+  },
+  "data_kind": "synthetic_fixture",
+  "graph_rule": "undirected, one edge per unordered cohort host pair; flows/bytes/packets aggregated over the window (bytes/packets include both directions); self loops removed",
+  "host_id_rule": "device string as in the file, stripped, case-sensitive",
+  "inputs": [
+    {
+      "bytes": 249511,
+      "file": "netflow_day-01.bz2",
+      "sha256": "c87f6f8833b2aabb6a7652a8934a5a39bf56bcbf875f4a420c7a81b2cb8cbcd1"
+    },
+    {
+      "bytes": 248786,
+      "file": "netflow_day-02.bz2",
+      "sha256": "ec69f08e6ee8a8da8b0095b9cc40bc923f653bfe19dcca37cb84407387b2d257"
+    },
+    {
+      "bytes": 251410,
+      "file": "netflow_day-03.bz2",
+      "sha256": "e3c3483f54ebc65b916046647ad196d2e1005143016460fef196242b1849996c"
+    }
+  ],
+  "invalid_rows": {
+    "blank_device": 0,
+    "blank_protocol_or_port": 0,
+    "invalid_count": 0,
+    "invalid_duration": 0,
+    "invalid_time": 0
+  },
+  "leakage_checks": {
+    "boundary_straddling_flows_dropped": true,
+    "max_time_train_lt_min_time_test": true,
+    "windows_strictly_ordered": true
+  },
+  "provenance": {
+    "basis": "marker_file",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": true,
+      "format_sample": {
+        "netflow_day-01.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 1.0,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": true
+    },
+    "declared_kind": null,
+    "kind": "synthetic_fixture",
+    "source_note": null,
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
+  "provenance_verified": false,
+  "raw_columns": [
+    "Time",
+    "Duration",
+    "SrcDevice",
+    "DstDevice",
+    "Protocol",
+    "SrcPort",
+    "DstPort",
+    "SrcPackets",
+    "DstPackets",
+    "SrcBytes",
+    "DstBytes"
+  ],
+  "real_lanl_declared": false,
+  "schema_version": 2,
+  "source_format": "lanl-uhn-2017-netflow",
+  "synthetic": true,
+  "time_axis": "Time column units; calendar origin not specified by the source",
+  "windows": {
+    "test": {
+      "end": 43200.0,
+      "graph_edges": 3723,
+      "max_time": 43198.0,
+      "min_time": 32400.0,
+      "n_flows": 15562,
+      "start": 32400.0
+    },
+    "train": {
+      "end": 21600.0,
+      "graph_edges": 5168,
+      "max_time": 21598.0,
+      "min_time": 0.0,
+      "n_flows": 30881,
+      "start": 0.0
+    },
+    "validation": {
+      "end": 32400.0,
+      "graph_edges": 3779,
+      "max_time": 32398.0,
+      "min_time": 21600.0,
+      "n_flows": 15286,
+      "start": 21600.0
+    }
+  }
+}

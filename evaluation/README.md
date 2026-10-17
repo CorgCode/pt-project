@@ -23,6 +23,8 @@ python -m evaluation.evaluate --embeddings submissions/my_method/embeddings.csv 
 python -m evaluation.scoreboard --results-dir results/test --output results/scoreboard_test
 ```
 
+Для команды всё это делает одна команда `python -m evaluation.submit` — см. [`scoreboard/README.md`](../scoreboard/README.md).
+
 Обычно руками это делать не нужно: `python -m experiments.end_to_end` прогоняет всё сразу —
 данные, эталоны, все методы, оценку, таблицу и отчёт (см. [`experiments/README.md`](../experiments/README.md)).
 
@@ -106,13 +108,14 @@ Comp002,0.06,0.25,0.81
 
 ## Как подключить свой метод
 
-**Вариант 1 — просто файл.** Положите `submissions/<метод>/embeddings.csv` (эмбеддинг train-окна) и, если есть,
-`validation.csv` / `test.csv` для узнаваемости во времени. Добавьте `provenance.json` вида
-`{"trained_on_windows": ["train"]}`. Если все окна в одной системе координат, создайте пустой файл `SHARED_COORDINATES`.
-Дальше: `python -m experiments.end_to_end … --submissions-dir submissions`.
+**Быстрый путь — общая таблица.** Обучитесь на `scoreboard/data/processed` (только train-окно), положите
+`embeddings.csv` (и, по желанию, `test.csv`) в `scoreboard/submissions/<метод>/` и откройте PR — CI оценит
+и допишет результат. Локально: `python -m evaluation.submit scoreboard/submissions/<метод>`.
+Подробно — [`scoreboard/README.md`](../scoreboard/README.md).
 
-**Вариант 2 — код в репозитории.** Новый модуль в `benchmark/methods/` с классом-наследником `GraphEmbeddingMethod`
-и `METHODS = {"имя": Класс}` — он подхватится автоматически (`--methods имя`). Подробнее — [`benchmark/README.md`](../benchmark/README.md).
+**Код в репозитории.** Новый модуль в `benchmark/methods/` с наследником `GraphEmbeddingMethod`
+и `METHODS = {"имя": Класс}` — подхватится автоматически (`--methods имя`, `python -m evaluation.submit --builtin имя`).
+Подробнее — [`benchmark/README.md`](../benchmark/README.md).
 
 ## Как добавить метрику
 

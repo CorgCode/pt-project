@@ -66,24 +66,53 @@ def _fmt(v, ci=None) -> str:
     return f"{s} [{ci[0]:.2f}–{ci[1]:.2f}]" if ci else s
 
 
-def headline_table(results: list[dict]) -> str:
-    cols, chance = {}, {}
+SERVICE = {"random", "reference_ceiling"}      # ориентиры, а не методы: в выборе лучшего не участвуют
+
+
+def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
+    """Колонки главных метрик, значения и средний ранг методов (по убыванию качества)."""
+    cols = {}
     for r in results:
         for s in r.get("summary", []):
             cols.setdefault(s["metric"], f"{s['group']}: {s['title']}")
-            if s.get("chance") is not None:
-                chance.setdefault(s["metric"], s["chance"])
+    values = pd.DataFrame({r["method"]: {k: r["metrics"].get(k) for k in cols} for r in results}).T.astype(float)
+    real = values.drop(index=[m for m in values.index if m in SERVICE])
+    order = real.rank(ascending=False).mean(axis=1).sort_values() if len(real) else pd.Series(dtype=float)
+    return cols, values, order
+
+
+def headline_table(results: list[dict]) -> str:
+    cols, values, order = ranking(results)
     if not cols:
         return "Нет главных метрик (результаты без поля summary).\n"
-    values = pd.DataFrame({r["method"]: {k: r["metrics"].get(k) for k in cols} for r in results}).T.astype(float)
-    order = values.rank(ascending=False).mean(axis=1).sort_values()
-    lines = ["| метод | " + " | ".join(cols.values()) + " | средний ранг |",
-             "|---|" + "---|" * len(cols) + "---|"]
-    for m in order.index:
-        r = next(x for x in results if x["method"] == m)
-        cells = [_fmt(r["metrics"].get(k), r.get("metrics_ci", {}).get(k)) for k in cols]
-        lines.append(f"| `{m}` | " + " | ".join(cells) + f" | {order[m]:.1f} |")
-    lines.append("| *случайный уровень* | " + " | ".join(_fmt(chance.get(k)) for k in cols) + " | |")
+    chance = {}
+    for r in results:
+        for s in r.get("summary", []):
+            if s.get("chance") is not None:
+                chance.setdefault(s["metric"], s["chance"])
+    real = values.loc[order.index]
+    best = {k: real[k].max() for k in cols if real[k].notna().any()}
+    lines = ["| место | метод | " + " | ".join(cols.values()) + " | средний ранг |",
+             "|---|---|" + "---|" * len(cols) + "---|"]
+    by_name = {r["method"]: r for r in results}
+
+    def row(place: str, m: str, rank: str) -> str:
+        r = by_name[m]
+        cells = []
+        for k in cols:
+            c = _fmt(r["metrics"].get(k), r.get("metrics_ci", {}).get(k))
+            v = r["metrics"].get(k)
+            if m not in SERVICE and v is not None and k in best and abs(v - best[k]) < 1e-12:
+                c = f"**{c}**"
+            cells.append(c)
+        name = f"*`{m}`*" if m in SERVICE else f"`{m}`"
+        return f"| {place} | {name} | " + " | ".join(cells) + f" | {rank} |"
+
+    for i, m in enumerate(order.index, 1):
+        lines.append(row(str(i), m, f"{order[m]:.1f}"))
+    for m in sorted(SERVICE & set(by_name)):
+        lines.append(row("—", m, "—"))
+    lines.append("| | *случайный уровень* | " + " | ".join(_fmt(chance.get(k)) for k in cols) + " | |")
     return "\n".join(lines) + "\n"
 
 

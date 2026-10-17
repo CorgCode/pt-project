@@ -9,7 +9,7 @@ on:
       - "experiments/**"
       - "app/**"
       - "docs/**"
-      - "submissions/**"
+      - "scoreboard/**"
       - ".github/workflows/benchmark.yml"
   push:
     branches:
@@ -21,7 +21,7 @@ on:
       - "experiments/**"
       - "app/**"
       - "docs/**"
-      - "submissions/**"
+      - "scoreboard/**"
 
 jobs:
   validate-benchmark:
@@ -75,17 +75,8 @@ jobs:
           done
           python -m evaluation.scoreboard --results-dir "$RUNNER_TEMP/results" --output "$RUNNER_TEMP/scoreboard"
 
-      - name: Validate team submissions
-        shell: bash
+      - name: Scoreboard is consistent with its submissions
         run: |
-          shopt -s nullglob
-          shopt -s globstar
-          files=(submissions/**/embeddings.csv)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No team submissions found yet."
-            exit 0
-          fi
-          for file in "${files[@]}"; do
-            echo "Validating $file"
-            python -m evaluation.validate "$file"
-          done
+          python -m evaluation.submit --all
+          git diff --stat --exit-code -- scoreboard/results scoreboard/README.md scoreboard/scoreboard.csv \
+            || echo "::warning::scoreboard отличается от отправок — его обновит workflow Scoreboard"
