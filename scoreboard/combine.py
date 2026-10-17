@@ -1,6 +1,7 @@
 """Гибрид: склеить эмбеддинги нескольких методов из таблицы в один.
 
     python scoreboard/combine.py behavioral_pca node2vec --name hybrid_behavioral_node2vec
+    python scoreboard/combine.py behavioral node2vec --name hybrid --tune-weights   # вес частей подобрать на validation
 
 Каждая часть нормируется (среднее 0, общая норма 1 на хост), чтобы ни одна не перевешивала из-за масштаба,
 затем векторы склеиваются. Берутся train (embeddings.csv) и, если есть у всех частей, test (test.csv).
@@ -28,15 +29,16 @@ def _block(x: pd.DataFrame) -> pd.DataFrame:
     return x / (norm if norm > 0 else 1.0)
 
 
-def combine(parts: list[str], name: str, subs: Path | None = None) -> Path:
-    subs = Path(subs or submit.SUBMISSIONS)
-    out = subs / name
+def combine(parts: list[str], name: str, out_root: Path | None = None, weights: list[float] | None = None) -> Path:
+    subs = Path(submit.SUBMISSIONS)                       # части берём из таблицы
+    out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
     for fname in ("embeddings.csv", "test.csv"):
         files = [subs / p / fname for p in parts]
         if not all(f.exists() for f in files):
             continue
-        blocks = [_block(load_embeddings(f)) for f in files]
+        w = weights or [1.0] * len(files)
+        blocks = [_block(load_embeddings(f)) * wi for f, wi in zip(files, w)]
         hosts = sorted(set.intersection(*(set(b.index) for b in blocks)))
         x = np.hstack([b.loc[hosts].to_numpy() for b in blocks])
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.7g")
@@ -44,12 +46,39 @@ def combine(parts: list[str], name: str, subs: Path | None = None) -> Path:
     return out
 
 
+def tune_weights(parts: list[str], grid=(1.0, 2.0, 3.0, 4.0, 6.0, 10.0)) -> tuple[list[float], list[dict]]:
+    """Вес первой части (остальные = 1) по общему баллу на validation. Test не используется."""
+    import tempfile
+
+    from evaluation import scoreboard
+    from evaluation.evaluate import run
+
+    ref_val = submit.DATA / "reference" / "validation"
+    rows = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for w0 in grid:
+            weights = [w0] + [1.0] * (len(parts) - 1)
+            d = combine(parts, "w", Path(tmp), weights)
+            r = run(d / "embeddings.csv", ref_val, "w", n_boot=0)
+            cols = {s["metric"]: s["title"] for s in r["summary"]}
+            score = float(scoreboard.overall_score([r], cols)["w"])
+            rows.append({"weight": w0, "score": score})
+            print(f"  вес {parts[0]} = {w0}: балл на validation {score:.1f}")
+    best = max(rows, key=lambda x: x["score"])
+    return [best["weight"]] + [1.0] * (len(parts) - 1), rows
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("parts", nargs="+", help="имена методов из scoreboard/submissions")
     ap.add_argument("--name", required=True)
+    ap.add_argument("--tune-weights", action="store_true", help="подобрать вес первой части на validation")
     a = ap.parse_args()
-    out = combine(a.parts, a.name)
+    weights = None
+    if a.tune_weights:
+        weights, _ = tune_weights(a.parts)
+        print(f"выбран вес {a.parts[0]}: {weights[0]}")
+    out = combine(a.parts, a.name, weights=weights)
     r = submit.score(out)
     submit.render()
     print(f"{a.name}: " + ", ".join(f"{s['title']} = {s['value']:.3f}" for s in r["summary"] if s["value"] is not None))
