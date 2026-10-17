@@ -77,7 +77,7 @@ def score(sub: Path) -> dict:
             r["metrics_ci"]["identity_top1"] = list(ident["top1_ci"])
         r["metric_details"]["identity"] = {**ident, "shared_coordinate_system_declared": (sub / "SHARED_COORDINATES").exists()}
         r["metric_status"]["identity"] = "ok"
-        r["summary"].append({"group": "Узнаваемость", "metric": "identity_top1", "title": "Тот же хост через время, Top-1",
+        r["summary"].append({"group": "Узнаваемость", "metric": "identity_top1", "title": "Узнаваемость, Top-1",
                              "value": ident["top1"], "ci": r["metrics_ci"].get("identity_top1"),
                              "chance": ident["chance_top1"]})
     else:
@@ -99,7 +99,7 @@ def is_fresh(sub: Path) -> bool:
 def render() -> None:
     """Пересобрать scoreboard/README.md и scoreboard.csv из results/."""
     results = scoreboard.load_results(RESULTS)
-    known = {d.name for d in SUBMISSIONS.iterdir() if d.is_dir()} if SUBMISSIONS.exists() else set()
+    known = {d.name for d in SUBMISSIONS.iterdir() if d.is_dir() and not d.name.startswith(".")} if SUBMISSIONS.exists() else set()
     for r in results:                                   # результат без отправки — устарел
         if r["method"] not in known:
             (RESULTS / f"{r['method']}.json").unlink()
@@ -108,52 +108,53 @@ def render() -> None:
         return
     scoreboard.check_compatible(results)
     scoreboard.full_table(results).to_csv(BOARD / "scoreboard.csv", index=False)
-    _, _, order = scoreboard.ranking(results)
+    cols, values, order = scoreboard.ranking(results)
     info = results[0].get("reference_info") or {}
-    leader = f"**Лидер: `{order.index[0]}`** (средний ранг {order.iloc[0]:.1f} по главным метрикам)." if len(order) else ""
-    kind = {"synthetic_fixture": "синтетика в формате LANL — проверка кода, а не результат на реальной сети",
-            "lanl_declared": "заявленные данные LANL"}.get(info.get("data_kind"), "непроверенные данные")
+    kind = {"synthetic_fixture": "синтетика (проверка кода, не реальная сеть)",
+            "lanl_declared": "LANL"}.get(info.get("data_kind"), "непроверенные")
+    leader = f"Лидер: **`{order.index[0]}`**." if len(order) else ""
+    example = ""
+    if len(order):
+        m = order.index[0]
+        places = values.loc[order.index].rank(ascending=False).loc[m]
+        parts = [(cols[k].split(": ", 1)[-1], places[k]) for k in cols if values.loc[m].notna()[k]]
+        nums = " + ".join(f"{p:g}" for _, p in parts)
+        example = (f"Пример: у `{m}` места ({nums}) / {len(parts)} = {order.iloc[0]:.1f}.")
     text = f"""# Таблица результатов
 
-Данные: **{kind}**; оцениваемых хостов: {results[0].get('n_hosts')}; эталон: test-окно.
-{leader}
+## Как добавить свой метод
+
+1. Обучись на общих данных, только на train:
+   `ProcessedData("scoreboard/data/processed").training_flows()`.
+2. Сохрани `scoreboard/submissions/<метод>/embeddings.csv`: строка на хост, `host_id, emb_0, emb_1, …`.
+3. Commit и push в свою ветку. Через пару минут CI добавит метод в эту таблицу.
+
+Проверить у себя: `python -m evaluation.submit scoreboard/submissions/<метод>`.
+
+## Таблица
+
+Данные: {kind}. Хостов: {results[0].get('n_hosts')}. {leader}
 
 {scoreboard.headline_table(results)}
-**Жирным** — лучшее значение в колонке. В скобках — 95% бутстреп-интервал. *Курсивом* — ориентиры, а не методы:
-`random` — случайные векторы, `reference_ceiling` — копия эталона (потолок, «утекает» намеренно).
-«Случайный уровень» — чего ждать от бесполезного эмбеддинга (для собеседников — лучший прогноз без эмбеддинга).
-Средний ранг считается по главным метрикам, которые есть у метода. Все метрики — [`scoreboard.csv`](scoreboard.csv),
-полные результаты — `results/<метод>.json`, что значит каждая метрика — [`evaluation/README.md`](../evaluation/README.md).
+- **Жирным** — лучшее в колонке.
+- В скобках — 95% интервал. Сильно перекрываются — разница может быть случайной.
+- *Курсивом* — ориентиры: `random` (хуже нельзя) и `reference_ceiling` (лучше нельзя). В рейтинге не участвуют.
 
-## Как попасть в таблицу
+## Как считается место
 
-1. Обучите метод **только на train-окне** общих данных:
+1. В каждой колонке методы получают места: лучший — 1, следующий — 2 и т. д.
+2. Средний ранг — среднее этих мест. Чем меньше, тем лучше.
+3. Значения не складываем: у метрик разный масштаб.
 
-   ```python
-   from pipeline.data import ProcessedData
-   d = ProcessedData("scoreboard/data/processed")
-   flows, graph, hosts = d.training_flows(), d.training_graph(), d.cohort   # учиться можно только на этом
-   test_flows = d.flows("test")                                             # только чтобы встроить test-окно
-   ```
+{example}
 
-2. Положите файлы в `scoreboard/submissions/<имя_метода>/`:
-   - `embeddings.csv` — эмбеддинг train-окна для всех хостов `d.cohort`: `host_id, emb_0, emb_1, …`;
-   - `test.csv` — по желанию: эмбеддинг test-окна (тем же методом) для узнаваемости во времени;
-   - `SHARED_COORDINATES` — пустой файл, если у окон одна система координат.
-3. Откройте PR — CI сам оценит отправку и допишет результат и таблицу в ваш PR.
-   Или локально: `python -m evaluation.submit scoreboard/submissions/<имя_метода>`.
+Что значит каждая колонка — [`evaluation/README.md`](../evaluation/README.md). Все числа — [`scoreboard.csv`](scoreboard.csv).
 
-Подбирать параметры по этой таблице нельзя — это test. Для подбора: `python -m experiments.tune_methods` (validation).
+## Дополнительно
 
-## Когда будут настоящие данные LANL
-
-Пересобрать `scoreboard/data/` из настоящих файлов и пересчитать всех (старые отправки придётся обучить заново):
-
-```bash
-python -m pipeline.prepare run --netflow /path/netflow_day-*.bz2 --config cfg.json --output-dir scoreboard/data/processed --data-kind lanl --source-note "форма LANL, <дата>, <кто>"
-python -m pipeline.reference --processed-dir scoreboard/data/processed --output-dir scoreboard/data/reference --pairs-per-anchor 10
-python -m evaluation.submit --builtin all --force
-```
+- `test.csv` в той же папке — эмбеддинг test-окна. Добавит колонку «узнаваемость».
+- `SHARED_COORDINATES` — пустой файл, если у окон одна система координат.
+- Подбирать параметры по этой таблице нельзя. Для подбора есть `experiments.tune_methods`.
 """
     (BOARD / "README.md").write_text(text, encoding="utf-8")
 

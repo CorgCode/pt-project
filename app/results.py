@@ -16,25 +16,29 @@ from sklearn.decomposition import PCA
 from evaluation.frozen_neighbors import read_frozen_neighbors
 from evaluation.io import load_embeddings
 from evaluation.knn_consistency import neighborhood_metrics, top_k_neighbors
-from pipeline.provenance import BADGE
 
 TARGET_ORDER = ("test", "validation")
 PALETTE = {"random": "#9aa0a6", "behavioral": "#1a73e8", "behavioral_pca": "#12b5cb",
-           "behavioral_svd": "#7baaf7", "graph_spectral": "#e8710a", "reference_ceiling": "#188038"}
+           "behavioral_svd": "#7baaf7", "graph_spectral": "#e8710a", "reference_ceiling": "#188038",
+           "deepwalk": "#a142f4", "node2vec": "#f538a0", "graphsage": "#c5221f", "struc2vec": "#795548", "rolx": "#f9ab00"}
 LEAKY = {"reference_ceiling"}
+BADGE_RU = {"synthetic_fixture": "СИНТЕТИКА — не трафик LANL",
+            "unverified": "НЕПРОВЕРЕННЫЕ ДАННЫЕ — происхождение не установлено, за LANL не выдаётся",
+            "lanl_declared": "LANL (заявлено оператором; происхождение пайплайном не проверено)"}
 
 METRIC_GROUPS: dict[str, list[tuple[str, str]]] = {
-    "Behavioural proxy (kNN)": [("consistency@5_mean", "Consistency@5"), ("consistency@10_mean", "Consistency@10"),
+    "Поведение (kNN)": [("consistency@5_mean", "Consistency@5"), ("consistency@10_mean", "Consistency@10"),
                                 ("consistency@20_mean", "Consistency@20"), ("jaccard@10_mean", "Jaccard@10"),
                                 ("ndcg@10_mean", "nDCG@10")],
-    "Future links (predictive)": [("link_roc_auc", "ROC-AUC (cosine)"), ("link_learned_roc_auc", "ROC-AUC (learned)"),
-                                  ("link_new_roc_auc", "ROC-AUC new links"), ("link_pr_auc_lift", "PR-AUC lift"),
-                                  ("link_pr_auc_at_natural_prevalence", "PR-AUC @ natural prevalence")],
-    "Shared-peer proxy (structural)": [("pair_roc_auc", "Pair ROC-AUC"), ("pair_pr_auc_lift", "Pair PR-AUC lift"),
-                                       ("pair_pr_auc_at_judged_prevalence", "Pair PR-AUC @ judged prevalence (conditional)"),
-                                       ("triplet_accuracy", "Triplet accuracy"), ("precision@3", "Precision@3"),
-                                       ("recall@3", "Recall@3")],
-    "External labels": [("probe_accuracy", "Probe accuracy"), ("probe_macro_f1", "Probe macro-F1")],
+    "Будущие связи": [("link_roc_auc", "ROC-AUC (косинус)"), ("link_learned_roc_auc", "ROC-AUC (классификатор)"),
+                      ("link_new_roc_auc", "ROC-AUC новых связей"), ("link_pr_auc_lift", "PR-AUC lift"),
+                      ("link_pr_auc_at_natural_prevalence", "PR-AUC при настоящей доле"),
+                      ("partner_new_mrr", "Новые собеседники, MRR")],
+    "Общие собеседники": [("pair_roc_auc", "ROC-AUC пар"), ("pair_pr_auc_lift", "PR-AUC lift пар"),
+                          ("pair_pr_auc_at_judged_prevalence", "PR-AUC пар при доле среди размеченных"),
+                          ("triplet_accuracy", "Точность по тройкам"), ("precision@3", "Precision@3"),
+                          ("recall@3", "Recall@3")],
+    "Внешние метки": [("probe_accuracy", "Зонд, accuracy"), ("probe_macro_f1", "Зонд, macro-F1")],
 }
 CHANCE = {"link_roc_auc": 0.5, "link_learned_roc_auc": 0.5, "link_new_roc_auc": 0.5, "pair_roc_auc": 0.5,
           "triplet_accuracy": 0.5, "link_pr_auc_lift": 1.0, "pair_pr_auc_lift": 1.0}
@@ -59,7 +63,7 @@ class Bundle:
         root = Path(root)
         run = root / "run" if (root / "run" / "manifest.json").exists() else root
         if not (run / "manifest.json").exists():
-            raise BundleError(f"{root}: no run/manifest.json (run `python -m experiments.end_to_end` first)")
+            raise BundleError(f"{root}: нет run/manifest.json (сначала python -m experiments.end_to_end)")
         self.root, self.run = root, run
         self.manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
         self.kind = self.manifest.get("data_kind", "unverified")      # старые прогоны без пометки — unverified
@@ -81,11 +85,11 @@ class Bundle:
 
     @property
     def label(self) -> str:
-        return {"synthetic_fixture": "SYNTHETIC FIXTURE", "lanl_declared": "LANL (declared)"}.get(self.kind, "UNVERIFIED")
+        return {"synthetic_fixture": "СИНТЕТИКА", "lanl_declared": "LANL (заявлено)"}.get(self.kind, "НЕПРОВЕРЕННЫЕ")
 
     @property
     def badge(self) -> str:
-        return BADGE.get(self.kind, BADGE["unverified"])
+        return BADGE_RU.get(self.kind, BADGE_RU["unverified"])
 
     @property
     def source_note(self) -> str | None:
@@ -97,12 +101,12 @@ class Bundle:
     def results(self, target: str) -> dict[str, dict]:
         d = self.run / "results" / target
         if not d.exists():
-            raise BundleError(f"no results for target {target!r}")
-        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("*.json"))}
+            raise BundleError(f"нет результатов для окна {target!r}")
+        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("[!.]*.json"))}
 
     def identity(self, target: str) -> dict[str, dict]:
         d = self.run / "identity" / target
-        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("*.json"))} if d.exists() else {}
+        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("[!.]*.json"))} if d.exists() else {}
 
     def audit(self) -> dict | None:
         p = self.run / "audit.json"
@@ -139,7 +143,7 @@ class Bundle:
     def embedding(self, method: str) -> pd.DataFrame:
         p = self.run / "embeddings" / method / "train.csv"
         if not p.exists():
-            raise BundleError(f"embeddings of {method!r} are not in the bundle")
+            raise BundleError(f"эмбеддингов {method!r} нет в прогоне")
         return load_embeddings(p)
 
     def eval_hosts(self) -> list[str]:
@@ -160,7 +164,7 @@ class Bundle:
     def reference_neighbors(self) -> pd.DataFrame:
         p = self.ref_dir / "test" / "neighbors.csv"
         if not p.exists():
-            raise BundleError("reference/test/neighbors.csv is not in the bundle")
+            raise BundleError("reference/test/neighbors.csv нет в прогоне")
         return pd.read_csv(p, dtype={"host_id": str, "neighbor_id": str})
 
     def per_host_agreement(self, method: str, k: int = 10) -> pd.Series:
@@ -175,7 +179,7 @@ class Bundle:
         """2D PCA оцениваемого эмбеддинга; совпадение по хостам, если есть эталон."""
         emb = self.scored_embedding(method)
         if emb.shape[1] < 2:
-            raise BundleError("embedding has a single dimension; no 2D projection")
+            raise BundleError("у эмбеддинга одна размерность — 2D-проекции нет")
         xy = PCA(n_components=2, random_state=0).fit_transform(emb.to_numpy(float))
         df = pd.DataFrame({"host_id": emb.index, "PC1": xy[:, 0], "PC2": xy[:, 1]}).set_index("host_id")
         if self.has_neighbors():
@@ -186,7 +190,7 @@ class Bundle:
         """Соседи host в эмбеддинге с косинусом и пометкой, есть ли они в эталоне."""
         emb = self.scored_embedding(method)
         if host not in emb.index:
-            raise BundleError(f"unknown host {host!r}")
+            raise BundleError(f"неизвестный хост {host!r}")
         x = emb.to_numpy(float)
         unit = x / np.linalg.norm(x, axis=1, keepdims=True)
         sim = unit @ unit[emb.index.get_loc(host)]

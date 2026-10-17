@@ -20,7 +20,7 @@ import pandas as pd
 
 def load_results(results_dir: Path) -> list[dict]:
     out = []
-    for path in sorted(Path(results_dir).glob("*.json")):
+    for path in sorted(p for p in Path(results_dir).glob("*.json") if not p.name.startswith(".")):   # ._* — служебные файлы macOS
         data = json.loads(path.read_text(encoding="utf-8"))
         data.setdefault("method", path.stem)
         out.append(data)
@@ -74,7 +74,7 @@ def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
     cols = {}
     for r in results:
         for s in r.get("summary", []):
-            cols.setdefault(s["metric"], f"{s['group']}: {s['title']}")
+            cols.setdefault(s["metric"], s["title"])
     values = pd.DataFrame({r["method"]: {k: r["metrics"].get(k) for k in cols} for r in results}).T.astype(float)
     real = values.drop(index=[m for m in values.index if m in SERVICE])
     order = real.rank(ascending=False).mean(axis=1).sort_values() if len(real) else pd.Series(dtype=float)

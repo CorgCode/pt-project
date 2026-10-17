@@ -1,97 +1,62 @@
-# PT-05 — эмбеддинги хостов по сетевому трафику
+# PT-05: эмбеддинги хостов по сетевому трафику
 
-Командный проект Positive Technologies × МФТИ.
-Сайт проекта: https://corgcode.github.io/pt-project/ (пока только синтетические результаты).
+Проект Positive Technologies × МФТИ. Сайт: https://corgcode.github.io/pt-project/
 
-## Цель
+## Что делаем
 
-В корпоративной сети есть журнал соединений: кто с кем связывался, по какому порту, сколько трафика.
-Какой хост чем занимается (сервер, рабочая станция, принтер) — неизвестно. Мы хотим по этим логам
-**научиться строить для каждого хоста вектор — эмбеддинг**, чтобы по нему:
+По логам сети (NetFlow) строим для каждого хоста вектор — эмбеддинг. По нему хотим:
 
-- находить хосты с похожим поведением;
-- видеть группы и роли хостов без ручной разметки;
-- замечать подозрительные изменения поведения;
-- объяснять, почему хосты считаются похожими.
+- находить похожие хосты;
+- видеть группы и роли хостов;
+- замечать странное поведение.
 
-Данные — [LANL Unified Host and Network Dataset](https://csr.lanl.gov/data/2017/) (NetFlow).
+Данные — [LANL 2017](https://csr.lanl.gov/data/2017/). Разметки «кто есть кто» нет.
 
-## Как это устроено
+## Как это работает
 
 ```text
-сырые логи LANL ─▶ pipeline ─▶ окна train / validation / test, когорта хостов, графы
-                        │
-                        └─▶ эталоны для оценки (строятся один раз, без участия моделей)
-
-train-окно ─▶ методы и бейзлайны ─▶ эмбеддинги host_id, emb_0, emb_1, …
-                                          │
-эталоны ──────────────────────────────────┴─▶ evaluation ─▶ таблица результатов, отчёт, сайт
+логи LANL → pipeline → окна train / validation / test
+                     → эталоны для оценки
+train → методы → эмбеддинги → evaluation → таблица результатов
 ```
 
-Главный принцип: **все методы учатся на одних данных и проверяются на одних эталонах**,
-иначе их нельзя сравнивать. Модели видят только train-окно; оценка — по более поздним окнам.
+Все методы учатся на одном train-окне и проверяются на одних и тех же эталонах.
 
 ## Быстрый старт
 
 ```bash
 pip install -r requirements.txt
-
-# всё сразу на синтетике в формате LANL (без скачивания данных), ~1 минута
-python -m experiments.end_to_end --fixture --workdir runs/demo
-# результат: runs/demo/run/report.md, runs/demo/run/scoreboard_test.md
-
-# на настоящих файлах LANL
-python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config cfg.json \
-    --workdir runs/lanl --data-kind lanl --source-note "откуда, когда, кто скачал" --methods all
-
-# свой метод в общую таблицу результатов (подробно — scoreboard/README.md)
-python -m evaluation.submit scoreboard/submissions/my_method
-
-# тесты
+python -m experiments.end_to_end --fixture --workdir runs/demo   # всё сразу на синтетике, ~2 минуты
 python -m pytest -q evaluation benchmark app pipeline experiments
 ```
 
-## Где что лежит
+## Проверить свой метод
 
-| папка | что внутри | подробнее |
-|---|---|---|
-| `pipeline/` | LANL → окна → когорта → графы → эталоны | [`pipeline/README.md`](pipeline/README.md) |
-| `benchmark/` | графовые методы (DeepWalk, node2vec, RolX, struc2vec, GraphSAGE) и бейзлайны | [`benchmark/README.md`](benchmark/README.md) |
-| `scoreboard/` | **общая таблица результатов**: данные для обучения, отправки команды, результаты, лидер | [`scoreboard/README.md`](scoreboard/README.md) |
-| `evaluation/` | оценка: все метрики одной командой, что значит каждая метрика | [`evaluation/README.md`](evaluation/README.md) |
-| `experiments/` | запуск всего вместе, подбор параметров, абляции, устойчивость | [`experiments/README.md`](experiments/README.md) |
-| `app/` | дашборд на Streamlit | [`app/README.md`](app/README.md) |
-| `docs/` | сайт на GitHub Pages и [методология](docs/METHODOLOGY.md) | |
-| `research/` | ресёрч первого этапа, по файлу на участника | [`research/README.md`](research/README.md) |
-| `demo/` | маленький синтетический результат для дашборда и сайта | |
+1. Обучись на `scoreboard/data/processed` (только train).
+2. Положи `scoreboard/submissions/<метод>/embeddings.csv`.
+3. Commit и push. CI сам посчитает и добавит метод в [таблицу](scoreboard/README.md).
 
-## Таблица результатов
+## Где что
 
-Все методы на одних данных и эталонах, лучший выделен — [`scoreboard/README.md`](scoreboard/README.md).
-Положил эмбеддинг в `scoreboard/submissions/<метод>/`, открыл PR — CI сам оценит и допишет таблицу.
+| папка | что |
+|---|---|
+| [`scoreboard/`](scoreboard/README.md) | общая таблица результатов |
+| [`evaluation/`](evaluation/README.md) | метрики |
+| [`benchmark/`](benchmark/README.md) | методы и бейзлайны |
+| [`pipeline/`](pipeline/README.md) | подготовка данных |
+| [`experiments/`](experiments/README.md) | запуски, в том числе [на LANL](experiments/lanl/README.md) |
+| [`app/`](app/README.md) | дашборд |
+| `docs/` | сайт и [методология](docs/METHODOLOGY.md) |
+| [`research/`](research/README.md) | ресёрч участников |
 
-## Где мы сейчас
+## Статус
 
-- Готово и проверено **на синтетике**: пайплайн данных, 5 графовых методов, бейзлайны, единая оценка и таблица результатов.
-- Не сделано: прогон на настоящих данных LANL (#60), кластеризация и аномалии (#21, PR #67), внешние метки для зонда (#25).
-- Научных выводов о качестве методов пока **нет** — синтетика проверяет код, а не методы.
-
-Задачи — в [Issues](https://github.com/CorgCode/pt-project/issues), кто что делал — в [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
+- Готово: данные, 5 графовых методов, бейзлайны, оценка, таблица.
+- Идёт: первый прогон на LANL (#60).
+- В работе: кластеры и аномалии (#21), внешние метки (#25).
 
 ## Команда
 
-| | GitHub |
-|---|---|
-| Даниил | @physcorgi |
-| Дима | @DrMogger |
-| Тихон | @Tikhon2783 |
-| Даня | @kalivixZ |
-| Даша | @ElliOrNora |
+Даниил @physcorgi · Дима @DrMogger · Тихон @Tikhon2783 · Даня @kalivixZ · Даша @ElliOrNora
 
-## Как работать
-
-Issue → своя ветка → pull request → ревью → `main`. Напрямую в `main` не пишем.
-Ветки: `<логин>/<тип>-<номер issue>-<коротко>`, например `physcorgi/feature-68-eval`.
-Подробно — [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-Никогда не коммитим пароли, токены, ключи, `.env`, VPN-конфиги и сами данные (`data/` и `runs/` в `.gitignore`).
+Как работаем — [`CONTRIBUTING.md`](CONTRIBUTING.md). Задачи — в [Issues](https://github.com/CorgCode/pt-project/issues).

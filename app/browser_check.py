@@ -19,8 +19,8 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-TABS = ["Overview", "Leaderboard", "Link prediction", "Neighbourhoods", "Temporal", "Validity audit",
-        "Provenance", "Try your embedding"]
+TABS = ["Обзор", "Таблица", "Прогноз связей", "Соседи", "Во времени", "Аудит",
+        "Происхождение", "Свой эмбеддинг"]
 VIEWPORTS = {"desktop": (1440, 1900), "phone": (390, 3200)}
 
 
@@ -36,7 +36,7 @@ def stress_bundle(src: Path, dst: Path, scenario: str) -> Path:
         old = "behavioral_pca"
         for f in sorted(run.rglob(f"*{old}*"), key=lambda p: len(p.parts), reverse=True):   # сначала самые глубокие
             f.rename(f.with_name(f.name.replace(old, LONG)))
-        for f in run.rglob("*.json"):
+        for f in run.rglob("[!.]*.json"):
             f.write_text(f.read_text().replace(old, LONG))
         for f in run.glob("*.csv"):
             f.write_text(f.read_text().replace(old, LONG))
@@ -52,7 +52,7 @@ def stress_bundle(src: Path, dst: Path, scenario: str) -> Path:
     return dst
 
 
-EXPECT_MISSING = {"Neighbourhoods": "host-level views are unavailable", "Validity audit": "No audit.json"}
+EXPECT_MISSING = {"Соседи": "виды по хостам недоступны", "Аудит": "нет audit.json"}
 
 
 def free_port() -> int:
@@ -113,22 +113,22 @@ def run(bundle: Path, out: Path, shots_for: set[str], *, full_checks: bool = Tru
                 for tab in TABS:
                     page.get_by_role("tab", name=tab, exact=True).click()
                     wait_ready(page)
-                    if tab == "Neighbourhoods" and full_checks:
+                    if tab == "Соседи" and full_checks:
                         page.locator(".js-plotly-plot:visible").first.wait_for(timeout=30_000)
                     if expect and tab in expect and expect[tab] not in page.inner_text("body"):
                         report["problems"].append(f"{vp}/{tab}: expected message {expect[tab]!r} not shown")
                     check(page, f"{vp}/{tab}", report["problems"], report["console_errors"], vp == "phone")
-                    if tab in ("Overview", "Leaderboard", "Link prediction", "Neighbourhoods", "Temporal",
-                               "Validity audit", "Provenance") and (vp, tab) in shots_for:
+                    if tab in ("Обзор", "Таблица", "Прогноз связей", "Соседи", "Во времени",
+                               "Аудит", "Происхождение") and (vp, tab) in shots_for:
                         f = out / f"{tag}{vp}_{tab.lower().replace(' ', '_')}.png"
                         page.screenshot(path=str(f))
                         report["screenshots"].append(f.name)
-                    if tab == "Overview":
+                    if tab == "Обзор":
                         body = page.inner_text("body")
-                        for needle in ("SYNTHETIC FIXTURE", "not LANL"):
+                        for needle in ("СИНТЕТИКА", "не трафик LANL"):
                             if needle not in body:
                                 report["problems"].append(f"{vp}/Overview: banner text {needle!r} missing")
-                    if tab == "Leaderboard" and full_checks:
+                    if tab == "Таблица" and full_checks:
                         # таблица рисуется на canvas (не читается); подпись под ней — обычный текст DOM
                         honest = {m: json.loads((bundle / "run" / "results" / "test" / f"{m}.json").read_text())["metrics"]
                                   for m in json.loads((bundle / "run" / "manifest.json").read_text())["methods"]
@@ -141,9 +141,9 @@ def run(bundle: Path, out: Path, shots_for: set[str], *, full_checks: bool = Tru
                         if not ok:
                             report["problems"].append(f"{vp}/Leaderboard: best Consistency@10 in the page "
                                                       f"{found and found.groups()} != result files ({best_m} {best_v:.3f})")
-                    if tab == "Neighbourhoods" and full_checks:
+                    if tab == "Соседи" and full_checks:
                         cap = page.inner_text("body")
-                        m = re.search(r"Mean per-host agreement of behavioral at k=10: (\d\.\d+?)\.", cap)
+                        m = re.search(r"Среднее совпадение соседей у behavioral при k=10: (\d\.\d+?)\.", cap)
                         ok = bool(m) and abs(float(m.group(1)) - results["consistency@10_mean"]) < 0.0005
                         report["checks"][f"{vp}_per_host_agreement_equals_result_file"] = ok
                         if not ok:
@@ -165,8 +165,8 @@ def main() -> int:
     ap.add_argument("--stress", action="store_true", help="also run a very-long-method-name and a missing-artifacts bundle")
     a = ap.parse_args()
     shots = {(v, t) for v in VIEWPORTS for t in TABS} if a.all_shots else {
-        ("desktop", "Overview"), ("desktop", "Leaderboard"), ("desktop", "Link prediction"),
-        ("desktop", "Neighbourhoods"), ("phone", "Overview"), ("phone", "Leaderboard")}
+        ("desktop", "Обзор"), ("desktop", "Таблица"), ("desktop", "Прогноз связей"),
+        ("desktop", "Соседи"), ("phone", "Обзор"), ("phone", "Таблица")}
     rep = run(a.bundle, a.out, shots)
     if a.stress:
         import tempfile
@@ -174,7 +174,7 @@ def main() -> int:
         for scenario in ("long_name", "missing"):
             with tempfile.TemporaryDirectory() as tmp:
                 b2 = stress_bundle(a.bundle, Path(tmp) / "b", scenario)
-                r2 = run(b2, a.out, {("desktop", "Leaderboard"), ("phone", "Leaderboard"), ("desktop", "Neighbourhoods")},
+                r2 = run(b2, a.out, {("desktop", "Таблица"), ("phone", "Таблица"), ("desktop", "Соседи")},
                          full_checks=False, expect=EXPECT_MISSING if scenario == "missing" else None, tag=f"stress_{scenario}_")
             rep["stress"][scenario] = {"problems": r2["problems"], "console_errors": r2["console_errors"]}
             rep["problems"] += [f"[stress:{scenario}] {x}" for x in r2["problems"]]

@@ -31,7 +31,7 @@ def test_metric_long_shape(sample, reference_dir):
 
 
 @pytest.mark.parametrize("data,msg", [
-    (b"", "empty"),
+    (b"", "пустой"),
     (b"a,b\n1,2\n", "host_id"),
     (b"host_id,x\nh1,1\n", "нет колонок эмбеддинга"),
     (b"host_id,emb_0\nh1,1\nh1,2\n", "повторяющиеся host_id"),
@@ -50,7 +50,7 @@ def test_binary_garbage_is_an_upload_error(tmp_path):
 
 def test_wrong_host_ids_rejected(sample, reference_dir):
     df = pd.read_csv(__import__("io").BytesIO(sample)).iloc[:-5]
-    with pytest.raises(core.UploadError, match="do not match the demo reference"):
+    with pytest.raises(core.UploadError, match="не совпадают с демо-эталоном"):
         core.evaluate_upload(df.to_csv(index=False).encode(), reference_dir)
 
 
@@ -67,7 +67,7 @@ def test_streamlit_app_smoke():
 
     at = AppTest.from_file("streamlit_app.py", default_timeout=60).run()
     assert not at.exception
-    assert at.title[0].value == "Host embedding research dashboard"
+    assert at.title[0].value == "Эмбеддинги хостов: результаты"
 
 
 def test_dashboard_renders_every_tab_for_the_demo_bundle():
@@ -77,10 +77,10 @@ def test_dashboard_renders_every_tab_for_the_demo_bundle():
 
     at = AppTest.from_file("streamlit_app.py", default_timeout=120).run()
     assert not at.exception
-    assert any("SYNTHETIC FIXTURE" in w.value and "not LANL" in w.value for w in at.warning)   # пометка всегда есть
-    assert len(at.tabs) == 8 and [t.label for t in at.tabs][:3] == ["Overview", "Leaderboard", "Link prediction"]
+    assert any("СИНТЕТИКА" in w.value and "не трафик LANL" in w.value for w in at.warning)   # пометка всегда есть
+    assert len(at.tabs) == 8 and [t.label for t in at.tabs][:3] == ["Обзор", "Таблица", "Прогноз связей"]
     # взаимодействие: переключить группу метрик и окно эталона
-    at.selectbox(key="lb_group").select("Future links (predictive)").run()
+    at.selectbox(key="lb_group").select("Будущие связи").run()
     assert not at.exception
     at.radio(key="lb_target").set_value("validation").run()
     assert not at.exception
@@ -127,15 +127,15 @@ def test_dashboard_degrades_gracefully_when_artifacts_are_missing(monkeypatch, t
     at = _app_with_bundle(monkeypatch, b)
     assert not at.exception
     text = " ".join(w.value for w in at.warning)
-    assert "host-level views are unavailable" in text and "No audit.json" in text
-    assert any("SYNTHETIC FIXTURE" in w.value for w in at.warning)          # пометка на месте
+    assert "виды по хостам недоступны" in text and "нет audit.json" in text
+    assert any("СИНТЕТИКА" in w.value for w in at.warning)          # пометка на месте
 
 
 def test_unverified_and_declared_bundles_get_their_own_banner(monkeypatch, tmp_path):
     import json, shutil
     from pathlib import Path
     demo = Path(__file__).resolve().parents[1] / "demo" / "synthetic_run"
-    for kind, expect_in, banner_kind in (("unverified", "UNVERIFIED INPUT", "error"), ("lanl_declared", "declared by the operator", "info")):
+    for kind, expect_in, banner_kind in (("unverified", "НЕПРОВЕРЕННЫЕ ДАННЫЕ", "error"), ("lanl_declared", "заявлено оператором", "info")):
         b = tmp_path / kind
         shutil.copytree(demo, b)
         mf = b / "run" / "manifest.json"
@@ -147,5 +147,5 @@ def test_unverified_and_declared_bundles_get_their_own_banner(monkeypatch, tmp_p
         assert not at.exception
         texts = [e.value for e in getattr(at, banner_kind)]
         assert any(expect_in in t for t in texts), (kind, texts)
-        assert not any("SYNTHETIC FIXTURE" in w.value for w in at.warning)
-        assert not any("verified" in t.lower() and "not verified" not in t.lower() and "unverified" not in t.lower() for t in texts)
+        assert not any("СИНТЕТИКА" in w.value for w in at.warning)
+        assert not any("проверено" in t.lower() and "не проверено" not in t.lower() for t in texts)

@@ -114,3 +114,17 @@ def test_demo_bundle_is_synthetic_and_has_no_absolute_paths(tmp_path):
     blob = "".join(p.read_text() for p in out.rglob("*.json")) + (out / "run" / "report.md").read_text()
     assert str(tmp_path) not in blob and "/private/" not in blob and "/Users/" not in blob
     assert (out / "reference" / "test" / "neighbors.csv").exists() and (out / "run" / "embeddings" / "random" / "train.csv").exists()
+
+
+def test_rerun_reuses_saved_embeddings_without_retraining(processed, reference, tmp_path, capsys, monkeypatch):
+    kw = dict(dim=6, seed=0, n_boot=0, do_audit=False)
+    run_experiment(processed, reference, tmp_path, **kw)
+    first = json.loads((tmp_path / "results" / "test" / "behavioral.json").read_text())
+    assert (tmp_path / "embeddings" / "behavioral" / "test.csv").exists()          # все окна сохранены
+    (tmp_path / "results" / "test" / "._behavioral.json").write_bytes(b"\x00\x05\x16\x07\xb0")  # мусор macOS
+    capsys.readouterr()
+    run_experiment(processed, reference, tmp_path, reuse_embeddings=True, **kw)
+    out = capsys.readouterr().out
+    assert "обучение" not in out and "взято с диска" in out                       # ничего не переобучено
+    again = json.loads((tmp_path / "results" / "test" / "behavioral.json").read_text())
+    assert again["metrics"] == first["metrics"]
