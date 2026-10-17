@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent
 SIZES = ((1440, 900), (768, 1024), (390, 844))
-CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "leaderboard"]
+CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "chartScore", "leaderboard"]
 
 
 class Quiet(SimpleHTTPRequestHandler):
@@ -64,10 +64,10 @@ def main() -> None:
                     return b.width && (b.right > r.right + 1 || b.left < r.left - 1); }).map(t => t.textContent); })""")
             if clipped:
                 problems.append(f"{w}px: clipped chart labels {clipped[:3]}")
-            before = page.inner_text("#leaderboard")
+            before = page.inner_html("#chartConsistency")
             page.click("button[data-split=validation]")
-            if page.inner_text("#leaderboard") == before:
-                problems.append(f"{w}px: split toggle did not change leaderboard")
+            if page.inner_html("#chartConsistency") == before:
+                problems.append(f"{w}px: split toggle did not change chartConsistency")
             page.click("button[data-split=test]")
             page.goto(base + "/index.html", wait_until="networkidle")
             page.keyboard.press("Tab")
