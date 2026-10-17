@@ -1,0 +1,29 @@
+name: Новая метрика
+description: Ещё один способ оценить эмбеддинги
+title: "Оценка: <название>"
+labels: ["type: feature", "area: evaluation"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: На какой вопрос отвечает
+      placeholder: Например, «похожие хосты попадают в один кластер?»
+    validations:
+      required: true
+  - type: textarea
+    id: chance
+    attributes:
+      label: Случайный уровень
+      placeholder: Что получит случайный эмбеддинг.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Готово, когда
+      value: |
+        - [ ] Функция в `evaluation/<имя>.py` и строка в `METRICS` (`evaluation/evaluate.py`)
+        - [ ] Тест `evaluation/test_<имя>.py`
+        - [ ] Колонка появилась в `scoreboard/README.md`
+    validations:
+      required: true
