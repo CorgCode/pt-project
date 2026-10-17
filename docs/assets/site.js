@@ -1,6 +1,5 @@
-/* Графики сайта без зависимостей: данные из data/results.json (собирает docs/build_data.py),
-   charts are inline SVG. Every number shown is read from that file; nothing is computed or invented here
-   except the arithmetic mean already verified by docs/check_pages.py. */
+/* Графики сайта без зависимостей. Все числа читаются из data/results.json (собирает docs/build_data.py);
+   здесь ничего не считается, кроме форматирования. Графики — inline SVG. */
 (function () {
   "use strict";
   var NS = "http://www.w3.org/2000/svg";
@@ -9,24 +8,52 @@
     behavioral_pca: "Поведенческий + PCA",
     behavioral_svd: "Поведенческий + SVD",
     graph_spectral: "Спектральный граф",
-    random: "Случайный (нижняя граница)",
-    reference_ceiling: "Потолок эталона (утечка)",
+    random: "Случайные векторы",
+    reference_ceiling: "Потолок эталона",
     deepwalk: "DeepWalk", node2vec: "node2vec", graphsage: "GraphSAGE",
     struc2vec: "struc2vec", rolx: "RolX",
-    hybrid_services: "Гибрид: поведение×4 + сервисы + спектр",
-    hybrid_weighted: "Гибрид: поведение×6 + node2vec + спектр",
-    node2vec_services: "node2vec (хост — сервис)",
-    deepwalk_services: "DeepWalk (хост — сервис)",
-    hybrid_behavioral_node2vec_spectral: "Гибрид: поведение + node2vec + спектр",
-    hybrid_behavioral_deepwalk: "Гибрид: поведение + DeepWalk",
-    hybrid_behavioral_node2vec: "Гибрид: поведение + node2vec"
+    node2vec_services: "node2vec · хост — сервис",
+    deepwalk_services: "DeepWalk · хост — сервис",
+    hybrid_services: "Поведение + node2vec · сервис + спектр",
+    hybrid_weighted: "Поведение×6 + node2vec + спектр",
+    hybrid_behavioral_node2vec_spectral: "Поведение + node2vec + спектр",
+    hybrid_behavioral_deepwalk: "Поведение + DeepWalk",
+    hybrid_behavioral_node2vec: "Поведение + node2vec"
   };
-  var PENDING_TEXT = "Ожидаются результаты эксперимента";
-  var state = { data: null, split: "test" };
+  var TASKS = ["Поведение", "Будущие связи", "Общие собеседники", "Узнаваемость"];
+  var SHORT = { "Поведение": "Повед.", "Будущие связи": "Связи", "Общие собеседники": "Собес.", "Узнаваемость": "Узнав." };
+  var METRICS = {
+    neighbors: {
+      series: [["consistency@5_mean", "k = 5"], ["consistency@10_mean", "k = 10"], ["consistency@20_mean", "k = 20"]],
+      title: "Совпадение ближайших соседей с эталоном поведения",
+      what: "Доля из k ближайших соседей хоста по эмбеддингу, которые совпадают с соседями по поведению в test-окне.",
+      caveat: "Поведенческий профиль и эталон построены из похожих признаков, поэтому его результат частично предопределён. Выше ≈ 0,31 не прыгнуть: поведение за полчаса меняется само."
+    },
+    links: {
+      series: [["link_learned_roc_auc", "связь, AUC"], ["link_new_roc_auc", "только новые связи, AUC"], ["partner_new_mrr", "новые собеседники, MRR"]],
+      fixedMax: 1, ref: 0.5, refLabel: "AUC 0,5 — случайно",
+      title: "Прогноз связей test-окна по эмбеддингам train",
+      what: "Отличает ли классификатор на эмбеддингах пары, которые свяжутся, от остальных (AUC), и находятся ли новые собеседники хоста через похожие хосты (MRR).",
+      caveat: "88% будущих связей уже были в train: правило «уже общались» даёт AUC 0,939. Поэтому важнее новые связи и новые собеседники."
+    },
+    pairs: {
+      series: [["pair_roc_auc", "AUC пар"]], bar: true, fixedMax: 1, ref: 0.5, refLabel: "0,5 — случайно",
+      title: "Различение пар с общими собеседниками и без них",
+      what: "Различает ли расстояние между векторами пары хостов с общими собеседниками и пары без них (ROC-AUC).",
+      caveat: "Спорные пары исключены, поэтому задача легче остальных. Графовые методы и эталон пар строятся из одних связей."
+    },
+    identity: {
+      series: [["identity_top1", "top-1"]], bar: true, chanceRef: true, refLabel: "случайно",
+      title: "Узнаётся ли тот же хост в test-окне",
+      what: "Доля хостов, у которых ближайший вектор в test-окне — он сам (top-1 среди всех оценённых хостов).",
+      caveat: "Нужен эмбеддинг test-окна (test.csv); у кого его нет, тот в задаче не участвует. Окна по 30 минут короткие."
+    }
+  };
+  var state = { data: null, metric: "neighbors" };
 
   function el(tag, attrs, text) {
     var n = document.createElementNS(NS, tag);
-    for (var k in attrs || {}) n.setAttribute(k, attrs[k]);
+    for (var k in attrs || {}) if (attrs[k] != null) n.setAttribute(k, attrs[k]);
     if (text != null) n.textContent = text;
     return n;
   }
@@ -37,234 +64,196 @@
     return n;
   }
   function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-  function fmt(v) { return v == null ? "—" : v.toFixed(3).replace(".", ","); }
+  function comma(s) { return String(s).replace(".", ","); }
+  function fmt(v) { return v == null ? "—" : comma(v.toFixed(3)); }
   function name(m) { return LABEL[m] || m; }
-
-  /* rows: [{key, series:[value|null,...]}]; pending rows have all-null values */
-  function rowsFor(getter, nSeries) {
-    var d = state.data, out = [];
-    d.meta.missing.slice().sort().forEach(function (m) {
-      out.push({ key: m, pending: true, values: new Array(nSeries).fill(null) });
-    });
-    d.meta.methods.forEach(function (m) { out.push({ key: m, pending: false, values: getter(m) }); });
-    return out;
+  function kind(m) {
+    if (m === "random" || m === "reference_ceiling") return "ориентир";
+    if (m.indexOf("hybrid") === 0) return "гибрид";
+    return m.indexOf("behavioral") === 0 ? "поведение" : "граф";
   }
+  function rows() { return state.data.team.rows.filter(function (r) { return r.method !== "reference_ceiling"; }); }
+  function real() { return state.data.team.rows.filter(function (r) { return !r.service; }); }
 
-  function draw(host, rows, opts) {
-    host.textContent = "";
-    var W = Math.max(280, Math.floor(host.clientWidth || 700));
-    var narrow = W < 540;
-    var labelW = narrow ? 0 : Math.min(230, Math.round(W * 0.32));
-    var rowH = narrow ? 46 : 32, top = 22, right = 14;
-    var plotX = labelW + (narrow ? 16 : 14), plotW = W - plotX - right - (narrow ? 6 : 0);
-    var H = top + rows.length * rowH + 26;
-    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": opts.title });
-    var lo = opts.min, hi = opts.max;
-    function X(v) { return plotX + (v - lo) / (hi - lo) * plotW; }
-    var ink = css("--ink"), rule = css("--rule"), accent = css("--accent"), accent2 = css("--accent-2"), muted = css("--muted"), warn = css("--warn");
-    var ticks = opts.ticks;
-    ticks.forEach(function (t) {
-      svg.appendChild(el("line", { x1: X(t), x2: X(t), y1: top - 6, y2: H - 22, stroke: rule, "stroke-width": 1 }));
-      svg.appendChild(el("text", { x: X(t), y: H - 6, "text-anchor": "middle", "class": "mut" }, String(t).replace(".", ",")));
-    });
-    if (opts.ref != null) {
-      svg.appendChild(el("line", { x1: X(opts.ref), x2: X(opts.ref), y1: top - 6, y2: H - 22, stroke: muted, "stroke-width": 1.2, "stroke-dasharray": "4 3" }));
-      svg.appendChild(el("text", { x: X(opts.ref) + 4, y: top - 9, "class": "mut" }, opts.refLabel));
-    }
-    var colors = [accent, accent2, warn];
-    rows.forEach(function (r, i) {
-      var y0 = top + i * rowH, cy = y0 + (narrow ? 30 : rowH / 2);
-      var t = el("text", { x: narrow ? 4 : 0, y: narrow ? y0 + 12 : cy + 4 }, name(r.key));
-      if (r.pending) t.setAttribute("class", "mut");
-      svg.appendChild(t);
-      if (r.pending) {
-        svg.appendChild(el("rect", { x: plotX, y: cy - 9, width: plotW, height: 18, fill: "none", stroke: rule, "stroke-dasharray": "3 3" }));
-        svg.appendChild(el("text", { x: plotX + 8, y: cy + 4, "class": "mut" }, PENDING_TEXT));
-        return;
-      }
-      if (opts.kind === "bar") {
-        var v = r.values[0];
-        var leak = r.key === "reference_ceiling";
-        svg.appendChild(el("rect", { x: plotX, y: cy - 8, width: Math.max(1, X(v) - plotX), height: 16, fill: leak ? "none" : accent, stroke: leak ? warn : "none", "stroke-dasharray": leak ? "4 2" : "none" }));
-        svg.appendChild(el("text", { x: Math.min(X(v) + 6, W - 40), y: cy + 4 }, opts.valueFmt ? opts.valueFmt(v) : fmt(v)));
-      } else {
-        var xs = [];
-        r.values.forEach(function (v, s) {
-          if (v == null) return;
-          var x = X(v), c = colors[s % 3];
-          if (s === 0) svg.appendChild(el("circle", { cx: x, cy: cy, r: 5.5, fill: c }));
-          else if (s === 1) svg.appendChild(el("rect", { x: x - 5, y: cy - 5, width: 10, height: 10, fill: c }));
-          else svg.appendChild(el("path", { d: "M" + x + " " + (cy - 6.5) + "L" + (x + 6.5) + " " + cy + "L" + x + " " + (cy + 6.5) + "L" + (x - 6.5) + " " + cy + "Z", fill: c }));
-          xs.push(x);
-        });
-        if (xs.length > 1) svg.insertBefore(el("line", { x1: Math.min.apply(null, xs), x2: Math.max.apply(null, xs), y1: cy, y2: cy, stroke: rule, "stroke-width": 2 }), svg.firstChild);
-      }
-    });
-    host.appendChild(svg);
-    if (opts.legend) {
-      var lg = html("div", { "class": "legend" });
-      opts.legend.forEach(function (t, s) {
-        var item = html("span");
-        var sw = html("span", { "class": "sw" });
-        sw.style.background = colors[s]; if (s === 1) sw.style.borderRadius = "0"; if (s === 0) sw.style.borderRadius = "50%"; if (s === 2) sw.style.transform = "rotate(45deg) scale(.8)";
-        item.appendChild(sw); item.appendChild(document.createTextNode(t)); lg.appendChild(item);
-      });
-      host.appendChild(lg);
-    }
-    /* accessible table twin */
-    var det = html("details"); det.appendChild(html("summary", null, "Таблица значений"));
-    var wrap = html("div", { "class": "tablewrap" }), tb = html("table");
-    var head = html("tr"); head.appendChild(html("th", null, "Метод"));
-    (opts.legend || [opts.valueLabel]).forEach(function (t) { head.appendChild(html("th", { "class": "num" }, t)); });
-    tb.appendChild(head);
-    rows.forEach(function (r) {
-      var tr = html("tr"); tr.appendChild(html("td", null, name(r.key)));
-      r.values.forEach(function (v) { tr.appendChild(html("td", { "class": "num" }, r.pending ? "ожидается" : fmt(v))); });
-      tb.appendChild(tr);
-    });
-    wrap.appendChild(tb); det.appendChild(wrap); host.appendChild(det);
-  }
-
-  function scatter(host, pts) {
-    host.textContent = "";
-    var W = Math.max(280, Math.floor(host.clientWidth || 700)), H = Math.round(Math.min(440, Math.max(260, W * 0.6)));
-    var pad = 30;
-    var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
-    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Двумерная проекция PCA хостов; цвет показывает долю совпавших ближайших соседей" });
-    svg.appendChild(el("rect", { x: pad, y: 6, width: W - pad - 8, height: H - pad - 6, fill: "none", stroke: css("--rule") }));
-    var lowC = css("--rule"), hiC = css("--accent");
-    function mix(a, b, t) {
-      var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), o = "#";
-      [16, 8, 0].forEach(function (s) { var ca = (pa >> s) & 255, cb = (pb >> s) & 255; o += ("0" + Math.round(ca + (cb - ca) * t).toString(16)).slice(-2); });
-      return o;
-    }
-    var sorted = pts.slice().sort(function (a, b) { return a.agreement - b.agreement; });
-    sorted.forEach(function (p) {
-      var cx = pad + (p.x - x0) / (x1 - x0) * (W - pad - 14), cy = 12 + (1 - (p.y - y0) / (y1 - y0)) * (H - pad - 18);
-      var c = el("circle", { cx: cx.toFixed(1), cy: cy.toFixed(1), r: 3.4, fill: mix(lowC, hiC, p.agreement), "fill-opacity": 0.9 });
-      c.appendChild(el("title", {}, p.id + ": доля совпавших соседей " + fmt(p.agreement)));
-      svg.appendChild(c);
-    });
-    svg.appendChild(el("text", { x: W / 2, y: H - 8, "text-anchor": "middle", "class": "mut" }, "Главная компонента 1"));
-    var yl = el("text", { x: 14, y: H / 2, "text-anchor": "middle", "class": "mut", transform: "rotate(-90 14 " + H / 2 + ")" }, "Главная компонента 2");
-    svg.appendChild(yl);
-    host.appendChild(svg);
-    var lg = html("div", { "class": "legend" });
-    [["Доля совпавших соседей: 0", lowC], ["1", hiC]].forEach(function (a) {
-      var s = html("span"), sw = html("span", { "class": "sw" }); sw.style.background = a[1]; sw.style.borderRadius = "50%";
-      s.appendChild(sw); s.appendChild(document.createTextNode(a[0])); lg.appendChild(s);
-    });
-    host.appendChild(lg);
-  }
-
+  /* Главная таблица: общий балл полоской и балл каждой задачи тепловой ячейкой. */
   function leaderboard(host) {
     host.textContent = "";
-    var t = state.data.team, keys = Object.keys(t.columns);
-    var best = {};
-    keys.forEach(function (k) {
-      t.rows.forEach(function (r) { var v = r.values[k]; if (!r.service && v != null && (best[k] == null || v > best[k])) best[k] = v; });
+    var tb = html("table", { "class": "board" }), head = html("tr");
+    head.appendChild(html("th", null, "#"));
+    head.appendChild(html("th", null, "Метод"));
+    head.appendChild(html("th", null, "Балл"));
+    TASKS.forEach(function (t) {
+      var th = html("th", { "class": "heat", title: t });
+      th.appendChild(html("span", { "class": "full" }, t)); th.appendChild(html("span", { "class": "short" }, SHORT[t]));
+      head.appendChild(th);
     });
-    var tb = html("table"), head = html("tr");
-    ["Место", "Метод", "Балл", "разм."].forEach(function (h, i) { head.appendChild(html("th", i > 1 ? { "class": "num" } : null, h)); });
-    keys.forEach(function (k) { head.appendChild(html("th", { "class": "num" }, t.columns[k])); });
     tb.appendChild(head);
     var place = 0;
-    t.rows.forEach(function (r) {
-      var tr = html("tr");
-      tr.appendChild(html("td", null, r.service ? "—" : String(++place)));
-      var nm = html("td", null, name(r.method)); if (r.service) nm.style.fontStyle = "italic"; tr.appendChild(nm);
-      var sc = html("td", { "class": "num" }, r.score == null ? "—" : r.score.toFixed(1).replace(".", ","));
-      if (place === 1 && !r.service) sc.style.fontWeight = "700";
+    rows().forEach(function (r) {
+      var tr = html("tr", r.service ? { "class": "service" } : null);
+      if (!r.service && place === 0) tr.className = "lead";
+      tr.appendChild(html("td", { "class": "place" }, r.service ? "" : String(++place)));
+      var nm = html("td", { "class": "name" }, name(r.method));
+      nm.appendChild(html("small", null, kind(r.method) + (r.dim ? " · " + r.dim + " чисел" : "")));
+      tr.appendChild(nm);
+      var sc = html("td"), bar = html("div", { "class": "scorebar" }), fill = html("i");
+      fill.style.width = Math.max(2, r.score) * 2 + "px";
+      bar.appendChild(html("b", null, comma(r.score.toFixed(1)))); bar.appendChild(fill); sc.appendChild(bar);
       tr.appendChild(sc);
-      tr.appendChild(html("td", { "class": "num" }, r.dim == null ? "—" : String(r.dim)));
-      keys.forEach(function (k) {
-        var td = html("td", { "class": "num" }, fmt(r.values[k]));
-        if (!r.service && r.values[k] != null && Math.abs(r.values[k] - best[k]) < 1e-12) td.style.fontWeight = "700";
+      TASKS.forEach(function (t) {
+        var v = r.tasks[t], td = html("td", { "class": "heat" }, v == null ? "—" : String(Math.round(v)));
+        if (v != null) {
+          var p = Math.round(Math.min(100, v) * 0.85);
+          td.style.background = "color-mix(in srgb, var(--heat) " + p + "%, transparent)";
+          if (p > 48) td.style.color = "var(--on-accent)";
+          td.title = t + ": " + comma(v.toFixed(1)) + " из 100";
+        }
         tr.appendChild(td);
       });
       tb.appendChild(tr);
     });
-    var tr = html("tr"); tr.appendChild(html("td")); tr.appendChild(html("td", null, "случайный уровень"));
-    tr.appendChild(html("td", { "class": "num" }, "0")); tr.appendChild(html("td"));
-    keys.forEach(function (k) { var c = t.chance[k]; tr.appendChild(html("td", { "class": "num" }, !c ? "—" : (c[1] - c[0] < 1e-9 ? fmt(c[0]) : fmt(c[0]) + "–" + fmt(c[1])))); });
-    tr.style.color = css("--muted"); tb.appendChild(tr);
     var wrap = html("div", { "class": "tablewrap" }); wrap.appendChild(tb); host.appendChild(wrap);
+    host.appendChild(rawTable());
   }
 
-  function fillHighlights() {
-    var t = state.data.team, ds = state.data.dataset;
-    var real = t.rows.filter(function (r) { return !r.service; });
-    function bestOf(k) { return Math.max.apply(null, real.map(function (r) { return r.values[k] == null ? -1 : r.values[k]; })); }
+  /* Исходные метрики — под спойлером. */
+  function rawTable() {
+    var t = state.data.team, keys = Object.keys(t.columns);
+    var det = html("details"); det.appendChild(html("summary", null, "Исходные метрики и случайный уровень"));
+    var tb = html("table"), head = html("tr");
+    head.appendChild(html("th", null, "Метод"));
+    keys.forEach(function (k) { head.appendChild(html("th", { "class": "num" }, t.columns[k])); });
+    tb.appendChild(head);
+    rows().forEach(function (r) {
+      var tr = html("tr"); tr.appendChild(html("td", null, name(r.method)));
+      keys.forEach(function (k) { tr.appendChild(html("td", { "class": "num" }, fmt(r.values[k]))); });
+      tb.appendChild(tr);
+    });
+    var tr = html("tr"); tr.appendChild(html("td", null, "случайный уровень"));
+    keys.forEach(function (k) { var c = t.chance[k]; tr.appendChild(html("td", { "class": "num" }, !c ? "—" : (c[1] - c[0] < 1e-9 ? fmt(c[0]) : fmt(c[0]) + "–" + fmt(c[1])))); });
+    tr.style.color = "var(--muted)"; tb.appendChild(tr);
+    var wrap = html("div", { "class": "tablewrap" }); wrap.appendChild(tb); det.appendChild(wrap);
+    return det;
+  }
+
+  /* Точечный или столбчатый график: строка на метод, общая ось. */
+  function draw(host, cfg) {
+    host.textContent = "";
+    var data = rows().map(function (r) { return { key: r.method, values: cfg.series.map(function (s) { return r.detail[s[0]]; }) }; })
+      .filter(function (r) { return r.values.some(function (v) { return v != null; }); });
+    var all = [].concat.apply([], data.map(function (r) { return r.values; })).filter(function (v) { return v != null; });
+    var hi = cfg.fixedMax || Math.min(1, Math.ceil(Math.max.apply(null, all) * 1.15 * 10) / 10);
+    var step = hi <= 0.5 ? 0.1 : 0.25, ticks = [];
+    for (var t = 0; t <= hi + 1e-9; t += step) ticks.push(Math.round(t * 100) / 100);
+    var ref = cfg.ref, chance = state.data.team.chance.identity_top1;
+    if (cfg.chanceRef && chance) ref = chance[0];
+
+    var W = Math.max(280, Math.floor(host.clientWidth || 700)), narrow = W < 560;
+    var labelW = narrow ? 0 : Math.min(250, Math.round(W * 0.33));
+    var rowH = narrow ? 44 : 28, top = 24, right = 44;
+    var plotX = labelW + (narrow ? 4 : 12), plotW = W - plotX - right;
+    var H = top + data.length * rowH + 24;
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": cfg.title });
+    function X(v) { return plotX + v / hi * plotW; }
+    var rule = css("--rule"), muted = css("--muted");
+    var colors = [css("--s1"), css("--s2"), css("--s3")];
+    ticks.forEach(function (tk) {
+      svg.appendChild(el("line", { x1: X(tk), x2: X(tk), y1: top - 8, y2: H - 22, stroke: rule }));
+      svg.appendChild(el("text", { x: X(tk), y: H - 6, "text-anchor": "middle", "class": "mut" }, comma(tk)));
+    });
+    if (ref != null) {
+      svg.appendChild(el("line", { x1: X(ref), x2: X(ref), y1: top - 8, y2: H - 22, stroke: muted, "stroke-width": 1.2, "stroke-dasharray": "4 3" }));
+      svg.appendChild(el("text", { x: X(ref) + 4, y: top - 11, "class": "mut" }, cfg.refLabel));
+    }
+    data.forEach(function (r, i) {
+      var y0 = top + i * rowH, cy = y0 + (narrow ? 30 : rowH / 2);
+      var g = el("g", { "class": "hit" });
+      g.appendChild(el("title", null, name(r.key) + "\n" + cfg.series.map(function (s, j) { return s[1] + ": " + fmt(r.values[j]); }).join("\n")));
+      g.appendChild(el("rect", { x: 0, y: y0, width: W, height: rowH, fill: "transparent" }));
+      g.appendChild(el("text", { x: 0, y: narrow ? y0 + 12 : cy + 4, "class": r.key === "random" ? "mut" : null }, name(r.key)));
+      if (cfg.bar) {
+        var v = r.values[0];
+        g.appendChild(el("rect", { "class": "mark", x: plotX, y: cy - 7, width: Math.max(2, X(v) - plotX), height: 14, rx: 4, fill: colors[0] }));
+        g.appendChild(el("text", { x: X(v) + 6, y: cy + 4 }, fmt(v)));
+      } else {
+        var xs = r.values.filter(function (v) { return v != null; }).map(X);
+        if (xs.length > 1) g.appendChild(el("line", { x1: Math.min.apply(null, xs), x2: Math.max.apply(null, xs), y1: cy, y2: cy, stroke: rule, "stroke-width": 2 }));
+        r.values.forEach(function (v, s) {
+          if (v == null) return;
+          var x = X(v), c = colors[s];
+          if (s === 0) g.appendChild(el("circle", { "class": "mark", cx: x, cy: cy, r: 5.5, fill: c, stroke: css("--paper"), "stroke-width": 2 }));
+          else if (s === 1) g.appendChild(el("rect", { "class": "mark", x: x - 5, y: cy - 5, width: 10, height: 10, fill: c, stroke: css("--paper"), "stroke-width": 2 }));
+          else g.appendChild(el("path", { "class": "mark", d: "M" + x + " " + (cy - 6.5) + "L" + (x + 6.5) + " " + cy + "L" + x + " " + (cy + 6.5) + "L" + (x - 6.5) + " " + cy + "Z", fill: c, stroke: css("--paper"), "stroke-width": 2 }));
+        });
+      }
+      svg.appendChild(g);
+    });
+    host.appendChild(svg);
+    if (cfg.series.length > 1) {
+      var lg = html("div", { "class": "legend" });
+      cfg.series.forEach(function (s, i) {
+        var item = html("span"), sw = html("span", { "class": "sw" });
+        sw.style.background = colors[i];
+        sw.style.borderRadius = i === 0 ? "50%" : "0";
+        if (i === 2) sw.style.transform = "rotate(45deg) scale(.8)";
+        item.appendChild(sw); item.appendChild(document.createTextNode(s[1])); lg.appendChild(item);
+      });
+      host.appendChild(lg);
+    }
+  }
+
+  function renderMetric() {
+    var cfg = METRICS[state.metric], host = document.getElementById("chartMetric");
+    if (host) draw(host, cfg);
+    document.querySelector("[data-explain=what]").textContent = cfg.what;
+    document.querySelector("[data-explain=caveat]").textContent = cfg.caveat;
+    document.querySelectorAll(".tabs [data-metric]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.metric === state.metric)); });
+  }
+
+  function fill() {
+    var t = state.data.team, ds = state.data.dataset, r = real();
     function set(sel, txt) { document.querySelectorAll(sel).forEach(function (n) { n.textContent = txt; }); }
     function num(v) { return v == null ? "—" : Number(v).toLocaleString("ru-RU"); }
-    set("[data-kpi=best-score]", real[0].score.toFixed(1).replace(".", ","));
-    set("[data-kpi=best-method]", name(real[0].method));
-    set("[data-kpi=link]", fmt(bestOf("link_learned_roc_auc")));
-    set("[data-kpi=persistence]", fmt(t.persistence_auc));
-    set("[data-kpi=partners]", "×" + (bestOf("partner_new_mrr") / t.chance.partner_new_mrr[0]).toFixed(1).replace(".", ","));
-    set("[data-kpi=identity]", Math.round(bestOf("identity_top1") * 100) + "%");
-    set("[data-kpi=identity-chance]", (t.chance.identity_top1[0] * 100).toFixed(1).replace(".", ",") + "%");
-    set("[data-ds=rows]", num(ds.valid_rows)); set("[data-ds=invalid]", num(ds.invalid_rows));
-    set("[data-ds=train-flows]", num(ds.windows.train.flows)); set("[data-ds=train-min]", ds.windows.train.minutes);
-    set("[data-ds=cohort]", num(ds.cohort)); set("[data-ds=evaluated]", num(ds.evaluated)); set("[data-ds=test-min]", ds.windows.test.minutes);
+    function bestOf(k) { return Math.max.apply(null, r.map(function (x) { return x.values[k] == null ? -1 : x.values[k]; })); }
+    var single = r.filter(function (x) { return x.method.indexOf("hybrid") !== 0; })[0];
+    var pct = function (v) { return Math.round(v * 100) + "%"; };
+    set("[data-kpi=best-score]", comma(r[0].score.toFixed(1)));
+    set("[data-kpi=best-method]", name(r[0].method));
+    set("[data-kpi=link], [data-f=link]", fmt(bestOf("link_learned_roc_auc")));
+    set("[data-kpi=persistence], [data-f=pers]", fmt(t.persistence_auc));
+    set("[data-kpi=partners]", "×" + comma((bestOf("partner_new_mrr") / t.chance.partner_new_mrr[0]).toFixed(1)));
+    set("[data-kpi=identity], [data-f=identity]", pct(bestOf("identity_top1")));
+    set("[data-kpi=identity-chance]", comma((t.chance.identity_top1[0] * 100).toFixed(1)) + "%");
+    set("[data-f=hybrid]", comma(r[0].score.toFixed(1)));
+    set("[data-f=single]", name(single.method).toLowerCase() + ", " + comma(single.score.toFixed(1)));
+    set("[data-ds=rows]", num(ds.valid_rows)); set("[data-ds=train-min]", ds.windows.train.minutes);
+    set("[data-ds=test-min]", ds.windows.test.minutes); set("[data-ds=cohort]", num(ds.cohort)); set("[data-ds=evaluated]", num(ds.evaluated));
+    set("[data-meta=commit]", state.data.meta.source_commit.slice(0, 8));
   }
 
   function renderAll() {
-    var d = state.data; if (!d) return;
-    var res = d.results[state.split];
-    var kEl = document.getElementById("chartConsistency");
-    if (kEl) draw(kEl, rowsFor(function (m) { return [res[m]["consistency@5_mean"], res[m]["consistency@10_mean"], res[m]["consistency@20_mean"]]; }, 3),
-      { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], title: "Согласие ближайших соседей по методам", legend: ["k = 5", "k = 10", "k = 20"] });
-    var lEl = document.getElementById("chartLinks");
-    if (lEl) draw(lEl, rowsFor(function (m) { return [res[m].link_roc_auc, res[m].link_learned_roc_auc, res[m].link_new_roc_auc]; }, 3),
-      { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: 0.5, refLabel: "случайный уровень 0,5", title: "ROC-AUC прогноза будущих связей",
-        legend: ["косинус", "обученный классификатор", "только новые связи"] });
-    var pEl = document.getElementById("chartPairs");
-    if (pEl) draw(pEl, rowsFor(function (m) { return [res[m].pair_roc_auc]; }, 1),
-      { kind: "bar", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: 0.5, refLabel: "случайный уровень 0,5", title: "ROC-AUC различения похожих и непохожих пар", valueLabel: "ROC-AUC пар" });
-    var iEl = document.getElementById("chartIdentity");
-    if (iEl) {
-      var ids = d.identity;
-      draw(iEl, rowsFor(function (m) { var r = ids[m]; return r ? [r.raw_top1, r.aligned_top1] : [null, null]; }, 2).filter(function (r) { return r.pending || ids[r.key]; }),
-        { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: ids.behavioral.chance_top1, refLabel: "случайное угадывание", title: "Точность top-1 при поиске того же хоста в следующем окне", legend: ["без выравнивания", "с выравниванием (Прокруст)"] });
-    }
-    var sEl = document.getElementById("chartHosts"); if (sEl) scatter(sEl, d.projection.points);
-    var cEl = document.getElementById("chartScore");
-    if (cEl) draw(cEl, d.team.rows.filter(function (r) { return r.score != null; }).map(function (r) { return { key: r.method, pending: false, values: [r.score] }; }),
-      { kind: "bar", min: 0, max: 100, ticks: [0, 25, 50, 75, 100], title: "Общий балл методов (0 — случайно, 100 — идеал)", valueLabel: "балл",
-        valueFmt: function (v) { return v.toFixed(1).replace(".", ","); } });
-    var bEl = document.getElementById("leaderboard"); if (bEl) leaderboard(bEl);
-    document.querySelectorAll("[data-split-label]").forEach(function (n) { n.textContent = state.split === "test" ? "тестовое окно" : "валидационное окно"; });
-    document.querySelectorAll(".tabs [data-split]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.split === state.split)); });
-  }
-
-  function fillMeta() {
-    var m = state.data.meta;
-    document.querySelectorAll("[data-meta=hosts]").forEach(function (n) { n.textContent = m.hosts; });
-    document.querySelectorAll("[data-meta=commit]").forEach(function (n) { n.textContent = m.source_commit.slice(0, 8); });
-    document.querySelectorAll("[data-meta=pending]").forEach(function (n) { n.textContent = m.missing.map(name).join(", "); });
-    document.querySelectorAll("[data-meta=meanagree]").forEach(function (n) { n.textContent = fmt(state.data.projection.per_host_mean_agreement); });
+    if (!state.data) return;
+    leaderboard(document.getElementById("leaderboard"));
+    renderMetric();
   }
 
   function init() {
-    document.querySelectorAll(".tabs [data-split]").forEach(function (b) {
-      b.addEventListener("click", function () { state.split = b.dataset.split; renderAll(); });
+    document.querySelectorAll(".tabs [data-metric]").forEach(function (b) {
+      b.addEventListener("click", function () { state.metric = b.dataset.metric; renderMetric(); });
     });
     var timer;
-    window.addEventListener("resize", function () { clearTimeout(timer); timer = setTimeout(renderAll, 120); });
-    var ids = [].slice.call(document.querySelectorAll("nav.main a[href^='#']"));
-    if ("IntersectionObserver" in window && ids.length) {
+    window.addEventListener("resize", function () { clearTimeout(timer); timer = setTimeout(renderMetric, 120); });
+    var links = [].slice.call(document.querySelectorAll("nav.main a[href^='#']"));
+    if ("IntersectionObserver" in window && links.length) {
       var io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) ids.forEach(function (a) { if (a.getAttribute("href") === "#" + e.target.id) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); }); });
+        es.forEach(function (e) { if (e.isIntersecting) links.forEach(function (a) { if (a.getAttribute("href") === "#" + e.target.id) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); }); });
       }, { rootMargin: "-20% 0px -70% 0px" });
-      ids.forEach(function (a) { var t = document.querySelector(a.getAttribute("href")); if (t) io.observe(t); });
+      links.forEach(function (a) { var t = document.querySelector(a.getAttribute("href")); if (t) io.observe(t); });
     }
-    if (!document.getElementById("chartConsistency")) return;
     fetch("./data/results.json", { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status); return r.json();
     }).then(function (d) {
-      state.data = d; fillMeta(); fillHighlights(); renderAll();
+      state.data = d; fill(); renderAll();
       document.documentElement.setAttribute("data-charts", "ready");
     }).catch(function (e) {
       document.querySelectorAll(".fig").forEach(function (n) { n.textContent = "Не удалось загрузить data/results.json (" + e.message + ")."; });
