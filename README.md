@@ -32,9 +32,9 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 
 ## Проверить свой метод
 
-1. Обучись на `scoreboard/data/processed` (только train).
-2. Положи `scoreboard/submissions/<метод>/embeddings.csv`.
-3. Commit и push. CI сам посчитает и добавит метод в [таблицу](scoreboard/README.md).
+1. `cp scoreboard/template_method.py scoreboard/<метод>.py` и поменяй в нём две функции: `fit` и `embed`.
+2. `python scoreboard/<метод>.py` — обучит, сохранит и покажет место.
+3. Commit и push. CI добавит метод в [таблицу](scoreboard/README.md).
 
 ## Где что
 

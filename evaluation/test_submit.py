@@ -61,3 +61,15 @@ def test_broken_submission_is_refused(board):
     pd.DataFrame({"host_id": ["a", "a"], "emb_0": [1.0, 2.0]}).to_csv(d / "embeddings.csv", index=False)
     with pytest.raises(ValueError, match="повторяющиеся host_id"):
         submit.score(d)
+
+
+def test_method_template_trains_saves_and_lands_in_the_table(board, monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("template_method", submit.ROOT / "scoreboard" / "template_method.py")
+    tm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tm)
+    monkeypatch.setattr(tm, "ROOT", board.parent)               # board = <tmp>/scoreboard
+    tm.main()
+    d = board / "submissions" / tm.NAME
+    assert (d / "embeddings.csv").exists() and (d / "test.csv").exists() and (d / "SHARED_COORDINATES").exists()
+    assert f"`{tm.NAME}`" in (board / "README.md").read_text(encoding="utf-8")

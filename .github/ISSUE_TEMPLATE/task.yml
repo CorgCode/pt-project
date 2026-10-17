@@ -1,12 +1,12 @@
 name: Задача
-description: Новая задача для команды
-title: "Область: коротко, что сделать"
+description: Любая задача команды
+title: "Область: что сделать"
 body:
   - type: textarea
     id: goal
     attributes:
       label: Зачем
-      description: Какую проблему решаем и что получим в итоге.
+      placeholder: Одна-две фразы.
     validations:
       required: true
   - type: textarea
@@ -22,13 +22,6 @@ body:
     id: done
     attributes:
       label: Готово, когда
-      placeholder: |
-        - [ ] Код и тесты в PR, PR связан с этим issue
-        - [ ] Результат описан в README
+      placeholder: Как понять, что задача закрыта.
     validations:
       required: true
-  - type: textarea
-    id: notes
-    attributes:
-      label: Ссылки и заметки
-      description: Статьи, данные, ограничения.

@@ -1,0 +1,31 @@
+name: PR format
+
+# Проверяет, что PR оформлен по шаблону: имя ветки и ссылка на задачу.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name and issue link
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BODY: ${{ github.event.pull_request.body }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          ok=1
+          if ! echo "$BRANCH" | grep -Eq '^[A-Za-z0-9_.-]+/(research|data|feature|fix|docs|infra)-[0-9]+-[a-z0-9-]+$'; then
+            echo "::error::Ветка «$BRANCH» не по шаблону. Нужно <логин>/<тип>-<номер issue>-<коротко>, например physcorgi/feature-68-eval. Типы: research, data, feature, fix, docs, infra."
+            ok=0
+          fi
+          if ! echo "$BODY" | grep -Eiq '(closes|fixes|refs) #[0-9]+'; then
+            echo "::error::В описании PR нет ссылки на задачу. Добавьте «Closes #<номер>» (или «Refs #<номер>», если задача не закрывается)."
+            ok=0
+          fi
+          if ! echo "$TITLE" | grep -q ': '; then
+            echo "::warning::Заголовок лучше в виде «Область: что сделано», например «Методы: node2vec с подбором p, q»."
+          fi
+          [ $ok = 1 ] && echo "PR оформлен по шаблону."
+          [ $ok = 1 ]

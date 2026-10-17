@@ -124,12 +124,13 @@ def render() -> None:
 
 ## Как добавить свой метод
 
-1. Обучись на общих данных, только на train:
-   `ProcessedData("scoreboard/data/processed").training_flows()`.
-2. Сохрани `scoreboard/submissions/<метод>/embeddings.csv`: строка на хост, `host_id, emb_0, emb_1, …`.
-3. Commit и push в свою ветку. Через пару минут CI добавит метод в эту таблицу.
+1. Скопируй шаблон: `cp scoreboard/template_method.py scoreboard/<метод>.py`.
+2. Поменяй в нём `NAME` и две функции: `fit` (обучение на train) и `embed` (вектор для каждого хоста).
+3. Запусти: `python scoreboard/<метод>.py` — увидишь свои числа и место.
+4. Commit и push в свою ветку. CI добавит метод в эту таблицу.
 
-Проверить у себя: `python -m evaluation.submit scoreboard/submissions/<метод>`.
+Уже есть эмбеддинг из своего кода? Положи `scoreboard/submissions/<метод>/embeddings.csv`
+(`host_id, emb_0, emb_1, …`) и сделай push.
 
 ## Таблица
 

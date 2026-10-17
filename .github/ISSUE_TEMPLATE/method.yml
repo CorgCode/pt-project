@@ -1,0 +1,22 @@
+name: Новый метод
+description: Метод построения эмбеддингов хостов
+title: "Методы: <название>"
+labels: ["type: feature", "area: embeddings"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Идея метода
+      placeholder: Что делает, ссылка на статью.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Готово, когда
+      value: |
+        - [ ] Метод сделан по шаблону `scoreboard/template_method.py` (fit на train, embed для хостов)
+        - [ ] Метод появился в таблице `scoreboard/README.md`
+        - [ ] Короткая заметка: параметры и как запустить
+    validations:
+      required: true
