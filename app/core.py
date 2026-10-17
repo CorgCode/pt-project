@@ -34,14 +34,14 @@ def make_demo_reference(directory: Path, n_hosts: int = 300, seed: int = 0) -> P
 def validate_upload(data: bytes, workdir: Path) -> Path:
     """Сохранить загруженный файл и проверить его общим валидатором."""
     if not data.strip():
-        raise UploadError("The file is empty.")
+        raise UploadError("Файл пустой.")
     path = Path(workdir) / "embeddings.csv"
     path.write_bytes(data)
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             validate_submission(str(path))
     except (ValueError, pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError) as exc:
-        raise UploadError(f"Invalid embeddings.csv: {exc}") from exc
+        raise UploadError(f"Некорректный embeddings.csv: {exc}") from exc
     return path
 
 
@@ -50,9 +50,9 @@ def check_hosts(path: Path, reference_dir: Path) -> None:
     ref = set(pd.read_csv(Path(reference_dir) / "features.csv")["host_id"].astype(str))
     if emb != ref:
         raise UploadError(
-            "host_id values do not match the demo reference "
-            f"({len(emb - ref)} unknown, {len(ref - emb)} missing out of {len(ref)} reference hosts). "
-            "Use the sample file as a template."
+            "host_id не совпадают с демо-эталоном "
+            f"({len(emb - ref)} лишних, {len(ref - emb)} не хватает из {len(ref)} хостов эталона). "
+            "Возьмите пример файла за образец."
         )
 
 
@@ -99,7 +99,7 @@ def pca_projection(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
     X = df[[c for c in df.columns if c.startswith("emb_")]].to_numpy(float)
     if X.shape[1] < 2 or X.shape[0] < 2:
-        raise UploadError("Need at least 2 hosts and 2 embedding dimensions for a 2D projection.")
+        raise UploadError("Для 2D-проекции нужно хотя бы 2 хоста и 2 измерения.")
     xy = PCA(n_components=2, random_state=0).fit_transform(X)
     return pd.DataFrame({"host_id": df["host_id"].astype(str), "PC1": xy[:, 0], "PC2": xy[:, 1]})
 
