@@ -192,19 +192,19 @@ def _knn_chance(r: dict) -> float | None:
 
 
 METRICS: list[Metric] = [
-    Metric("knn_consistency", "Поведение", "Совпадение соседей (k=10)", ("neighbors.csv", "features.csv"),
+    Metric("knn_consistency", "Поведение", "Соседи@10", ("neighbors.csv", "features.csv"),
            _knn, "consistency@10_mean", _knn_chance),
-    Metric("future_link_prediction", "Будущие связи", "Прогноз связи, ROC-AUC", ("edges.csv",),
+    Metric("future_link_prediction", "Будущие связи", "Связь, AUC", ("edges.csv",),
            _links, "link_roc_auc", lambda r: 0.5),
-    Metric("partner_ranking", "Будущие связи", "Новые собеседники через похожих, MRR", ("partners.csv",),
+    Metric("partner_ranking", "Будущие связи", "Новые собеседники, MRR", ("partners.csv",),
            _partners, "partner_new_mrr", lambda r: max(filter(None, [r["metrics"].get("partner_new_history_mrr"),
                                                                      r["metrics"].get("partner_new_popularity_mrr")]),
                                                        default=None)),
-    Metric("pairwise_roc_auc", "Общие собеседники", "Пары, ROC-AUC", ("pairs.csv",),
+    Metric("pairwise_roc_auc", "Общие собеседники", "Пары, AUC", ("pairs.csv",),
            _pairs, "pair_roc_auc", lambda r: 0.5, also=("pairwise_pr_auc", "precision_at_k", "recall_at_k")),
-    Metric("triplet_accuracy", "Общие собеседники", "Тройки, точность", ("triplets.csv",),
+    Metric("triplet_accuracy", "Общие собеседники", "Тройки", ("triplets.csv",),
            _triplets, "triplet_accuracy", lambda r: 0.5),
-    Metric("linear_probe", "Внешние метки", "Линейный зонд, accuracy", ("labels.csv",),
+    Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
 ]
 REQUIRED = tuple(k for m in METRICS for k in (m.key, *m.also))
