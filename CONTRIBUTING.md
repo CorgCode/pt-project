@@ -35,8 +35,13 @@ gh pr create --base main
 
 ## Свой метод в таблицу
 
-Положить `scoreboard/submissions/<метод>/embeddings.csv`, commit, push — CI добавит метод в
-[таблицу](scoreboard/README.md). PR открывать по шаблону выше.
+```bash
+cp scoreboard/template_method.py scoreboard/my_method.py   # поменять NAME, fit и embed
+python scoreboard/my_method.py                             # обучит, сохранит, покажет место
+```
+
+Дальше commit, push — CI добавит метод в [таблицу](scoreboard/README.md). Все учатся на одних данных
+(только train-окно) и сравниваются с одними бейзлайнами — шаблон это обеспечивает.
 
 ## Код
 
