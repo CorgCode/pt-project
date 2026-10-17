@@ -25,12 +25,12 @@ class Node2Vec(GraphEmbeddingMethod):
     def __init__(self, dim: int = 16, seed: int = 0, **params):
         super().__init__(dim, seed, **params)
         if self.params["p"] <= 0 or self.params["q"] <= 0:
-            raise ValueError("node2vec: p and q must be positive")
+            raise ValueError("node2vec: p и q должны быть > 0")
 
     def embed_graph(self, g):
         p = self.params
         if (g.degree == 0).any():
-            raise ValueError("graph has isolated nodes")
+            raise ValueError("в графе есть изолированные вершины")
         walks = walk_corpus(g, p["num_walks"], p["walk_length"], p=p["p"], q=p["q"], seed=self.seed)
         freq = np.bincount(walks.ravel(), minlength=g.n).astype(float)
         sg = SkipGram(g.n, self.dim, objective="neg", window=p["window"], negative=p["negative"], lr=p["lr"],

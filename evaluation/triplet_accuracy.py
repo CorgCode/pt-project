@@ -23,7 +23,7 @@ def load_triplets(path) -> pd.DataFrame:
     t = read_reference_table(path, {"anchor", "positive", "negative", "split"}, split_values=SPLITS)
     for a, b in (("anchor", "positive"), ("anchor", "negative"), ("positive", "negative")):
         if (t[a] == t[b]).any():
-            raise ReferenceError(f"{path}: {a} and {b} must be different hosts")
+            raise ReferenceError(f"{path}: {a} и {b} должны быть разными хостами")
     return t
 
 
@@ -36,10 +36,10 @@ def triplet_accuracy(emb: pd.DataFrame, triplets: pd.DataFrame, split: str = "te
     n_missing = int((~ok).sum())
     if n_missing and not allow_missing:
         hosts = sorted((set(t.anchor) | set(t.positive) | set(t.negative)) - known)
-        raise ReferenceError(f"{n_missing} triplets use hosts absent from the embedding: {hosts[:5]}")
+        raise ReferenceError(f"в {n_missing} тройках есть хосты, которых нет в эмбеддинге: {hosts[:5]}")
     t = t[ok]
     if t.empty:
-        raise ReferenceError("no usable triplets after excluding missing hosts")
+        raise ReferenceError("после исключения отсутствующих хостов троек не осталось")
     sp = cosine_pairs(emb, t.anchor.tolist(), t.positive.tolist())
     sn = cosine_pairs(emb, t.anchor.tolist(), t.negative.tolist())
     score = (sp > sn).astype(float) + 0.5 * np.isclose(sp, sn, rtol=0, atol=1e-12)

@@ -120,8 +120,8 @@ def port_free_reference_diagnostic(data: ProcessedData, reference_dir: Path, emb
     feats_free = build_reference_features(test_flows, hosts=hosts, exclude_blocks=("ports",))
     self_agree = evaluate_embedding(feats_free, feats_full, ks=KS)          # соседи эталона без портов против полного
     out: dict = {
-        "note": ("reference rebuilt from the same target window WITHOUT the port block; different fingerprint, "
-                 "NOT comparable with leaderboard scores"),
+        "note": ("эталон пересобран по тому же целевому окну БЕЗ блока портов; другой отпечаток, "
+                 "с таблицей результатов НЕ сравнивается"),
         "reference_self_agreement": {f"consistency@{k}": float(self_agree.loc[(k, "consistency"), "mean"]) for k in KS},
         "chance": {f"consistency@{k}": k / (len(hosts) - 1) for k in KS},
     }
@@ -145,7 +145,7 @@ def run_ablation(processed_dir: Path, reference_dir: Path, out_dir: Path, *, lea
     data = ProcessedData(processed_dir)
     ref = reference_dir / "test"
     if not ref.exists():
-        raise ValueError(f"{ref} not found; run `python -m pipeline.reference` first")
+        raise ValueError(f"{ref} не найден; сначала python -m pipeline.reference")
     fit_ref = reference_dir / "validation" if (reference_dir / "validation").exists() else None
     out_dir.mkdir(parents=True, exist_ok=True)
     embeddings = {name: _embedding(data, ex) for name, ex in _variants(leave_one_out).items()}
@@ -158,7 +158,7 @@ def run_ablation(processed_dir: Path, reference_dir: Path, out_dir: Path, *, lea
     fingerprints = {n: json.dumps(r["reference_info"]["files_sha256"], sort_keys=True) for n, r in results.items()}
     identical = len(set(fingerprints.values())) == 1 and len({r["n_hosts"] for r in results.values()}) == 1
     if not identical:                                                       # невозможно, пока run() не изменится
-        raise RuntimeError("variants were not evaluated on identical references and hosts")
+        raise RuntimeError("варианты оценены на разных эталонах или хостах")
     report = {
         "data_kind": data.kind, "badge": BADGE[data.kind], "synthetic": data.synthetic, "seed": seed, "n_bootstrap": n_boot,
         "protocol": {"split": results["full"]["split"], "n_hosts_scored": results["full"]["n_hosts"],
@@ -178,75 +178,77 @@ def run_ablation(processed_dir: Path, reference_dir: Path, out_dir: Path, *, lea
     return report
 
 
-SCOPE = {"synthetic_fixture": "Synthetic data: the fixture's roles use role-specific ports BY CONSTRUCTION, so ports are informative here; "
-                              "nothing follows for LANL.",
-         "unverified": "Origin of the data is not established; nothing here is presented as a LANL result.",
-         "lanl_declared": "Findings apply to the declared LANL files under this protocol only."}
+SCOPE = {"synthetic_fixture": "Синтетика: у ролей генератора свои порты ПО ПОСТРОЕНИЮ, поэтому порты здесь информативны; "
+                              "для LANL отсюда ничего не следует.",
+         "unverified": "Происхождение данных не установлено; ничего здесь не выдаётся за результат на LANL.",
+         "lanl_declared": "Выводы относятся только к заявленным файлам LANL при этом протоколе."}
+BADGE_RU = {"synthetic_fixture": "СИНТЕТИКА (synthetic_fixture) — не трафик LANL",
+            "unverified": "НЕПРОВЕРЕННЫЕ ДАННЫЕ (unverified)",
+            "lanl_declared": "LANL (заявлено оператором; происхождение не проверено)"}
 
 
 def _f(x, d=3):
-    return "n/a" if x is None else f"{x:.{d}f}"
+    return "—" if x is None else f"{x:.{d}f}"
 
 
 def _diff_cell(rec: dict | None) -> str:
     """'+0.012 [+0.003, +0.021] *'; без бутстрепа (n_bootstrap = 0) интервал не пишется."""
     if rec is None:
-        return "not paired"
+        return "нет пары"
     if rec["ci95"] is None:
-        return f"{rec['difference']:+.3f} (no interval: bootstrap off)"
+        return f"{rec['difference']:+.3f} (без интервала: бутстреп выключен)"
     return f"{rec['difference']:+.3f} [{rec['ci95'][0]:+.3f}, {rec['ci95'][1]:+.3f}]" + (" *" if rec["ci_excludes_zero"] else "")
 
 
 def render(rep: dict) -> str:
-    L = ["# Port-free behavioural baseline: feature ablation\n", f"> **{rep['badge']}.** {SCOPE[rep['data_kind']]}\n"]
+    L = ["# Поведенческий бейзлайн без портов: абляция признаков\n",
+         f"> **{BADGE_RU.get(rep['data_kind'], rep['badge'])}.** {SCOPE[rep['data_kind']]}\n"]
     pr = rep["protocol"]
-    L.append(f"Identical for every variant (checked by file hash): split `{pr['split']}`, {pr['n_hosts_scored']} scored hosts, the same "
-             f"frozen reference files, fit on the `{pr['fit_window']}` window only, cohort policy `{pr['cohort_policy']}`.\n")
-    L.append("## Standard reference: full profile vs port-free\n")
-    L.append("| metric | full | port-free | full - port-free (paired 95% CI) |\n|---|---|---|---|")
+    L.append(f"Одинаково для всех вариантов (проверено по хешам файлов): split `{pr['split']}`, оцениваемых хостов "
+             f"{pr['n_hosts_scored']}, одни и те же замороженные эталоны, обучение только на окне `{pr['fit_window']}`, "
+             f"политика когорты `{pr['cohort_policy']}`.\n")
+    L.append("## Стандартный эталон: полный профиль против профиля без портов\n")
+    L.append("| метрика | полный | без портов | полный − без портов (парный 95% CI) |\n|---|---|---|---|")
     keymap = {"consistency@10_mean": "consistency@10", "link_roc_auc": "link_roc_auc", "pair_roc_auc": "pair_roc_auc",
               "triplet_accuracy": "triplet_accuracy"}
     for k, label in HEADLINE:
         a, b = rep["metrics"]["full"][k], rep["metrics"]["no_ports"][k]
-        d = rep["paired_full_minus_no_ports"].get(keymap.get(k, ""), None)
-        cell = _diff_cell(d)
-        L.append(f"| {label} | {_f(a)} | {_f(b)} | {cell} |")
-    L.append("\n`*` the paired interval excludes 0. Intervals resample hosts jointly for both variants (host-cluster bootstrap for "
-             "pair/link/triplet metrics); they cover evaluation-set sampling only.\n")
-    L.append("## Leave-one-block-out (same protocol)\n")
-    L.append("| variant (blocks removed) | " + " | ".join(l for _, l in HEADLINE) + " |\n|---|" + "---|" * len(HEADLINE))
+        L.append(f"| {label} | {_f(a)} | {_f(b)} | {_diff_cell(rep['paired_full_minus_no_ports'].get(keymap.get(k, ''), None))} |")
+    L.append("\n`*` — парный интервал не содержит 0. Хосты пересэмплируются одновременно для обоих вариантов (для пар, связей "
+             "и троек — бутстреп по хостам); интервалы описывают только выбор оцениваемых элементов.\n")
+    L.append("## Минус один блок (тот же протокол)\n")
+    L.append("| вариант (убранные блоки) | " + " | ".join(l for _, l in HEADLINE) + " |\n|---|" + "---|" * len(HEADLINE))
     for n, ex in pr["variants"].items():
-        L.append(f"| {n} ({', '.join(ex) or 'none'}) | " + " | ".join(_f(rep["metrics"][n][k]) for k, _ in HEADLINE) + " |")
+        L.append(f"| {n} ({', '.join(ex) or 'нет'}) | " + " | ".join(_f(rep["metrics"][n][k]) for k, _ in HEADLINE) + " |")
     dg = rep["port_free_reference_diagnostic"]
-    L.append("\n## Diagnostic: reference rebuilt WITHOUT ports (analysis only)\n")
+    L.append("\n## Диагностика: эталон, пересобранный БЕЗ портов (только анализ)\n")
     L.append(f"_{dg['note']}_\n")
-    L.append("| kNN Consistency@k | full | port-free | chance |\n|---|---|---|---|")
+    L.append("| kNN Consistency@k | полный | без портов | случайно |\n|---|---|---|---|")
     for k in KS:
         L.append(f"| @{k} | {_f(dg['full'][f'consistency@{k}'])} | {_f(dg['no_ports'][f'consistency@{k}'])} | {_f(dg['chance'][f'consistency@{k}'])} |")
     p = dg["paired_full_minus_no_ports@10"]
-    L.append(f"\nPaired full - port-free at k=10: {_diff_cell(p)}. "
-             f"Agreement of the port-free reference's neighbours with the standard reference's: "
-             f"Consistency@10 = {_f(dg['reference_self_agreement']['consistency@10'])} (chance {_f(dg['chance']['consistency@10'])}).\n")
-    L.append("## Methodological implications\n")
+    L.append(f"\nПарная разность «полный − без портов» при k=10: {_diff_cell(p)}. Совпадение соседей эталона без портов "
+             f"с соседями стандартного: Consistency@10 = {_f(dg['reference_self_agreement']['consistency@10'])} "
+             f"(случайно {_f(dg['chance']['consistency@10'])}).\n")
+    L.append("## Что это значит для методологии\n")
     std = rep["paired_full_minus_no_ports"].get("consistency@10")
-    L.append(f"1. **The standard behavioural reference contains the port block** (about {rep['port_block_share_of_profile_weight']:.0%} of the profile's "
-             "squared weight). The full baseline therefore shares that information with the reference **by construction**; the "
-             "port-free baseline removes this overlap. A gap on the kNN metrics measures information overlap, not representation quality"
-             + (f" (here the paired kNN@10 difference is {std['difference']:+.3f})." if std else "."))
-    L.append("2. **Only the kNN reference involves ports.** The shared-peer pair/triplet references and the future-link candidates are "
-             "built from communication partners, so the port ablation on those metrics measures how much *service identity* adds to "
-             "structural/predictive signal, not overlap with the reference.")
-    L.append("3. **The port-free reference diagnostic isolates what is left.** If the full-minus-port-free gap shrinks or vanishes when "
-             "ports are removed from the reference too, the standard-reference gap was port overlap; if it persists, other blocks drive it. "
-             "The diagnostic is not a leaderboard reference and must not be mixed with leaderboard scores.")
-    L.append("4. **What ports are in LANL netflow.** Well-known ports are kept and others are anonymised to stable `PortNNNN` tokens, so the "
-             "port block partly acts as a service identifier. A port-free profile tests reliance on service identity versus traffic shape "
-             "(volume, direction, peers, protocols, time of day).")
-    L.append("5. **The leaderboard is unchanged.** The standard references, hosts and windows are the same; the port-free variants are added "
-             "rows (`--port-free-baselines`), not a new protocol. Removing a block does not rescale the others (each block is standardised on "
-             "its own), so the kept columns are identical to the full profile's.")
-    L.append("6. **Limits.** One window pair, one cohort, no host-role labels; the ablation says which information the *proxy* rewards, not "
-             "which information identifies roles.")
+    L.append(f"1. **Стандартный поведенческий эталон содержит блок портов** (около {rep['port_block_share_of_profile_weight']:.0%} "
+             "квадрата веса профиля). Поэтому полный бейзлайн делит эту информацию с эталоном **по построению**; вариант без портов "
+             "это пересечение убирает. Разница на kNN — это пересечение информации, а не качество представления"
+             + (f" (здесь парная разность kNN@10 = {std['difference']:+.3f})." if std else "."))
+    L.append("2. **Порты есть только в kNN-эталоне.** Эталоны пар и троек по общим собеседникам и кандидаты будущих связей строятся "
+             "из собеседников, поэтому абляция портов на них показывает, сколько *идентичность сервиса* добавляет к структурному "
+             "и прогнозному сигналу, а не пересечение с эталоном.")
+    L.append("3. **Диагностика без портов показывает остаток.** Если разность «полный − без портов» исчезает, когда порты убраны "
+             "и из эталона, то разность на стандартном эталоне была пересечением по портам; если остаётся — её дают другие блоки. "
+             "Диагностика не является эталоном таблицы результатов, смешивать их нельзя.")
+    L.append("4. **Что такое порты в LANL NetFlow.** Известные порты сохранены, остальные обезличены в стабильные `PortNNNN`, "
+             "поэтому блок портов отчасти работает как идентификатор сервиса. Профиль без портов проверяет, опирается ли метод на "
+             "сервис или на форму трафика (объём, направление, собеседники, протоколы, время суток).")
+    L.append("5. **Таблица результатов не меняется.** Стандартные эталоны, хосты и окна те же; варианты без портов — дополнительные "
+             "строки (`--port-free-baselines`). Каждый блок нормируется отдельно, поэтому оставшиеся колонки совпадают с полным профилем.")
+    L.append("6. **Ограничения.** Одна пара окон, одна когорта, нет меток ролей; абляция говорит, какую информацию поощряет "
+             "*приближение*, а не какая информация определяет роли.")
     return "\n".join(L) + "\n"
 
 

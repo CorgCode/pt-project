@@ -40,7 +40,7 @@ def end_to_end(workdir: Path, *, netflow: list[Path] | None = None, config: Pipe
         fixtures.generate(raw, n_hosts=n_hosts, seed=seed)
         netflow, config = sorted(raw.glob("netflow_day-*.bz2")), config or FIXTURE_CONFIG
     if not netflow or config is None:
-        raise ValueError("provide --netflow files and --config, or use --fixture")
+        raise ValueError("укажите --netflow и --config или --fixture")
     if cohort_policy:
         config = PipelineConfig(**{**config.__dict__, "cohort_policy": cohort_policy})
     prepare(netflow, config, workdir / "processed", overwrite=overwrite, data_kind=data_kind,

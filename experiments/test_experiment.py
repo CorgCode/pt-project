@@ -25,7 +25,7 @@ def test_all_outputs_exist(run_dir):
 def test_synthetic_is_labelled_everywhere(run_dir):
     m = json.loads((run_dir / "manifest.json").read_text())
     assert m["synthetic"] is True and m["data_kind"] == "synthetic_fixture"
-    assert "SYNTHETIC FIXTURE" in (run_dir / "report.md").read_text()
+    assert "СИНТЕТИКА" in (run_dir / "report.md").read_text()
     r = json.loads((run_dir / "results" / "test" / "behavioral.json").read_text())
     assert r["reference_info"]["synthetic"] is True
 
@@ -34,7 +34,7 @@ def test_missing_methods_are_listed_not_simulated(run_dir):
     m = json.loads((run_dir / "manifest.json").read_text())
     assert m["missing_expected_methods"] == EXPECTED_EXTERNAL and m["external_methods"] == []
     assert not any(x in m["methods"] for x in EXPECTED_EXTERNAL)
-    assert "not available in this run" in (run_dir / "report.md").read_text()
+    assert "в этом прогоне нет" in (run_dir / "report.md").read_text()
 
 
 def test_same_cohort_and_reference_for_every_method(run_dir):
@@ -92,7 +92,7 @@ def test_cohort_mismatch_between_reference_and_processed_data_is_refused(process
     m = json.loads(mf.read_text())
     m["cohort_sha256"] = "0" * 64
     mf.write_text(json.dumps(m))
-    with pytest.raises(ValueError, match="different cohort"):
+    with pytest.raises(ValueError, match="по другой когорте"):
         run_experiment(processed, other, tmp_path / "o", n_boot=0, do_audit=False)
 
 

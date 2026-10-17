@@ -28,11 +28,11 @@ def test_registered_and_documented():
     assert "deepwalk" in methods.available()
     m = methods.create(["deepwalk"], dim=4, seed=1, config={"deepwalk": {"num_walks": 2}})[0]
     assert m.params["num_walks"] == 2 and m.params["objective"] == "hs" and "Perozzi" in m.reference
-    with pytest.raises(ValueError, match="unknown method"):
+    with pytest.raises(ValueError, match="неизвестные методы"):
         methods.create(["nope"])
-    with pytest.raises(ValueError, match="not selected"):
+    with pytest.raises(ValueError, match="невыбранных"):
         methods.create(["deepwalk"], config={"node2vec": {}})
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         DeepWalk(dim=4, bogus=1)
 
 
@@ -73,7 +73,7 @@ def test_later_windows_are_fitted_separately_and_flagged(fitted, data):
 
 
 def test_host_without_edges_in_a_window_is_an_error(fitted, data):
-    with pytest.raises(KeyError, match="no edge"):
+    with pytest.raises(KeyError, match="нет рёбер"):
         fitted.embed(data, "train", ["definitely-not-a-host"])
 
 

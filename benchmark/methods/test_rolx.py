@@ -85,7 +85,7 @@ def test_refex_prunes_duplicates_and_constants():
     star = mk([(0, i) for i in range(1, 8)])                            # здесь сила == степени
     F, names = refex(star, rounds=0)
     assert "strength" not in names and "degree" in names
-    with pytest.raises(ValueError, match="non-constant"):
+    with pytest.raises(ValueError, match="непостоянного"):
         refex(mk([(i, (i + 1) % 10) for i in range(10)]))                # кольцо: все признаки постоянны
 
 
@@ -192,7 +192,7 @@ def test_registered_with_metadata():
     assert "rolx" in methods.available()
     m = RolX(dim=6)
     assert "Henderson" in m.reference and m.shared_coordinate_system is False and m.overlap["pairs"].startswith("weak")
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         RolX(dim=6, bogus=1)
 
 

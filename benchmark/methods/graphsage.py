@@ -56,7 +56,7 @@ class Features:
 
     def __init__(self, kind: str):
         if kind not in ("behavioral", "structural", "degree"):
-            raise ValueError("features must be 'behavioral', 'structural' or 'degree'")
+            raise ValueError("features должен быть 'behavioral', 'structural' или 'degree'")
         self.kind, self._fitted, self._mu, self._sd = kind, None, None, None
 
     def _raw(self, flows, g: Graph, fit: bool) -> np.ndarray:
@@ -213,7 +213,7 @@ class GraphSAGE(GraphEmbeddingMethod):
         super().__init__(dim, seed, **params)
         s = self.params["samples"]
         if len(s) != 2 or min(s) < 1:
-            raise ValueError("graphsage: samples must be two positive integers (layer-1 and layer-2 neighbours)")
+            raise ValueError("graphsage: samples — два целых > 0 (соседи 1-го и 2-го слоя)")
         Features(self.params["features"])                                       # проверяет имя набора признаков
         self.W1 = self.W2 = self.features_ = None
         self.loss_history: list[float] = []
@@ -236,12 +236,12 @@ class GraphSAGE(GraphEmbeddingMethod):
 
     def embed(self, data, window, hosts=None):
         if self.W1 is None:
-            raise RuntimeError("graphsage: call fit(data) before embed()")
+            raise RuntimeError("graphsage: сначала fit(data), потом embed()")
         return super().embed(data, window, hosts)
 
     def _window(self, data, window, hosts=None):
         if self.W1 is None:
-            raise RuntimeError("graphsage: call fit(data) first")
+            raise RuntimeError("graphsage: сначала вызовите fit(data)")
         if window not in self._embedded:
             flows = data.flows(window)                                           # только применение: веса не меняются
             g = from_flows(flows, self.params["weight"])

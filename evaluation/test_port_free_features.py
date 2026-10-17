@@ -56,17 +56,17 @@ def test_fitted_state_is_reused_on_later_windows_and_remembers_the_exclusion(flo
     Xt = build_reference_features(flows["test"], hosts=hosts, fitted=fit, exclude_blocks=("ports",))
     assert list(Xt.columns) == list(X.columns) and np.isfinite(Xt.to_numpy()).all()
     assert not np.allclose(Xt.mean(axis=0), 0, atol=1e-8)                              # на позднем окне не перенормируется
-    with pytest.raises(ValueError, match="excluded blocks"):
+    with pytest.raises(ValueError, match="построен без блоков"):
         build_reference_features(flows["test"], hosts=hosts, fitted=fit)           # применено без исключения
     _, full_fit = build_reference_features(flows["train"], hosts=hosts, return_fitted=True)
-    with pytest.raises(ValueError, match="excluded blocks"):
+    with pytest.raises(ValueError, match="построен без блоков"):
         build_reference_features(flows["test"], hosts=hosts, fitted=full_fit, exclude_blocks=("ports",))
 
 
 def test_validation_and_normalisation_of_the_exclusion(flows, hosts):
-    with pytest.raises(ValueError, match="unknown block"):
+    with pytest.raises(ValueError, match="неизвестные блоки"):
         build_reference_features(flows["train"], hosts=hosts, exclude_blocks=("port",))
-    with pytest.raises(ValueError, match="every block"):
+    with pytest.raises(ValueError, match="все блоки"):
         build_reference_features(flows["train"], hosts=hosts, exclude_blocks=BLOCKS)
     a = build_reference_features(flows["train"], hosts=hosts, exclude_blocks=("hourly", "ports", "ports"))
     b = build_reference_features(flows["train"], hosts=hosts, exclude_blocks=("ports", "hourly"))

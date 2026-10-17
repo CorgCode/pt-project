@@ -17,7 +17,7 @@ class ProcessedData:
         self.root = Path(root)
         mpath = self.root / "manifest.json"
         if not mpath.exists():
-            raise FileNotFoundError(f"{mpath}: not a processed dataset (run `python -m pipeline.prepare run`)")
+            raise FileNotFoundError(f"{mpath}: это не подготовленный датасет (запустите python -m pipeline.prepare run)")
         self.manifest = json.loads(mpath.read_text(encoding="utf-8"))
         table = pd.read_csv(self.root / "cohort.csv", dtype={"host_id": "string"})
         self.cohort = table["host_id"].astype(str).tolist()
@@ -42,7 +42,7 @@ class ProcessedData:
         if window == "train":
             return list(self.cohort)
         if window not in self._evaluable:
-            raise KeyError(f"unknown window {window!r}")
+            raise KeyError(f"неизвестное окно {window!r}")
         return list(self._evaluable[window])
 
     @property
@@ -53,7 +53,7 @@ class ProcessedData:
     def flows(self, window: str) -> pd.DataFrame:
         """Потоки одного окна (для обучения используйте training_flows)."""
         if window not in self.manifest["windows"]:
-            raise KeyError(f"unknown window {window!r}; have {self.windows}")
+            raise KeyError(f"неизвестное окно {window!r}; есть {self.windows}")
         return pd.read_csv(self.root / "flows" / f"{window}.csv", dtype=FLOW_DTYPES)
 
     def graph(self, window: str) -> pd.DataFrame:

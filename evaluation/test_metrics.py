@@ -34,13 +34,13 @@ def test_triplet_split_filter_and_unknown_split():
     t = pd.concat([trip([("a", "p", "n")], "test"), trip([("a", "n", "p")], "validation")])
     assert triplet_accuracy(E, t, "test")["accuracy"] == 1.0
     assert triplet_accuracy(E, t, "validation")["accuracy"] == 0.0
-    with pytest.raises(ReferenceError, match="no rows"):
+    with pytest.raises(ReferenceError, match="нет строк"):
         triplet_accuracy(E, t, "train")
 
 
 def test_triplet_missing_host_is_error_unless_allowed_and_counted():
     t = trip([("a", "p", "n"), ("a", "ghost", "n")])
-    with pytest.raises(ReferenceError, match="absent"):
+    with pytest.raises(ReferenceError, match="нет в эмбеддинге"):
         triplet_accuracy(E, t)
     r = triplet_accuracy(E, t, allow_missing=True)
     assert r["n_triplets"] == 1 and r["n_excluded_missing_hosts"] == 1 and r["n_in_file_for_split"] == 2
@@ -54,10 +54,10 @@ def test_triplet_row_order_independent():
 
 def test_triplet_loader_validation(tmp_path):
     p = tmp_path / "t.csv"
-    for text, msg in [("anchor,positive,negative,split\na,a,n,test\n", "different hosts"),
-                      ("anchor,positive,negative,split\na,p,n,bogus\n", "unknown split"),
-                      ("anchor,positive,negative,split\na,,n,test\n", "blank"),
-                      ("anchor,positive,split\na,p,test\n", "missing columns"),
+    for text, msg in [("anchor,positive,negative,split\na,a,n,test\n", "разными хостами"),
+                      ("anchor,positive,negative,split\na,p,n,bogus\n", "неизвестные split"),
+                      ("anchor,positive,negative,split\na,,n,test\n", "пустые"),
+                      ("anchor,positive,split\na,p,test\n", "нет колонок"),
                       ("anchor,positive,negative,split\n", "empty")]:
         p.write_text(text)
         with pytest.raises(ReferenceError, match=msg):
@@ -66,7 +66,7 @@ def test_triplet_loader_validation(tmp_path):
 
 def test_triplet_zero_vector_rejected():
     z = emb({"a": [0, 0], "p": [1, 0], "n": [0, 1]})
-    with pytest.raises(ReferenceError, match="zero-norm"):
+    with pytest.raises(ReferenceError, match="нулевой вектор"):
         triplet_accuracy(z, trip([("a", "p", "n")]))
 
 
@@ -79,15 +79,15 @@ def test_pair_auc_perfect_and_one_class_error():
     P = pairs([("a", "p", 1), ("a", "n", 0), ("n", "q", 1), ("p", "q", 0)])
     r = pair_auc(E, P)
     assert r["roc_auc"] == 1.0 and r["pr_auc"] == 1.0 and r["positive_rate"] == 0.5
-    with pytest.raises(ReferenceError, match="both"):
+    with pytest.raises(ReferenceError, match="и похожие, и непохожие"):
         pair_auc(E, pairs([("a", "p", 1), ("n", "q", 1)]))
 
 
 def test_pair_loader_rejects_bad_files(tmp_path):
     p = tmp_path / "p.csv"
     for text, msg in [("host_a,host_b,label,split\na,b,2,test\n", "label"),
-                      ("host_a,host_b,label,split\na,a,1,test\n", "itself"),
-                      ("host_a,host_b,label,split\na,b,1,test\nb,a,0,test\n", "duplicate")]:
+                      ("host_a,host_b,label,split\na,a,1,test\n", "сам с собой"),
+                      ("host_a,host_b,label,split\na,b,1,test\nb,a,0,test\n", "повторяющаяся")]:
         p.write_text(text)
         with pytest.raises(ReferenceError, match=msg):
             load_pairs(p)
@@ -199,16 +199,16 @@ def test_probe_random_embedding_near_majority():
 def test_probe_requires_provenance_and_valid_splits():
     e, lab = probe_data()
     for src in (None, "", "   "):
-        with pytest.raises(ReferenceError, match="provenance"):
+        with pytest.raises(ReferenceError, match="источник"):
             linear_probe(e, lab, labels_source=src)
     with pytest.raises(ValueError):
         linear_probe(e, lab, labels_source="x", eval_split="train")
-    with pytest.raises(ReferenceError, match="absent"):
+    with pytest.raises(ReferenceError, match="нет в эмбеддинге"):
         linear_probe(e.iloc[:10], lab, labels_source="x")
     only_one = lab.assign(target="web")
-    with pytest.raises(ReferenceError, match="two classes"):
+    with pytest.raises(ReferenceError, match="два класса"):
         linear_probe(e, only_one, labels_source="x")
-    with pytest.raises(ReferenceError, match="need labelled"):
+    with pytest.raises(ReferenceError, match="нужны размеченные"):
         linear_probe(e, lab[lab.split == "train"], labels_source="x")
 
 
@@ -228,7 +228,7 @@ def test_probe_reports_unseen_test_class_and_rejects_duplicate_hosts(tmp_path):
     assert linear_probe(e, lab, labels_source="x")["n_test_classes_unseen_in_train"] == 1
     p = tmp_path / "l.csv"
     pd.concat([lab, lab.iloc[:1]]).to_csv(p, index=False)
-    with pytest.raises(ReferenceError, match="duplicate"):
+    with pytest.raises(ReferenceError, match="повторяющ"):
         load_labels(p)
 
 
@@ -297,10 +297,10 @@ def test_identity_row_order_independent_and_seeded():
 # ---------------------------------------------------------------- загрузчики
 def test_load_embeddings_rejects_bad_files(tmp_path):
     p = tmp_path / "e.csv"
-    for text, msg in [("host_id,emb_0\nA,1\nA,2\n", "duplicate"), ("host_id,emb_0\nA,nan\n", "NaN"),
-                      ("host_id,emb_0\nA,inf\nB,1\n", "finite"), ("host_id,emb_0\n,1\n", "blank"),
-                      ("id,emb_0\nA,1\n", "missing required"), ("host_id,x\nA,1\n", "no columns"),
-                      ("host_id,emb_0\nA,abc\n", "numeric")]:
+    for text, msg in [("host_id,emb_0\nA,1\nA,2\n", "повторяющиеся"), ("host_id,emb_0\nA,nan\n", "NaN"),
+                      ("host_id,emb_0\nA,inf\nB,1\n", "конечными"), ("host_id,emb_0\n,1\n", "пустые"),
+                      ("id,emb_0\nA,1\n", "нет обязательной"), ("host_id,x\nA,1\n", "нет колонок"),
+                      ("host_id,emb_0\nA,abc\n", "числовыми")]:
         p.write_text(text)
         with pytest.raises(ValueError, match=msg):
             load_embeddings(p)

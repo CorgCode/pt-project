@@ -106,7 +106,7 @@ def refex(g: Graph, rounds: int = 3, s: int = 0, bin_p: float = 0.5, max_feature
         names = [f"sum({n})" for n in prev_names] + [f"mean({n})" for n in prev_names]
         added = accept(cand, names)
     if not kept_cols:
-        raise ValueError("ReFeX produced no non-constant features (is the graph regular?)")
+        raise ValueError("ReFeX не дал ни одного непостоянного признака (граф регулярный?)")
     return np.column_stack(kept_cols), kept_names
 
 

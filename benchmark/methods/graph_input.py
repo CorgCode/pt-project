@@ -61,7 +61,7 @@ class Graph:
         pos = np.minimum(pos, self.n - 1)
         bad = [h for h, i in zip(hosts, pos) if self.nodes[i] != h]
         if bad:
-            raise KeyError(f"{len(bad)} host(s) have no edge in this window's graph (e.g. {bad[:5]})")
+            raise KeyError(f"у {len(bad)} хостов нет рёбер в графе этого окна (например {bad[:5]})")
         return pos
 
     def neighbors(self, v: int) -> np.ndarray:
@@ -83,11 +83,11 @@ def from_edges(src: np.ndarray, dst: np.ndarray, w: np.ndarray, nodes: np.ndarra
 
 def from_flows(flows: pd.DataFrame, weight: str = "log1p") -> Graph:
     if weight not in WEIGHTS:
-        raise ValueError(f"weight must be one of {WEIGHTS}")
+        raise ValueError(f"weight должен быть одним из {WEIGHTS}")
     f = flows[["src", "dst"]].astype(str)
     f = f[f["src"] != f["dst"]]
     if f.empty:
-        raise ValueError("no non-self flows: cannot build a graph")
+        raise ValueError("нет потоков между разными хостами: граф не построить")
     nodes, inv = np.unique(np.concatenate([f["src"].to_numpy(), f["dst"].to_numpy()]), return_inverse=True)
     a, b = inv[:len(f)], inv[len(f):]
     lo, hi = np.minimum(a, b), np.maximum(a, b)

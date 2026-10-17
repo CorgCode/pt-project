@@ -80,7 +80,7 @@ def test_labels_require_provenance_and_cohort_membership(processed, tmp_path):
         build_reference(processed, tmp_path / "r", labels=p)
     bad = pd.DataFrame({"host_id": ["Nope"], "target": "x", "split": "train"})
     bad.to_csv(p, index=False)
-    with pytest.raises(ValueError, match="outside the cohort"):
+    with pytest.raises(ValueError, match="вне когорты"):
         build_reference(processed, tmp_path / "r2", labels=p, labels_source="unit test")
     lab.to_csv(p, index=False)
     build_reference(processed, tmp_path / "r3", labels=p, labels_source="unit test")

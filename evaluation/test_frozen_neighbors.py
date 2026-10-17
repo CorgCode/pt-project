@@ -59,12 +59,12 @@ def test_embedding_row_order_is_irrelevant(case):
 
 
 @pytest.mark.parametrize("corruption,error", [
-    ("duplicate_rank", "Duplicate neighbor ranks"),
-    ("self_neighbor", "its own"),
-    ("missing_host", "Missing reference neighbors"),
-    ("gap", "Missing/non-contiguous"),
-    ("unknown_neighbor", "outside embedding"),
-    ("multiple_windows", "multiple reference windows"),
+    ("duplicate_rank", "повторяющиеся ранги"),
+    ("self_neighbor", "сам себе"),
+    ("missing_host", "нет эталонных соседей"),
+    ("gap", "неполные или непоследовательные"),
+    ("unknown_neighbor", "вне когорты эмбеддинга"),
+    ("multiple_windows", "несколько окон эталона"),
 ])
 def test_bad_reference_is_rejected(case, tmp_path, corruption, error):
     _, emb, path, _ = case
@@ -93,7 +93,7 @@ def test_missing_test_split_is_rejected(case, tmp_path):
     df["split"] = "train"
     bad = tmp_path / "train_only.csv"
     df.to_csv(bad, index=False)
-    with pytest.raises(ValueError, match="no test rows"):
+    with pytest.raises(ValueError, match="нет строк split=test"):
         evaluate_frozen_neighbors(emb, bad)
 
 

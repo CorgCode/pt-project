@@ -73,7 +73,7 @@ def test_fixture_with_marker_removed_is_still_recognised_as_synthetic(raw_fixtur
     files = sorted(raw.glob("*.bz2"))
     c = classify(files)
     assert c["kind"] == KIND_SYNTHETIC and c["basis"] == "fixture_signature"
-    with pytest.raises(PipelineError, match="signature"):
+    with pytest.raises(PipelineError, match="подписью генератора"):
         classify(files, "lanl", "pretending")
 
 

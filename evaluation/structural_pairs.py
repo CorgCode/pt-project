@@ -56,9 +56,9 @@ def build_judgments(flows: pd.DataFrame, hosts: list[str], *, tau_pos: float | N
     """(pairs, triplets, summary). Всё берётся только из целевого окна."""
     hosts = sorted(hosts)
     if len(hosts) != len(set(hosts)) or len(hosts) < 3:
-        raise ValueError("need >= 3 unique hosts")
+        raise ValueError("нужно хотя бы 3 уникальных хоста")
     if tau_pos is not None and not 0 < tau_pos <= 1:
-        raise ValueError("tau_pos must be in (0, 1]")
+        raise ValueError("tau_pos должен быть в (0, 1]")
     jac = jaccard_matrix(flows, hosts)
     n = len(hosts)
     iu = np.triu_indices(n, 1)
@@ -94,9 +94,9 @@ def build_judgments(flows: pd.DataFrame, hosts: list[str], *, tau_pos: float | N
             trip_rows.append((anchor, hosts[int(p)], hosts[nn]))
     if not pair_rows:
         raise ValueError(
-            f"No judged pairs: {summary['n_positive_pairs']} positive and "
-            f"{summary['n_negative_pairs']} negative pairs at tau_pos={tau_pos}. The target "
-            "window graph is too dense/sparse for this rule; adjust tau_pos or the window.")
+            f"нет размеченных пар: похожих {summary['n_positive_pairs']}, "
+            f"непохожих {summary['n_negative_pairs']} при tau_pos={tau_pos}. Граф окна слишком плотный "
+            "или разреженный для этого правила; поменяйте tau_pos или окно.")
     pairs = pd.DataFrame(sorted(pair_rows.values()), columns=["host_a", "host_b", "label", "ref_score"])
     pairs["split"] = [_split(f"{a}|{b}", seed, validation_fraction)
                       for a, b in zip(pairs.host_a, pairs.host_b)]

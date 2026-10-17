@@ -43,7 +43,7 @@ def test_rejects_nonfinite_coordinates(tmp_path, bad_value):
 def test_common_evaluator_refuses_invalid_numbers(tmp_path, value):
     file = tmp_path / "embeddings.csv"
     pd.DataFrame({"host_id": ["a", "b"], "emb_0": ["1.2", value]}).to_csv(file, index=False)
-    with pytest.raises(ValueError, match="finite|numeric"):
+    with pytest.raises(ValueError, match="конечными|числовыми"):
         _load_matrix(file, "host_id", "emb_")
 
 

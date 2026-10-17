@@ -60,7 +60,7 @@ def test_train_only_cohort_and_coverage(raw, tmp_path):
     assert sel["n_evaluable"]["test"] < sel["n_evaluable"]["validation"] < sel["n_cohort"]
     assert sel["coverage"]["test"] == pytest.approx(sel["n_evaluable"]["test"] / sel["n_cohort"])
     assert sel["n_hosts_active_in_every_window"] == len(set(d.evaluable("test")) & set(d.evaluable("validation")))
-    assert "TRAIN window only" in sel["note"]
+    assert "ТОЛЬКО по train-окну" in sel["note"]
 
 
 def test_all_windows_policy_is_explicitly_the_transductive_stable_host_benchmark(raw, tmp_path):
@@ -69,7 +69,7 @@ def test_all_windows_policy_is_explicitly_the_transductive_stable_host_benchmark
     assert set(d.cohort) == set(d.evaluable("test")) == set(d.evaluable("validation"))
     assert not set(EARLY + MID) & set(d.cohort)
     note = m["cohort"]["selection"]["note"]
-    assert "transductive" in note and "EVERY window" in note and "survival" in note
+    assert "стабильных хостов" in note and "ВСЕХ окнах" in note and "завышают" in note
 
 
 def test_train_only_cohort_does_not_depend_on_future_windows(tmp_path):

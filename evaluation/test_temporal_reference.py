@@ -60,7 +60,7 @@ def test_generates_reference_and_evaluates(tmp_path):
 def test_refuses_overlapping_or_touching_windows(tmp_path):
     first, hosts = flows_file(tmp_path, "train.csv")
     second, _ = flows_file(tmp_path, "test.csv", ts0=1700000000 + 20)
-    with pytest.raises(ValueError, match="overlap/touch"):
+    with pytest.raises(ValueError, match="пересекаются"):
         generate_reference(load_flows(first), load_flows(second),
                            hosts, tmp_path / "ref")
 
@@ -68,7 +68,7 @@ def test_refuses_overlapping_or_touching_windows(tmp_path):
 def test_refuses_inactive_hosts(tmp_path):
     first, hosts = flows_file(tmp_path, "train.csv")
     second, _ = flows_file(tmp_path, "test.csv", n=24, ts0=1700200000)
-    with pytest.raises(ValueError, match="inactive embedding hosts"):
+    with pytest.raises(ValueError, match="неактивны"):
         generate_reference(load_flows(first), load_flows(second),
                            hosts, tmp_path / "ref")
 
@@ -76,7 +76,7 @@ def test_refuses_inactive_hosts(tmp_path):
 def test_refuses_invalid_k(tmp_path):
     first, hosts = flows_file(tmp_path, "train.csv")
     second, _ = flows_file(tmp_path, "test.csv", ts0=1700200000)
-    with pytest.raises(ValueError, match="Each k"):
+    with pytest.raises(ValueError, match="каждое k"):
         generate_reference(load_flows(first), load_flows(second),
                            hosts, tmp_path / "ref", ks=(25,))
 

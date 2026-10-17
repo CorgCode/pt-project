@@ -46,13 +46,13 @@ def test_fixed_candidates_and_scoring(tmp_path):
 def test_time_leakage_guard():
     source,target,hosts=fixture()
     target["ts"]=source["ts"].max()
-    with pytest.raises(ValueError,match="overlap"):
+    with pytest.raises(ValueError,match="пересекаются"):
         build_edges(source,target,hosts)
 
 
 def test_impossible_negative_ratio():
     source,target,hosts=fixture(5)
-    with pytest.raises(ValueError,match="Insufficient negative"):
+    with pytest.raises(ValueError,match="не хватает отрицательных"):
         build_edges(source,target,hosts,negatives_per_positive=3)
 
 
@@ -61,7 +61,7 @@ def test_missing_hosts_and_invalid_candidates(tmp_path):
     pairs=build_edges(source,target,hosts)
     rng=np.random.default_rng(8)
     emb=pd.DataFrame(rng.normal(size=(len(hosts),4)),index=hosts)
-    with pytest.raises(ValueError,match="lacks candidate hosts"):
+    with pytest.raises(ValueError,match="нет хостов-кандидатов"):
         score_embeddings(emb.iloc[:-1],pairs)
     pairs.loc[pairs.index[0],"label"]=2
     path=tmp_path/"bad.csv"
@@ -76,10 +76,10 @@ def test_refuses_single_label_and_zero_norm():
     rng=np.random.default_rng(8)
     emb=pd.DataFrame(rng.normal(size=(len(hosts),4)),index=hosts)
     all_pos=pairs[pairs.label==1].copy()
-    with pytest.raises(ValueError,match="both positive and negative"):
+    with pytest.raises(ValueError,match="и положительные, и отрицательные"):
         score_embeddings(emb,all_pos)
     emb.iloc[0]=0
-    with pytest.raises(ValueError,match="Zero-norm"):
+    with pytest.raises(ValueError,match="нулевой вектор"):
         score_embeddings(emb,pairs)
 
 
@@ -88,5 +88,5 @@ def test_refuses_mixed_window_pair():
     pairs=build_edges(source,target,hosts)
     pairs.loc[pairs.index[0],"target_window"]="unrelated"
     emb=pd.DataFrame(np.arange(12*3).reshape(12,3)+1.,index=hosts)
-    with pytest.raises(ValueError,match="Do not mix"):
+    with pytest.raises(ValueError,match="нельзя смешивать"):
         score_embeddings(emb,pairs)

@@ -33,9 +33,9 @@ class GraphEmbeddingMethod(Baseline):
     def __init__(self, dim: int = 16, seed: int = 0, **params):
         unknown = set(params) - set(self.default_params)
         if unknown:
-            raise ValueError(f"{self.name}: unknown parameter(s) {sorted(unknown)}; valid: {sorted(self.default_params)}")
+            raise ValueError(f"{self.name}: неизвестные параметры {sorted(unknown)}; допустимые: {sorted(self.default_params)}")
         if dim < 1:
-            raise ValueError("dim must be >= 1")
+            raise ValueError("dim должен быть >= 1")
         self.dim, self.seed = dim, seed
         self.params = {**self.default_params, **params}
         self._graphs: dict[str, Graph] = {}
@@ -69,7 +69,7 @@ class GraphEmbeddingMethod(Baseline):
                          dtype=float)
         self.fit_seconds[window] = time.perf_counter() - t0
         if emb.ndim != 2 or len(emb) != g.n or not np.isfinite(emb).all():
-            raise ValueError(f"{self.name}: embed_graph returned an invalid array")
+            raise ValueError(f"{self.name}: embed_graph вернул некорректный массив")
         self._cache[window] = (g, emb, focus_set)
         return g, emb
 
@@ -82,7 +82,7 @@ class GraphEmbeddingMethod(Baseline):
         g, emb = self._window(data, window, hosts)
         X = emb[g.index_of(hosts)]
         if (np.linalg.norm(X, axis=1) == 0).any():
-            raise ValueError(f"{self.name}: some requested hosts have a zero embedding (cosine undefined)")
+            raise ValueError(f"{self.name}: у части хостов нулевой эмбеддинг (косинус не определён)")
         return _frame(X, hosts)
 
     def info(self) -> dict:

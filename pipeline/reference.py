@@ -36,7 +36,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
                     labels: Path | None = None, labels_source: str | None = None) -> dict:
     data = ProcessedData(processed_dir)
     if labels is not None and not labels_source:
-        raise ValueError("--labels requires --labels-source describing where the labels come from")
+        raise ValueError("для --labels нужен --labels-source: откуда метки")
     train = load_flows(processed_dir / "flows" / "train.csv")
     summary = {}
     for target in (t for t in TARGETS if t in data.windows):
@@ -62,10 +62,10 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
         if labels is not None:
             lab = pd.read_csv(labels, dtype={"host_id": "string", "target": "string", "split": "string"})
             if not {"host_id", "target", "split"} <= set(lab.columns):
-                raise ValueError("labels file needs columns host_id,target,split")
+                raise ValueError("в файле меток нужны колонки host_id,target,split")
             unknown = sorted(set(lab.host_id) - set(data.cohort))
             if unknown:
-                raise ValueError(f"labels contain hosts outside the cohort: {unknown[:5]}")
+                raise ValueError(f"в метках есть хосты вне когорты: {unknown[:5]}")
             lab.to_csv(out / "labels.csv", index=False)
             label_info = {"source": labels_source, "n_labelled": int(len(lab)),
                           "coverage": len(lab) / len(hosts)}

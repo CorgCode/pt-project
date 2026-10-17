@@ -175,7 +175,7 @@ class GraphSpectral(Baseline):
         order = np.argsort(-s)
         emb = (u[:, order] * np.sqrt(s[order]))[universe.get_indexer(hosts)]
         if (np.linalg.norm(emb, axis=1) == 0).any():
-            raise ValueError("graph_spectral: some requested hosts have a zero embedding (isolated in the graph)")
+            raise ValueError("graph_spectral: у части хостов нулевой эмбеддинг (изолированы в графе)")
         return _frame(emb, hosts)
 
 

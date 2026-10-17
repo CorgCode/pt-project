@@ -103,10 +103,10 @@ def reweighted_average_precision(labels: np.ndarray, scores: np.ndarray,
     """
     labels = np.asarray(labels).astype(int)
     if not 0 < target_prevalence < 1:
-        raise ValueError("target_prevalence must be in (0, 1)")
+        raise ValueError("target_prevalence должен быть в (0, 1)")
     n_pos, n_neg = int(labels.sum()), int(len(labels) - labels.sum())
     if n_pos == 0 or n_neg == 0:
-        raise ValueError("need both classes")
+        raise ValueError("нужны оба класса")
     w_neg = ((1 - target_prevalence) / target_prevalence) * (n_pos / n_neg)
     weights = np.where(labels == 1, 1.0, w_neg)
     return float(average_precision_score(labels, scores, sample_weight=weights))

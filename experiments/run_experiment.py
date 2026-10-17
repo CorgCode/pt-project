@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 import platform
 import subprocess
 import sys
@@ -36,14 +37,19 @@ from pipeline.provenance import BADGE
 
 TARGETS = ("validation", "test")
 SCOPE = {
-    "synthetic_fixture": ("The numbers come from generated data in the LANL netflow layout. They demonstrate the pipeline "
-                          "and the metrics only and say nothing about real network behaviour."),
-    "unverified": ("The origin of the input files is not established, so nothing here is presented as a LANL result. "
-                   "Declare the source (`--data-kind lanl --source-note ...`) to label a run as LANL."),
-    "lanl_declared": ("Findings apply to the declared LANL netflow files under the protocol in this report "
-                      "(windows, cohort policy, references). They are not claims about other data, other windows, or host roles."),
+    "synthetic_fixture": ("Числа получены на сгенерированных данных в формате LANL NetFlow. Они показывают работу "
+                          "конвейера и метрик и ничего не говорят о реальной сети."),
+    "unverified": ("Происхождение входных файлов не установлено, поэтому ничего здесь не выдаётся за результат на LANL. "
+                   "Чтобы пометить прогон как LANL, укажите источник: `--data-kind lanl --source-note ...`."),
+    "lanl_declared": ("Выводы относятся к заявленным файлам LANL NetFlow при протоколе из этого отчёта "
+                      "(окна, когорта, эталоны). Это не утверждения о других данных, других окнах или ролях хостов."),
 }
-TAGS = {"synthetic_fixture": "SYNTHETIC FIXTURE", "unverified": "UNVERIFIED INPUT", "lanl_declared": "LANL (declared)"}
+TAGS = {"synthetic_fixture": "СИНТЕТИКА", "unverified": "НЕПРОВЕРЕННЫЕ ДАННЫЕ", "lanl_declared": "LANL (заявлено)"}
+BADGE_RU = {
+    "synthetic_fixture": "СИНТЕТИКА (synthetic_fixture) — не трафик LANL",
+    "unverified": "НЕПРОВЕРЕННЫЕ ДАННЫЕ (unverified) — происхождение не установлено, за LANL не выдаётся",
+    "lanl_declared": "LANL (заявлено оператором; происхождение пайплайном не проверено)",
+}
 EXPECTED_EXTERNAL = ["node2vec", "deepwalk", "graphsage", "struc2vec", "rolx"]   # #20 / план ресёрча
 
 
@@ -62,10 +68,16 @@ def _read_training_windows(submission_dir: Path) -> list[str] | None:
     try:
         w = json.loads(f.read_text(encoding="utf-8")).get("trained_on_windows")
     except json.JSONDecodeError as exc:
-        raise ValueError(f"{f}: not valid JSON") from exc
+        raise ValueError(f"{f}: некорректный JSON") from exc
     if not isinstance(w, list) or not all(isinstance(x, str) for x in w):
         raise ValueError(f'{f}: needs {{"trained_on_windows": ["train", ...]}}')
     return w
+
+
+def _log(msg: str, t0: float | None = None) -> None:
+    """Строка прогресса в stdout (видна в логе и в status.sh)."""
+    extra = f" ({time.perf_counter() - t0:.0f} с)" if t0 is not None else ""
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}{extra}", flush=True)
 
 
 def _write(path: Path, df: pd.DataFrame) -> Path:
@@ -83,32 +95,36 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     data = ProcessedData(processed_dir)
     targets = [t for t in TARGETS if (reference_dir / t).exists() and t in data.windows]
     if "test" not in targets:
-        raise ValueError(f"{reference_dir}/test not found; run `python -m pipeline.reference` first")
+        raise ValueError(f"{reference_dir}/test не найден; сначала python -m pipeline.reference")
     ref_manifest = json.loads((reference_dir / "test" / "manifest.json").read_text())
     if ref_manifest.get("cohort_sha256") != data.manifest["cohort"]["sha256"]:
-        raise ValueError("reference was built from a different cohort than the processed dataset")
+        raise ValueError("эталон построен по другой когорте, чем подготовленные данные")
     for t in targets:                       # сохранённый эталон должен покрывать ровно оцениваемых хостов
         saved = pd.read_csv(reference_dir / t / "eval_hosts.csv", dtype=str)["host_id"].tolist()
         if saved != data.evaluable(t):
-            raise ValueError(f"reference/{t}/eval_hosts.csv does not match the evaluable hosts of the dataset")
+            raise ValueError(f"reference/{t}/eval_hosts.csv не совпадает с оцениваемыми хостами датасета")
     hosts_by_target = {t: data.evaluable(t) for t in targets}
 
     # ---- собрать эмбеддинги: метод -> {окно: DataFrame}; 'train' — оцениваемый эмбеддинг
     emb: dict[str, dict[str, pd.DataFrame]] = {}
     meta: dict[str, dict] = {}
     graph_methods_run = graph_methods.create(methods or [], dim, seed, method_config, fast_methods)
-    for b in [*default_baselines(dim, seed, port_free_baselines), *graph_methods_run]:
+    todo = [*default_baselines(dim, seed, port_free_baselines), *graph_methods_run]
+    for i, b in enumerate(todo, 1):
+        t0 = time.perf_counter()
+        _log(f"обучение {i}/{len(todo)}: {b.name}")
         b.fit(data)
         emb[b.name] = {"train": b.embed(data, "train"),
                        **{t: b.embed(data, t, hosts_by_target[t]) for t in targets}}
         meta[b.name] = b.info()
+        _log(f"готово: {b.name}", t0)
     external, external_provenance = [], {}
     if submissions_dir and Path(submissions_dir).exists():
         for d in sorted(p for p in Path(submissions_dir).iterdir() if (p / "embeddings.csv").exists()):
             declared = _read_training_windows(d)
             if declared is not None and set(declared) - {"train"}:
-                raise ValueError(f"submission {d.name!r} declares training on {sorted(set(declared) - {'train'})}; "
-                                 "methods may only be fitted on the train window (temporal leakage)")
+                raise ValueError(f"отправка {d.name!r} обучалась на {sorted(set(declared) - {'train'})}; "
+                                 "учиться можно только на train-окне (утечка по времени)")
             external_provenance[d.name] = ({"trained_on_windows": declared, "verified": False} if declared is not None
                                            else {"trained_on_windows": None, "verified": False,
                                                  "warning": "no provenance.json: training windows are UNDECLARED"})
@@ -132,7 +148,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         feats = load_embeddings(ref_t / "features.csv", "host_id", "ref_")
         per_target = dict(emb)
         per_target["reference_ceiling"] = {"train": feats.rename(columns=lambda c: c.replace("ref_", "emb_"))}
-        for name, windows in per_target.items():
+        for j, (name, windows) in enumerate(per_target.items(), 1):
+            t0 = time.perf_counter()
             path = _write(out_dir / "embeddings" / name / "train.csv", windows["train"])
             # потолок встраивает только оцениваемых хостов целевого окна, поэтому в обученном классификаторе
             # связей (его кандидаты — из более раннего validation) участвовать не может; он и так «утекает»
@@ -160,11 +177,14 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                 (out_dir / "identity" / t).mkdir(parents=True, exist_ok=True)
                 (out_dir / "identity" / t / f"{name}.json").write_text(
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            _log(f"оценка на {t} {j}/{len(per_target)}: {name}", t0)
         scoreboard.build(out_dir / "results" / t, out_dir / f"scoreboard_{t}")
 
     # ---- аудит
     audit = None
     if do_audit:
+        t0 = time.perf_counter()
+        _log(f"аудит: {audit_configs} вариантов весов эталона, {null_draws} случайных эмбеддингов")
         hosts = hosts_by_target["test"]
         stable = [h for h in hosts if all(h in set(hosts_by_target[t]) for t in targets)]
         scored = {m: w["train"] for m, w in emb.items()}
@@ -179,6 +199,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
             "information_overlap": {**A.OVERLAP, **{m: meta[m]["overlap"] for m in meta if meta[m].get("overlap")}},
         }
         A.dump(out_dir / "audit.json", audit)
+        _log("аудит готов", t0)
         import shutil
         shutil.rmtree(out_dir / "_null", ignore_errors=True)
 
@@ -210,8 +231,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     tag = TAGS[data.kind]
     for t in targets:
         R.scorecard(results[t], fig_dir / f"scorecard_{t}.png", f"{tag} - {t}")
-    R.knn_by_k(results["test"], fig_dir / "knn_by_k.png", f"{tag} - kNN Consistency vs k (test)")
-    R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} - identity retrieval (train -> test)")
+    R.knn_by_k(results["test"], fig_dir / "knn_by_k.png", f"{tag} — совпадение соседей при разных k (test)")
+    R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} — узнаваемость хоста (train -> test)")
     if audit:
         R.weights_plot(audit["weight_sensitivity"], fig_dir / "weight_sensitivity.png")
     (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit), encoding="utf-8")
@@ -220,29 +241,27 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
 
 def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None) -> str:
     kind = manifest["data_kind"]
-    L = []
-    L.append("# Benchmark run report\n")
-    L.append(f"> **{BADGE[kind]}.**\n>\n> " + SCOPE[kind] + "\n")
+    L = ["# Отчёт о прогоне\n", f"> **{BADGE_RU[kind]}.**\n>\n> " + SCOPE[kind] + "\n"]
     prov = manifest.get("provenance") or {}
     if kind == "lanl_declared":
-        L.append(f"* source declared by the operator: *{prov.get('source_note')}*. The pipeline cannot verify it "
+        L.append(f"* источник, заявленный оператором: *{prov.get('source_note')}*. Пайплайн проверить это не может "
                  "(`provenance_verified: false`).")
     c = manifest["config"]
-    L.append(f"* data kind: `{kind}` (basis: {prov.get('basis')}); cohort hosts: **{manifest['n_hosts']}**; "
-             f"dim={c['dim']}, seed={c['seed']}, bootstrap={c['bootstrap']}; targets: {', '.join(c['targets'])}")
-    L.append(f"* methods evaluated: {', '.join(manifest['methods'])}")
-    L.append(f"* **not available in this run** (no embeddings supplied, nothing simulated): "
-             f"{', '.join(manifest['missing_expected_methods']) or 'none'}")
+    L.append(f"* данные: `{kind}` (основание: {prov.get('basis')}); хостов в когорте: **{manifest['n_hosts']}**; "
+             f"dim={c['dim']}, seed={c['seed']}, bootstrap={c['bootstrap']}; окна оценки: {', '.join(c['targets'])}")
+    L.append(f"* оценены методы: {', '.join(manifest['methods'])}")
+    L.append(f"* **в этом прогоне нет** (эмбеддинги не переданы, ничего не симулируется): "
+             f"{', '.join(manifest['missing_expected_methods']) or 'нет'}")
     coh = manifest.get("cohort")
     if coh:
         cov = ", ".join(f"{t}: {coh['n_evaluable'][t]}/{coh['n_cohort']} ({coh['coverage'][t]:.0%})" for t in coh["n_evaluable"])
-        L.append(f"* cohort policy `{coh['policy']}`; evaluable hosts per window: {cov}")
+        L.append(f"* политика когорты `{coh['policy']}`; оцениваемых хостов по окнам: {cov}")
         if coh.get("selection"):
             L.append(f"  * {coh['selection']['note']}")
     for name, pv in (manifest.get("external_provenance") or {}).items():
-        L.append(f"* external method `{name}`: trained on {pv['trained_on_windows']} (declared, unverified)"
+        L.append(f"* внешний метод `{name}`: обучен на {pv['trained_on_windows']} (заявлено, не проверено)"
                  if pv.get("trained_on_windows") is not None else
-                 f"* external method `{name}`: **training windows undeclared** - leakage cannot be excluded")
+                 f"* внешний метод `{name}`: **окна обучения не заявлены** — утечку исключить нельзя")
     L.append("")
     cols = ["consistency@10_mean", "ndcg@10_mean", "link_roc_auc", "link_learned_roc_auc", "link_new_roc_auc",
             "partner_new_mrr", "pair_roc_auc", "triplet_accuracy", "precision@3", "recall@3"]
@@ -250,16 +269,16 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         rows = {m: {k: r["metrics"].get(k) for k in cols} for m, r in results[t].items()}
         df = pd.DataFrame(rows).T
         df.index.name = "method"
-        L.append(f"\n## Scores - {t} reference\n")
+        L.append(f"\n## Результаты — эталон {t}\n")
         L.append(R.md_table(df))
         pers = next(iter(results[t].values()))["metric_details"].get("future_link_prediction", {}).get("persistence_baseline")
         if pers:
-            L.append(f"\nLink-prediction reference point (no embedding): *pair already seen in the source window* "
-                     f"scores ROC-AUC **{pers['roc_auc']:.3f}**. `link_learned_*` fits an edge classifier on the "
-                     f"validation candidates and scores the test candidates; cosine is shown for completeness.")
+            L.append(f"\nТочка отсчёта для связей без эмбеддинга — *пара уже общалась в source-окне*: ROC-AUC "
+                     f"**{pers['roc_auc']:.3f}**. `link_learned_*` — классификатор рёбер, обученный на кандидатах "
+                     f"validation и оценённый на test; косинус показан для полноты.")
         L.append(f"\n![scorecard]({'figures/scorecard_' + t + '.png'})\n")
     unavail = sorted({u for r in results["test"].values() for u in r["unavailable_metrics"]})
-    L.append("\n## Metrics not available\n")
+    L.append("\n## Недоступные метрики\n")
     L.extend(f"* {u}" for u in unavail)
     ci_rows = []
     for m, r in results["test"].items():
@@ -268,60 +287,57 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
             if ci:
                 ci_rows.append({"method": m, "metric": k, "estimate": r["metrics"][k], "ci_low": ci[0], "ci_high": ci[1]})
     if ci_rows:
-        L.append("\n## 95% bootstrap intervals (test)\n")
-        t = pd.DataFrame(ci_rows).set_index("method")
-        L.append(R.md_table(t))
-    L.append("\n## Identity retrieval (train -> test)\n")
+        L.append("\n## 95% бутстреп-интервалы (test)\n")
+        L.append(R.md_table(pd.DataFrame(ci_rows).set_index("method")))
+    L.append("\n## Узнаваемость хоста во времени (train -> test)\n")
     rows = {}
     for m, v in identity["test"].items():
-        rows[m] = {"shared coords declared": str(v["shared_coordinate_system_declared"]),
-                   "Top-1 raw": v.get("none", {}).get("top1"), "Top-1 Procrustes": v.get("procrustes", {}).get("top1"),
+        rows[m] = {"общие координаты заявлены": str(v["shared_coordinate_system_declared"]),
+                   "Top-1 сырые": v.get("none", {}).get("top1"), "Top-1 Procrustes": v.get("procrustes", {}).get("top1"),
                    "MRR Procrustes": v.get("procrustes", {}).get("mrr"),
-                   "pair ROC-AUC Procrustes": v.get("procrustes", {}).get("pair_roc_auc"),
-                   "chance Top-1": v.get("procrustes", {}).get("chance_top1")}
+                   "ROC-AUC пар Procrustes": v.get("procrustes", {}).get("pair_roc_auc"),
+                   "случайный Top-1": v.get("procrustes", {}).get("chance_top1")}
     if rows:
         L.append(R.md_table(pd.DataFrame(rows).T))
         L.append("\n![identity](figures/identity_test.png)\n")
-        L.append("Raw-coordinate scores are only interpretable for methods that declare a shared coordinate system.")
+        L.append("Сырые координаты осмысленны только для методов, заявивших общую систему координат.")
     if audit:
         w, s = audit["weight_sensitivity"], audit["reference_stability"]
-        L.append("\n## Validity audit\n")
-        L.append(f"* **Weight sensitivity** ({len(w['configs'])} perturbed behavioural references, k={w['k']}): "
-                 f"neighbour agreement with the canonical reference {w['mean_reference_agreement']:.2f} on average "
-                 f"(min {w['min_reference_agreement']:.2f}; chance {w['chance_agreement']:.3f}); "
-                 f"method-ranking Kendall tau mean {w['mean_kendall_tau']:.2f}, min {w['min_kendall_tau']:.2f}.")
+        L.append("\n## Аудит валидности\n")
+        L.append(f"* **Чувствительность к весам** ({len(w['configs'])} изменённых поведенческих эталонов, k={w['k']}): "
+                 f"совпадение соседей с основным эталоном в среднем {w['mean_reference_agreement']:.2f} "
+                 f"(минимум {w['min_reference_agreement']:.2f}; случайно {w['chance_agreement']:.3f}); "
+                 f"тау Кендалла порядка методов в среднем {w['mean_kendall_tau']:.2f}, минимум {w['min_kendall_tau']:.2f}.")
         for pair, v in s["pairs"].items():
-            L.append(f"* **Reference stability** {pair}: Consistency@{s['k']} = {v['consistency']:.2f} "
-                     f"(chance {s['chance_consistency']:.3f}) - behavioural neighbourhoods drift between windows.")
+            L.append(f"* **Стабильность эталона** {pair}: Consistency@{s['k']} = {v['consistency']:.2f} "
+                     f"(случайно {s['chance_consistency']:.3f}) — поведенческое соседство дрейфует между окнами.")
         if audit["split_agreement"]:
-            L.append("* **Validation vs test ranking agreement** (Kendall tau): " +
+            L.append("* **Согласие порядка validation и test** (тау Кендалла): " +
                      ", ".join(f"{k}: {v:.2f}" for k, v in audit["split_agreement"].items() if v is not None))
         nm = audit["random_null"]["metrics"]
-        L.append("* **Chance band (random embeddings, test reference)**: " + ", ".join(
+        L.append("* **Случайный уровень (случайные эмбеддинги, test)**: " + ", ".join(
             f"{k} {nm[k]['mean']:.3f} ± {nm[k]['std']:.3f}" for k in
             ("consistency@10_mean", "link_roc_auc", "link_learned_roc_auc", "pair_roc_auc", "triplet_accuracy") if k in nm))
         pv = audit["prevalence"]["future_links"]
-        L.append(f"* **Link-prediction prevalence**: sampled positive rate {pv['sampled_positive_rate']:.2f} vs natural "
-                 f"{pv['natural_prevalence']:.3f}; {pv['share_positives_seen_in_source']:.0%} of positive links were already "
-                 f"present in the source window (compare 'New-link ROC-AUC').")
+        L.append(f"* **Доля связей среди кандидатов**: в выборке {pv['sampled_positive_rate']:.2f}, на самом деле "
+                 f"{pv['natural_prevalence']:.3f}; {pv['share_positives_seen_in_source']:.0%} будущих связей уже были "
+                 f"в source-окне (см. ROC-AUC только новых связей).")
         L.append("\n![weights](figures/weight_sensitivity.png)\n")
-        L.append("\n### Information shared by construction (method input vs reference source)\n")
+        L.append("\n### Что метод делит с эталоном по построению\n")
         ov = pd.DataFrame(audit["information_overlap"]).T
         ov.index.name = "method"
         L.append(R.md_table(ov))
-    L.append("\n## Reading these numbers\n")
-    L.append("* **Predictive:** future links (outcome observed later) and identity stability. "
-             "**Agreement with a proxy we chose:** kNN consistency (behavioural profile), pair/triplet/P@k (shared peers).")
-    L.append("* `reference_ceiling` uses the target-window features themselves and leaks by design; "
-             "baselines share feature definitions or peer structure with the references (table above), so they "
-             "are calibration points, not independent evidence.")
-    L.append("* Intervals: kNN and retrieval metrics resample hosts/anchors; link, pair and triplet metrics use a "
-             "host-cluster bootstrap (pairs share hosts). They cover evaluation-set sampling only, not model seeds, "
-             "reference choice or window choice.")
-    L.append("* " + {"synthetic_fixture": "Because the data are synthetic, no statement about LANL follows from any number above.",
-                    "unverified": "Because the origin is unverified, treat these as results on an unlabelled dataset.",
-                    "lanl_declared": "Results hold for the declared files only; the cohort policy decides which hosts "
-                                     "they describe (see above)."}[manifest["data_kind"]])
+    L.append("\n## Как читать эти числа\n")
+    L.append("* **Прогноз:** будущие связи (результат виден позже) и узнаваемость. "
+             "**Согласие с выбранным нами приближением:** kNN (поведенческий профиль), пары/тройки/P@k (общие собеседники).")
+    L.append("* `reference_ceiling` — признаки самого целевого окна, «утекает» намеренно; бейзлайны делят с эталонами "
+             "признаки или структуру собеседников (таблица выше), поэтому это точки калибровки, а не независимое доказательство.")
+    L.append("* Интервалы: для kNN и Precision@k пересэмплируются хосты; для связей, пар и троек — бутстреп по хостам "
+             "(пары делят хостов). Они описывают только выбор оцениваемых элементов, а не seed модели, эталон или окна.")
+    L.append("* " + {"synthetic_fixture": "Данные синтетические, поэтому о LANL ни одно число выше ничего не говорит.",
+                    "unverified": "Происхождение не проверено — считайте это результатом на неразмеченном датасете.",
+                    "lanl_declared": "Результаты верны только для заявленных файлов; какие хосты они описывают, "
+                                     "решает политика когорты (см. выше)."}[manifest["data_kind"]])
     return "\n".join(L) + "\n"
 
 

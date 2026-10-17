@@ -56,25 +56,25 @@ def build_edges(
     PR-AUC на такой выборке — не PR-AUC «в бою».
     """
     if not 0 < negatives_per_positive <= 100:
-        raise ValueError("negatives_per_positive must be from 1 to 100")
+        raise ValueError("negatives_per_positive должен быть от 1 до 100")
     if len(hosts) != len(set(hosts)) or len(hosts) < 3 or any(not h for h in hosts):
-        raise ValueError("At least 3 unique, nonblank hosts required")
+        raise ValueError("нужно хотя бы 3 уникальных непустых хоста")
     if target["ts"].min() <= source["ts"].max():
-        raise ValueError("Source/target windows overlap or touch")
+        raise ValueError("source- и target-окна пересекаются или соприкасаются")
     if split not in {"test", "validation"}:
-        raise ValueError("Use validation or test as split")
+        raise ValueError("split должен быть validation или test")
     hosts = sorted(hosts)
     population = set(hosts)
     positives = sorted(observed_edges(target, population))
     if not positives:
-        raise ValueError("No positive target edges for the cohort")
+        raise ValueError("в target-окне нет ни одной связи внутри когорты")
     all_pairs_count = len(hosts) * (len(hosts) - 1) // 2
     remaining = all_pairs_count - len(positives)
     requested = len(positives) * negatives_per_positive
     if remaining < requested:
         raise ValueError(
-            f"Insufficient negative pairs: requested={requested}, possible={remaining}; "
-            "reduce negatives_per_positive or adjust cohort"
+            f"не хватает отрицательных пар: нужно {requested}, есть {remaining}; "
+            "уменьшите negatives_per_positive или расширьте когорту"
         )
     rng = np.random.default_rng(seed)
     negatives: set[tuple[str, str]] = set()
@@ -94,8 +94,8 @@ def build_edges(
             # для небольших сетей
             if all_pairs_count > 1_000_000:
                 raise RuntimeError(
-                    "Rejection sampling exhausted. Reduce negative ratio or "
-                    "use a sparse candidate-pool strategy."
+                    "не удалось набрать отрицательные пары: уменьшите negatives_per_positive "
+                    "или используйте разреженный набор кандидатов"
                 )
             for i, a in enumerate(hosts):
                 for b in hosts[i + 1:]:
@@ -141,17 +141,17 @@ def load_candidate_edges(file: Path) -> pd.DataFrame:
     )
     missing = set(FIELDS) - set(df.columns)
     if missing:
-        raise ValueError(f"edges.csv missing columns {sorted(missing)}")
+        raise ValueError(f"в edges.csv нет колонок {sorted(missing)}")
     if df.empty or df[FIELDS].isna().any().any():
-        raise ValueError("edges.csv empty or has missing values")
+        raise ValueError("edges.csv пуст или в нём пропуски")
     if not df["label"].isin(["0", "1"]).all():
-        raise ValueError("Edge labels must be 0/1")
+        raise ValueError("метки связей должны быть 0/1")
     if not df["split"].isin(["test", "validation"]).all():
-        raise ValueError("Unexpected split")
+        raise ValueError("неизвестный split")
     if not (df.host_a < df.host_b).all():
-        raise ValueError("Pairs must be canonical, distinct and undirected")
+        raise ValueError("пары должны быть упорядочены (host_a < host_b) и из разных хостов")
     if df.duplicated(["host_a", "host_b", "source_window", "target_window", "split"]).any():
-        raise ValueError("Duplicate candidate edges")
+        raise ValueError("повторяющиеся пары-кандидаты")
     return df
 
 
@@ -162,23 +162,23 @@ def score_embeddings(
     """Оценить РОВНО сохранённых кандидатов. Неизвестный хост — ошибка, а не пропуск."""
     edges = edges[edges["split"] == split]
     if edges.empty:
-        raise ValueError(f"No candidate edges for split={split}")
+        raise ValueError(f"нет кандидатов для split={split}")
     if edges[["source_window", "target_window"]].drop_duplicates().shape[0] != 1:
-        raise ValueError("Do not mix source/target window pairs in an evaluation")
+        raise ValueError("в одной оценке нельзя смешивать разные пары окон source/target")
     if embedding.index.has_duplicates:
-        raise ValueError("Duplicate host IDs")
+        raise ValueError("повторяющиеся host_id")
     known = set(embedding.index)
     used = set(edges["host_a"]) | set(edges["host_b"])
     if not used.issubset(known):
-        raise ValueError(f"Embedding lacks candidate hosts: {sorted(used - known)[:5]}")
+        raise ValueError(f"в эмбеддинге нет хостов-кандидатов: {sorted(used - known)[:5]}")
     labels = edges["label"].astype(int).to_numpy()
     if len(np.unique(labels)) < 2:
-        raise ValueError("Need both positive and negative candidates")
+        raise ValueError("нужны и положительные, и отрицательные кандидаты")
     emb = embedding.to_numpy(dtype=float)
     if not np.isfinite(emb).all():
-        raise ValueError("Embedding contains nonfinite coordinates")
+        raise ValueError("в эмбеддинге есть бесконечные или пустые координаты")
     if (np.linalg.norm(emb, axis=1) == 0).any():
-        raise ValueError("Zero-norm host vectors make cosine undefined")
+        raise ValueError("нулевой вектор хоста: косинус не определён")
     index = {host: j for j, host in enumerate(embedding.index)}
     a = np.array([index[x] for x in edges["host_a"]])
     b = np.array([index[x] for x in edges["host_b"]])
@@ -251,15 +251,15 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
     fit = fit_edges[fit_edges["split"] == fit_split]
     ev = eval_edges[eval_edges["split"] == eval_split]
     if fit.empty or ev.empty:
-        raise ValueError(f"need candidates for fit split {fit_split!r} and eval split {eval_split!r}")
+        raise ValueError(f"нужны кандидаты и для обучения ({fit_split!r}), и для оценки ({eval_split!r})")
     fw, ew = fit.iloc[0], ev.iloc[0]
     if fw["source_window"] != ew["source_window"]:
-        raise ValueError("fit and evaluation candidates use different source windows")
+        raise ValueError("у кандидатов обучения и оценки разные source-окна")
     if _window_bounds(fw["target_window"])[1] > _window_bounds(ew["target_window"])[0]:
-        raise ValueError("fit window must end before the evaluation window starts (temporal leakage)")
+        raise ValueError("окно обучения должно закончиться до начала окна оценки (утечка по времени)")
     used = set(fit.host_a) | set(fit.host_b) | set(ev.host_a) | set(ev.host_b)
     if not used <= set(embedding.index):
-        raise ValueError(f"embedding lacks candidate hosts: {sorted(used - set(embedding.index))[:5]}")
+        raise ValueError(f"в эмбеддинге нет хостов-кандидатов: {sorted(used - set(embedding.index))[:5]}")
     scaler = StandardScaler().fit(embedding.to_numpy(float))
     z = pd.DataFrame(scaler.transform(embedding.to_numpy(float)), index=embedding.index)
 
@@ -269,7 +269,7 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
 
     yf, ye = fit["label"].astype(int).to_numpy(), ev["label"].astype(int).to_numpy()
     if len(np.unique(yf)) < 2 or len(np.unique(ye)) < 2:
-        raise ValueError("both classes are required in the fit and evaluation candidates")
+        raise ValueError("и в обучении, и в оценке нужны оба класса")
     clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
     score = clf.predict_proba(feats(ev))[:, 1]
     out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed, hosts=host_index(ev.host_a, ev.host_b))

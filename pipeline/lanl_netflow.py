@@ -55,7 +55,7 @@ def iter_raw_chunks(path: Path, chunksize: int = 500_000, strict: bool = True,
     try:
         yield from pd.read_csv(path, **kwargs)
     except (pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
-        raise PipelineError(f"{path}: malformed netflow data: {exc}") from exc
+        raise PipelineError(f"{path}: некорректные данные NetFlow: {exc}") from exc
 
 
 def canonicalize(raw: pd.DataFrame) -> tuple[pd.DataFrame, Counter]:
