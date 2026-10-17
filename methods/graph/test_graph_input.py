@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.methods.graph_input import from_edges, from_flows
+from methods.graph.graph_input import from_edges, from_flows
 
 
 def flows(rows):
@@ -80,7 +80,7 @@ def _toy_flows():
 
 def test_hosts_graph_is_unchanged_by_the_new_options():
     import numpy as np
-    from benchmark.methods.graph_input import from_flows
+    from methods.graph.graph_input import from_flows
     f = _toy_flows()
     g = from_flows(f)
     assert set(g.nodes) == {"c0", "c1", "c2", "c3", "c4", "c5", "web", "dns", "x"}
@@ -88,7 +88,7 @@ def test_hosts_graph_is_unchanged_by_the_new_options():
 
 
 def test_service_graph_connects_hosts_that_use_the_same_services():
-    from benchmark.methods.graph_input import from_flows
+    from methods.graph.graph_input import from_flows
     g = from_flows(_toy_flows(), graph="services", min_service_hosts=5)
     assert "uses:6/443" in set(g.nodes)                                           # общий сервис клиентов
     assert "serves:6/443" in set(g.nodes)            # редкий, но у web других сервисов нет — оставлен, чтобы не изолировать
@@ -99,7 +99,7 @@ def test_service_graph_connects_hosts_that_use_the_same_services():
 
 def test_hub_norm_weakens_edges_of_hubs():
     import numpy as np
-    from benchmark.methods.graph_input import from_flows
+    from methods.graph.graph_input import from_flows
     f = _toy_flows()
     plain, norm = from_flows(f), from_flows(f, weight="hub_norm")
     web = plain.index_of(["web"])[0]

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.baselines.temporal import (BehavioralBaseline, BehavioralPCA, BehavioralPortFree, BehavioralPortFreePCA,
+from methods.baselines.temporal import (BehavioralBaseline, BehavioralPCA, BehavioralPortFree, BehavioralPortFreePCA,
                                           default_baselines)
 from pipeline.data import ProcessedData
 

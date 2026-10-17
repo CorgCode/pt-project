@@ -24,8 +24,8 @@ import numpy as np
 import pandas as pd
 import sklearn
 
-from benchmark import methods as graph_methods
-from benchmark.baselines.temporal import Baseline, default_baselines
+from methods import graph as graph_methods
+from methods.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
 from evaluation.identity import identity_retrieval
 from evaluation import scoreboard

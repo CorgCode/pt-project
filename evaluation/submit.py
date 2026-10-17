@@ -181,8 +181,8 @@ def render() -> None:
 
 def builtin(names: list[str], dim: int = 16) -> None:
     """Обучить бейзлайны и графовые методы на общих данных и положить их как обычные отправки."""
-    from benchmark import methods as graph_methods
-    from benchmark.baselines.temporal import default_baselines
+    from methods import graph as graph_methods
+    from methods.baselines.temporal import default_baselines
     from pipeline.data import ProcessedData
 
     data = ProcessedData(processed_dir())

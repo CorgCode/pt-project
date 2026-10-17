@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from scipy.stats import chisquare
 
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.walks import random_walks, second_order_step, walk_corpus
+from methods.graph.graph_input import from_edges
+from methods.graph.walks import random_walks, second_order_step, walk_corpus
 
 
 def graph(edges, n=None, weights=None):

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from benchmark.methods.graph_input import Graph
+from methods.graph.graph_input import Graph
 
 
 def _draw_neighbor_index(g: Graph, v: np.ndarray, rng: np.random.Generator) -> np.ndarray:

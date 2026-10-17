@@ -20,10 +20,10 @@ from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
 
-from benchmark.methods.base import GraphEmbeddingMethod
-from benchmark.methods.graph_input import Graph
-from benchmark.methods.sgns import SkipGram
-from benchmark.methods.walks import _draw_neighbor_index
+from methods.graph.base import GraphEmbeddingMethod
+from methods.graph.graph_input import Graph
+from methods.graph.sgns import SkipGram
+from methods.graph.walks import _draw_neighbor_index
 
 EMPTY_DEGREE = 0.5
 

@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 from scipy.stats import chisquare
 
-from benchmark import methods
-from benchmark.methods.conftest_helpers import TrainOnlyGuard
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.graphsage import (Adam, Batch, Features, GraphSAGE, infer, loss_and_grads, sample_neighbors,
+from methods import graph as methods
+from methods.graph.conftest_helpers import TrainOnlyGuard
+from methods.graph.graph_input import from_edges
+from methods.graph.graphsage import (Adam, Batch, Features, GraphSAGE, infer, loss_and_grads, sample_neighbors,
                                          structural_features, train)
 from experiments.run_experiment import run_experiment
 from experiments.tune_methods import tune
@@ -177,7 +177,7 @@ def test_structural_features_are_correct_on_a_known_graph():
 
 def test_features_validate_and_standardise_with_train_statistics(processed):
     from pipeline.data import ProcessedData
-    from benchmark.methods.graph_input import from_flows
+    from methods.graph.graph_input import from_flows
     d = ProcessedData(processed)
     with pytest.raises(ValueError, match="features должен быть"):
         Features("bogus")

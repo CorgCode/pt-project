@@ -3,7 +3,7 @@ name: Benchmark validation
 on:
   pull_request:
     paths:
-      - "benchmark/**"
+      - "methods/**"
       - "evaluation/**"
       - "pipeline/**"
       - "experiments/**"
@@ -15,7 +15,7 @@ on:
     branches:
       - main
     paths:
-      - "benchmark/**"
+      - "methods/**"
       - "evaluation/**"
       - "pipeline/**"
       - "experiments/**"
@@ -49,10 +49,10 @@ jobs:
 
 
       - name: Validate example submission
-        run: python -m evaluation.validate benchmark/example_embeddings.csv
+        run: python -m evaluation.validate methods/example_embeddings.csv
 
       - name: Run evaluation tests
-        run: python -m pytest -q evaluation benchmark app pipeline experiments
+        run: python -m pytest -q evaluation methods app pipeline experiments
 
       - name: Pipeline smoke test (synthetic LANL-format fixture)
         run: |
@@ -67,8 +67,8 @@ jobs:
 
       - name: Generate and validate baseline embeddings (synthetic reference)
         run: |
-          python -m benchmark.baselines.make_synthetic_reference --output-dir "$RUNNER_TEMP/reference"
-          python -m benchmark.baselines.run_all --reference-dir "$RUNNER_TEMP/reference" \
+          python -m methods.baselines.make_synthetic_reference --output-dir "$RUNNER_TEMP/reference"
+          python -m methods.baselines.run_all --reference-dir "$RUNNER_TEMP/reference" \
             --out-dir "$RUNNER_TEMP/baselines" --results-dir "$RUNNER_TEMP/results" --evaluate
           for file in "$RUNNER_TEMP"/baselines/*/embeddings.csv; do
             python -m evaluation.validate "$file"

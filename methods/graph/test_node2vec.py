@@ -3,13 +3,13 @@ import json
 import numpy as np
 import pytest
 
-from benchmark import methods
-from benchmark.methods.conftest_helpers import TrainOnlyGuard
-from benchmark.methods.deepwalk import DeepWalk
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.node2vec import Node2Vec
-from benchmark.methods.sgns import SkipGram
-from benchmark.methods.walks import walk_corpus
+from methods import graph as methods
+from methods.graph.conftest_helpers import TrainOnlyGuard
+from methods.graph.deepwalk import DeepWalk
+from methods.graph.graph_input import from_edges
+from methods.graph.node2vec import Node2Vec
+from methods.graph.sgns import SkipGram
+from methods.graph.walks import walk_corpus
 from experiments.run_experiment import run_experiment
 from experiments.tune_methods import tune
 
@@ -106,8 +106,8 @@ def test_service_graph_separates_roles_that_share_the_same_servers():
     не видит, граф «хост — сервис» — видит."""
     import numpy as np
     import pandas as pd
-    from benchmark.methods.graph_input import from_flows
-    from benchmark.methods.node2vec import Node2Vec
+    from methods.graph.graph_input import from_flows
+    from methods.graph.node2vec import Node2Vec
 
     rng = np.random.default_rng(0)
     servers = [f"s{j}" for j in range(4)]

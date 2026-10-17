@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from benchmark.methods.base import GraphEmbeddingMethod
-from benchmark.methods.sgns import SkipGram
-from benchmark.methods.walks import walk_corpus
+from methods.graph.base import GraphEmbeddingMethod
+from methods.graph.sgns import SkipGram
+from methods.graph.walks import walk_corpus
 
 
 class DeepWalk(GraphEmbeddingMethod):

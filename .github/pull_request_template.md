@@ -11,7 +11,7 @@ Closes #
 ## Как проверить
 
 ```bash
-python -m pytest -q evaluation benchmark app pipeline experiments
+python -m pytest -q evaluation methods app pipeline experiments
 ```
 
 ## Результат

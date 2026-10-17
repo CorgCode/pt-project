@@ -15,8 +15,8 @@ import time
 import numpy as np
 import pandas as pd
 
-from benchmark.baselines.temporal import Baseline, _frame
-from benchmark.methods.graph_input import Graph, from_flows
+from methods.baselines.temporal import Baseline, _frame
+from methods.graph.graph_input import Graph, from_flows
 from pipeline.data import ProcessedData
 
 

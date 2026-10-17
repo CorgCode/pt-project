@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark import methods
-from benchmark.methods.conftest_helpers import TrainOnlyGuard
-from benchmark.methods.deepwalk import DeepWalk
+from methods import graph as methods
+from methods.graph.conftest_helpers import TrainOnlyGuard
+from methods.graph.deepwalk import DeepWalk
 from evaluation.evaluate import run
 from experiments.run_experiment import run_experiment
 from pipeline.data import ProcessedData
@@ -119,7 +119,7 @@ def test_audit_table_shows_the_method_declared_overlap(processed, reference, tmp
 
 
 def test_all_and_fast_selection(processed, reference, tmp_path):
-    from benchmark import methods as M
+    from methods import graph as M
     fast = M.create(["all"], dim=4, fast=True)
     assert {m.name for m in fast} == set(M.available()) and fast[0].params["num_walks"] == 2
     full = M.create(["deepwalk"], dim=4)[0]

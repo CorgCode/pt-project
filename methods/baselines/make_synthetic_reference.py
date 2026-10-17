@@ -1,6 +1,6 @@
 """СИНТЕТИЧЕСКИЙ reference/features.csv для калибровки бейзлайнов и CI. Не настоящие данные.
 
-    python -m benchmark.baselines.make_synthetic_reference --output-dir /tmp/synthetic_reference
+    python -m methods.baselines.make_synthetic_reference --output-dir /tmp/synthetic_reference
 """
 from __future__ import annotations
 

@@ -23,8 +23,8 @@ import scipy.sparse as sp
 from sklearn.decomposition import NMF
 from sklearn.exceptions import ConvergenceWarning
 
-from benchmark.methods.base import GraphEmbeddingMethod
-from benchmark.methods.graph_input import Graph
+from methods.graph.base import GraphEmbeddingMethod
+from methods.graph.graph_input import Graph
 
 BASE_NAMES = ["degree", "strength", "ego_edges", "ego_out_edges"]
 

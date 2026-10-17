@@ -50,7 +50,7 @@ train → методы → эмбеддинги → evaluation → таблиц�
 ```bash
 pip install -r requirements.txt
 python -m experiments.end_to_end --fixture --workdir runs/demo   # самопроверка на тестовых данных, ~2 минуты
-python -m pytest -q evaluation benchmark app pipeline experiments
+python -m pytest -q evaluation methods app pipeline experiments
 ```
 
 ## Проверить свой метод
@@ -66,7 +66,7 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 | [`scoreboard/`](scoreboard/README.md) | общая таблица результатов и шаблон своего метода |
 | [`results/`](results/README.md) | итоги прогонов на LANL |
 | [`evaluation/`](evaluation/README.md) | метрики |
-| [`benchmark/`](benchmark/README.md) | методы и бейзлайны |
+| [`methods/`](methods/README.md) | методы и бейзлайны |
 | [`pipeline/`](pipeline/README.md) | подготовка данных |
 | [`experiments/`](experiments/README.md) | запуски, в том числе [на LANL](experiments/lanl/README.md) |
 | [`app/`](app/README.md) | дашборд |

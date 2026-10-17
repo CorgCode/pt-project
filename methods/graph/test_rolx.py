@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from benchmark import methods
-from benchmark.methods.conftest_helpers import TrainOnlyGuard
-from benchmark.methods.deepwalk import DeepWalk
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.rolx import (BASE_NAMES, RolX, aggregate, base_features, kl_bits, log_bin, mdl_roles, nmf_roles,
+from methods import graph as methods
+from methods.graph.conftest_helpers import TrainOnlyGuard
+from methods.graph.deepwalk import DeepWalk
+from methods.graph.graph_input import from_edges
+from methods.graph.rolx import (BASE_NAMES, RolX, aggregate, base_features, kl_bits, log_bin, mdl_roles, nmf_roles,
                                     prepare_matrix, refex, triangles)
 from experiments.run_experiment import run_experiment
 from experiments.tune_methods import tune

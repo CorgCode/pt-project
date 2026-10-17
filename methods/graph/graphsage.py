@@ -28,10 +28,10 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.special import expit
 
-from benchmark.baselines.temporal import _frame
-from benchmark.methods.base import GraphEmbeddingMethod
-from benchmark.methods.graph_input import Graph, from_flows
-from benchmark.methods.walks import walk_corpus
+from methods.baselines.temporal import _frame
+from methods.graph.base import GraphEmbeddingMethod
+from methods.graph.graph_input import Graph, from_flows
+from methods.graph.walks import walk_corpus
 from evaluation.knn_consistency import build_reference_features
 
 EPS = 1e-12

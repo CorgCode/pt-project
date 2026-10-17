@@ -1,6 +1,6 @@
 """Построить калибровочные бейзлайны по reference/features.csv и (по желанию) оценить их.
 
-    python -m benchmark.baselines.run_all --reference-dir reference --dim 16 --seed 0 --evaluate
+    python -m methods.baselines.run_all --reference-dir reference --dim 16 --seed 0 --evaluate
 """
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import argparse
 import json
 from pathlib import Path
 
-from benchmark.baselines.common import load_config, load_reference_features, write_embeddings
-from benchmark.baselines.methods import METHODS
+from methods.baselines.common import load_config, load_reference_features, write_embeddings
+from methods.baselines.methods import METHODS
 
 
 def generate(reference_dir: Path, out_dir: Path, dim: int = 16, seed: int = 0,
@@ -43,7 +43,7 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--methods", nargs="+", choices=list(METHODS), default=None)
     p.add_argument("--evaluate", action="store_true", help="also run the common evaluator")
-    p.add_argument("--results-dir", type=Path, default=Path("benchmark/results"))
+    p.add_argument("--results-dir", type=Path, default=Path("runs/baseline_results"))
     args = p.parse_args()
 
     paths = generate(args.reference_dir, args.out_dir, args.dim, args.seed, args.methods)

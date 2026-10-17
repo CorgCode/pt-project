@@ -4,7 +4,7 @@ import pytest
 
 from evaluation.knn_consistency import (build_reference_features, evaluate_embedding,
                              neighborhood_metrics, top_k_neighbors)
-from benchmark.baselines.make_synthetic_reference import make_flows
+from methods.baselines.make_synthetic_reference import make_flows
 
 
 def test_self_excluded_even_with_duplicates():

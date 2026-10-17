@@ -5,11 +5,11 @@ import numpy as np
 import pytest
 from scipy.stats import chisquare
 
-from benchmark import methods
-from benchmark.methods.conftest_helpers import TrainOnlyGuard
-from benchmark.methods.deepwalk import DeepWalk
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.struc2vec import (EMPTY_DEGREE, Multilayer, Struc2Vec, candidate_pairs, dtw, ring_sequences,
+from methods import graph as methods
+from methods.graph.conftest_helpers import TrainOnlyGuard
+from methods.graph.deepwalk import DeepWalk
+from methods.graph.graph_input import from_edges
+from methods.graph.struc2vec import (EMPTY_DEGREE, Multilayer, Struc2Vec, candidate_pairs, dtw, ring_sequences,
                                          structural_distances, structural_walks)
 from experiments.run_experiment import run_experiment
 from experiments.tune_methods import tune

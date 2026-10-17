@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.baselines.temporal import default_baselines
+from methods.baselines.temporal import default_baselines
 from experiments.run_experiment import run_experiment
 from pipeline import fixtures
 from pipeline.data import ProcessedData

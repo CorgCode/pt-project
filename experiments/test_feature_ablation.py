@@ -56,7 +56,7 @@ def test_port_free_reference_diagnostic(ablation, reference):
 
 
 def test_fit_uses_only_the_train_window(processed):
-    from benchmark.baselines.test_portfree import Guard
+    from methods.baselines.test_portfree import Guard
     d = Guard(processed)
     d.fitting = True
     try:

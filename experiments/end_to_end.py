@@ -71,7 +71,7 @@ def main() -> None:
                     help="DECLARE the origin of --netflow files (default: 'unverified'); 'lanl' needs --source-note")
     ap.add_argument("--source-note", help="where/when the LANL files were obtained")
     ap.add_argument("--cohort-policy", choices=["train_only", "all_windows"], default=None)
-    ap.add_argument("--methods", nargs="+", default=None, help="graph-embedding methods (see benchmark/methods)")
+    ap.add_argument("--methods", nargs="+", default=None, help="graph-embedding methods (see methods/graph)")
     ap.add_argument("--method-config", default=None, help="JSON or JSON file: {method: {param: value}}")
     ap.add_argument("--fast-methods", action="store_true", help="tiny hyper-parameters (smoke tests only)")
     ap.add_argument("--port-free-baselines", action="store_true", help="also run the port-free behavioural baselines (#43)")

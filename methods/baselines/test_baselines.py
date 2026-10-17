@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmark.baselines.make_synthetic_reference import make
-from benchmark.baselines.methods import METHODS
-from benchmark.baselines.run_all import evaluate, generate
+from methods.baselines.make_synthetic_reference import make
+from methods.baselines.methods import METHODS
+from methods.baselines.run_all import evaluate, generate
 
 
 @pytest.fixture(scope="module")

@@ -1,4 +1,4 @@
-"""Общий ввод-вывод для бейзлайнов; соглашения — benchmark/config.json."""
+"""Общий ввод-вывод для бейзлайнов; соглашения — methods/config.json."""
 from __future__ import annotations
 
 import json

@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from benchmark.methods.graph_input import from_edges
-from benchmark.methods.sgns import SkipGram, hs_loss_grads, huffman, neg_loss_grads, scatter_sub
-from benchmark.methods.walks import walk_corpus
+from methods.graph.graph_input import from_edges
+from methods.graph.sgns import SkipGram, hs_loss_grads, huffman, neg_loss_grads, scatter_sub
+from methods.graph.walks import walk_corpus
 
 
 # ------------------------------------------------------------------ дерево Хаффмана
