@@ -1,10 +1,10 @@
 # Дашборд
 
-Показывает результаты прогона и даёт оценить свой файл эмбеддингов.
+Показывает результаты прогона. По умолчанию — LANL (`results/lanl_day02`). Свой метод проверяется через [таблицу](../scoreboard/README.md).
 
 ```bash
 pip install -r app/requirements.txt
-streamlit run app/streamlit_app.py                            # синтетическое демо
+streamlit run app/streamlit_app.py                            # результаты LANL
 PT_RESULTS_DIR=runs/lanl streamlit run app/streamlit_app.py   # свой прогон
 ```
 
@@ -19,8 +19,7 @@ PT_RESULTS_DIR=runs/lanl streamlit run app/streamlit_app.py   # свой про�
 | Во времени | validation против test, узнаваемость хоста |
 | Аудит | случайный уровень, чувствительность эталона |
 | Происхождение | манифесты и хеши файлов |
-| Свой эмбеддинг | загрузить `embeddings.csv` и сравнить с бейзлайнами |
 
-Числа берутся из файлов прогона, а не пересчитываются. Синтетика всегда подписана.
+Числа берутся из файлов прогона, а не пересчитываются. Источник данных всегда подписан.
 
 Тесты: `python -m pytest -q app`. Проверка в браузере: `python -m app.browser_check --out app/screenshots`.

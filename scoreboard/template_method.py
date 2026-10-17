@@ -1,7 +1,10 @@
 """Шаблон своего метода. Скопируйте файл, поменяйте NAME и две функции — fit и embed.
 
     cp scoreboard/template_method.py scoreboard/my_method.py
-    python scoreboard/my_method.py          # обучить, сохранить, увидеть место в таблице
+    PT_DATA=/путь/к/lanl/processed python scoreboard/my_method.py   # обучить, сохранить, увидеть место
+
+Потоки LANL (≈ 1 ГБ) в git не хранятся: их даёт experiments/lanl/README.md (скачать и подготовить)
+или копия с общего диска. PT_DATA — путь к папке processed с подпапкой flows/.
 
 Скрипт сам:
   1. берёт общие данные и отдаёт вашему методу ТОЛЬКО train-окно;
@@ -13,6 +16,7 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -57,7 +61,7 @@ def _port_counts(flows: pd.DataFrame, hosts: list[str]) -> pd.DataFrame:
 # ------------------------------------------------------------------ дальше ничего менять не нужно
 
 def main() -> None:
-    data = ProcessedData(ROOT / "scoreboard" / "data" / "processed")
+    data = ProcessedData(os.environ.get("PT_DATA", ROOT / "scoreboard" / "data" / "processed"))
     model = fit(data.training_flows(), data.cohort)                  # учимся только на train
     out = ROOT / "scoreboard" / "submissions" / NAME
     out.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,447 @@
+{
+  "ci_methods": {
+    "consistency@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "link_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "link_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "ndcg@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "pair_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "pair_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "partner_mrr": "item bootstrap (hosts / anchors resampled)",
+    "partner_new_mrr": "item bootstrap (hosts / anchors resampled)",
+    "precision@1": "item bootstrap (hosts / anchors resampled)",
+    "precision@3": "item bootstrap (hosts / anchors resampled)",
+    "precision@5": "item bootstrap (hosts / anchors resampled)",
+    "recall@1": "item bootstrap (hosts / anchors resampled)",
+    "recall@3": "item bootstrap (hosts / anchors resampled)",
+    "recall@5": "item bootstrap (hosts / anchors resampled)",
+    "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
+  },
+  "method": "behavioral",
+  "method_info": {
+    "description": "standardised behavioural profile (volume, degree, direction, ports, protocols, hour-of-day) fitted on train; same transform applied to other windows",
+    "excluded_feature_blocks": [],
+    "fit_windows": [
+      "train"
+    ],
+    "name": "behavioral",
+    "shared_coordinate_system": true
+  },
+  "metric_details": {
+    "future_link_prediction": {
+      "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
+      "n_examples": 57796,
+      "n_positive": 28898,
+      "natural_prevalence": 0.007584418583898923,
+      "new_links": {
+        "n_examples": 31906,
+        "n_positive": 3052,
+        "note": "candidates not observed in the source window (new links vs unseen non-links)",
+        "positive_rate": 0.09565598946906538,
+        "pr_auc": 0.05368068671256684,
+        "roc_auc": 0.1497654822248331
+      },
+      "persistence_baseline": {
+        "note": "trivial predictor: pair seen in the source window; embeddings should be read against it",
+        "pr_auc": 0.9456735683405955,
+        "roc_auc": 0.9464322790504534
+      },
+      "positive_rate": 0.5,
+      "share_positives_seen_in_source": 0.8943871548204028,
+      "source_window": "1970-01-02T11:00:00Z/1970-01-02T11:59:59Z",
+      "split": "validation",
+      "target_window": "1970-01-02T12:00:00Z/1970-01-02T12:29:59Z"
+    },
+    "pairwise_auc": {
+      "interpretation": "\u0420\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e \u044f\u0432\u043d\u044b\u0435 \u043f\u0430\u0440\u044b: Jaccard >= tau (\u043f\u043e\u0445\u043e\u0436\u0438) \u0438\u043b\u0438 0 (\u043d\u0435 \u043f\u043e\u0445\u043e\u0436\u0438). \u0414\u043e\u043b\u044f \u043f\u043e\u043b\u043e\u0436\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u2014 \u0441\u0440\u0435\u0434\u0438 \u0440\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u043d\u044b\u0445, \u0430 \u043d\u0435 \u0441\u0440\u0435\u0434\u0438 \u0432\u0441\u0435\u0445 \u043f\u0430\u0440 \u0445\u043e\u0441\u0442\u043e\u0432.",
+      "judged_population_prevalence": 0.059288770020368614,
+      "n_pairs": 11089,
+      "n_positive": 4471,
+      "population_positive_rate": 0.01005359326855949,
+      "positive_rate": 0.40319235278203625,
+      "split": "validation",
+      "unjudged_share": 0.8304300584224368
+    },
+    "partner_ranking": {
+      "all": {
+        "embedding": {
+          "mrr": 0.8591547779098427,
+          "mrr_ci": [
+            0.8465637002338172,
+            0.870257075561371
+          ],
+          "n_hosts": 2761,
+          "recall_at_n": 0.5015167484624071
+        },
+        "history": {
+          "mrr": 0.9816207168928359,
+          "n_hosts": 2761,
+          "recall_at_n": 0.6921189110372303
+        },
+        "lift_vs_best_baseline": -0.12475891846561635,
+        "popularity": {
+          "mrr": 0.8932070598274069,
+          "n_hosts": 2761,
+          "recall_at_n": 0.283551947756988
+        }
+      },
+      "k_neighbors": 10,
+      "n_candidates": 24818,
+      "new": {
+        "embedding": {
+          "mrr": 0.22549898464621126,
+          "mrr_ci": [
+            0.21091937002738093,
+            0.2387107791692693
+          ],
+          "n_hosts": 1692,
+          "recall_at_n": 0.26480831927495974
+        },
+        "history": {
+          "mrr": 8.101127692761116e-05,
+          "n_hosts": 1692,
+          "recall_at_n": 0.0
+        },
+        "lift_vs_best_baseline": 2.5155424753812734,
+        "popularity": {
+          "mrr": 0.0641434390923566,
+          "n_hosts": 1692,
+          "recall_at_n": 0.09430052385074851
+        }
+      },
+      "target_coverage": 0.9935500197911867,
+      "top_n": 10
+    },
+    "retrieval": {
+      "by_k": {
+        "1": {
+          "chance_precision": 0.5290144771266446,
+          "coverage": 0.8052480524805248,
+          "eligible_anchors": 1964,
+          "oracle_precision": 1.0,
+          "precision": 0.9572301425661914,
+          "precision_ci": [
+            0.946015784114053,
+            0.9658986761710794
+          ],
+          "precision_lift": 1.80945925670203,
+          "recall": 0.3539501263256881,
+          "recall_ci": [
+            0.3402302191928014,
+            0.3673318113984333
+          ]
+        },
+        "3": {
+          "chance_precision": 0.5272222163261048,
+          "coverage": 0.7904879048790487,
+          "eligible_anchors": 1928,
+          "oracle_precision": 0.8488934993084369,
+          "precision": 0.8200207468879668,
+          "precision_ci": [
+            0.8092582987551867,
+            0.8297155947441217
+          ],
+          "precision_lift": 1.5553607596474202,
+          "recall": 0.6971579734867132,
+          "recall_ci": [
+            0.6841855852794817,
+            0.709158686633014
+          ]
+        },
+        "5": {
+          "chance_precision": 0.5404626242991217,
+          "coverage": 0.6863468634686347,
+          "eligible_anchors": 1674,
+          "oracle_precision": 0.771326164874552,
+          "precision": 0.7512544802867382,
+          "precision_ci": [
+            0.738100358422939,
+            0.764163679808841
+          ],
+          "precision_lift": 1.3900211531944024,
+          "recall": 0.8479586026497717,
+          "recall_ci": [
+            0.8391100589379852,
+            0.8565155167900836
+          ]
+        }
+      },
+      "judged_anchors": 2439,
+      "ks": [
+        1,
+        3,
+        5
+      ],
+      "split": "validation"
+    },
+    "triplet_accuracy": {
+      "chance": 0.5,
+      "n_ties": 0,
+      "n_triplets": 5244,
+      "split": "validation"
+    }
+  },
+  "metric_status": {
+    "future_link_prediction": "ok",
+    "knn_consistency": "ok",
+    "linear_probe": "unavailable: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)",
+    "pairwise_pr_auc": "ok",
+    "pairwise_roc_auc": "ok",
+    "partner_ranking": "ok",
+    "precision_at_k": "ok",
+    "recall_at_k": "ok",
+    "triplet_accuracy": "ok"
+  },
+  "metrics": {
+    "consistency@10_mean": 0.20775081492212963,
+    "consistency@10_median": 0.0,
+    "consistency@10_std": 0.2909966211770737,
+    "consistency@20_mean": 0.24400579500181097,
+    "consistency@20_median": 0.05,
+    "consistency@20_std": 0.30488670734263223,
+    "consistency@5_mean": 0.1733429916696849,
+    "consistency@5_median": 0.0,
+    "consistency@5_std": 0.2817890850858323,
+    "jaccard@10_mean": 0.15474688376411064,
+    "jaccard@10_median": 0.0,
+    "jaccard@10_std": 0.2425096787796902,
+    "jaccard@20_mean": 0.18321254451106686,
+    "jaccard@20_median": 0.02564102564102564,
+    "jaccard@20_std": 0.2578401327710172,
+    "jaccard@5_mean": 0.13110329245787414,
+    "jaccard@5_median": 0.0,
+    "jaccard@5_std": 0.23870248609747247,
+    "link_new_pr_auc": 0.05368068671256684,
+    "link_new_roc_auc": 0.1497654822248331,
+    "link_pr_auc": 0.34370186630695304,
+    "link_pr_auc_at_natural_prevalence": 0.004340008956999504,
+    "link_pr_auc_lift": 0.6874037326139061,
+    "link_roc_auc": 0.2064545854626515,
+    "ndcg@10_mean": 0.22200137788913085,
+    "ndcg@10_median": 0.0,
+    "ndcg@10_std": 0.31727968129369627,
+    "ndcg@20_mean": 0.26199178185696637,
+    "ndcg@20_median": 0.06383781015411864,
+    "ndcg@20_std": 0.33333920440506115,
+    "ndcg@5_mean": 0.18651077004586825,
+    "ndcg@5_median": 0.0,
+    "ndcg@5_std": 0.3060425471147469,
+    "pair_pr_auc": 0.9472204357180684,
+    "pair_pr_auc_at_judged_prevalence": 0.6965771584287863,
+    "pair_pr_auc_lift": 2.349301590623498,
+    "pair_roc_auc": 0.9677696276984366,
+    "partner_history_mrr": 0.9816207168928359,
+    "partner_lift": -0.12475891846561635,
+    "partner_mrr": 0.8591547779098427,
+    "partner_new_history_mrr": 8.101127692761116e-05,
+    "partner_new_lift": 2.5155424753812734,
+    "partner_new_mrr": 0.22549898464621126,
+    "partner_new_popularity_mrr": 0.0641434390923566,
+    "partner_new_recall@10": 0.26480831927495974,
+    "partner_popularity_mrr": 0.8932070598274069,
+    "partner_recall@10": 0.5015167484624071,
+    "precision@1": 0.9572301425661914,
+    "precision@3": 0.8200207468879668,
+    "precision@5": 0.7512544802867382,
+    "precision_lift@1": 1.80945925670203,
+    "precision_lift@3": 1.5553607596474202,
+    "precision_lift@5": 1.3900211531944024,
+    "recall@1": 0.3539501263256881,
+    "recall@3": 0.6971579734867132,
+    "recall@5": 0.8479586026497717,
+    "triplet_accuracy": 0.9557589626239512
+  },
+  "metrics_ci": {
+    "consistency@10_mean": [
+      0.197279065555958,
+      0.21974827960883733
+    ],
+    "consistency@20_mean": [
+      0.23438926113726913,
+      0.2557913799348063
+    ],
+    "consistency@5_mean": [
+      0.1634751901484969,
+      0.1841506700470844
+    ],
+    "jaccard@10_mean": [
+      0.14573286359041593,
+      0.16527348869760114
+    ],
+    "jaccard@20_mean": [
+      0.17466766631268169,
+      0.19351095246385236
+    ],
+    "jaccard@5_mean": [
+      0.12307196179208131,
+      0.1402779215030211
+    ],
+    "link_pr_auc": [
+      0.2655088756212445,
+      0.42409779595764535
+    ],
+    "link_roc_auc": [
+      0.17615725020876802,
+      0.24101666627323032
+    ],
+    "ndcg@10_mean": [
+      0.21059000622793533,
+      0.23359333717581143
+    ],
+    "ndcg@20_mean": [
+      0.25046802075618385,
+      0.27428023145900854
+    ],
+    "ndcg@5_mean": [
+      0.17556914954442157,
+      0.19684881030172185
+    ],
+    "pair_pr_auc": [
+      0.9322033904297505,
+      0.9601557551537884
+    ],
+    "pair_roc_auc": [
+      0.9594733995585706,
+      0.9756731197071251
+    ],
+    "partner_mrr": [
+      0.8465637002338172,
+      0.870257075561371
+    ],
+    "partner_new_mrr": [
+      0.21091937002738093,
+      0.2387107791692693
+    ],
+    "precision@1": [
+      0.946015784114053,
+      0.9658986761710794
+    ],
+    "precision@3": [
+      0.8092582987551867,
+      0.8297155947441217
+    ],
+    "precision@5": [
+      0.738100358422939,
+      0.764163679808841
+    ],
+    "recall@1": [
+      0.3402302191928014,
+      0.3673318113984333
+    ],
+    "recall@3": [
+      0.6841855852794817,
+      0.709158686633014
+    ],
+    "recall@5": [
+      0.8391100589379852,
+      0.8565155167900836
+    ],
+    "triplet_accuracy": [
+      0.9351031127825304,
+      0.9720932495574134
+    ]
+  },
+  "n_bootstrap": 200,
+  "n_embedded_hosts": 6453,
+  "n_hosts": 2761,
+  "reference_info": {
+    "cohort_policy": "train_only",
+    "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+    "data_kind": "lanl_declared",
+    "evaluable_coverage": 0.4278630094529676,
+    "features_sha256": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+    "files_sha256": {
+      "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
+      "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
+      "features.csv": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+      "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
+      "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
+      "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
+      "triplets.csv": "cc9ce9aa4dd1676474ab6e35a38a57ca8d4dce3a94bf62d91f8be4986ee5949b"
+    },
+    "fit_reference_files_sha256": null,
+    "ground_truth": false,
+    "kind": "heldout_temporal_behavior_proxy",
+    "labels_source": null,
+    "n_cohort": 6453,
+    "n_evaluable": 2761,
+    "neighbors_sha256": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
+    "provenance_verified": false,
+    "provenance_verified_by_pipeline": false,
+    "real_lanl_declared": true,
+    "source_window": "train",
+    "synthetic": false,
+    "target_window": "validation",
+    "test_start_utc": "1970-01-02T12:00:00Z",
+    "train_end_utc": "1970-01-02T11:59:59Z"
+  },
+  "seed": 0,
+  "split": "validation",
+  "submission": "<workdir>/run/embeddings/behavioral/train.csv",
+  "summary": [
+    {
+      "chance": 0.0036231884057971015,
+      "ci": [
+        0.197279065555958,
+        0.21974827960883733
+      ],
+      "group": "\u041f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435",
+      "metric": "consistency@10_mean",
+      "title": "\u0421\u043e\u0441\u0435\u0434\u0438@10",
+      "value": 0.20775081492212963
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.17615725020876802,
+        0.24101666627323032
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "link_roc_auc",
+      "title": "\u0421\u0432\u044f\u0437\u044c, AUC",
+      "value": 0.2064545854626515
+    },
+    {
+      "chance": 0.0641434390923566,
+      "ci": [
+        0.21091937002738093,
+        0.2387107791692693
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "partner_new_mrr",
+      "title": "\u041d\u043e\u0432\u044b\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438, MRR",
+      "value": 0.22549898464621126
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.9594733995585706,
+        0.9756731197071251
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "pair_roc_auc",
+      "title": "\u041f\u0430\u0440\u044b, AUC",
+      "value": 0.9677696276984366
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.9351031127825304,
+        0.9720932495574134
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "triplet_accuracy",
+      "title": "\u0422\u0440\u043e\u0439\u043a\u0438",
+      "value": 0.9557589626239512
+    }
+  ],
+  "unavailable_metrics": [
+    "linear_probe: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)"
+  ]
+}

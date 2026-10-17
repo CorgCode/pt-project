@@ -1,4 +1,4 @@
-/* Charts for the research site. No dependencies: data comes from data/synthetic_demo.json,
+/* Графики сайта без зависимостей: данные из data/results.json (собирает docs/build_data.py),
    charts are inline SVG. Every number shown is read from that file; nothing is computed or invented here
    except the arithmetic mean already verified by docs/check_pages.py. */
 (function () {
@@ -124,7 +124,7 @@
     var pad = 30;
     var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Двумерная проекция PCA 300 синтетических хостов; цвет показывает долю совпавших ближайших соседей" });
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Двумерная проекция PCA хостов; цвет показывает долю совпавших ближайших соседей" });
     svg.appendChild(el("rect", { x: pad, y: 6, width: W - pad - 8, height: H - pad - 6, fill: "none", stroke: css("--rule") }));
     var lowC = css("--rule"), hiC = css("--accent");
     function mix(a, b, t) {
@@ -164,7 +164,7 @@
     ms.forEach(function (m) {
       var tr = html("tr"); tr.appendChild(html("td", null, name(m)));
       cols.forEach(function (c) { tr.appendChild(html("td", { "class": "num" }, fmt(res[m][c[0]]))); });
-      var st = m === "reference_ceiling" ? "утечка: не метод" : m === "random" ? "нижняя граница" : "базовый, синтетика";
+      var st = m === "reference_ceiling" ? "утечка: не метод" : m === "random" ? "нижняя граница" : d.meta.label;
       var td = html("td"); td.appendChild(html("span", { "class": "tag syn" }, st)); tr.appendChild(td); tb.appendChild(tr);
     });
     d.meta.missing.slice().sort().forEach(function (m) {
@@ -183,7 +183,7 @@
       { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], title: "Согласие ближайших соседей по методам", legend: ["k = 5", "k = 10", "k = 20"] });
     var lEl = document.getElementById("chartLinks");
     if (lEl) draw(lEl, rowsFor(function (m) { return [res[m].link_roc_auc, res[m].link_learned_roc_auc, res[m].link_new_roc_auc]; }, 3),
-      { kind: "dot", min: 0.3, max: 1, ticks: [0.3, 0.5, 0.7, 0.9], ref: 0.5, refLabel: "случайный уровень 0,5", title: "ROC-AUC прогноза будущих связей",
+      { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: 0.5, refLabel: "случайный уровень 0,5", title: "ROC-AUC прогноза будущих связей",
         legend: ["косинус", "обученный классификатор", "только новые связи"] });
     var pEl = document.getElementById("chartPairs");
     if (pEl) draw(pEl, rowsFor(function (m) { return [res[m].pair_roc_auc]; }, 1),
@@ -192,7 +192,7 @@
     if (iEl) {
       var ids = d.identity;
       draw(iEl, rowsFor(function (m) { var r = ids[m]; return r ? [r.raw_top1, r.aligned_top1] : [null, null]; }, 2).filter(function (r) { return r.pending || ids[r.key]; }),
-        { kind: "dot", min: 0, max: 0.4, ticks: [0, 0.1, 0.2, 0.3, 0.4], ref: ids.behavioral.chance_top1, refLabel: "случайное угадывание", title: "Точность top-1 при поиске того же хоста в следующем окне", legend: ["без выравнивания", "с выравниванием (Прокруст)"] });
+        { kind: "dot", min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], ref: ids.behavioral.chance_top1, refLabel: "случайное угадывание", title: "Точность top-1 при поиске того же хоста в следующем окне", legend: ["без выравнивания", "с выравниванием (Прокруст)"] });
     }
     var sEl = document.getElementById("chartHosts"); if (sEl) scatter(sEl, d.projection.points);
     var bEl = document.getElementById("leaderboard"); if (bEl) leaderboard(bEl);
@@ -222,13 +222,13 @@
       ids.forEach(function (a) { var t = document.querySelector(a.getAttribute("href")); if (t) io.observe(t); });
     }
     if (!document.getElementById("chartConsistency")) return;
-    fetch("./data/synthetic_demo.json", { cache: "no-cache" }).then(function (r) {
+    fetch("./data/results.json", { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status); return r.json();
     }).then(function (d) {
       state.data = d; fillMeta(); renderAll();
       document.documentElement.setAttribute("data-charts", "ready");
     }).catch(function (e) {
-      document.querySelectorAll(".fig").forEach(function (n) { n.textContent = "Не удалось загрузить data/synthetic_demo.json (" + e.message + ")."; });
+      document.querySelectorAll(".fig").forEach(function (n) { n.textContent = "Не удалось загрузить data/results.json (" + e.message + ")."; });
     });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();

@@ -1,0 +1,474 @@
+{
+  "ci_methods": {
+    "consistency@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "consistency@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "jaccard@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "link_learned_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "link_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "link_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "ndcg@10_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@20_mean": "item bootstrap (hosts / anchors resampled)",
+    "ndcg@5_mean": "item bootstrap (hosts / anchors resampled)",
+    "pair_pr_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "pair_roc_auc": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+    "partner_mrr": "item bootstrap (hosts / anchors resampled)",
+    "partner_new_mrr": "item bootstrap (hosts / anchors resampled)",
+    "precision@1": "item bootstrap (hosts / anchors resampled)",
+    "precision@3": "item bootstrap (hosts / anchors resampled)",
+    "precision@5": "item bootstrap (hosts / anchors resampled)",
+    "recall@1": "item bootstrap (hosts / anchors resampled)",
+    "recall@3": "item bootstrap (hosts / anchors resampled)",
+    "recall@5": "item bootstrap (hosts / anchors resampled)",
+    "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
+  },
+  "method": "graph_spectral",
+  "method_info": {
+    "description": "spectral embedding U*sqrt(S) of D^-1/2 A D^-1/2 (A = log1p flow counts) of the window's FULL communication graph (cohort hosts and their peers); each window is fitted separately, so coordinates are NOT shared across windows",
+    "fit_windows": [
+      "train"
+    ],
+    "name": "graph_spectral",
+    "shared_coordinate_system": false
+  },
+  "metric_details": {
+    "future_link_prediction": {
+      "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
+      "n_examples": 45776,
+      "n_positive": 22888,
+      "natural_prevalence": 0.009110881030316131,
+      "new_links": {
+        "n_examples": 25577,
+        "n_positive": 2738,
+        "note": "candidates not observed in the source window (new links vs unseen non-links)",
+        "positive_rate": 0.10704930210736208,
+        "pr_auc": 0.05713099953332228,
+        "roc_auc": 0.062499474279111525
+      },
+      "persistence_baseline": {
+        "note": "trivial predictor: pair seen in the source window; embeddings should be read against it",
+        "pr_auc": 0.9380513311460441,
+        "roc_auc": 0.9391165676336944
+      },
+      "positive_rate": 0.5,
+      "share_positives_seen_in_source": 0.8803739951066061,
+      "source_window": "1970-01-02T11:00:00Z/1970-01-02T11:59:59Z",
+      "split": "test",
+      "target_window": "1970-01-02T12:30:00Z/1970-01-02T12:59:59Z"
+    },
+    "link_learned": {
+      "ci_method": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
+      "eval_split": "test",
+      "eval_target_window": "1970-01-02T12:30:00Z/1970-01-02T12:59:59Z",
+      "fit_split": "validation",
+      "fit_target_window": "1970-01-02T12:00:00Z/1970-01-02T12:29:59Z",
+      "n_eval": 45776,
+      "n_fit": 57796,
+      "pr_auc": 0.9810698859377183,
+      "pr_auc_lift": 1.9621397718754365,
+      "roc_auc": 0.9797459226095104
+    },
+    "pairwise_auc": {
+      "interpretation": "\u0420\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e \u044f\u0432\u043d\u044b\u0435 \u043f\u0430\u0440\u044b: Jaccard >= tau (\u043f\u043e\u0445\u043e\u0436\u0438) \u0438\u043b\u0438 0 (\u043d\u0435 \u043f\u043e\u0445\u043e\u0436\u0438). \u0414\u043e\u043b\u044f \u043f\u043e\u043b\u043e\u0436\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u2014 \u0441\u0440\u0435\u0434\u0438 \u0440\u0430\u0437\u043c\u0435\u0447\u0435\u043d\u043d\u044b\u0445, \u0430 \u043d\u0435 \u0441\u0440\u0435\u0434\u0438 \u0432\u0441\u0435\u0445 \u043f\u0430\u0440 \u0445\u043e\u0441\u0442\u043e\u0432.",
+      "judged_population_prevalence": 0.04601270851318359,
+      "n_pairs": 18747,
+      "n_positive": 7242,
+      "population_positive_rate": 0.010120370469886284,
+      "positive_rate": 0.3863018082893263,
+      "split": "test",
+      "unjudged_share": 0.7800527115897429
+    },
+    "partner_ranking": {
+      "all": {
+        "embedding": {
+          "mrr": 0.833461533817841,
+          "mrr_ci": [
+            0.8208208789552043,
+            0.8458037321002505
+          ],
+          "n_hosts": 2242,
+          "recall_at_n": 0.46809556356489196
+        },
+        "history": {
+          "mrr": 0.9715129716327093,
+          "n_hosts": 2242,
+          "recall_at_n": 0.6811863256778605
+        },
+        "lift_vs_best_baseline": -0.14209942825864819,
+        "popularity": {
+          "mrr": 0.8585836760306644,
+          "n_hosts": 2242,
+          "recall_at_n": 0.21863668549847676
+        }
+      },
+      "k_neighbors": 10,
+      "n_candidates": 25287,
+      "new": {
+        "embedding": {
+          "mrr": 0.19570667639637657,
+          "mrr_ci": [
+            0.17760388959736448,
+            0.21233858039165365
+          ],
+          "n_hosts": 1419,
+          "recall_at_n": 0.2528131161638042
+        },
+        "history": {
+          "mrr": 7.956614349443921e-05,
+          "n_hosts": 1419,
+          "recall_at_n": 0.0
+        },
+        "lift_vs_best_baseline": 2.0029076866275957,
+        "popularity": {
+          "mrr": 0.06517239183471678,
+          "n_hosts": 1419,
+          "recall_at_n": 0.10676875816320636
+        }
+      },
+      "target_coverage": 0.9885834094213926,
+      "top_n": 10
+    },
+    "retrieval": {
+      "by_k": {
+        "1": {
+          "chance_precision": 0.45548811592853716,
+          "coverage": 0.7966269841269841,
+          "eligible_anchors": 1606,
+          "oracle_precision": 1.0,
+          "precision": 0.9800747198007472,
+          "precision_ci": [
+            0.9738013698630137,
+            0.9863013698630136
+          ],
+          "precision_lift": 2.151702065382786,
+          "recall": 0.2313660032265868,
+          "recall_ci": [
+            0.2190672619883595,
+            0.2458485347638643
+          ]
+        },
+        "3": {
+          "chance_precision": 0.45548811592853716,
+          "coverage": 0.7966269841269841,
+          "eligible_anchors": 1606,
+          "oracle_precision": 0.9076380240763802,
+          "precision": 0.8976753839767537,
+          "precision_ci": [
+            0.8868669572436697,
+            0.9068129929431299
+          ],
+          "precision_lift": 1.9707986939391249,
+          "recall": 0.48489078892210374,
+          "recall_ci": [
+            0.46988150126586975,
+            0.5029487826282352
+          ]
+        },
+        "5": {
+          "chance_precision": 0.45587268507874645,
+          "coverage": 0.7951388888888888,
+          "eligible_anchors": 1603,
+          "oracle_precision": 0.8424204616344355,
+          "precision": 0.8368059887710543,
+          "precision_ci": [
+            0.8209482220835933,
+            0.8482938240798503
+          ],
+          "precision_lift": 1.8356133546946474,
+          "recall": 0.6502518310163262,
+          "recall_ci": [
+            0.634374330385281,
+            0.6634287493071013
+          ]
+        }
+      },
+      "judged_anchors": 2016,
+      "ks": [
+        1,
+        3,
+        5
+      ],
+      "split": "test"
+    },
+    "triplet_accuracy": {
+      "chance": 0.5,
+      "n_ties": 0,
+      "n_triplets": 8912,
+      "split": "test"
+    }
+  },
+  "metric_status": {
+    "future_link_prediction": "ok",
+    "knn_consistency": "ok",
+    "linear_probe": "unavailable: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)",
+    "pairwise_pr_auc": "ok",
+    "pairwise_roc_auc": "ok",
+    "partner_ranking": "ok",
+    "precision_at_k": "ok",
+    "recall_at_k": "ok",
+    "triplet_accuracy": "ok"
+  },
+  "metrics": {
+    "consistency@10_mean": 0.07685102586975914,
+    "consistency@10_median": 0.0,
+    "consistency@10_std": 0.15083963759801602,
+    "consistency@20_mean": 0.09192685102586977,
+    "consistency@20_median": 0.05,
+    "consistency@20_std": 0.15965697835632084,
+    "consistency@5_mean": 0.06663693131132917,
+    "consistency@5_median": 0.0,
+    "consistency@5_std": 0.1593220275462253,
+    "jaccard@10_mean": 0.048248821954022136,
+    "jaccard@10_median": 0.0,
+    "jaccard@10_std": 0.10694016745933042,
+    "jaccard@20_mean": 0.058305193854321036,
+    "jaccard@20_median": 0.02564102564102564,
+    "jaccard@20_std": 0.1236127900151991,
+    "jaccard@5_mean": 0.04417293233082708,
+    "jaccard@5_median": 0.0,
+    "jaccard@5_std": 0.12021040562671771,
+    "link_learned_pr_auc": 0.9810698859377183,
+    "link_learned_pr_auc_lift": 1.9621397718754365,
+    "link_learned_roc_auc": 0.9797459226095104,
+    "link_new_pr_auc": 0.05713099953332228,
+    "link_new_roc_auc": 0.062499474279111525,
+    "link_pr_auc": 0.31413689414717433,
+    "link_pr_auc_at_natural_prevalence": 0.00469343184478728,
+    "link_pr_auc_lift": 0.6282737882943487,
+    "link_roc_auc": 0.06387418633307113,
+    "ndcg@10_mean": 0.091821803231726,
+    "ndcg@10_median": 0.0,
+    "ndcg@10_std": 0.18523414185638812,
+    "ndcg@20_mean": 0.10812389214235307,
+    "ndcg@20_median": 0.011041881769158992,
+    "ndcg@20_std": 0.18689960158129307,
+    "ndcg@5_mean": 0.07883496949550892,
+    "ndcg@5_median": 0.0,
+    "ndcg@5_std": 0.18948710085076917,
+    "pair_pr_auc": 0.9794698743227509,
+    "pair_pr_auc_at_judged_prevalence": 0.8761074344949514,
+    "pair_pr_auc_lift": 2.535504243845431,
+    "pair_roc_auc": 0.9843847895341302,
+    "partner_history_mrr": 0.9715129716327093,
+    "partner_lift": -0.14209942825864819,
+    "partner_mrr": 0.833461533817841,
+    "partner_new_history_mrr": 7.956614349443921e-05,
+    "partner_new_lift": 2.0029076866275957,
+    "partner_new_mrr": 0.19570667639637657,
+    "partner_new_popularity_mrr": 0.06517239183471678,
+    "partner_new_recall@10": 0.2528131161638042,
+    "partner_popularity_mrr": 0.8585836760306644,
+    "partner_recall@10": 0.46809556356489196,
+    "precision@1": 0.9800747198007472,
+    "precision@3": 0.8976753839767537,
+    "precision@5": 0.8368059887710543,
+    "precision_lift@1": 2.151702065382786,
+    "precision_lift@3": 1.9707986939391249,
+    "precision_lift@5": 1.8356133546946474,
+    "recall@1": 0.2313660032265868,
+    "recall@3": 0.48489078892210374,
+    "recall@5": 0.6502518310163262,
+    "triplet_accuracy": 0.9913599640933572
+  },
+  "metrics_ci": {
+    "consistency@10_mean": [
+      0.07153434433541479,
+      0.08229371097234613
+    ],
+    "consistency@20_mean": [
+      0.08637321587867976,
+      0.09779382247992864
+    ],
+    "consistency@5_mean": [
+      0.060827386262265824,
+      0.07181980374665478
+    ],
+    "jaccard@10_mean": [
+      0.04447461441447454,
+      0.052186709684964576
+    ],
+    "jaccard@20_mean": [
+      0.05371791868919077,
+      0.06309840825262467
+    ],
+    "jaccard@5_mean": [
+      0.039248058352094925,
+      0.04835862608498648
+    ],
+    "link_learned_roc_auc": [
+      0.9692198661352162,
+      0.9853651456584179
+    ],
+    "link_pr_auc": [
+      0.24200670607517955,
+      0.3691706049413348
+    ],
+    "link_roc_auc": [
+      0.05266291073412241,
+      0.08044954865337517
+    ],
+    "ndcg@10_mean": [
+      0.08479423137251053,
+      0.09801958468299964
+    ],
+    "ndcg@20_mean": [
+      0.10128610222367193,
+      0.11486643776244772
+    ],
+    "ndcg@5_mean": [
+      0.07097500365641327,
+      0.08609652263130117
+    ],
+    "pair_pr_auc": [
+      0.9711825214587279,
+      0.9864535335531786
+    ],
+    "pair_roc_auc": [
+      0.9775197383385823,
+      0.9895233371889682
+    ],
+    "partner_mrr": [
+      0.8208208789552043,
+      0.8458037321002505
+    ],
+    "partner_new_mrr": [
+      0.17760388959736448,
+      0.21233858039165365
+    ],
+    "precision@1": [
+      0.9738013698630137,
+      0.9863013698630136
+    ],
+    "precision@3": [
+      0.8868669572436697,
+      0.9068129929431299
+    ],
+    "precision@5": [
+      0.8209482220835933,
+      0.8482938240798503
+    ],
+    "recall@1": [
+      0.2190672619883595,
+      0.2458485347638643
+    ],
+    "recall@3": [
+      0.46988150126586975,
+      0.5029487826282352
+    ],
+    "recall@5": [
+      0.634374330385281,
+      0.6634287493071013
+    ],
+    "triplet_accuracy": [
+      0.9840569020566159,
+      0.9962770027890578
+    ]
+  },
+  "n_bootstrap": 200,
+  "n_embedded_hosts": 6453,
+  "n_hosts": 2242,
+  "reference_info": {
+    "cohort_policy": "train_only",
+    "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+    "data_kind": "lanl_declared",
+    "evaluable_coverage": 0.3474353014101968,
+    "features_sha256": "e8e17743e80797bd68f81324a49b57dbbf076a918e7fd7d20f8f84f553c9bdba",
+    "files_sha256": {
+      "edges.csv": "d67de21c6766feeed3cb2acaabca69f44858d04fea409c0a8d562051afb053e8",
+      "eval_hosts.csv": "63d6267ba9fdfd9198b94d90aed1c5b8679a38c26db08c01a442a28218e01957",
+      "features.csv": "e8e17743e80797bd68f81324a49b57dbbf076a918e7fd7d20f8f84f553c9bdba",
+      "neighbors.csv": "e5e21f84b5c462d272786e3129f30e4cb23d9924d6b0f9e202a2067047962901",
+      "pairs.csv": "6d408a475c5db3d2f26bf5a47060443a1120ee4fba9c7b7bf3c2baa3ed421581",
+      "partners.csv": "91aded4180218193349378d3196aaf326ece71cbde49f388326d923b9eb02beb",
+      "triplets.csv": "79ca8c52afd257fd326731d5353eab73a8038044944dc6811c3c0af67ae1c2e7"
+    },
+    "fit_reference_files_sha256": {
+      "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
+      "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
+      "features.csv": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+      "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
+      "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
+      "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
+      "triplets.csv": "cc9ce9aa4dd1676474ab6e35a38a57ca8d4dce3a94bf62d91f8be4986ee5949b"
+    },
+    "ground_truth": false,
+    "kind": "heldout_temporal_behavior_proxy",
+    "labels_source": null,
+    "n_cohort": 6453,
+    "n_evaluable": 2242,
+    "neighbors_sha256": "e5e21f84b5c462d272786e3129f30e4cb23d9924d6b0f9e202a2067047962901",
+    "provenance_verified": false,
+    "provenance_verified_by_pipeline": false,
+    "real_lanl_declared": true,
+    "source_window": "train",
+    "synthetic": false,
+    "target_window": "test",
+    "test_start_utc": "1970-01-02T12:30:00Z",
+    "train_end_utc": "1970-01-02T11:59:59Z"
+  },
+  "seed": 0,
+  "split": "test",
+  "submission": "<workdir>/run/embeddings/graph_spectral/train.csv",
+  "summary": [
+    {
+      "chance": 0.004462293618920125,
+      "ci": [
+        0.07153434433541479,
+        0.08229371097234613
+      ],
+      "group": "\u041f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435",
+      "metric": "consistency@10_mean",
+      "title": "\u0421\u043e\u0441\u0435\u0434\u0438@10",
+      "value": 0.07685102586975914
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.05266291073412241,
+        0.08044954865337517
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "link_roc_auc",
+      "title": "\u0421\u0432\u044f\u0437\u044c, AUC",
+      "value": 0.06387418633307113
+    },
+    {
+      "chance": 0.06517239183471678,
+      "ci": [
+        0.17760388959736448,
+        0.21233858039165365
+      ],
+      "group": "\u0411\u0443\u0434\u0443\u0449\u0438\u0435 \u0441\u0432\u044f\u0437\u0438",
+      "metric": "partner_new_mrr",
+      "title": "\u041d\u043e\u0432\u044b\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438, MRR",
+      "value": 0.19570667639637657
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.9775197383385823,
+        0.9895233371889682
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "pair_roc_auc",
+      "title": "\u041f\u0430\u0440\u044b, AUC",
+      "value": 0.9843847895341302
+    },
+    {
+      "chance": 0.5,
+      "ci": [
+        0.9840569020566159,
+        0.9962770027890578
+      ],
+      "group": "\u041e\u0431\u0449\u0438\u0435 \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043d\u0438\u043a\u0438",
+      "metric": "triplet_accuracy",
+      "title": "\u0422\u0440\u043e\u0439\u043a\u0438",
+      "value": 0.9913599640933572
+    }
+  ],
+  "unavailable_metrics": [
+    "linear_probe: \u043d\u0435\u0442 labels.csv (\u0432\u043d\u0435\u0448\u043d\u0438\u0445 \u043c\u0435\u0442\u043e\u043a \u0445\u043e\u0441\u0442\u043e\u0432 \u043d\u0435\u0442, \u043f\u0440\u0438\u0434\u0443\u043c\u044b\u0432\u0430\u0442\u044c \u0438\u0445 \u043d\u0435\u043b\u044c\u0437\u044f)"
+  ]
+}

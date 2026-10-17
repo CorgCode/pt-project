@@ -7,7 +7,7 @@ import pytest
 
 from app.results import Bundle, BundleError, METRIC_GROUPS, discover
 
-DEMO = Path(__file__).resolve().parents[1] / "demo" / "synthetic_run"
+DEMO = Path(__file__).resolve().parent / "testdata" / "synthetic_run"
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +16,7 @@ def b():
 
 
 def test_demo_bundle_is_discovered_and_synthetic(b):
-    assert DEMO in discover(DEMO.parents[1]) and b.synthetic and b.label == "СИНТЕТИКА"
+    assert DEMO not in discover(DEMO.parents[2]) and b.synthetic and b.label == "СИНТЕТИКА"   # тестовые данные не показываются
     assert b.kind == "synthetic_fixture" and b.provenance_verified is False and "не трафик LANL" in b.badge
     assert b.targets == ["test", "validation"] and "random" in b.methods
 

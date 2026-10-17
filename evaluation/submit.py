@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -39,6 +40,11 @@ SUBMISSIONS = BOARD / "submissions"
 RESULTS = BOARD / "results"
 N_BOOT = 200
 SEED = 0
+
+
+def processed_dir() -> Path:
+    """Подготовленные данные: PT_DATA или scoreboard/data/processed (там только манифест и когорта, без потоков)."""
+    return Path(os.environ.get("PT_DATA", DATA / "processed"))
 
 
 def _sha(*paths: Path) -> str:
@@ -61,7 +67,10 @@ def score(sub: Path) -> dict:
     emb_file = sub / "embeddings.csv"
     validate_submission(str(emb_file))
     ref_test, ref_val = DATA / "reference" / "test", DATA / "reference" / "validation"
-    r = run(emb_file, ref_test, method, n_boot=N_BOOT, seed=SEED, fit_reference_dir=ref_val)
+    # классификатор связей учится на кандидатах validation — нужен эмбеддинг и для их хостов
+    val_hosts = set(pd.read_csv(ref_val / "eval_hosts.csv", dtype=str)["host_id"]) if (ref_val / "eval_hosts.csv").exists() else set()
+    covers_val = val_hosts <= set(pd.read_csv(emb_file, dtype={"host_id": str}, usecols=["host_id"])["host_id"])
+    r = run(emb_file, ref_test, method, n_boot=N_BOOT, seed=SEED, fit_reference_dir=ref_val if covers_val else None)
     test_file = sub / "test.csv"
     if test_file.exists():
         validate_submission(str(test_file))
@@ -166,7 +175,7 @@ def builtin(names: list[str], dim: int = 16) -> None:
     from benchmark.baselines.temporal import default_baselines
     from pipeline.data import ProcessedData
 
-    data = ProcessedData(DATA / "processed")
+    data = ProcessedData(processed_dir())
     hosts_test = data.evaluable("test")
     base = {b.name: b for b in default_baselines(dim, SEED)}
     wanted = list(base) + sorted(graph_methods.available()) if names == ["all"] else names

@@ -1,7 +1,6 @@
-"""Собрать docs/data/synthetic_demo.json для сайта из синтетического прогона demo/synthetic_run.
+"""Собрать docs/data/results.json для сайта из прогона (папка с run/, reference/ и processed/).
 
-    python -m experiments.make_demo_bundle      # сначала пересобрать прогон
-    python docs/build_data.py                   # затем данные сайта
+    python docs/build_data.py --bundle /путь/к/lanl
 
 Числа берутся из сохранённых файлов прогона через тот же слой данных, что у дашборда (app/results.py),
 поэтому сайт и дашборд не расходятся.
@@ -30,8 +29,6 @@ def _git_sha() -> str:
 
 def build(bundle_dir: Path, projection_method: str = "behavioral") -> dict:
     b = Bundle(bundle_dir)
-    if not b.synthetic:
-        raise SystemExit("сайт показывает только синтетический прогон")
     results = {t: {m: {k: r["metrics"][k] for k in KEYS if k in r["metrics"]}
                    for m, r in b.results(t).items()} for t in b.targets}
     identity = {}
@@ -42,8 +39,8 @@ def build(bundle_dir: Path, projection_method: str = "behavioral") -> dict:
     proj = b.projection(projection_method)
     m = b.manifest
     return {
-        "meta": {"synthetic": True, "claim": "Synthetic fixture only; not LANL results",
-                 "source_commit": _git_sha(), "source_path": "demo/synthetic_run",
+        "meta": {"synthetic": b.synthetic, "kind": b.kind, "label": b.label,
+                 "source_commit": _git_sha(), "source_path": "results/lanl_day02",
                  "hosts": len(proj), "seed": m["config"]["seed"],
                  "methods": sorted(results["test"]), "missing": m.get("missing_expected_methods", []),
                  "cohort_policy": (m.get("cohort") or {}).get("policy")},
@@ -60,10 +57,11 @@ def build(bundle_dir: Path, projection_method: str = "behavioral") -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--bundle", type=Path, default=ROOT / "demo" / "synthetic_run")
-    ap.add_argument("--output", type=Path, default=ROOT / "docs" / "data" / "synthetic_demo.json")
+    ap.add_argument("--bundle", type=Path, required=True, help="папка прогона с run/, reference/, processed/")
+    ap.add_argument("--output", type=Path, default=ROOT / "docs" / "data" / "results.json")
     a = ap.parse_args()
     data = build(a.bundle)
+    a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{a.output}: методов {len(data['meta']['methods'])}, хостов {data['meta']['hosts']}")
 

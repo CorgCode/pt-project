@@ -1,0 +1,703 @@
+{
+  "information_overlap": {
+    "behavioral": {
+      "edges": "none",
+      "neighbors": "same feature definitions, earlier window (feature overlap)",
+      "pairs": "weak: behaviour correlates with peers"
+    },
+    "behavioral_pca": {
+      "edges": "none",
+      "neighbors": "same feature definitions, earlier window (feature overlap)",
+      "pairs": "weak: behaviour correlates with peers"
+    },
+    "behavioral_portfree": {
+      "edges": "none",
+      "neighbors": "same feature definitions MINUS the port block, earlier window (reduced feature overlap)",
+      "pairs": "weak: behaviour correlates with peers"
+    },
+    "behavioral_portfree_pca": {
+      "edges": "none",
+      "neighbors": "same feature definitions MINUS the port block, earlier window (reduced feature overlap)",
+      "pairs": "weak: behaviour correlates with peers"
+    },
+    "behavioral_svd": {
+      "edges": "none",
+      "neighbors": "same feature definitions, earlier window (feature overlap)",
+      "pairs": "weak: behaviour correlates with peers"
+    },
+    "deepwalk": {
+      "edges": "strong: link persistence (peers seen in train recur)",
+      "neighbors": "weak: peers/degree structure correlates with behaviour",
+      "pairs": "strong: shared peers = shared neighbourhood"
+    },
+    "graph_spectral": {
+      "edges": "strong: link persistence (peers seen in train recur)",
+      "neighbors": "weak: degree/volume leaks into the spectrum",
+      "pairs": "strong: peer sets persist across windows"
+    },
+    "graphsage": {
+      "edges": "strong: link persistence through the neighbourhood aggregation",
+      "neighbors": "strong with features='behavioral': same feature definitions as the behavioural reference",
+      "pairs": "strong: shared peers = shared neighbourhood"
+    },
+    "node2vec": {
+      "edges": "strong: link persistence (peers seen in train recur)",
+      "neighbors": "weak: peers/degree structure correlates with behaviour",
+      "pairs": "strong: shared peers = shared neighbourhood"
+    },
+    "random": {
+      "edges": "none",
+      "neighbors": "none",
+      "pairs": "none"
+    },
+    "reference_ceiling": {
+      "edges": "none",
+      "neighbors": "identical by construction (target-window features)",
+      "pairs": "weak"
+    },
+    "rolx": {
+      "edges": "weak: structural roles, not specific peers, so link persistence is not encoded",
+      "neighbors": "weak: degree/volume-like structure correlates with behaviour",
+      "pairs": "weak: shared peers are not encoded (roles ignore identity)"
+    },
+    "struc2vec": {
+      "edges": "weak: structural identity, not specific peers, so link persistence is not encoded",
+      "neighbors": "weak: degree structure correlates with behaviour",
+      "pairs": "weak: shared peers are not encoded (structure ignores identity)"
+    }
+  },
+  "prevalence": {
+    "future_links": {
+      "natural_prevalence": 0.009110881030316131,
+      "note": "PR-AUC is only comparable at equal prevalence; use lift or the natural-prevalence value",
+      "sampled_positive_rate": 0.5,
+      "share_positives_seen_in_source": 0.8803739951066061
+    },
+    "pairs": {
+      "judged_population_prevalence": 0.04601270851318359,
+      "note": "the judged prevalence is conditional on a pair being judged (J >= tau or J == 0); unjudged pairs are excluded, so it is not the positive rate of all host pairs",
+      "population_positive_rate": 0.010120370469886284,
+      "sampled_positive_rate": 0.3863018082893263,
+      "unjudged_share": 0.7800527115897429
+    }
+  },
+  "random_null": {
+    "metrics": {
+      "consistency@10_mean": {
+        "mean": 0.004594112399643175,
+        "p5": 0.0038024085637823374,
+        "p95": 0.005575379125780553,
+        "std": 0.0005557354974672288
+      },
+      "consistency@20_mean": {
+        "mean": 0.008891614629794825,
+        "p5": 0.007903657448706511,
+        "p95": 0.009859500446030331,
+        "std": 0.0006493018710558339
+      },
+      "consistency@5_mean": {
+        "mean": 0.0023015165031222127,
+        "p5": 0.0014272970561998216,
+        "p95": 0.0033496877787689565,
+        "std": 0.000603844615694631
+      },
+      "jaccard@10_mean": {
+        "mean": 0.002422229566558353,
+        "p5": 0.0020012676651485987,
+        "p95": 0.0029422351597101584,
+        "std": 0.0002935531947012519
+      },
+      "jaccard@20_mean": {
+        "mean": 0.0045786682788419965,
+        "p5": 0.004070764126400541,
+        "p95": 0.005080219897816967,
+        "std": 0.0003359838243474105
+      },
+      "jaccard@5_mean": {
+        "mean": 0.0012794462616050482,
+        "p5": 0.0007929428089999009,
+        "p95": 0.001860937654871642,
+        "std": 0.00033527246459451776
+      },
+      "link_learned_pr_auc": {
+        "mean": 0.623074189360327,
+        "p5": 0.5881519747224431,
+        "p95": 0.6678998211560314,
+        "std": 0.026421517020503667
+      },
+      "link_learned_pr_auc_lift": {
+        "mean": 1.246148378720654,
+        "p5": 1.1763039494448861,
+        "p95": 1.3357996423120628,
+        "std": 0.052843034041007333
+      },
+      "link_learned_roc_auc": {
+        "mean": 0.6285310303244878,
+        "p5": 0.60185494214277,
+        "p95": 0.6619841508811932,
+        "std": 0.02122587937130632
+      },
+      "link_new_pr_auc": {
+        "mean": 0.10739509285717588,
+        "p5": 0.10431672962063158,
+        "p95": 0.1100151982265465,
+        "std": 0.0021424659102439168
+      },
+      "link_new_roc_auc": {
+        "mean": 0.5002277159028945,
+        "p5": 0.4898150928894039,
+        "p95": 0.5070060771895472,
+        "std": 0.005675859598753387
+      },
+      "link_pr_auc": {
+        "mean": 0.5003988229523386,
+        "p5": 0.4966406219042573,
+        "p95": 0.5034624667638212,
+        "std": 0.002319615123341186
+      },
+      "link_pr_auc_at_natural_prevalence": {
+        "mean": 0.009178599740837222,
+        "p5": 0.009010988686359477,
+        "p95": 0.00944057336032946,
+        "std": 0.00012869616481717575
+      },
+      "link_pr_auc_lift": {
+        "mean": 1.0007976459046772,
+        "p5": 0.9932812438085146,
+        "p95": 1.0069249335276425,
+        "std": 0.004639230246682372
+      },
+      "link_roc_auc": {
+        "mean": 0.5002724323008632,
+        "p5": 0.49564365960342305,
+        "p95": 0.5035715192171449,
+        "std": 0.0024581532714001643
+      },
+      "ndcg@10_mean": {
+        "mean": 0.0037768885047708466,
+        "p5": 0.0029834821485341086,
+        "p95": 0.0049009814520987625,
+        "std": 0.0006112118487765179
+      },
+      "ndcg@20_mean": {
+        "mean": 0.0073696566511214255,
+        "p5": 0.00634506943716714,
+        "p95": 0.00823315525503876,
+        "std": 0.0006845264148940928
+      },
+      "ndcg@5_mean": {
+        "mean": 0.0019629537567424633,
+        "p5": 0.0011497678760706814,
+        "p95": 0.003058392209014269,
+        "std": 0.000599018008384806
+      },
+      "pair_pr_auc": {
+        "mean": 0.38610340692067674,
+        "p5": 0.38095516228925425,
+        "p95": 0.3925578858515535,
+        "std": 0.0038151696512552084
+      },
+      "pair_pr_auc_at_judged_prevalence": {
+        "mean": 0.04606372449992313,
+        "p5": 0.045046892991539446,
+        "p95": 0.047225103432315854,
+        "std": 0.0007224310868680139
+      },
+      "pair_pr_auc_lift": {
+        "mean": 0.9994864083874517,
+        "p5": 0.9861594072682476,
+        "p95": 1.0161947923307197,
+        "std": 0.009876137179243483
+      },
+      "pair_roc_auc": {
+        "mean": 0.4992574073453971,
+        "p5": 0.49292982374652855,
+        "p95": 0.5072877731317904,
+        "std": 0.004967918921313015
+      },
+      "partner_history_mrr": {
+        "mean": 0.9715129716327093,
+        "p5": 0.9715129716327093,
+        "p95": 0.9715129716327093,
+        "std": 0.0
+      },
+      "partner_lift": {
+        "mean": -0.3764703757710301,
+        "p5": -0.3873434955192174,
+        "p95": -0.36599404452688045,
+        "std": 0.007000639884475663
+      },
+      "partner_mrr": {
+        "mean": 0.605767118135713,
+        "p5": 0.5952037412582334,
+        "p95": 0.6159450098345256,
+        "std": 0.006801212457497419
+      },
+      "partner_new_history_mrr": {
+        "mean": 7.956614349443918e-05,
+        "p5": 7.956614349443921e-05,
+        "p95": 7.956614349443921e-05,
+        "std": 2.7568422139080575e-20
+      },
+      "partner_new_lift": {
+        "mean": 0.02039789409809502,
+        "p5": -0.05704401044769043,
+        "p95": 0.08532791272056163,
+        "std": 0.05311358320360729
+      },
+      "partner_new_mrr": {
+        "mean": 0.06650177138148089,
+        "p5": 0.06145469723399622,
+        "p95": 0.07073341599697973,
+        "std": 0.0034615392562913254
+      },
+      "partner_new_popularity_mrr": {
+        "mean": 0.06517239183471675,
+        "p5": 0.06517239183471678,
+        "p95": 0.06517239183471678,
+        "std": 2.823006427041851e-17
+      },
+      "partner_new_recall@10": {
+        "mean": 0.0996095029903278,
+        "p5": 0.08939114734991759,
+        "p95": 0.10793596088955575,
+        "std": 0.005674960923404672
+      },
+      "partner_popularity_mrr": {
+        "mean": 0.8585836760306645,
+        "p5": 0.8585836760306644,
+        "p95": 0.8585836760306644,
+        "std": 1.1292025708167404e-16
+      },
+      "partner_recall@10": {
+        "mean": 0.24102822390780274,
+        "p5": 0.23466357806552057,
+        "p95": 0.2465702013240264,
+        "std": 0.003853775289769302
+      },
+      "precision@1": {
+        "mean": 0.4523661270236613,
+        "p5": 0.4334371108343711,
+        "p95": 0.4754981320049813,
+        "std": 0.01256525235966477
+      },
+      "precision@3": {
+        "mean": 0.4552649785526498,
+        "p5": 0.44458281444582815,
+        "p95": 0.46864881693648813,
+        "std": 0.007373464332788324
+      },
+      "precision@5": {
+        "mean": 0.45584944894988566,
+        "p5": 0.4482907049282595,
+        "p95": 0.46495945102932,
+        "std": 0.005106900161422963
+      },
+      "precision_lift@1": {
+        "mean": 0.9931458389457395,
+        "p5": 0.9515881878735433,
+        "p95": 1.043930928989558,
+        "std": 0.027586345110343476
+      },
+      "precision_lift@3": {
+        "mean": 0.9995101137261672,
+        "p5": 0.9760579889982904,
+        "p95": 1.0288936210358028,
+        "std": 0.016188049863292517
+      },
+      "precision_lift@5": {
+        "mean": 0.9999490293460842,
+        "p5": 0.983368206960728,
+        "p95": 1.0199326835057116,
+        "std": 0.0112024701820878
+      },
+      "recall@1": {
+        "mean": 0.06499995981770935,
+        "p5": 0.059845059689422386,
+        "p95": 0.06974087574676123,
+        "std": 0.0032845962034911487
+      },
+      "recall@3": {
+        "mean": 0.19865195684262696,
+        "p5": 0.1918300793161453,
+        "p95": 0.20765604138095398,
+        "std": 0.0056703395392352675
+      },
+      "recall@5": {
+        "mean": 0.3306318913731943,
+        "p5": 0.320263028743028,
+        "p95": 0.34161255650172484,
+        "std": 0.0070434144503009576
+      },
+      "triplet_accuracy": {
+        "mean": 0.4976174446439258,
+        "p5": 0.48753927289048477,
+        "p95": 0.5109459156193895,
+        "std": 0.007967559259767883
+      }
+    },
+    "n_draws": 30
+  },
+  "reference_stability": {
+    "chance_consistency": 0.00651890482398957,
+    "k": 10,
+    "meaning": "Consistency@k between neighbour lists from two windows' behavioural profiles: an upper-ish reference for how well ANY earlier-window embedding can match a later one",
+    "pairs": {
+      "train->test": {
+        "consistency": 0.32338762214983713,
+        "jaccard": 0.25165584906158317,
+        "ndcg": 0.3456642791266805
+      },
+      "train->validation": {
+        "consistency": 0.3132899022801303,
+        "jaccard": 0.23851030867146075,
+        "ndcg": 0.3375252725216445
+      },
+      "validation->test": {
+        "consistency": 0.31739413680781764,
+        "jaccard": 0.2414667017202288,
+        "ndcg": 0.34256231550436106
+      }
+    }
+  },
+  "split_agreement": {
+    "consistency@10_mean": 0.9636363636363636,
+    "link_roc_auc": 0.9272727272727274,
+    "pair_roc_auc": 1.0,
+    "triplet_accuracy": 0.9999999999999999
+  },
+  "weight_sensitivity": {
+    "canonical_scores": {
+      "behavioral": 0.2693131132917038,
+      "behavioral_pca": 0.2418376449598573,
+      "behavioral_svd": 0.24192685102586975,
+      "deepwalk": 0.07488849241748441,
+      "graph_spectral": 0.07685102586975914,
+      "graphsage": 0.12881355932203387,
+      "node2vec": 0.0731935771632471,
+      "random": 0.004415700267618199,
+      "rolx": 0.05856378233719894,
+      "struc2vec": 0.026761819803746655
+    },
+    "chance_agreement": 0.004462293618920125,
+    "configs": [
+      {
+        "config": 0,
+        "dropped_block": null,
+        "kendall_tau": 0.9555555555555554,
+        "reference_agreement": 0.8868867082961642,
+        "scores": {
+          "behavioral": 0.26360392506690455,
+          "behavioral_pca": 0.23844781445138272,
+          "behavioral_svd": 0.23840321141837645,
+          "deepwalk": 0.07363960749330956,
+          "graph_spectral": 0.07573595004460304,
+          "graphsage": 0.12716324710080287,
+          "node2vec": 0.07252453166815344,
+          "random": 0.004371097234611954,
+          "rolx": 0.05686886708296164,
+          "struc2vec": 0.025423728813559324
+        },
+        "weights": {
+          "hourly": 1.198172557684509,
+          "peers": 0.936081782696585,
+          "ports": 1.0538499299986492,
+          "proto": 0.7650342410761951,
+          "ratio": 1.377418816918276,
+          "volume": 1.0648831880319418
+        }
+      },
+      {
+        "config": 1,
+        "dropped_block": null,
+        "kendall_tau": 0.9999999999999999,
+        "reference_agreement": 0.587065120428189,
+        "scores": {
+          "behavioral": 0.20392506690454953,
+          "behavioral_pca": 0.19714540588760035,
+          "behavioral_svd": 0.19719000892060662,
+          "deepwalk": 0.07105263157894737,
+          "graph_spectral": 0.07457627118644067,
+          "graphsage": 0.11329170383586083,
+          "node2vec": 0.0707850133809099,
+          "random": 0.0044603033006244425,
+          "rolx": 0.06141837644959857,
+          "struc2vec": 0.026851025869759144
+        },
+        "weights": {
+          "hourly": 1.020877947247225,
+          "peers": 1.605668982978419,
+          "ports": 0.5311500404912064,
+          "proto": 0.7322471164092916,
+          "ratio": 0.7033732298360884,
+          "volume": 1.9193757876197597
+        }
+      },
+      {
+        "config": 2,
+        "dropped_block": "volume",
+        "kendall_tau": 0.9555555555555554,
+        "reference_agreement": 0.6277876895628903,
+        "scores": {
+          "behavioral": 0.23644067796610171,
+          "behavioral_pca": 0.21610169491525424,
+          "behavioral_svd": 0.21614629794826049,
+          "deepwalk": 0.07033898305084746,
+          "graph_spectral": 0.07355040142729705,
+          "graphsage": 0.1231935771632471,
+          "node2vec": 0.0712756467439786,
+          "random": 0.004058876003568243,
+          "rolx": 0.05606601248884924,
+          "struc2vec": 0.02537912578055308
+        },
+        "weights": {
+          "hourly": 0.8537216473586475,
+          "peers": 0.8963755331757737,
+          "ports": 0.6934101017879203,
+          "proto": 0.761755613880264,
+          "ratio": 0.5363569041090662,
+          "volume": 1e-09
+        }
+      },
+      {
+        "config": 3,
+        "dropped_block": null,
+        "kendall_tau": 0.9888264649460884,
+        "reference_agreement": 0.6357270294380019,
+        "scores": {
+          "behavioral": 0.21512042818911684,
+          "behavioral_pca": 0.20477252453166817,
+          "behavioral_svd": 0.20477252453166817,
+          "deepwalk": 0.06931311329170382,
+          "graph_spectral": 0.07198929527207851,
+          "graphsage": 0.11329170383586083,
+          "node2vec": 0.06877787689562889,
+          "random": 0.004772524531668154,
+          "rolx": 0.05526315789473685,
+          "struc2vec": 0.024977698483496878
+        },
+        "weights": {
+          "hourly": 1.5710357116747415,
+          "peers": 0.9377542747882459,
+          "ports": 0.7170588692919131,
+          "proto": 1.19214598889198,
+          "ratio": 1.9802671013397508,
+          "volume": 1.6841427568802136
+        }
+      },
+      {
+        "config": 4,
+        "dropped_block": null,
+        "kendall_tau": 0.9555555555555554,
+        "reference_agreement": 0.7462979482604817,
+        "scores": {
+          "behavioral": 0.25089206066012487,
+          "behavioral_pca": 0.2273862622658341,
+          "behavioral_svd": 0.22738626226583408,
+          "deepwalk": 0.0751115075825156,
+          "graph_spectral": 0.07528991971454059,
+          "graphsage": 0.12702943800178412,
+          "node2vec": 0.07413024085637823,
+          "random": 0.004415700267618198,
+          "rolx": 0.05700267618198038,
+          "struc2vec": 0.025245316681534347
+        },
+        "weights": {
+          "hourly": 0.6036208006069895,
+          "peers": 0.6895268614242765,
+          "ports": 0.7954375703136567,
+          "proto": 1.1163869817968985,
+          "ratio": 0.6307392794426149,
+          "volume": 1.0481284538763873
+        }
+      },
+      {
+        "config": 5,
+        "dropped_block": "peers",
+        "kendall_tau": 0.8989331499509895,
+        "reference_agreement": 0.5711864406779661,
+        "scores": {
+          "behavioral": 0.21761819803746654,
+          "behavioral_pca": 0.19393398751115076,
+          "behavioral_svd": 0.19393398751115076,
+          "deepwalk": 0.06837644959857271,
+          "graph_spectral": 0.06784121320249778,
+          "graphsage": 0.11605709188224801,
+          "node2vec": 0.06833184656556646,
+          "random": 0.003791257805530776,
+          "rolx": 0.0463871543264942,
+          "struc2vec": 0.021097234611953612
+        },
+        "weights": {
+          "hourly": 0.7211455391554594,
+          "peers": 1e-09,
+          "ports": 1.1133010949318076,
+          "proto": 1.194450628436782,
+          "ratio": 1.3105184107692724,
+          "volume": 0.9006957241680038
+        }
+      },
+      {
+        "config": 6,
+        "dropped_block": null,
+        "kendall_tau": 0.9999999999999999,
+        "reference_agreement": 0.5145405887600356,
+        "scores": {
+          "behavioral": 0.18657448706512042,
+          "behavioral_pca": 0.1822479928635147,
+          "behavioral_svd": 0.1823371989295272,
+          "deepwalk": 0.06672613737734166,
+          "graph_spectral": 0.07069580731489741,
+          "graphsage": 0.10584299732381802,
+          "node2vec": 0.06659232827832293,
+          "random": 0.004504906333630688,
+          "rolx": 0.05762711864406779,
+          "struc2vec": 0.025379125780553076
+        },
+        "weights": {
+          "hourly": 1.959986747796305,
+          "peers": 1.4799195601229527,
+          "ports": 0.5328407041201861,
+          "proto": 2.1317897547998186,
+          "ratio": 2.110058289813403,
+          "volume": 0.9372485065118077
+        }
+      },
+      {
+        "config": 7,
+        "dropped_block": null,
+        "kendall_tau": 0.8539864924534399,
+        "reference_agreement": 0.6982604817127565,
+        "scores": {
+          "behavioral": 0.24937555753791255,
+          "behavioral_pca": 0.2207850133809099,
+          "behavioral_svd": 0.2207850133809099,
+          "deepwalk": 0.07564674397859054,
+          "graph_spectral": 0.07386262265834077,
+          "graphsage": 0.12903657448706515,
+          "node2vec": 0.07613737734165922,
+          "random": 0.004504906333630688,
+          "rolx": 0.05628902765388047,
+          "struc2vec": 0.024665477252453164
+        },
+        "weights": {
+          "hourly": 2.461614498638674,
+          "peers": 1.141368310660741,
+          "ports": 2.0730280029257924,
+          "proto": 2.6648004005931507,
+          "ratio": 0.8547370448186894,
+          "volume": 1.477949568284598
+        }
+      },
+      {
+        "config": 8,
+        "dropped_block": "ports",
+        "kendall_tau": 0.911111111111111,
+        "reference_agreement": 0.3814897413024086,
+        "scores": {
+          "behavioral": 0.137957181088314,
+          "behavioral_pca": 0.13635147190008923,
+          "behavioral_svd": 0.13630686886708296,
+          "deepwalk": 0.06378233719892953,
+          "graph_spectral": 0.06775200713648528,
+          "graphsage": 0.08501338090990189,
+          "node2vec": 0.06422836752899197,
+          "random": 0.004594112399643176,
+          "rolx": 0.06097234611953612,
+          "struc2vec": 0.02649420160570919
+        },
+        "weights": {
+          "hourly": 0.5250925575287513,
+          "peers": 1.195650280702273,
+          "ports": 1e-09,
+          "proto": 1.3885186612508376,
+          "ratio": 0.5465336956189111,
+          "volume": 1.9300615283199936
+        }
+      },
+      {
+        "config": 9,
+        "dropped_block": null,
+        "kendall_tau": 0.9999999999999999,
+        "reference_agreement": 0.7323818019625334,
+        "scores": {
+          "behavioral": 0.23818019625334522,
+          "behavioral_pca": 0.22346119536128456,
+          "behavioral_svd": 0.22355040142729707,
+          "deepwalk": 0.0743978590544157,
+          "graph_spectral": 0.07582515611061552,
+          "graphsage": 0.12292595896520965,
+          "node2vec": 0.07319357716324709,
+          "random": 0.0044603033006244425,
+          "rolx": 0.059946476360392506,
+          "struc2vec": 0.02685102586975914
+        },
+        "weights": {
+          "hourly": 0.5571610437153638,
+          "peers": 1.416262503590189,
+          "ports": 0.7183119841323133,
+          "proto": 0.803950464056238,
+          "ratio": 0.5531871082739342,
+          "volume": 1.2397774000472983
+        }
+      },
+      {
+        "config": 10,
+        "dropped_block": null,
+        "kendall_tau": 0.9555555555555554,
+        "reference_agreement": 0.5393398751115075,
+        "scores": {
+          "behavioral": 0.2071364852809991,
+          "behavioral_pca": 0.19451382694023195,
+          "behavioral_svd": 0.19446922390722568,
+          "deepwalk": 0.0699821587867975,
+          "graph_spectral": 0.07091882247992863,
+          "graphsage": 0.11168599464763605,
+          "node2vec": 0.06873327386262265,
+          "random": 0.0046387154326494205,
+          "rolx": 0.053389830508474574,
+          "struc2vec": 0.02297056199821588
+        },
+        "weights": {
+          "hourly": 1.9351415834390613,
+          "peers": 0.7803947760293314,
+          "ports": 0.8787223752761838,
+          "proto": 2.2072258144146804,
+          "ratio": 1.1787856692371566,
+          "volume": 2.386156562262323
+        }
+      },
+      {
+        "config": 11,
+        "dropped_block": "volume",
+        "kendall_tau": 0.8989331499509895,
+        "reference_agreement": 0.48148974130240857,
+        "scores": {
+          "behavioral": 0.21467439785905443,
+          "behavioral_pca": 0.19170383586083853,
+          "behavioral_svd": 0.19170383586083853,
+          "deepwalk": 0.06944692239072256,
+          "graph_spectral": 0.07114183764495986,
+          "graphsage": 0.11958073148974131,
+          "node2vec": 0.07167707404103478,
+          "random": 0.003791257805530776,
+          "rolx": 0.05187332738626227,
+          "struc2vec": 0.023282783229259592
+        },
+        "weights": {
+          "hourly": 0.7342148938133297,
+          "peers": 0.3322874271018728,
+          "ports": 1.4075394307591678,
+          "proto": 1.6519902744110653,
+          "ratio": 1.0263558173158318,
+          "volume": 1e-09
+        }
+      }
+    ],
+    "k": 10,
+    "mean_kendall_tau": 0.9478343825529033,
+    "mean_reference_agreement": 0.616871097234612,
+    "min_kendall_tau": 0.8539864924534399,
+    "min_reference_agreement": 0.3814897413024086
+  }
+}

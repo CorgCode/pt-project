@@ -1,63 +1,4 @@
-import pandas as pd
 import pytest
-
-from app import core
-
-
-@pytest.fixture(scope="module")
-def reference_dir(tmp_path_factory):
-    return core.make_demo_reference(tmp_path_factory.mktemp("ref"), n_hosts=100)
-
-
-@pytest.fixture(scope="module")
-def sample(reference_dir, tmp_path_factory):
-    return core.sample_embedding(reference_dir, tmp_path_factory.mktemp("s"), dim=6)
-
-
-def test_full_flow_on_valid_upload(sample, reference_dir):
-    out = core.evaluate_upload(sample, reference_dir)
-    board = out["board"]
-    assert set(board.index) == {"uploaded", "random", "pca", "svd", "reference ceiling"}
-    assert {f"{m}@{k}" for m in core.METRICS for k in core.KS} == set(board.columns)
-    assert board.loc["reference ceiling", "consistency@10"] >= board.loc["random", "consistency@10"]
-    assert board.loc["uploaded", "consistency@10"] > board.loc["random", "consistency@10"]
-    assert out["projection"] is not None and {"host_id", "PC1", "PC2"} <= set(out["projection"].columns)
-    assert any(u.startswith("triplet_accuracy") for u in out["unavailable"])
-
-
-def test_metric_long_shape(sample, reference_dir):
-    long = core.metric_long(core.evaluate_upload(sample, reference_dir)["board"], "jaccard")
-    assert list(long.columns) == ["method", "k", "Jaccard"] and len(long) == 5 * 3
-
-
-@pytest.mark.parametrize("data,msg", [
-    (b"", "пустой"),
-    (b"a,b\n1,2\n", "host_id"),
-    (b"host_id,x\nh1,1\n", "нет колонок эмбеддинга"),
-    (b"host_id,emb_0\nh1,1\nh1,2\n", "повторяющиеся host_id"),
-    (b"host_id,emb_0\nh1,\nh2,2\n", "NaN"),
-    (b"host_id,emb_0\nh1,abc\nh2,2\n", "нечисловые"),
-])
-def test_malformed_files_give_clear_errors(data, msg, reference_dir, tmp_path):
-    with pytest.raises(core.UploadError, match=msg):
-        core.validate_upload(data, tmp_path)
-
-
-def test_binary_garbage_is_an_upload_error(tmp_path):
-    with pytest.raises(core.UploadError):
-        core.validate_upload(b"\xff\xfe\x00\x01\x02", tmp_path)
-
-
-def test_wrong_host_ids_rejected(sample, reference_dir):
-    df = pd.read_csv(__import__("io").BytesIO(sample)).iloc[:-5]
-    with pytest.raises(core.UploadError, match="не совпадают с демо-эталоном"):
-        core.evaluate_upload(df.to_csv(index=False).encode(), reference_dir)
-
-
-def test_single_dimension_has_no_projection(sample, reference_dir):
-    df = pd.read_csv(__import__("io").BytesIO(sample))[["host_id", "emb_0"]]
-    out = core.evaluate_upload(df.to_csv(index=False).encode(), reference_dir)
-    assert out["projection"] is None
 
 
 def test_streamlit_app_smoke():
@@ -70,15 +11,17 @@ def test_streamlit_app_smoke():
     assert at.title[0].value == "Эмбеддинги хостов: результаты"
 
 
-def test_dashboard_renders_every_tab_for_the_demo_bundle():
+def test_dashboard_renders_every_tab_for_the_demo_bundle(monkeypatch):
     pytest.importorskip("streamlit")
     pytest.importorskip("plotly")
+    from pathlib import Path
     from streamlit.testing.v1 import AppTest
 
+    monkeypatch.setenv("PT_RESULTS_DIR", str(Path(__file__).resolve().parent / "testdata" / "synthetic_run"))
     at = AppTest.from_file("streamlit_app.py", default_timeout=120).run()
     assert not at.exception
     assert any("СИНТЕТИКА" in w.value and "не трафик LANL" in w.value for w in at.warning)   # пометка всегда есть
-    assert len(at.tabs) == 8 and [t.label for t in at.tabs][:3] == ["Обзор", "Таблица", "Прогноз связей"]
+    assert len(at.tabs) == 7 and [t.label for t in at.tabs][:3] == ["Обзор", "Таблица", "Прогноз связей"]
     # взаимодействие: переключить группу метрик и окно эталона
     at.selectbox(key="lb_group").select("Будущие связи").run()
     assert not at.exception
@@ -86,7 +29,7 @@ def test_dashboard_renders_every_tab_for_the_demo_bundle():
     assert not at.exception
 
 
-def test_dashboard_with_missing_bundle_still_offers_the_upload_tab(monkeypatch, tmp_path):
+def test_dashboard_with_missing_bundle_shows_a_clear_error(monkeypatch, tmp_path):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
@@ -106,7 +49,7 @@ def _app_with_bundle(monkeypatch, bundle):
 def test_pt_results_dir_is_selected_by_default(monkeypatch, tmp_path):
     import shutil
     from pathlib import Path
-    demo = Path(__file__).resolve().parents[1] / "demo" / "synthetic_run"
+    demo = Path(__file__).resolve().parent / "testdata" / "synthetic_run"
     shutil.copytree(demo, tmp_path / "mine")
     at = _app_with_bundle(monkeypatch, tmp_path / "mine")
     assert not at.exception and at.sidebar.selectbox[0].value == str(tmp_path / "mine")
@@ -115,7 +58,7 @@ def test_pt_results_dir_is_selected_by_default(monkeypatch, tmp_path):
 def test_dashboard_degrades_gracefully_when_artifacts_are_missing(monkeypatch, tmp_path):
     import shutil
     from pathlib import Path
-    demo = Path(__file__).resolve().parents[1] / "demo" / "synthetic_run"
+    demo = Path(__file__).resolve().parent / "testdata" / "synthetic_run"
     b = tmp_path / "b"
     shutil.copytree(demo, b)
     run = b / "run"
@@ -134,7 +77,7 @@ def test_dashboard_degrades_gracefully_when_artifacts_are_missing(monkeypatch, t
 def test_unverified_and_declared_bundles_get_their_own_banner(monkeypatch, tmp_path):
     import json, shutil
     from pathlib import Path
-    demo = Path(__file__).resolve().parents[1] / "demo" / "synthetic_run"
+    demo = Path(__file__).resolve().parent / "testdata" / "synthetic_run"
     for kind, expect_in, banner_kind in (("unverified", "НЕПРОВЕРЕННЫЕ ДАННЫЕ", "error"), ("lanl_declared", "заявлено оператором", "info")):
         b = tmp_path / kind
         shutil.copytree(demo, b)

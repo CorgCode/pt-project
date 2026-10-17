@@ -1,8 +1,8 @@
 """Статическая проверка сайта GitHub Pages (Python и Node.js только для синтаксиса JS).
 
 Проверяет: страницы и файлы на месте; интерфейс по-русски; нет сторонних скриптов, стилей и шрифтов;
-синтетика подписана; все графики и заглушки на месте; внутренние ссылки работают; JS разбирается;
-файл данных синтетический и согласован. Визуальную проверку в браузере не заменяет (docs/browser_check.py).
+источник данных подписан на каждом графике; внутренние ссылки работают; JS разбирается;
+файл данных согласован. Визуальную проверку в браузере не заменяет (docs/browser_check.py).
 """
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DATA = ROOT / "data" / "synthetic_demo.json"
-PAGES = ["index.html", "playground.html"]
+DATA = ROOT / "data" / "results.json"
+LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
+PAGES = ["index.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
 CHARTS = ["chartConsistency", "chartLinks", "chartPairs", "chartIdentity", "chartHosts", "leaderboard"]
 SECTIONS = ["overview", "readiness", "methods", "baselines", "results", "team", "architecture", "next"]
@@ -47,7 +48,7 @@ class Page(HTMLParser):
 def check() -> None:
     info = json.loads(DATA.read_text(encoding="utf-8"))
     meta = info["meta"]
-    assert meta["synthetic"] is True and meta["hosts"] == len(info["projection"]["points"])
+    assert meta["kind"] == "lanl_declared" and meta["synthetic"] is False and meta["hosts"] == len(info["projection"]["points"])
     assert GRAPH_METHODS <= set(meta["methods"]) and not meta["missing"], "все пять графовых методов должны быть посчитаны"
     assert "LANL" not in set(meta["methods"]) and "reference_ceiling" in meta["methods"]
 
@@ -61,19 +62,19 @@ def check() -> None:
         assert p.h1 == 1, f"{name}: exactly one <h1>"
         assert not p.external_assets, f"{name}: third-party assets {p.external_assets}"
         assert "<title>" in text and 'name="viewport"' in text
-        assert "LANL" in text and ("синтет" in text.lower() or "учебн" in text.lower()), name
+        assert "LANL" in text, name
 
     idx, ip = pages["index.html"]
     for sid in SECTIONS + CHARTS:
         assert sid in ip.ids, f"index.html: missing #{sid}"
-    assert idx.count("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL") >= 6, "every chart needs a provenance label"
+    assert idx.count(LABEL) >= 6, "у каждого графика должна быть подпись источника данных"
     for needle in ("Neighborhood Consistency@k", "docs/build_data.py",
                    "Чего вывести нельзя", "Что измеряется", "Как читать", "pull/62", "pull/64", "pull/65", "issues/60"):
         assert needle in idx, needle
     assert idx.count("Чего вывести нельзя") >= 5
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
     assert "Ожидаются результаты эксперимента" in js
-    assert 'fetch("./data/synthetic_demo.json"' in js
+    assert 'fetch("./data/results.json"' in js
     # у каждого графового метода есть числа и узнаваемость во времени
     for m in GRAPH_METHODS:
         assert m in info["results"]["test"] and m in info["identity"], m
@@ -111,8 +112,8 @@ def check() -> None:
         raise RuntimeError("Node.js required to syntax-check GitHub Pages JavaScript")
     for f in sorted((ROOT / "assets").glob("*.js")):
         subprocess.run([node, "--check", str(f)], check=True)
-    assert not re.search(r"cdn\.|plot\.ly|jsdelivr|googleapis", idx + (ROOT / "playground.html").read_text(encoding="utf-8") + js)
-    print("OK: 2 pages, no third-party assets, links/anchors resolve, charts+provenance present, data consistent.")
+    assert not re.search(r"cdn\.|plot\.ly|jsdelivr|googleapis", idx + js)
+    print("OK: страница, без сторонних ресурсов, ссылки работают, графики и подписи источника на месте, данные согласованы.")
 
 
 if __name__ == "__main__":

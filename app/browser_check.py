@@ -1,7 +1,7 @@
 """Проверка дашборда в НАСТОЯЩЕМ headless Chromium — то, что увидит пользователь.
 
     pip install playwright && playwright install chromium
-    python -m app.browser_check --out app/screenshots [--bundle demo/synthetic_run]
+    python -m app.browser_check --out app/screenshots [--bundle app/testdata/synthetic_run]
 
 На ширине 1440 и 390 px открывает каждую вкладку, сохраняет снимок, собирает ошибки консоли и исключения
 Streamlit, проверяет горизонтальную прокрутку и сверяет числа на странице с файлами результатов.
@@ -20,7 +20,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 TABS = ["Обзор", "Таблица", "Прогноз связей", "Соседи", "Во времени", "Аудит",
-        "Происхождение", "Свой эмбеддинг"]
+        "Происхождение"]
 VIEWPORTS = {"desktop": (1440, 1900), "phone": (390, 3200)}
 
 
@@ -159,7 +159,7 @@ def run(bundle: Path, out: Path, shots_for: set[str], *, full_checks: bool = Tru
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--bundle", type=Path, default=REPO / "demo" / "synthetic_run")
+    ap.add_argument("--bundle", type=Path, default=REPO / "app" / "testdata" / "synthetic_run")
     ap.add_argument("--out", type=Path, default=REPO / "app" / "screenshots")
     ap.add_argument("--all-shots", action="store_true", help="screenshot every tab at both widths")
     ap.add_argument("--stress", action="store_true", help="also run a very-long-method-name and a missing-artifacts bundle")

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Эмбеддинги хостов по сетевому трафику — PT-05</title>
-<meta name="description" content="Исследовательский проект PT-05: векторные представления хостов по NetFlow. Методы, базовые модели, статус готовности, ответственность участников. Результаты — синтетические.">
+<meta name="description" content="Исследовательский проект PT-05: векторные представления хостов по NetFlow. Методы, базовые модели, статус готовности, ответственность участников. Результаты — первый прогон на LANL.">
 <link rel="stylesheet" href="./assets/site.css">
 <script src="./assets/site.js" defer></script>
 </head>
@@ -20,11 +20,10 @@
         <li><a href="#methods">Методы</a></li>
         <li><a href="#baselines">Базовые модели</a></li>
         <li><a href="#results">Результаты</a></li>
-        <li><a href="#lanl">LANL</a></li>
         <li><a href="#team">Команда</a></li>
         <li><a href="#architecture">Архитектура</a></li>
         <li><a href="#next">Дальше</a></li>
-        <li><a href="./playground.html">Проверить свой CSV</a></li>
+        <li><a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">Проверить свой метод</a></li>
       </ul>
     </nav>
   </div>
@@ -36,7 +35,7 @@
     <p class="kicker">Исследовательский проект PT-05 · МФТИ · Positive Technologies</p>
     <h1 id="h-overview">Векторные представления хостов по сетевому трафику</h1>
     <p class="lede">Мы проверяем, можно ли по журналам сетевых потоков (NetFlow) описать каждый хост короткой числовой строкой так, чтобы похожие по поведению хосты оказывались рядом, а одному и тому же хосту в соседних временных окнах соответствовали близкие векторы.</p>
-    <div class="note" role="note"><strong>Важно.</strong> Все числа и графики на этой странице получены на <b>синтетическом</b> наборе из <span data-meta="hosts">300</span> хостов. Это проверка конвейера, а не результат на реальных данных LANL. Реальный эксперимент ещё не проведён (<a href="https://github.com/CorgCode/pt-project/issues/60">issue #60</a>).</div>
+    <div class="note" role="note"><strong>Данные.</strong> Все числа и графики — первый прогон на настоящих данных LANL: один день, train — 1 час, test — 30 минут, оценено <span data-meta="hosts">2242</span> активных хоста (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Источник заявлен (форма LANL), пайплайном не проверяется.</div>
     <div class="cols" style="margin-top:28px">
       <div>
         <h3 style="margin-top:0">Цель</h3>
@@ -65,19 +64,19 @@
 <section class="block" id="readiness" aria-labelledby="h-readiness">
   <div class="wrap">
     <h2 id="h-readiness"><span class="sec-id">B</span>Готовность к требованиям ментора</h2>
-    <p class="intro">Статусы выведены из содержимого репозитория и открытых pull request, а не из процентов выполнения. «Проверено на синтетике» означает: модульные тесты и прогон на синтетических данных, но не на реальных.</p>
+    <p class="intro">Статусы выведены из содержимого репозитория и открытых pull request, а не из процентов выполнения. «LANL» означает: прогнано на одном дне настоящих данных LANL.</p>
     <div class="tablewrap">
     <table>
       <thead><tr><th>Требование ментора</th><th>Что есть в репозитории</th><th>Статус</th></tr></thead>
       <tbody>
-        <tr><td>Базовая модель 1</td><td>Поведенческий профиль (+ варианты PCA и SVD): <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/baselines/temporal.py"><code>benchmark/baselines/temporal.py</code></a></td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
-        <tr><td>Базовая модель 2</td><td>Спектральное вложение графа коммуникаций (<code>graph_spectral</code>) в том же файле</td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
-        <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>Пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Все прогнаны на общем синтетическом эталоне — результаты ниже.</td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
+        <tr><td>Базовая модель 1</td><td>Поведенческий профиль (+ варианты PCA и SVD): <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/baselines/temporal.py"><code>benchmark/baselines/temporal.py</code></a></td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Базовая модель 2</td><td>Спектральное вложение графа коммуникаций (<code>graph_spectral</code>) в том же файле</td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>Пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Все прогнаны на одном дне LANL — результаты ниже.</td><td><span class="tag ok">В main</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Какие три метода показываем</td><td>Решение команды не зафиксировано в репозитории. <b>Предложение:</b> node2vec (случайные обходы, обобщает DeepWalk), struc2vec (структурные роли), GraphSAGE (индуктивная нейросетевая модель) — три разных семейства. DeepWalk и RolX остаются дополнительными.</td><td><span class="tag prop">Предложение</span></td></tr>
         <tr><td>Беспортовая поведенческая модель</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>)</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
-        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): AUC по парам «тот же хост / другой» — сведён в общий модуль <code>evaluation/identity.py</code></td><td><span class="tag ok">В общей оценке</span> <span class="tag syn">синтетика</span></td></tr>
-        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): «собеседники через похожих» и устойчивость к удалению связей перенесены в общую оценку; прямой прогноз уже покрыт ROC-AUC связей</td><td><span class="tag ok">В общей оценке</span> <span class="tag syn">синтетика</span></td></tr>
-        <tr><td>Единая оценка и таблица результатов</td><td>Все метрики одной командой, сгруппированы по вопросу; таблица с интервалами и случайным уровнем — <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md"><code>evaluation/README.md</code></a> (issue <a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>)</td><td><span class="tag ok">Готово</span> <span class="tag syn">синтетика</span></td></tr>
+        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): AUC по парам «тот же хост / другой» — сведён в общий модуль <code>evaluation/identity.py</code></td><td><span class="tag ok">В общей оценке</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): «собеседники через похожих» и устойчивость к удалению связей перенесены в общую оценку; прямой прогноз уже покрыт ROC-AUC связей</td><td><span class="tag ok">В общей оценке</span> <span class="tag ok">LANL</span></td></tr>
+        <tr><td>Единая оценка и таблица результатов</td><td>Все метрики одной командой, сгруппированы по вопросу; таблица с интервалами и случайным уровнем — <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md"><code>evaluation/README.md</code></a> (issue <a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>)</td><td><span class="tag ok">Готово</span> <span class="tag ok">LANL</span></td></tr>
         <tr><td>Эксперимент на реальных данных</td><td>Issue <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a> открыт; нужен доступ к LANL</td><td><span class="tag none">Требуются реальные данные</span></td></tr>
         <tr><td>Личная ответственность и умение объяснить код</td><td>См. раздел «Команда»: по git почти весь код методов принадлежит одному автору. Это вопрос к команде, сайт его не решает.</td><td><span class="tag none">Не подтверждено</span></td></tr>
       </tbody>
@@ -137,7 +136,7 @@
         <p>Для каждого окна считается отдельно, поэтому векторы разных окон нельзя сравнивать без выравнивания.</p>
       </div>
     </div>
-    <p><b>Вариант без портов</b> <span class="tag ok">в main</span> <span class="tag pend">влит без ревью</span> — pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> проверяет, сколько качества дают сами порты (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>). Результатов этой модели на сайте нет: они не включены в опубликованные синтетические данные.</p>
+    <p><b>Вариант без портов</b> <span class="tag ok">в main</span> <span class="tag pend">влит без ревью</span> — pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> проверяет, сколько качества дают сами порты (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>). На LANL её пока не запускали (флаг <code>--port-free-baselines</code>).</p>
     <p>Дополнительно в оценке участвуют два служебных ориентира: случайные векторы (нижняя граница) и «потолок эталона» — модель с утечкой, не являющаяся методом.</p>
   </div>
 </section>
@@ -145,7 +144,7 @@
 <section class="block" id="results" aria-labelledby="h-results">
   <div class="wrap">
     <h2 id="h-results"><span class="sec-id">E</span>Экспериментальные результаты</h2>
-    <p class="intro">Графики читаются из файла <a href="./data/synthetic_demo.json"><code>data/synthetic_demo.json</code></a> (коммит <code data-meta="commit">f3db8ddd</code>, каталог <a href="https://github.com/CorgCode/pt-project/tree/main/demo/synthetic_run"><code>demo/synthetic_run</code></a>). Данные собирает <code>python docs/build_data.py</code> из прогона <code>python -m experiments.make_demo_bundle</code>: все пять графовых методов и бейзлайны на одних и тех же хостах, окнах и эталонах. Общая таблица результатов команды (с лидером и интервалами) — <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md"><code>scoreboard/README.md</code></a>.</p>
+    <p class="intro">Графики читаются из файла <a href="./data/results.json"><code>data/results.json</code></a> (коммит <code data-meta="commit">—</code>). Данные — первый прогон на LANL (<a href="https://github.com/CorgCode/pt-project/tree/main/results/lanl_day02"><code>results/lanl_day02</code></a>): все пять графовых методов и бейзлайны на одних и тех же хостах, окнах и эталонах; собирает <code>python docs/build_data.py</code>. Общая таблица результатов команды (с лидером и интервалами) — <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md"><code>scoreboard/README.md</code></a>.</p>
     <div class="tabs" role="group" aria-label="Окно оценки">
       <button type="button" data-split="test" aria-pressed="true">Тестовое окно</button>
       <button type="button" data-split="validation" aria-pressed="false">Валидационное окно</button>
@@ -153,51 +152,51 @@
 
     <div class="chart">
       <h3>1. Сохранение ближайших соседей (Neighborhood Consistency@k)</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span data-split-label>тестовое окно</span></div><div id="chartConsistency" aria-live="polite"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span data-split-label>тестовое окно</span></div><div id="chartConsistency" aria-live="polite"></div></div>
       <div class="read">
         <p><b>Что измеряется.</b> Доля из k ближайших соседей хоста в пространстве эмбеддингов, которые входят и в список k соседей по эталону поведения.</p>
         <p><b>Как читать.</b> Правее — лучше; 1 означает полное совпадение. Три маркера — k = 5, 10, 20. Рост с k ожидаем: большая выборка соседей легче пересекается.</p>
-        <p><b>Что показывают результаты.</b> Все методы лежат между случайными векторами и потолком. Выше всех — поведенческие бейзлайны (≈0,28), рядом GraphSAGE и спектральный граф; RolX и struc2vec ищут структурные роли, а не похожее поведение, и здесь слабее.</p>
-        <p><b>Чего вывести нельзя.</b> Ничего о реальной сети: данные синтетические. Эталон построен из тех же поведенческих признаков, что и поведенческая модель, поэтому её преимущество частично предопределено.</p>
+        <p><b>Что показывают результаты.</b> Лучше всех behavioral (0,27) — эталон построен из похожих признаков. Графовые методы — 0,06–0,13: они смотрят на структуру связей, а не на объём и порты. Случайные векторы — 0,004.</p>
+        <p><b>Чего вывести нельзя.</b> Что behavioral «лучше»: он и эталон построены из одних признаков, поэтому совпадение частично предопределено.</p>
       </div>
     </div>
 
     <div class="chart">
       <h3>2. Прогноз будущих связей (ROC-AUC)</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span data-split-label>тестовое окно</span></div><div id="chartLinks"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span data-split-label>тестовое окно</span></div><div id="chartLinks"></div></div>
       <div class="read">
         <p><b>Что измеряется.</b> Насколько хорошо по эмбеддингам обучающего окна можно отличить пары хостов, которые свяжутся в будущем, от тех, что не свяжутся.</p>
         <p><b>Как читать.</b> 0,5 — случайное угадывание; ближе к 1 — лучше. Три маркера: косинусная близость, обученный классификатор, только новые связи (без повторов уже виденных).</p>
-        <p><b>Что показывают результаты.</b> По косинусу связи предсказывают только DeepWalk (0,65), node2vec (0,62) и GraphSAGE (0,57): блуждания по графу сближают тех, кто общается. У остальных косинус около 0,5, но обученный классификатор достаёт сигнал и из них (спектральный граф — 0,73).</p>
-        <p><b>Чего вывести нельзя.</b> Половина будущих связей уже была в обучающем окне, а прогноз «пара уже общалась» даёт 0,71 — графовые методы во многом выигрывают за счёт сохранения связей. PR-AUC зависит от доли положительных примеров и здесь не сравнивается.</p>
+        <p><b>Что показывают результаты.</b> По косинусу связи предсказывают только DeepWalk (0,78) и node2vec (0,72). У остальных косинус ниже 0,5: в LANL связаны клиент и сервер, а они непохожи. Обученный классификатор достаёт сигнал из всех: behavioral и спектральный граф — 0,98.</p>
+        <p><b>Чего вывести нельзя.</b> 88% завтрашних связей уже есть сегодня, и правило «пара уже общалась» даёт 0,94. Честнее смотреть на «только новые связи»: там лучше всех DeepWalk (0,65), остальные около 0,5.</p>
       </div>
     </div>
 
     <div class="chart">
       <h3>3. Различение похожих и непохожих пар (ROC-AUC пар)</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span data-split-label>тестовое окно</span></div><div id="chartPairs"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span data-split-label>тестовое окно</span></div><div id="chartPairs"></div></div>
       <div class="read">
         <p><b>Что измеряется.</b> Различает ли расстояние между векторами пары, которые эталон считает похожими, от явно непохожих.</p>
         <p><b>Как читать.</b> 0,5 — случайно, 1 — идеально. Пунктирный контур — потолок эталона, модель с утечкой.</p>
-        <p><b>Что показывают результаты.</b> Почти все методы хорошо отделяют явно похожие пары от явно разных (0,89–0,94); лучше всех спектральный граф. RolX и struc2vec — около 0,6: общие собеседники и одинаковая структурная роль — разные вещи.</p>
-        <p><b>Чего вывести нельзя.</b> Оцениваются только «крайние» пары (сходство ≥ порога или ровно 0); спорные пары исключены, поэтому доля положительных не равна доле среди всех пар.</p>
+        <p><b>Что показывают результаты.</b> Графовые методы и behavioral отделяют похожие пары почти идеально (0,95–0,98). struc2vec — 0,53: структурная роль и общие собеседники — разные вещи.</p>
+        <p><b>Чего вывести нельзя.</b> Оцениваются только «крайние» пары (сходство ≥ порога или ровно 0); спорные исключены. Графовые методы и эталон пар построены из одних связей — высокий результат частично предопределён.</p>
       </div>
     </div>
 
     <div class="chart">
       <h3>4. Устойчивость идентичности хоста во времени</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span>top-1, оба окна</span></div><div id="chartIdentity"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>top-1, оба окна</span></div><div id="chartIdentity"></div></div>
       <div class="read">
         <p><b>Что измеряется.</b> Доля хостов, ближайший вектор которых в следующем окне принадлежит тому же хосту (top-1).</p>
         <p><b>Как читать.</b> Пунктир — случайное угадывание (1/число хостов). Второй маркер — после ортогонального выравнивания Прокруста, когда координаты окон подгоняются друг к другу.</p>
-        <p><b>Что показывают результаты.</b> Значения невелики, но выше случайного уровня. Без выравнивания у методов, обученных на каждом окне заново, точность почти 0 (у спектрального графа — ровно 0), после выравнивания — до 0,18. Случайные векторы и после выравнивания на уровне угадывания.</p>
-        <p><b>Чего вывести нельзя.</b> На синтетике хосты почти не отличаются друг от друга внутри роли, поэтому узнать конкретный хост трудно любым методом. AUC по парам «тот же хост / другой» (<a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a>) есть в отчёте прогона.</p>
+        <p><b>Что показывают результаты.</b> Узнать тот же хост через полчаса трудно всем: лучше всех behavioral — 10% с первой попытки при случайном уровне 0,1%. У методов, обученных на каждом окне заново, без выравнивания почти 0.</p>
+        <p><b>Чего вывести нельзя.</b> Окна по 30 минут — короткие: поведение хоста за полчаса заметно меняется само (соседи совпадают лишь на 0,31).</p>
       </div>
     </div>
 
     <div class="chart">
       <h3>5. Проекция пространства эмбеддингов (PCA)</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span>поведенческий профиль, <span data-meta="hosts">300</span> хостов</span></div><div id="chartHosts"></div></div>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>поведенческий профиль, <span data-meta="hosts">2242</span> хоста</span></div><div id="chartHosts"></div></div>
       <div class="read">
         <p><b>Что измеряется.</b> Первые две главные компоненты векторов; цвет точки — доля совпавших соседей этого хоста (средняя по хостам: <span data-meta="meanagree"></span>).</p>
         <p><b>Как читать.</b> Близкие точки — близкие хосты. Тёмные точки — хосты, чьи соседи совпали с эталоном; светлые — нет.</p>
@@ -208,18 +207,9 @@
 
     <div class="chart">
       <h3>6. Сводная таблица</h3>
-      <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span data-split-label>тестовое окно</span></div><div id="leaderboard"></div></div>
-      <p>Таблица упорядочена по согласию соседей @10. Это проверка конвейера на синтетике, а не рейтинг методов: на реальных данных порядок может быть любым.</p>
+      <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span data-split-label>тестовое окно</span></div><div id="leaderboard"></div></div>
+      <p>Таблица упорядочена по согласию соседей @10. Общий рейтинг по всем метрикам — в <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">таблице результатов</a>.</p>
     </div>
-  </div>
-</section>
-
-<section class="block" id="lanl" aria-labelledby="h-lanl">
-  <div class="wrap">
-    <h2 id="h-lanl"><span class="sec-id">E2</span>Первые результаты на настоящих данных LANL</h2>
-    <!-- LANL:BEGIN -->
-    <p class="intro">Прогон идёт: все методы на одном дне LANL (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Таблица появится здесь, когда он закончится.</p>
-    <!-- LANL:END -->
   </div>
 </section>
 
@@ -260,7 +250,7 @@
       <li><b>Общие контракты.</b> Формат эмбеддингов, эталоны и все метрики описаны в <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">evaluation/README.md</a>; конвейер — в <a href="https://github.com/CorgCode/pt-project/blob/main/pipeline/README.md">pipeline/README.md</a>.</li>
       <li><b>Сравнимые эталоны.</b> Эталоны сходства строятся один раз и замораживаются; каждый метод оценивается против одних и тех же эталонов.</li>
       <li><b>Защита от утечки.</b> Когорта и обучение определяются только по обучающему окну; пересечение информации методов и эталонов проверяется отдельным аудитом (<a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a>).</li>
-      <li><b>Происхождение данных.</b> Каждый результат помечен как синтетический, непроверенный или заявленный как LANL; метки «проверено» нет.</li>
+      <li><b>Происхождение данных.</b> Каждый результат помечен: заявленный LANL, непроверенные данные или тестовая синтетика; метки «проверено» нет.</li>
     </ul>
   </div>
 </section>
@@ -280,8 +270,8 @@
 
 <footer>
   <div class="wrap">
-    <p>Репозиторий: <a href="https://github.com/CorgCode/pt-project">CorgCode/pt-project</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a> · <a href="https://github.com/CorgCode/pt-project/issues">задачи</a> · <a href="./playground.html">проверка собственного CSV</a></p>
-    <p>Все показанные результаты — синтетические и не относятся к данным LANL.</p>
+    <p>Репозиторий: <a href="https://github.com/CorgCode/pt-project">CorgCode/pt-project</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a> · <a href="https://github.com/CorgCode/pt-project/issues">задачи</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">проверить свой метод</a></p>
+    <p>Результаты — один день LANL, только активные хосты. Как повторить — <a href="https://github.com/CorgCode/pt-project/blob/main/experiments/lanl/README.md">experiments/lanl</a>.</p>
   </div>
 </footer>
 </body>

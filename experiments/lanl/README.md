@@ -35,7 +35,7 @@ PYTHONUNBUFFERED=1 python -m experiments.run_experiment --processed-dir $W/lanl/
 ## 4. Перенести итоги в репозиторий
 
 ```bash
-python experiments/lanl/publish.py $W/lanl/run results/lanl_day02
+python experiments/lanl/publish.py $W/lanl results/lanl_day02
 ```
 
 ## Ресурсы (ноутбук, 8 ГБ)

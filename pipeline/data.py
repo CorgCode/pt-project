@@ -54,7 +54,11 @@ class ProcessedData:
         """Потоки одного окна (для обучения используйте training_flows)."""
         if window not in self.manifest["windows"]:
             raise KeyError(f"неизвестное окно {window!r}; есть {self.windows}")
-        return pd.read_csv(self.root / "flows" / f"{window}.csv", dtype=FLOW_DTYPES)
+        path = self.root / "flows" / f"{window}.csv"
+        if not path.exists():
+            raise FileNotFoundError(f"{path}: потоков нет (в git они не хранятся — слишком большие). Скачайте и подготовьте "
+                                    "данные по experiments/lanl/README.md и укажите путь в PT_DATA")
+        return pd.read_csv(path, dtype=FLOW_DTYPES)
 
     def graph(self, window: str) -> pd.DataFrame:
         return pd.read_csv(self.root / "graph" / f"edges_{window}.csv",

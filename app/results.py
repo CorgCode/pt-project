@@ -1,6 +1,6 @@
 """Чтение результата прогона только на чтение (без Streamlit, легко тестировать).
 
-Прогон — это demo/synthetic_run (run/, reference/, processed_manifest.json) или --workdir от
+Прогон — это results/<имя> (run/, reference/, processed_manifest.json) или --workdir от
 experiments.end_to_end (run/, reference/, processed/). Дашборд показывает только сохранённые файлы;
 пересчитываются лишь виды по хостам из сохранённых эмбеддингов и замороженных соседей.
 """
@@ -49,12 +49,10 @@ class BundleError(ValueError):
 
 
 def discover(repo_root: Path) -> list[Path]:
-    """Прогоны в репозитории: демо и любые runs/<имя>."""
+    """Прогоны: опубликованные results/<имя> (сначала) и локальные runs/<имя>."""
     found = []
-    demo = repo_root / "demo" / "synthetic_run"
-    if (demo / "run" / "manifest.json").exists():
-        found.append(demo)
-    found += sorted(p for p in (repo_root / "runs").glob("*") if (p / "run" / "manifest.json").exists())
+    for base in ("results", "runs"):
+        found += sorted(p for p in (repo_root / base).glob("[!.]*") if (p / "run" / "manifest.json").exists())
     return found
 
 
