@@ -1,27 +1,19 @@
-"""struc2vec (Ribeiro, Saverese, Figueiredo, KDD 2017): embeddings from structural identity.
+"""struc2vec (Ribeiro, Saverese, Figueiredo, KDD 2017): эмбеддинги по структурной роли.
 
-For every node u and every k = 0..K, R_k(u) is the ring of nodes at distance exactly k and s(R_k(u)) its ordered
-degree sequence (degrees in the whole window graph). Structural distance accumulates over layers
+Для вершины u и k = 0..K кольцо R_k(u) — вершины на расстоянии ровно k, s(R_k(u)) — их упорядоченные степени.
+Структурное расстояние копится по слоям:
 
     f_k(u, v) = f_{k-1}(u, v) + g(s(R_k(u)), s(R_k(v))),     f_{-1} = 0,
 
-with g the dynamic time warping distance and ground cost d(a, b) = max(a, b) / min(a, b) - 1. Layer k of a
-multilayer graph has edge weights w_k(u, v) = exp(-f_k(u, v)); u_k is joined to u_{k+1} with weight
-log(Gamma_k(u) + e), Gamma_k(u) = number of layer-k edges at u heavier than the layer average, and to u_{k-1}
-with weight 1. A walk stays in its layer with probability `stay_prob` (q in the paper) and moves to a
-neighbour proportionally to w_k; otherwise it changes layer up with probability w_up / (w_up + 1). The visited
-node ids (layer dropped) form the corpus of a skip-gram model.
+g — DTW с ценой d(a, b) = max(a, b) / min(a, b) - 1. Слой k многослойного графа: веса w_k(u, v) = exp(-f_k(u, v));
+переход вверх с весом log(Gamma_k(u) + e), вниз — с весом 1. Блуждание остаётся в слое с вероятностью stay_prob.
+Посещённые вершины (без номера слоя) — корпус для skip-gram.
 
-Optimisations from the paper, which keep it tractable:
-  OPT1  degree sequences are compressed to (degree, count) pairs; DTW runs on the compressed sequences with cost
-        d(a, b) * max(count_a, count_b), and results are memoised for identical sequence pairs;
-  OPT2  f_k is computed only for pairs of nodes close in degree order (2*ceil(log2 n) candidates per node);
-  OPT3  only K+1 layers (`layers`, default 3) are built.
-An empty ring is compared as one node of degree 1/2, so a non-empty ring is always at positive distance from it.
+Оптимизации из статьи: сжатие последовательностей степеней в пары (степень, количество) с кэшем DTW (OPT1);
+расстояния только для близких по степени пар (OPT2); только K+1 слоёв (OPT3, по умолчанию 3).
 
-Scope: only the hosts to be embedded (the cohort for the train window, the evaluable hosts for a later window)
-become nodes of the multilayer graph; their degree sequences are computed on the FULL window graph. Rows of other
-hosts are zero. The coordinates of different windows are fitted separately (not shared).
+Вершины многослойного графа — только нужные хосты (когорта или оцениваемые), степени — по ПОЛНОМУ графу окна.
+Строки остальных хостов нулевые. Окна обучаются отдельно.
 """
 from __future__ import annotations
 
@@ -36,7 +28,7 @@ from benchmark.methods.walks import _draw_neighbor_index
 EMPTY_DEGREE = 0.5
 
 
-# ------------------------------------------------------------------------------------ rings and DTW
+# ------------------------------------------------------------------------------------ кольца и DTW
 def _gather_neighbors(g: Graph, nodes: np.ndarray) -> np.ndarray:
     lens = g.degree[nodes]
     offs = np.repeat(g.indptr[nodes] - np.r_[0, np.cumsum(lens)[:-1]], lens) + np.arange(lens.sum())
@@ -44,7 +36,7 @@ def _gather_neighbors(g: Graph, nodes: np.ndarray) -> np.ndarray:
 
 
 def ring_sequences(g: Graph, focus: np.ndarray, K: int) -> list[list[tuple[np.ndarray, np.ndarray]]]:
-    """seqs[k][i] = compressed degree sequence (values, counts) of the ring at distance k of focus[i]."""
+    """seqs[k][i] — сжатая последовательность степеней кольца на расстоянии k от focus[i]."""
     deg = g.degree
     seqs = [[None] * len(focus) for _ in range(K + 1)]
     visited = np.zeros(g.n, dtype=bool)
@@ -67,7 +59,7 @@ def ring_sequences(g: Graph, focus: np.ndarray, K: int) -> list[list[tuple[np.nd
 
 
 def dtw(a: np.ndarray, ca: np.ndarray, b: np.ndarray, cb: np.ndarray) -> float:
-    """DTW between two compressed degree sequences, cost d(x, y) * max(count_x, count_y)."""
+    """DTW двух сжатых последовательностей, цена d(x, y) * max(count_x, count_y)."""
     if len(a) == 0 and len(b) == 0:
         return 0.0
     if len(a) == 0:
@@ -87,7 +79,7 @@ def dtw(a: np.ndarray, ca: np.ndarray, b: np.ndarray, cb: np.ndarray) -> float:
 
 
 def candidate_pairs(degree: np.ndarray, per_side: int) -> np.ndarray:
-    """OPT2: pairs of nodes within `per_side` positions of each other in degree order (unique, i < j)."""
+    """OPT2: пары вершин не дальше per_side позиций друг от друга по степени (уникальные, i < j)."""
     order = np.lexsort((np.arange(len(degree)), degree))
     pos = np.arange(len(order))
     a, b = [], []
@@ -99,9 +91,9 @@ def candidate_pairs(degree: np.ndarray, per_side: int) -> np.ndarray:
 
 
 def structural_distances(seqs, pairs: np.ndarray) -> np.ndarray:
-    """(K+1, P): f_k for every candidate pair, accumulated over layers with memoised DTW."""
+    """(K+1, P): f_k для каждой пары-кандидата, накапливаются по слоям, DTW кэшируется."""
     K1 = len(seqs)
-    canon = []                                   # canonical sequence ids so identical sequences share one DTW
+    canon = []                                   # одинаковые последовательности получают один id и один DTW
     for k in range(K1):
         table, ids = {}, np.empty(len(seqs[k]), dtype=np.int64)
         for i, (v, c) in enumerate(seqs[k]):
@@ -123,9 +115,9 @@ def structural_distances(seqs, pairs: np.ndarray) -> np.ndarray:
     return f
 
 
-# ------------------------------------------------------------------------------------ multilayer graph and walks
+# ------------------------------------------------------------------------------------ многослойный граф и блуждания
 class Multilayer:
-    """States (layer k, node u) as k * n + u; same-layer edges weighted exp(-f_k); layer-change probabilities."""
+    """Состояния (слой k, вершина u) = k * n + u; веса в слое exp(-f_k); вероятности смены слоя."""
 
     def __init__(self, n: int, pairs: np.ndarray, f: np.ndarray):
         K1 = f.shape[0]
@@ -134,7 +126,7 @@ class Multilayer:
         rows, cols, vals, gamma = [], [], [], np.zeros((K1, n))
         for k in range(K1):
             avg = w[k].mean() if w.shape[1] else 0.0
-            heavy = w[k] > avg * (1.0 + 1e-9)          # tolerance: equal weights must not count as above their own mean
+            heavy = w[k] > avg * (1.0 + 1e-9)          # допуск: равные веса не должны считаться выше своего же среднего
             for end in (0, 1):
                 src, dst = pairs[:, end], pairs[:, 1 - end]
                 rows.append(k * n + src); cols.append(k * n + dst); vals.append(w[k])
@@ -144,7 +136,7 @@ class Multilayer:
         self.indptr, self.indices = A.indptr.astype(np.int64), A.indices.astype(np.int64)
         self.weights = A.data.astype(np.float64)
         self.cum = np.concatenate([[0.0], np.cumsum(self.weights)])
-        self.up_weight = np.log(gamma + np.e)                             # log(Gamma_k(u) + e); down weight is 1
+        self.up_weight = np.log(gamma + np.e)                             # log(Gamma_k(u) + e); вес вниз — 1
         self.p_up = self.up_weight / (self.up_weight + 1.0)
         self.gamma = gamma
 
@@ -192,7 +184,7 @@ class Struc2Vec(GraphEmbeddingMethod):
         if not 0.0 <= self.params["stay_prob"] <= 1.0 or self.params["layers"] < 0:
             raise ValueError("struc2vec: stay_prob must be in [0, 1] and layers >= 0")
 
-    # the base class passes the hosts to embed so that only they become nodes of the multilayer graph
+    # базовый класс передаёт нужные хосты — только они становятся вершинами многослойного графа
     def embed_graph(self, g: Graph, focus: np.ndarray | None = None) -> np.ndarray:
         p = self.params
         focus = np.flatnonzero(g.degree > 0) if focus is None else np.asarray(focus, dtype=np.int64)

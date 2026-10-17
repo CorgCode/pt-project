@@ -1,21 +1,11 @@
-"""Build FROZEN evaluation references from a processed dataset (once, for all methods).
+"""Замороженные эталоны для оценки (строятся один раз для всех методов).
 
     python -m pipeline.reference --processed-dir data/processed --output-dir reference
 
-For each target window (validation, test) a complete reference directory is written,
-all built from that later window and the fixed cohort - never from any embedding:
-
-    reference/<target>/features.csv    behavioural profile of the target window
-    reference/<target>/neighbors.csv   frozen top-k behavioural neighbours      (kNN proxy)
-    reference/<target>/edges.csv       future-link candidates, source=train     (link prediction)
-    reference/<target>/pairs.csv       shared-peer pair judgments               (structural proxy)
-    reference/<target>/triplets.csv    shared-peer triplets                     (structural proxy)
-    reference/<target>/labels.csv      ONLY if --labels is supplied (external, with provenance)
-    reference/<target>/eval_hosts.csv  hosts evaluable in the target window (the evaluator subsets to them)
-    reference/<target>/manifest.json   provenance, cohort policy/coverage, windows, rules, file hashes
-
-Use reference/validation to tune; report final numbers on reference/test only.
-No role labels are fabricated: labels.csv exists only when supplied.
+Для каждого целевого окна (validation, test) — папка эталонов, построенных из этого окна и
+фиксированной когорты, без участия эмбеддингов. Что в каждом файле — evaluation/README.md.
+Подбор — на reference/validation, итоговые числа — только на reference/test.
+Метки ролей не придумываются: labels.csv появляется, только если их передали.
 """
 from __future__ import annotations
 
@@ -50,7 +40,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
     train = load_flows(processed_dir / "flows" / "train.csv")
     summary = {}
     for target in (t for t in TARGETS if t in data.windows):
-        # hosts evaluable in THIS target window (== the cohort under the all_windows policy)
+        # хосты, оцениваемые в ЭТОМ окне (при all_windows — вся когорта)
         hosts = data.evaluable(target)
         out = Path(output_dir) / target
         out.mkdir(parents=True, exist_ok=True)
@@ -80,7 +70,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
             label_info = {"source": labels_source, "n_labelled": int(len(lab)),
                           "coverage": len(lab) / len(hosts)}
 
-        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv"))}   # includes eval_hosts.csv
+        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv"))}   # вместе с eval_hosts.csv
         manifest.update({
             "data_kind": data.manifest["data_kind"],
             "synthetic": data.synthetic,

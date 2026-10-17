@@ -1,25 +1,18 @@
-"""Temporal windows and the leakage rules they enforce.
+"""Окна времени и правила против утечки.
 
-Windows are half-open intervals [start, end) on the dataset's own Time axis (same units
-as the `Time` column; the LANL page does not define a calendar origin). Required:
+Окна — полуинтервалы [start, end) на оси Time самого датасета (в тех же единицах). Требование:
+    train < validation (необязательно) < test   — строго по порядку, без пересечений.
 
-    train < validation (optional) < test        -- strictly ordered, non-overlapping
+Когорта (кого оцениваем):
+- train_only (по умолчанию): все хосты, активные в train; в позднем окне оцениваются те, кто активен
+  и там. Будущее не решает, кто попал в оценку; покрытие пишется в отчёт.
+- all_windows: хосты, активные во ВСЕХ окнах. Будущая активность влияет на отбор — результаты завышают
+  стабильность. Только для сравнения.
 
-Cohort policy (which hosts are evaluated):
-- train_only (default): the cohort is every host active in the TRAIN window; a host is
-  *evaluable* in a later window only if it is also active there. Metrics are computed on the
-  evaluable hosts and the coverage is reported, so no future information decides who is in.
-- all_windows: the cohort is the hosts active in EVERY window. Future activity influences
-  inclusion (a transductive "stable-host" benchmark): scores condition on host survival and
-  overstate persistence/identity/link-persistence for prospective use. Kept for comparison only.
-
-Rules:
-- train is the ONLY window models may fit on; validation is for tuning choices;
-  test is for final reporting. Reference artifacts are built from later windows.
-- A flow is assigned by START time, and (drop_straddling=True) dropped if it is still
-  running at the window end (Time + Duration >= end), so no flow carries information
-  across a boundary.
-- Windows must be declared BEFORE looking at evaluation scores (see docs).
+Правила:
+- модели учатся ТОЛЬКО на train; validation — для подбора; test — для итоговых чисел;
+- поток относится к окну по началу и выбрасывается, если ещё идёт на границе (Time + Duration >= end);
+- окна объявляются ДО просмотра результатов.
 """
 from __future__ import annotations
 

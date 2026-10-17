@@ -1,17 +1,15 @@
-"""Random walks on a weighted graph: first-order (DeepWalk) and second-order biased (node2vec).
+"""Случайные блуждания по взвешенному графу: первого порядка (DeepWalk) и с перекосом (node2vec).
 
-Second-order walk (Grover & Leskovec 2016). Having just traversed edge (t, v), the next node x is drawn
-from the neighbours of v with probability proportional to  w(v, x) * alpha(t, x)  where
+Блуждание второго порядка (Grover & Leskovec 2016): пройдя ребро (t, v), следующую вершину x выбираем
+среди соседей v с вероятностью, пропорциональной w(v, x) * alpha(t, x):
 
-    alpha = 1/p   if x == t              (return)
-            1     if x is adjacent to t  (stay at distance 1)
-            1/q   otherwise              (move outward, distance 2)
+    alpha = 1/p   если x == t              (возврат)
+            1     если x — сосед t         (остаёмся рядом)
+            1/q   иначе                    (уходим дальше)
 
-Sampling is exact: a neighbour is proposed proportionally to w(v, x) (binary search on cumulative
-weights) and accepted with probability alpha / max(1/p, 1, 1/q) (vectorised rejection sampling); the few
-walks that exceed `max_rounds` rejections are completed by exact enumeration. p = q = 1 is the first-order
-weighted walk. Everything is vectorised over walks, deterministic given the generator, and never leaves the
-graph (every node on a walk has degree >= 1).
+Выбор точный: соседа предлагаем пропорционально w(v, x) (бинарный поиск по накопленным весам) и принимаем
+с вероятностью alpha / max(1/p, 1, 1/q); редкие блуждания, не принятые за max_rounds раундов, достраиваются
+полным перебором. p = q = 1 — обычное взвешенное блуждание. Всё векторизовано и детерминировано при seed.
 """
 from __future__ import annotations
 
@@ -21,7 +19,7 @@ from benchmark.methods.graph_input import Graph
 
 
 def _draw_neighbor_index(g: Graph, v: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """Global CSR index of one neighbour of each v, drawn proportionally to edge weight."""
+    """Глобальный CSR-индекс одного соседа каждой v, выбранного пропорционально весу ребра."""
     start, end = g.indptr[v], g.indptr[v + 1]
     r = g.cum[start] + rng.random(len(v)) * (g.cum[end] - g.cum[start])
     return np.clip(np.searchsorted(g.cum, r, side="right") - 1, start, end - 1)
@@ -42,7 +40,7 @@ def _exact_step(g: Graph, t: int, v: int, p: float, q: float, rng: np.random.Gen
 
 def second_order_step(g: Graph, t: np.ndarray, v: np.ndarray, p: float, q: float, rng: np.random.Generator,
                       max_rounds: int = 64) -> np.ndarray:
-    """Next node for each walk that just traversed (t -> v): exact node2vec transition (see module docstring)."""
+    """Следующая вершина для каждого блуждания после ребра (t -> v): точный переход node2vec."""
     a_max = max(1.0 / p, 1.0, 1.0 / q)
     pending = np.arange(len(v))
     chosen = np.empty(len(v), dtype=np.int64)
@@ -53,14 +51,14 @@ def second_order_step(g: Graph, t: np.ndarray, v: np.ndarray, p: float, q: float
         pending = pending[~ok]
         if not len(pending):
             break
-    for i in pending:                                       # rare: exact enumeration
+    for i in pending:                                       # редко: полный перебор
         chosen[i] = _exact_step(g, int(t[i]), int(v[i]), p, q, rng)
     return chosen
 
 
 def random_walks(g: Graph, starts: np.ndarray, walk_length: int, *, p: float = 1.0, q: float = 1.0,
                  rng: np.random.Generator, max_rounds: int = 64) -> np.ndarray:
-    """(len(starts), walk_length) int32 array; row i is a walk beginning at starts[i]."""
+    """Массив (len(starts), walk_length) int32; строка i — блуждание из starts[i]."""
     if walk_length < 2:
         raise ValueError("walk_length must be >= 2")
     if p <= 0 or q <= 0:
@@ -81,7 +79,7 @@ def random_walks(g: Graph, starts: np.ndarray, walk_length: int, *, p: float = 1
 
 def walk_corpus(g: Graph, num_walks: int, walk_length: int, *, p: float = 1.0, q: float = 1.0,
                 seed: int = 0, nodes: np.ndarray | None = None) -> np.ndarray:
-    """`num_walks` passes over the nodes (a fresh random order each pass), as in DeepWalk / node2vec."""
+    """num_walks проходов по вершинам (каждый раз в новом случайном порядке), как в DeepWalk / node2vec."""
     rng = np.random.default_rng(seed)
     pool = np.flatnonzero(g.degree > 0) if nodes is None else np.asarray(nodes)
     out = []

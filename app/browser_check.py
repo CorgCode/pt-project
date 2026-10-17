@@ -1,12 +1,11 @@
-"""Drive the dashboard in a REAL headless Chromium and verify what a user would see.
+"""Проверка дашборда в НАСТОЯЩЕМ headless Chromium — то, что увидит пользователь.
 
     pip install playwright && playwright install chromium
     python -m app.browser_check --out app/screenshots [--bundle demo/synthetic_run]
 
-For desktop (1440 px) and phone (390 px) widths it opens every tab, saves a screenshot, records console
-errors and Streamlit exception boxes, checks horizontal overflow, and compares numbers shown in the page
-with the saved evaluator results (leaderboard cell, per-host agreement caption). Exit code 1 on any failure.
-Not part of CI (needs a browser download); the repo's AppTests cover execution, this covers rendering.
+На ширине 1440 и 390 px открывает каждую вкладку, сохраняет снимок, собирает ошибки консоли и исключения
+Streamlit, проверяет горизонтальную прокрутку и сверяет числа на странице с файлами результатов.
+Код выхода 1 при любой ошибке. В CI не входит (нужен браузер).
 """
 from __future__ import annotations
 
@@ -29,13 +28,13 @@ LONG = "graphsage_unsupervised_v2_final_FINAL_with_a_very_long_descriptive_metho
 
 
 def stress_bundle(src: Path, dst: Path, scenario: str) -> Path:
-    """Copy the bundle and damage it: a very long method name, or missing artifacts."""
+    """Скопировать прогон и испортить: очень длинное имя метода или пропавшие файлы."""
     import shutil
     shutil.copytree(src, dst)
     run = dst / "run"
     if scenario == "long_name":
         old = "behavioral_pca"
-        for f in sorted(run.rglob(f"*{old}*"), key=lambda p: len(p.parts), reverse=True):   # deepest first
+        for f in sorted(run.rglob(f"*{old}*"), key=lambda p: len(p.parts), reverse=True):   # сначала самые глубокие
             f.rename(f.with_name(f.name.replace(old, LONG)))
         for f in run.rglob("*.json"):
             f.write_text(f.read_text().replace(old, LONG))
@@ -130,7 +129,7 @@ def run(bundle: Path, out: Path, shots_for: set[str], *, full_checks: bool = Tru
                             if needle not in body:
                                 report["problems"].append(f"{vp}/Overview: banner text {needle!r} missing")
                     if tab == "Leaderboard" and full_checks:
-                        # the table is drawn on a canvas (not readable); the caption under it is DOM text
+                        # таблица рисуется на canvas (не читается); подпись под ней — обычный текст DOM
                         honest = {m: json.loads((bundle / "run" / "results" / "test" / f"{m}.json").read_text())["metrics"]
                                   for m in json.loads((bundle / "run" / "manifest.json").read_text())["methods"]
                                   if m != "reference_ceiling"}

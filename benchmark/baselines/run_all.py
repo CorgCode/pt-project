@@ -1,4 +1,4 @@
-"""Generate baseline embeddings from reference/features.csv and (optionally) evaluate them.
+"""Построить калибровочные бейзлайны по reference/features.csv и (по желанию) оценить их.
 
     python -m benchmark.baselines.run_all --reference-dir reference --dim 16 --seed 0 --evaluate
 """
@@ -25,7 +25,7 @@ def generate(reference_dir: Path, out_dir: Path, dim: int = 16, seed: int = 0,
 
 
 def evaluate(paths: dict[str, Path], reference_dir: Path, results_dir: Path) -> None:
-    """Run the existing common evaluator (no metric logic lives here)."""
+    """Запустить общую оценку (своей логики метрик здесь нет)."""
     from evaluation.evaluate import run
 
     results_dir.mkdir(parents=True, exist_ok=True)

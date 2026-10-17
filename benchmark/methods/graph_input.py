@@ -1,8 +1,8 @@
-"""Weighted undirected host graph from canonical flows (CSR), shared by all graph methods.
+"""Взвешенный неориентированный граф хостов по потокам (CSR), общий для всех графовых методов.
 
-Nodes are ALL hosts seen in the window's flows (cohort hosts and their peers), sorted by host_id;
-edge weight between two hosts = log1p(number of flows in either direction) (or `count` / `binary`).
-Self flows are dropped. Row neighbours are sorted, which makes edge lookup a binary search.
+Вершины — ВСЕ хосты окна (когорта и их собеседники), по возрастанию host_id; вес ребра —
+log1p(число потоков в обе стороны) (или count / binary). Петли выброшены. Соседи в строке отсортированы,
+поэтому проверка ребра — бинарный поиск.
 """
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ WEIGHTS = ("log1p", "count", "binary")
 
 @dataclass(frozen=True)
 class Graph:
-    nodes: np.ndarray            # host ids, sorted, dtype object
+    nodes: np.ndarray            # host_id по возрастанию, dtype object
     indptr: np.ndarray           # (n+1,) int64
-    indices: np.ndarray          # (2m,) int64, sorted within each row
+    indices: np.ndarray          # (2m,) int64, по возрастанию внутри строки
     weights: np.ndarray          # (2m,) float64, > 0
 
     @property
@@ -41,12 +41,12 @@ class Graph:
 
     @cached_property
     def cum(self) -> np.ndarray:
-        """cum[i] = sum(weights[:i]); lets a neighbour be drawn proportionally to weight by binary search."""
+        """cum[i] = sum(weights[:i]); позволяет выбрать соседа пропорционально весу бинарным поиском."""
         return np.concatenate([[0.0], np.cumsum(self.weights)])
 
     @cached_property
     def keys(self) -> np.ndarray:
-        """Sorted int64 keys src * n + dst of all directed edges (for vectorised edge-existence tests)."""
+        """Отсортированные ключи src * n + dst всех ориентированных рёбер (для быстрой проверки ребра)."""
         src = np.repeat(np.arange(self.n, dtype=np.int64), self.degree)
         return src * self.n + self.indices
 
@@ -56,7 +56,7 @@ class Graph:
         return (pos < len(self.keys)) & (self.keys[np.minimum(pos, len(self.keys) - 1)] == key)
 
     def index_of(self, hosts) -> np.ndarray:
-        """Row index of each host; KeyError (listing examples) if any host is not a node."""
+        """Номер строки каждого хоста; KeyError с примерами, если хоста нет среди вершин."""
         pos = np.searchsorted(self.nodes, np.asarray(list(hosts), dtype=object))
         pos = np.minimum(pos, self.n - 1)
         bad = [h for h, i in zip(hosts, pos) if self.nodes[i] != h]
@@ -72,7 +72,7 @@ class Graph:
 
 
 def from_edges(src: np.ndarray, dst: np.ndarray, w: np.ndarray, nodes: np.ndarray) -> Graph:
-    """Build from integer endpoint arrays (one row per undirected edge, no self loops, no duplicates)."""
+    """Построить по целочисленным концам (строка на неориентированное ребро, без петель и дублей)."""
     n = len(nodes)
     a = sp.coo_matrix((np.r_[w, w], (np.r_[src, dst], np.r_[dst, src])), shape=(n, n)).tocsr()
     a.sum_duplicates()

@@ -1,9 +1,7 @@
-"""Generate a SYNTHETIC netflow fixture in the exact LANL file format.
+"""СИНТЕТИЧЕСКИЕ файлы NetFlow ровно в формате LANL — только для тестов, CI и демо.
 
-For tests, CI and pipeline smoke runs ONLY. The files are written in the documented
-LANL layout (headerless, 11 comma-separated fields, bzip2), together with a
-SYNTHETIC_FIXTURE marker so downstream artifacts are always labelled synthetic.
-Nothing here represents LANL traffic statistics.
+Пишутся без заголовка, 11 полей, bzip2, плюс маркер SYNTHETIC_FIXTURE, чтобы всё построенное
+из них было помечено как синтетика. Статистика LANL здесь не воспроизводится.
 
     python -m pipeline.fixtures --output-dir data/fixture --n-hosts 120 --seed 0
 """
@@ -28,7 +26,7 @@ def _port(p: int) -> str:
 
 def generate(output_dir: Path, n_hosts: int = 300, hours: float = 12.0, files: int = 3,
              seed: int = 0, flows_per_host_hour: float = 30.0) -> dict:
-    """Write netflow_day-NN.bz2 files covering [0, hours*3600) seconds; return metadata."""
+    """Записать netflow_day-NN.bz2 на [0, hours*3600) секунд; вернуть метаданные."""
     rng = np.random.default_rng(seed)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -38,8 +36,8 @@ def generate(output_dir: Path, n_hosts: int = 300, hours: float = 12.0, files: i
     roles = rng.integers(0, n_roles, n_hosts)
     out_share = np.linspace(0.2, 0.9, n_roles)[roles]
     volume_mu = (5 + 0.7 * roles)
-    # Each role has a few shared "servers"; hosts talk mostly to their role's servers plus a
-    # few private peers (persistent pools, with some turnover halfway through).
+    # у каждой роли несколько общих «серверов»: хосты ходят в основном к ним и к нескольким
+    # своим собеседникам (наборы постоянные, к середине частично меняются)
     servers = [rng.choice(n_hosts, 8, replace=False) for _ in range(n_roles)]
     pools = np.stack([np.concatenate([rng.choice(servers[roles[i]], 5, replace=False),
                                       rng.integers(0, n_hosts, 3)]) for i in range(n_hosts)])
@@ -51,7 +49,7 @@ def generate(output_dir: Path, n_hosts: int = 300, hours: float = 12.0, files: i
     for i in range(n_hosts):
         n = rng.poisson(flows_per_host_hour * hours * (0.6 + 0.2 * (roles[i] % 3)))
         t = rng.uniform(0, total_s, n)
-        # role-specific activity phase within a 4h cycle
+        # у роли своя фаза активности в 4-часовом цикле
         keep = rng.random(n) < (0.5 + 0.5 * np.cos(2 * np.pi * (t / 14400.0 - roles[i] / n_roles)) ** 2)
         t = t[keep]
         n = len(t)

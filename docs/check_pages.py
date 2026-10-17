@@ -1,9 +1,8 @@
-"""Static GitHub Pages regression check. No Python research runtime needed (Node.js for syntax only).
+"""Статическая проверка сайта GitHub Pages (Python и Node.js только для синтаксиса JS).
 
-Checks: required pages/assets exist; Russian UI; no third-party scripts, styles or fonts;
-synthetic provenance labelling; every chart container and every "pending" placeholder is present;
-internal links and anchors resolve; JS parses; data file is synthetic and internally consistent.
-This is a static check, NOT a substitute for browser visual QA (see docs/browser_check.py).
+Проверяет: страницы и файлы на месте; интерфейс по-русски; нет сторонних скриптов, стилей и шрифтов;
+синтетика подписана; все графики и заглушки на месте; внутренние ссылки работают; JS разбирается;
+файл данных синтетический и согласован. Визуальную проверку в браузере не заменяет (docs/browser_check.py).
 """
 from __future__ import annotations
 
@@ -75,11 +74,11 @@ def check() -> None:
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
     assert "Ожидаются результаты эксперимента" in js
     assert 'fetch("./data/synthetic_demo.json"' in js
-    # a graph method must never appear with a number in the data file
+    # графовый метод не должен появляться с числом в файле данных
     for m in GRAPH_METHODS:
         assert m not in info["results"]["test"] and m not in info["identity"], m
 
-    # internal links resolve
+    # внутренние ссылки работают
     for name, (_, p) in pages.items():
         for href in p.links:
             if href.startswith(("http:", "https:", "mailto:")):

@@ -108,7 +108,7 @@ def test_end_to_end_fixture_one_command(tmp_path):
 def test_demo_bundle_is_synthetic_and_has_no_absolute_paths(tmp_path):
     from experiments.make_demo_bundle import build
     out = build(tmp_path / "b", n_hosts=100, n_boot=0)
-    assert "NOT LANL" in (out / "README.md").read_text()
+    assert "НЕ данные LANL" in (out / "README.md").read_text(encoding="utf-8")
     m = json.loads((out / "run" / "manifest.json").read_text())
     assert m["synthetic"] is True
     blob = "".join(p.read_text() for p in out.rglob("*.json")) + (out / "run" / "report.md").read_text()

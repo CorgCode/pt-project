@@ -1,20 +1,16 @@
-"""Feature-block ablation of the behavioural baseline, with the port-free variant first (issue #43).
+"""Абляция блоков признаков поведенческого бейзлайна; главное — вариант без портов (#43).
 
     python -m experiments.feature_ablation --processed-dir data/processed --reference-dir data/reference \
         --out-dir runs/ablation_ports
 
-What is compared. Every variant is the train-window behavioural profile (volume, peers, ratio, ports, proto,
-hourly) with some blocks removed ENTIRELY: `full`, `no_ports` (the issue's port-free baseline) and one
-leave-one-block-out variant per remaining block. All variants use the SAME hosts, windows and frozen references
-and are scored by the common evaluator (`evaluation.evaluate.run`); the files' SHA-256 are recorded to prove it.
-For `full` vs `no_ports` the report adds PAIRED differences with confidence intervals (hosts are resampled
-together for both variants: per-host kNN consistency; host-cluster bootstrap for pair/link/triplet metrics).
+Варианты — поведенческий профиль train-окна (volume, peers, ratio, ports, proto, hourly) с полностью
+убранными блоками: full, no_ports и «минус один блок» для остальных. Все на ОДНИХ хостах, окнах и эталонах,
+оценка — общая (evaluation.evaluate.run), хеши файлов записываются. Для full против no_ports — парные
+разности с интервалами (хосты пересэмплируются вместе для обоих вариантов).
 
-A separate DIAGNOSTIC (not a leaderboard reference): the target-window kNN reference rebuilt without ports. It
-shows how much of the standard behavioural proxy is carried by ports and how both variants fare when ports are
-removed from the reference as well. It has a different fingerprint and must not be mixed with leaderboard scores.
-
-Everything is fitted on the TRAIN window only; the test window only provides the references.
+Отдельная ДИАГНОСТИКА (не для таблицы результатов): эталон соседей, пересобранный без портов. Показывает,
+сколько поведенческого эталона держится на портах. У него другой отпечаток — смешивать с таблицей нельзя.
+Всё обучается только на train.
 """
 from __future__ import annotations
 
@@ -68,7 +64,7 @@ def _diff_record(estimate: float, ci) -> dict:
 
 def paired_differences(emb_a: pd.DataFrame, emb_b: pd.DataFrame, reference_dir: Path, split: str,
                        n_boot: int, seed: int) -> dict:
-    """a minus b on the standard reference, with paired bootstrap intervals."""
+    """a минус b на стандартном эталоне, с парными бутстреп-интервалами."""
     ev = pd.read_csv(reference_dir / "eval_hosts.csv", dtype=str)["host_id"].tolist() \
         if (reference_dir / "eval_hosts.csv").exists() else list(emb_a.index)
     ea, eb = emb_a.loc[ev], emb_b.loc[ev]
@@ -116,13 +112,13 @@ def paired_differences(emb_a: pd.DataFrame, emb_b: pd.DataFrame, reference_dir: 
 
 def port_free_reference_diagnostic(data: ProcessedData, reference_dir: Path, embeddings: dict[str, pd.DataFrame],
                                    n_boot: int, seed: int) -> dict:
-    """kNN agreement against a target-window reference rebuilt WITHOUT ports (analysis only, not a leaderboard)."""
+    """Совпадение соседей с эталоном целевого окна, пересобранным БЕЗ портов (только анализ)."""
     test_flows = load_flows(data.root / "flows" / "test.csv")
     hosts = pd.read_csv(reference_dir / "eval_hosts.csv", dtype=str)["host_id"].tolist() \
         if (reference_dir / "eval_hosts.csv").exists() else data.cohort
     feats_full = build_reference_features(test_flows, hosts=hosts)
     feats_free = build_reference_features(test_flows, hosts=hosts, exclude_blocks=("ports",))
-    self_agree = evaluate_embedding(feats_free, feats_full, ks=KS)          # port-free vs full reference neighbours
+    self_agree = evaluate_embedding(feats_free, feats_full, ks=KS)          # соседи эталона без портов против полного
     out: dict = {
         "note": ("reference rebuilt from the same target window WITHOUT the port block; different fingerprint, "
                  "NOT comparable with leaderboard scores"),
@@ -161,7 +157,7 @@ def run_ablation(processed_dir: Path, reference_dir: Path, out_dir: Path, *, lea
         results[name] = run(path, ref, f"behavioral_{name}", n_boot=n_boot, seed=seed, fit_reference_dir=fit_ref)
     fingerprints = {n: json.dumps(r["reference_info"]["files_sha256"], sort_keys=True) for n, r in results.items()}
     identical = len(set(fingerprints.values())) == 1 and len({r["n_hosts"] for r in results.values()}) == 1
-    if not identical:                                                       # cannot happen unless run() changes
+    if not identical:                                                       # невозможно, пока run() не изменится
         raise RuntimeError("variants were not evaluated on identical references and hosts")
     report = {
         "data_kind": data.kind, "badge": BADGE[data.kind], "synthetic": data.synthetic, "seed": seed, "n_bootstrap": n_boot,
@@ -193,7 +189,7 @@ def _f(x, d=3):
 
 
 def _diff_cell(rec: dict | None) -> str:
-    """'+0.012 [+0.003, +0.021] *' ; the interval is omitted when no bootstrap was run (n_bootstrap = 0)."""
+    """'+0.012 [+0.003, +0.021] *'; без бутстрепа (n_bootstrap = 0) интервал не пишется."""
     if rec is None:
         return "not paired"
     if rec["ci95"] is None:

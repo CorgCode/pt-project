@@ -1,9 +1,9 @@
-"""Research dashboard for the host-embedding benchmark.
+"""Дашборд бенчмарка эмбеддингов хостов.
 
     streamlit run app/streamlit_app.py
 
-Shows a verified run bundle (default: the committed synthetic demo; or any `runs/<name>` produced by
-`python -m experiments.end_to_end`), plus a tab to score your own embeddings file.
+Показывает прогон (по умолчанию — синтетическое демо; или любой runs/<имя> от experiments.end_to_end)
+и вкладку для оценки своего файла эмбеддингов.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO))  # repo root for benchmark/evaluation/pipeline
+sys.path.insert(0, str(REPO))  # корень репозитория для benchmark/evaluation/pipeline
 
 import plotly.express as px
 import streamlit as st
@@ -41,7 +41,7 @@ def sample_csv() -> bytes:
 
 
 def try_it() -> None:
-    """Score a user-supplied embeddings.csv on the small synthetic demo reference."""
+    """Оценить загруженный embeddings.csv на маленьком синтетическом эталоне демо."""
     st.caption("Upload an `embeddings.csv` (`host_id, emb_0, emb_1, ...`) for the synthetic demo cohort (`h0`..`h299`) "
                "and compare it with simple baselines. This tab uses its own small synthetic reference, independent of "
                "the bundle selected in the sidebar.")
@@ -72,7 +72,7 @@ def try_it() -> None:
     st.warning("Not available yet: " + "; ".join(out["unavailable"]))
 
 
-# ------------------------------------------------------------------------------------------ layout
+# ------------------------------------------------------------------------------------------ раскладка
 with st.sidebar:
     st.header("Results")
     options = {str(p.relative_to(REPO)): p for p in discover(REPO)}

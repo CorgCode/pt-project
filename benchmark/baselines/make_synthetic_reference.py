@@ -1,6 +1,4 @@
-"""Write a SYNTHETIC reference/features.csv for calibrating baselines and CI.
-
-Not real data and not a substitute for the project reference artifacts (#19).
+"""СИНТЕТИЧЕСКИЙ reference/features.csv для калибровки бейзлайнов и CI. Не настоящие данные.
 
     python -m benchmark.baselines.make_synthetic_reference --output-dir /tmp/synthetic_reference
 """

@@ -1,16 +1,13 @@
-"""Skip-gram trainer for node embeddings (numpy, deterministic, no extra dependencies).
+"""Skip-gram для эмбеддингов вершин (numpy, детерминированно, без лишних зависимостей).
 
-Two output objectives over (centre c, context x) pairs taken from a walk corpus:
-
-  neg  skip-gram with negative sampling (word2vec / node2vec reference implementation)
-         L = -log s(v_c . u_x) - sum_{k=1..K} log s(-v_c . u_{n_k}),   n_k ~ P(n) ~ freq^0.75
-  hs   hierarchical softmax over a Huffman tree (the DeepWalk paper's objective)
+Две целевые функции на парах (центр c, контекст x) из корпуса блужданий:
+  neg  negative sampling (как в word2vec / node2vec):
+         L = -log s(v_c . u_x) - sum_{k=1..K} log s(-v_c . u_{n_k}),   n_k ~ freq^0.75
+  hs   hierarchical softmax по дереву Хаффмана (как в статье DeepWalk):
          L = -sum_{j in path(x)} log s( (1 - 2 b_j) * v_c . theta_j )
 
-`W_in` (one row per node) are the embeddings. Pairs use word2vec's dynamic window (a window size drawn
-uniformly from 1..window per centre) in both directions. Updates are mini-batch SGD with a linearly
-decaying learning rate; a batch's gradients are scattered with sorted segment sums, so a node that occurs
-several times in a batch receives the summed update. Seeded; two runs with one seed are identical.
+Эмбеддинги — строки W_in. Окно динамическое (размер для каждого центра случаен от 1 до window), в обе стороны.
+Мини-батч SGD с линейно убывающим шагом; градиенты одной вершины в батче суммируются. Один seed — один результат.
 """
 from __future__ import annotations
 
@@ -20,9 +17,9 @@ import numpy as np
 from scipy.special import expit
 
 
-# ------------------------------------------------------------------------------------ Huffman tree
+# ------------------------------------------------------------------------------------ дерево Хаффмана
 def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Huffman codes for leaves 0..n-1: (inner-node paths, bit codes, lengths); padded with -1 / 0."""
+    """Коды Хаффмана для листьев 0..n-1: (пути по внутренним узлам, биты, длины), дополнены -1 / 0."""
     n = len(freq)
     if n < 2:
         raise ValueError("need at least two nodes")
@@ -45,8 +42,8 @@ def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         while cur != root:
             bits.append(bit[cur])
             cur = parent[cur]
-            nodes.append(cur - n)                      # inner nodes are numbered 0..n-2
-        chains.append((nodes[::-1], bits[::-1]))       # root -> leaf order
+            nodes.append(cur - n)                      # внутренние узлы нумеруются 0..n-2
+        chains.append((nodes[::-1], bits[::-1]))       # от корня к листу
     lens = np.array([len(c[0]) for c in chains], dtype=np.int64)
     paths = np.full((n, lens.max()), -1, dtype=np.int64)
     codes = np.zeros((n, lens.max()), dtype=np.int8)
@@ -55,9 +52,9 @@ def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return paths, codes, lens
 
 
-# ------------------------------------------------------------------------------------ losses
+# ------------------------------------------------------------------------------------ функции потерь
 def neg_loss_grads(W_in, W_out, c, pos, negs):
-    """Summed loss and gradients for a batch. Returns (loss, g_in (B,d), out_idx, out_grad)."""
+    """Сумма потерь и градиенты батча: (loss, g_in (B,d), out_idx, out_grad)."""
     v, up, un = W_in[c], W_out[pos], W_out[negs]                      # (B,d) (B,d) (B,K,d)
     s_pos, s_neg = (v * up).sum(1), np.einsum("bd,bkd->bk", v, un)
     loss = -np.log(expit(s_pos) + 1e-300).sum() - np.log(expit(-s_neg) + 1e-300).sum()
@@ -83,14 +80,14 @@ def hs_loss_grads(W_in, W_out, c, ctx, paths, codes, lens):
 
 
 def scatter_sub(W: np.ndarray, idx: np.ndarray, grad: np.ndarray, lr: float) -> None:
-    """W[idx] -= lr * grad with repeated indices summed (sorted segment sums)."""
+    """W[idx] -= lr * grad, повторные индексы суммируются."""
     order = np.argsort(idx, kind="stable")
     sidx = idx[order]
     first = np.r_[True, sidx[1:] != sidx[:-1]]
     W[sidx[first]] -= lr * np.add.reduceat(grad[order], np.flatnonzero(first), axis=0)
 
 
-# ------------------------------------------------------------------------------------ trainer
+# ------------------------------------------------------------------------------------ обучение
 class SkipGram:
     def __init__(self, n_nodes: int, dim: int, *, objective: str = "neg", window: int = 10, negative: int = 5,
                  lr: float = 0.025, min_lr: float = 1e-4, epochs: int = 1, batch_size: int = 512, seed: int = 0,
@@ -116,14 +113,14 @@ class SkipGram:
             self.paths, self.codes, self.lens = huffman(freq)
         self.loss_history: list[float] = []
 
-    # -------------------------------------------------------------------------------- pairs
+    # -------------------------------------------------------------------------------- пары
     def _pairs(self, walks: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        b = self.rng.integers(1, self.window + 1, size=walks.shape)       # dynamic window per centre
+        b = self.rng.integers(1, self.window + 1, size=walks.shape)       # своё окно у каждого центра
         cs, xs = [], []
         for o in range(1, min(self.window, walks.shape[1] - 1) + 1):
-            fwd = b[:, :-o] >= o                                          # centre i, context i+o
+            fwd = b[:, :-o] >= o                                          # центр i, контекст i+o
             cs.append(walks[:, :-o][fwd]); xs.append(walks[:, o:][fwd])
-            bwd = b[:, o:] >= o                                           # centre i+o, context i
+            bwd = b[:, o:] >= o                                           # центр i+o, контекст i
             cs.append(walks[:, o:][bwd]); xs.append(walks[:, :-o][bwd])
         return np.concatenate(cs), np.concatenate(xs)
 
@@ -131,7 +128,7 @@ class SkipGram:
         return n_walks * sum(2 * (length - o) * (self.window - o + 1) / self.window
                              for o in range(1, min(self.window, length - 1) + 1))
 
-    # -------------------------------------------------------------------------------- training
+    # -------------------------------------------------------------------------------- обучение
     def fit(self, walks: np.ndarray) -> "SkipGram":
         walks = np.asarray(walks)
         if walks.ndim != 2 or walks.shape[1] < 2 or walks.min() < 0 or walks.max() >= self.n:

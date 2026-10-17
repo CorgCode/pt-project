@@ -1,4 +1,4 @@
-"""Markdown report and figures for a benchmark run (matplotlib, no styling tricks)."""
+"""Отчёт в Markdown и графики прогона (matplotlib)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -34,7 +34,7 @@ _FALLBACK = ["#9334e6", "#d01884", "#b06000", "#0b8043", "#c5221f", "#1967d2", "
 
 
 def _color(name: str) -> str:
-    """Known baselines keep their colour; any other method gets a stable colour from its name."""
+    """У известных бейзлайнов свой цвет; остальным методам — стабильный цвет по имени."""
     import zlib
     return PALETTE.get(name) or _FALLBACK[zlib.crc32(name.encode()) % len(_FALLBACK)]
 
@@ -89,7 +89,7 @@ def identity_plot(identity: dict[str, dict], path: Path, title: str) -> None:
     fig, ax = plt.subplots(figsize=(6, 3.6))
     w = 0.38
     for j, mode in enumerate(("none", "procrustes")):
-        # raw coordinates are only meaningful when the method declares ONE coordinate system
+        # сырые координаты осмысленны, только если у метода одна система координат
         v = [np.nan if (mode == "none" and not identity[m].get("shared_coordinate_system_declared"))
              else identity[m].get(mode, {}).get("top1", np.nan) for m in methods]
         ax.bar(np.arange(len(methods)) + (j - 0.5) * w, v, w, label=("raw (shared-coordinate methods only)" if mode == "none" else "Procrustes-aligned"),

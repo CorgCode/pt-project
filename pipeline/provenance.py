@@ -1,23 +1,18 @@
-"""What the pipeline can and cannot know about where its input bytes came from.
+"""Что пайплайн может и не может знать о происхождении входных файлов.
 
-LANL publishes no checksums that this pipeline can compare against, so provenance is NEVER
-"verified" here. Three kinds exist, in decreasing order of what they claim:
+LANL не публикует контрольных сумм, поэтому происхождение здесь НИКОГДА не «проверено». Три вида:
 
-    lanl_declared       the operator explicitly declared the files to be LANL netflow
-                        (--data-kind lanl plus a non-empty --source-note: where/when obtained),
-                        and the files pass the cheap sanity checks below. This is a DECLARATION.
-    unverified          default for any unmarked input. Nothing is claimed about its origin.
-    synthetic_fixture   output of pipeline.fixtures (marker file or recognised generator signature).
+    lanl_declared       оператор заявил, что это LANL (--data-kind lanl и непустой --source-note),
+                        и файлы прошли простые проверки ниже. Это ЗАЯВЛЕНИЕ, а не проверка.
+    unverified          по умолчанию: о происхождении ничего не утверждается.
+    synthetic_fixture   вывод pipeline.fixtures (файл-маркер или узнаваемая подпись генератора).
 
-Downstream artifacts carry `data_kind`, `provenance_verified: false`, `synthetic` and the
-declaration, and every report/dashboard prints which of the three applies. Synthetic or
-unverified inputs can never be presented as LANL.
+Все результаты несут data_kind и provenance_verified: false; синтетика не может выдаваться за LANL.
 
-Sanity checks for a LANL declaration (they catch mistakes, they do not prove authenticity):
-  * the SYNTHETIC_FIXTURE marker must be absent;
-  * the content must not match the fixture generator's signature (device numbers are
-    100000 + 7*i in pipeline.fixtures; real LANL device numbers are not an arithmetic progression);
-  * every file name must look like netflow_day-NN.bz2.
+Проверки заявления LANL (ловят ошибки, но не доказывают подлинность):
+  * нет маркера SYNTHETIC_FIXTURE;
+  * ID устройств не похожи на генератор (там 100000 + 7*i);
+  * имена файлов вида netflow_day-NN.bz2.
 """
 from __future__ import annotations
 
@@ -44,7 +39,7 @@ BADGE = {
 
 
 def fixture_signature(devices: set[str]) -> bool:
-    """True if the device IDs look like pipeline.fixtures output (Comp100000 + 7*i)."""
+    """True, если ID устройств похожи на вывод pipeline.fixtures (Comp100000 + 7*i)."""
     nums = [int(m.group(1)) for d in devices if (m := _COMP_RE.match(d))]
     if len(nums) < 20 or len(nums) < 0.9 * len(devices):
         return False
@@ -52,7 +47,7 @@ def fixture_signature(devices: set[str]) -> bool:
 
 
 def sample_devices(path: Path, rows: int = 20000) -> tuple[set[str], dict]:
-    """Device IDs and format statistics from the first rows of a raw file (bounded work)."""
+    """ID устройств и статистика формата по первым строкам файла."""
     df = pd.read_csv(path, header=None, names=RAW_COLUMNS, dtype=str, nrows=rows, keep_default_na=False,
                      on_bad_lines="skip")
     devices = set(df["SrcDevice"].str.strip()) | set(df["DstDevice"].str.strip())
@@ -67,7 +62,7 @@ def sample_devices(path: Path, rows: int = 20000) -> tuple[set[str], dict]:
 
 
 def classify(inputs: list[Path], declared: str | None = None, source_note: str | None = None) -> dict:
-    """Decide the provenance kind of a set of input files; raise on contradictory claims."""
+    """Определить вид происхождения файлов; противоречивые заявления — ошибка."""
     if declared not in (None, "lanl", KIND_SYNTHETIC, KIND_LANL_DECLARED):
         raise PipelineError(f"unknown data kind {declared!r}")
     wants_lanl = declared in ("lanl", KIND_LANL_DECLARED)
@@ -77,7 +72,7 @@ def classify(inputs: list[Path], declared: str | None = None, source_note: str |
     for p in inputs:
         try:
             d, s = sample_devices(Path(p))
-        except Exception:                       # unreadable here; the real reader reports it properly
+        except Exception:                       # здесь не читается; настоящий ридер сообщит об этом сам
             continue
         devices |= d
         fmt[Path(p).name] = s

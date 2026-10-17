@@ -1,4 +1,4 @@
-"""Shared IO for baseline embeddings; conventions come from benchmark/config.json."""
+"""Общий ввод-вывод для бейзлайнов; соглашения — benchmark/config.json."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from evaluation.evaluate import _load_matrix  # same loader the evaluator uses
+from evaluation.evaluate import _load_matrix  # тот же загрузчик, что у оценки
 
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.json"
 REF_PREFIX = "ref_"
@@ -18,13 +18,13 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
 
 
 def load_reference_features(reference_dir: Path, config: dict | None = None) -> pd.DataFrame:
-    """Hosts x ref_* matrix indexed by host_id (validated like the evaluator does)."""
+    """Матрица хосты x ref_* с host_id в индексе (проверки как в оценке)."""
     config = config or load_config()
     return _load_matrix(Path(reference_dir) / "features.csv", config["host_id_column"], REF_PREFIX)
 
 
 def write_embeddings(path: Path, hosts: pd.Index, X: np.ndarray, config: dict | None = None) -> Path:
-    """Write the common submission format: host_id, emb_0, emb_1, ..."""
+    """Записать общий формат: host_id, emb_0, emb_1, ..."""
     config = config or load_config()
     if X.shape[0] != len(hosts):
         raise ValueError("embedding rows do not match hosts")

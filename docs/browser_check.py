@@ -1,9 +1,8 @@
-"""Real-browser check of the static site (headless Chromium), served from docs/ exactly as the
-Pages workflow publishes it. Never starts Streamlit and never needs an upload for the main page.
+"""Проверка сайта в настоящем headless Chromium, раздаётся из docs/ так же, как публикует Pages.
 
-Verifies at 1440 / 768 / 390 px: no page errors, no horizontal overflow, all charts drawn on first
-load, provenance + pending placeholders visible, split toggle redraws, playground accepts a valid CSV
-and rejects invalid ones. Pass --shots DIR to also save full-page screenshots.
+На 1440 / 768 / 390 px: нет ошибок страницы и горизонтальной прокрутки, все графики нарисованы при первой загрузке,
+пометки синтетики и заглушки видны, переключатель split перерисовывает, песочница принимает корректный CSV
+и отклоняет некорректный. --shots DIR — ещё и снимки страниц.
 """
 from __future__ import annotations
 

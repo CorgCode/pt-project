@@ -1,16 +1,11 @@
-"""LANL netflow -> canonical flows, temporal windows, cohort and graphs.
+"""LANL NetFlow -> нормализованные потоки, окна, когорта и графы.
 
     python -m pipeline.prepare describe --netflow data/raw/netflow_day-02.bz2 ...
     python -m pipeline.prepare run --netflow data/raw/netflow_day-*.bz2 \
         --config pipeline/example_config.json --output-dir data/processed
 
-Outputs in --output-dir:
-    flows/{train,validation,test}.csv   canonical flows (+extra columns) per window
-    cohort.csv                          hosts active in EVERY window (>= min events)
-    graph/edges_<window>.csv            undirected host graph per window (cohort only)
-    manifest.json                       schema, config, counts, hashes, leakage checks
-
-The cohort is fixed here, before any model is trained or any score is seen.
+В --output-dir: flows/{train,validation,test}.csv, cohort.csv, graph/edges_<окно>.csv, manifest.json
+(схема, конфиг, счётчики, хеши, проверки утечек). Когорта фиксируется здесь — до любых моделей.
 """
 from __future__ import annotations
 
@@ -41,7 +36,7 @@ def _sha256(path: Path) -> str:
 
 
 def detect_kind(inputs: list[Path], declared: str | None = None, source_note: str | None = None) -> str:
-    """Provenance kind: synthetic_fixture, unverified (default) or lanl_declared. See pipeline.provenance."""
+    """Вид происхождения: synthetic_fixture, unverified (по умолчанию) или lanl_declared."""
     return classify([Path(p) for p in inputs], declared, source_note)["kind"]
 
 
@@ -58,7 +53,7 @@ SELECTION_NOTE = {
 
 
 def describe(inputs: list[Path], chunksize: int = 500_000, strict: bool = True) -> dict:
-    """Scan files (no output files) so windows can be chosen from the real Time axis."""
+    """Пройти по файлам (ничего не пишет), чтобы выбрать окна по реальной оси Time."""
     files = []
     for path in inputs:
         bad: Counter = Counter()
@@ -127,7 +122,7 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             raise PipelineError(f"Window {w} {config.windows[w]} contains no flows; "
                                 "check the Time range with `describe`")
 
-    # Cohort, fixed before any modelling (see PipelineConfig.cohort_policy).
+    # когорта фиксируется до моделей (см. PipelineConfig.cohort_policy)
     table = pd.DataFrame({w: host_events[w] for w in names}).fillna(0)
     active = table >= config.min_events_per_window
     later = [w for w in names if w != "train"]

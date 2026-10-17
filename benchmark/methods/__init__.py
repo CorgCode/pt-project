@@ -1,8 +1,7 @@
-"""Graph-embedding methods for the benchmark, discovered automatically.
+"""Графовые методы, находятся автоматически.
 
-Every module in this package may define `METHODS = {"name": Class}`; adding a method never requires editing
-a central list. Methods follow the temporal protocol (fit on the train window only) of
-benchmark.baselines.temporal.Baseline and are selected with `--methods` in `experiments.run_experiment`.
+Любой модуль пакета может объявить METHODS = {"имя": Класс} — центральный список править не нужно.
+Методы следуют временному протоколу (обучение только на train) и выбираются флагом --methods.
 """
 from __future__ import annotations
 
@@ -22,10 +21,10 @@ def available() -> dict[str, type]:
 
 
 def create(names: list[str], dim: int = 16, seed: int = 0, config: dict | None = None, fast: bool = False) -> list:
-    """Instantiate methods by name ("all" = every registered method).
+    """Создать методы по именам ("all" — все зарегистрированные).
 
-    `config` maps a method name to hyper-parameter overrides. `fast=True` first applies each method's tiny
-    `fast_params` profile (smoke tests / CI only: results from it are not meaningful), then the overrides.
+    config: {метод: переопределения гиперпараметров}. fast=True сначала ставит крошечные fast_params
+    (только для CI — числа бессмысленны), затем переопределения.
     """
     reg, config = available(), config or {}
     names = list(reg) if list(names) == ["all"] else list(names)

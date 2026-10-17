@@ -1,13 +1,12 @@
-"""Common wrapper that turns a graph-embedding algorithm into a benchmark method.
+"""Общая обёртка, превращающая алгоритм графового эмбеддинга в метод бенчмарка.
 
-A subclass implements `embed_graph(graph) -> (n_nodes, d) array` (rows aligned with graph.nodes). The wrapper
-builds the weighted host graph from ONE window's flows, caches the result, and returns the cohort hosts'
-vectors in the canonical `host_id, emb_*` frame.
+Наследник реализует embed_graph(graph) -> массив (n_nodes, d) (строки в порядке graph.nodes). Обёртка
+строит взвешенный граф хостов по потокам ОДНОГО окна, кэширует результат и отдаёт векторы хостов
+когорты в формате host_id, emb_*.
 
-Protocol: `fit(data)` reads only the TRAIN window (`data.training_flows()`); the scored embedding is
-`embed(data, "train")`. For a later window (identity retrieval) the algorithm is re-run on that window's
-graph with the same hyper-parameters; such coordinates are NOT shared between windows, so
-`shared_coordinate_system` is False unless a method is inductive (e.g. GraphSAGE overrides this).
+fit(data) читает только train; оценивается embed(data, "train"). Для позднего окна алгоритм
+запускается заново на его графе с теми же параметрами — координаты между окнами не общие
+(shared_coordinate_system=False), кроме индуктивных методов (GraphSAGE).
 """
 from __future__ import annotations
 
@@ -24,9 +23,9 @@ from pipeline.data import ProcessedData
 class GraphEmbeddingMethod(Baseline):
     name = "graph_method"
     default_params: dict = {}
-    fast_params: dict = {}                           # tiny settings for smoke tests / CI (not for results)
-    reference = ""                                   # paper / algorithm reference
-    # information shared with each reference's SOURCE by construction (shown in the audit table)
+    fast_params: dict = {}                           # крошечные настройки для CI (не для результатов)
+    reference = ""                                   # статья / алгоритм
+    # что метод делит с ИСТОЧНИКОМ каждого эталона по построению (таблица аудита)
     overlap = {"neighbors": "weak: peers/degree structure correlates with behaviour",
                "edges": "strong: link persistence (peers seen in train recur)",
                "pairs": "strong: shared peers = shared neighbourhood"}
@@ -43,13 +42,13 @@ class GraphEmbeddingMethod(Baseline):
         self._cache: dict[str, tuple] = {}
         self.fit_seconds: dict[str, float] = {}
 
-    # ---- to implement
+    # ---- реализовать в наследнике
     def embed_graph(self, g: Graph, focus: np.ndarray | None = None) -> np.ndarray:
-        """Embed the graph; rows aligned with g.nodes. `focus` (row indices) is given only if `uses_focus`."""
+        """Эмбеддинг графа, строки в порядке g.nodes. focus (индексы строк) передаётся, только если uses_focus."""
         raise NotImplementedError
 
-    # ---- wrapper
-    uses_focus = False        # True: the method builds its model only over the hosts to be embedded (e.g. struc2vec)
+    # ---- обёртка
+    uses_focus = False        # True: модель строится только по нужным хостам (например struc2vec)
 
     def _window(self, data: ProcessedData, window: str, hosts: list[str]) -> tuple[Graph, np.ndarray]:
         if window not in self._graphs:
@@ -62,7 +61,7 @@ class GraphEmbeddingMethod(Baseline):
             cached = self._cache.get(window)
             if cached is not None and need <= cached[2]:
                 return g, cached[1]
-            focus_set = need | (cached[2] if cached else set())          # later requests never shrink the focus
+            focus_set = need | (cached[2] if cached else set())          # последующие запросы фокус не сужают
         elif window in self._cache:
             return g, self._cache[window][1]
         t0 = time.perf_counter()

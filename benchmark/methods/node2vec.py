@@ -1,12 +1,9 @@
 """node2vec (Grover & Leskovec, KDD 2016).
 
-Second-order biased random walks controlled by the return parameter `p` and the in-out parameter `q`
-(`walks.second_order_step`: next node x after the edge (t, v) has probability proportional to
-w(v, x) * alpha(t, x), alpha = 1/p if x == t, 1 if x is adjacent to t, 1/q otherwise), fed to skip-gram with
-negative sampling, as in the reference implementation. p = q = 1 reduces to DeepWalk's walks with the negative-
-sampling objective. Low q keeps walks in a community (homophily); high q pushes them outward (structural-role
-signal); low p keeps walks local. Choose p and q on the validation window (experiments/tune_methods.py); the
-defaults are the neutral p = q = 1. Coordinates of different windows are fitted separately (not shared).
+Блуждания второго порядка с параметрами p (возврат) и q (вглубь/вширь) -> skip-gram с negative sampling.
+p = q = 1 — блуждания DeepWalk. Малый q держит блуждание в сообществе (похожие соседи), большой q уводит
+наружу (сигнал структурной роли), малый p держит его рядом. p и q подбирайте на validation
+(experiments/tune_methods.py); по умолчанию нейтральные p = q = 1. Окна обучаются отдельно.
 """
 from __future__ import annotations
 

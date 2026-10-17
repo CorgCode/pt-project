@@ -1,16 +1,14 @@
-"""Run all methods on the SAME cohort, windows, references and candidates.
+"""Все методы на ОДНОЙ когорте, окнах, эталонах и кандидатах.
 
     python -m experiments.run_experiment --processed-dir data/processed \
         --reference-dir data/reference --out-dir runs/lanl_smoke [--submissions-dir submissions]
 
-Methods: built-in train-window-only baselines (random, behavioral, behavioral_pca,
-behavioral_svd, graph_spectral), the reference ceiling (leaks by design), and any
-`<submissions-dir>/<method>/embeddings.csv` (source-window embedding; optional
-`<method>/<window>.csv` files enable identity retrieval). Expected-but-absent methods are
-listed in the report, never simulated.
+Методы: бейзлайны (обучаются только на train), графовые методы из --methods, потолок reference_ceiling
+(«утекает» намеренно) и любые <submissions-dir>/<метод>/embeddings.csv (+ <метод>/<окно>.csv для
+узнаваемости во времени). Ожидавшиеся, но не полученные методы перечисляются в отчёте, а не симулируются.
 
-Outputs: results/<target>/<method>.json, identity/<target>/<method>.json,
-scoreboard_<target>.csv, audit.json, report.md, figures/, manifest.json.
+Выход: results/<окно>/<метод>.json, identity/<окно>/<метод>.json, scoreboard_<окно>.md/.csv,
+audit.json, report.md, figures/, manifest.json.
 """
 from __future__ import annotations
 
@@ -46,7 +44,7 @@ SCOPE = {
                       "(windows, cohort policy, references). They are not claims about other data, other windows, or host roles."),
 }
 TAGS = {"synthetic_fixture": "SYNTHETIC FIXTURE", "unverified": "UNVERIFIED INPUT", "lanl_declared": "LANL (declared)"}
-EXPECTED_EXTERNAL = ["node2vec", "deepwalk", "graphsage", "struc2vec", "rolx"]   # issue #20 / research plan
+EXPECTED_EXTERNAL = ["node2vec", "deepwalk", "graphsage", "struc2vec", "rolx"]   # #20 / план ресёрча
 
 
 def _git_sha() -> str | None:
@@ -57,7 +55,7 @@ def _git_sha() -> str | None:
 
 
 def _read_training_windows(submission_dir: Path) -> list[str] | None:
-    """Windows an external method declares to have been trained on (provenance.json); None if undeclared."""
+    """Окна, на которых, по заявлению внешнего метода, он обучался (provenance.json); None — не заявлено."""
     f = Path(submission_dir) / "provenance.json"
     if not f.exists():
         return None
@@ -89,13 +87,13 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     ref_manifest = json.loads((reference_dir / "test" / "manifest.json").read_text())
     if ref_manifest.get("cohort_sha256") != data.manifest["cohort"]["sha256"]:
         raise ValueError("reference was built from a different cohort than the processed dataset")
-    for t in targets:                       # the saved reference must cover exactly the evaluable hosts
+    for t in targets:                       # сохранённый эталон должен покрывать ровно оцениваемых хостов
         saved = pd.read_csv(reference_dir / t / "eval_hosts.csv", dtype=str)["host_id"].tolist()
         if saved != data.evaluable(t):
             raise ValueError(f"reference/{t}/eval_hosts.csv does not match the evaluable hosts of the dataset")
     hosts_by_target = {t: data.evaluable(t) for t in targets}
 
-    # ---- collect embeddings: method -> {window: DataFrame}; 'train' = scored source embedding
+    # ---- собрать эмбеддинги: метод -> {окно: DataFrame}; 'train' — оцениваемый эмбеддинг
     emb: dict[str, dict[str, pd.DataFrame]] = {}
     meta: dict[str, dict] = {}
     graph_methods_run = graph_methods.create(methods or [], dim, seed, method_config, fast_methods)
@@ -126,7 +124,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     implemented = [b.name for b in graph_methods_run]
     missing = [m for m in EXPECTED_EXTERNAL if m not in external and m not in implemented]
 
-    # ---- evaluate on every target reference
+    # ---- оценка на каждом целевом эталоне
     results: dict[str, dict[str, dict]] = {t: {} for t in targets}
     identity: dict[str, dict[str, dict]] = {t: {} for t in targets}
     for t in targets:
@@ -136,8 +134,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         per_target["reference_ceiling"] = {"train": feats.rename(columns=lambda c: c.replace("ref_", "emb_"))}
         for name, windows in per_target.items():
             path = _write(out_dir / "embeddings" / name / "train.csv", windows["train"])
-            # The ceiling only embeds the target-evaluable hosts, so it cannot take part in the learned link
-            # scorer (its fit candidates come from the earlier validation window); it is a leaky object anyway.
+            # потолок встраивает только оцениваемых хостов целевого окна, поэтому в обученном классификаторе
+            # связей (его кандидаты — из более раннего validation) участвовать не может; он и так «утекает»
             fit_ref = (reference_dir / "validation" if t == "test" and name != "reference_ceiling"
                        and (reference_dir / "validation").exists() else None)
             r = run(path, ref_t, name, n_boot=n_boot, seed=seed, fit_reference_dir=fit_ref)
@@ -164,7 +162,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         scoreboard.build(out_dir / "results" / t, out_dir / f"scoreboard_{t}")
 
-    # ---- audit
+    # ---- аудит
     audit = None
     if do_audit:
         hosts = hosts_by_target["test"]
@@ -184,7 +182,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         import shutil
         shutil.rmtree(out_dir / "_null", ignore_errors=True)
 
-    # ---- manifest, figures, report
+    # ---- манифест, графики, отчёт
     manifest = {
         "data_kind": data.kind, "synthetic": data.synthetic,
         "real_lanl_declared": bool(data.manifest.get("real_lanl_declared")),

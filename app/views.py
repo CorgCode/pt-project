@@ -1,4 +1,4 @@
-"""Dashboard tabs. Each function renders one view from a verified Bundle (see app/results.py)."""
+"""Вкладки дашборда: каждая функция рисует один вид по прогону (app/results.py)."""
 from __future__ import annotations
 
 import numpy as np
@@ -17,7 +17,7 @@ def _color(m: str) -> str:
 
 
 def _style(fig: go.Figure, h: int = 380, legend_y: float = -0.3) -> go.Figure:
-    """Shared look: legend BELOW the plot, clear of the axis labels (and of any colourbar)."""
+    """Общий стиль: легенда ПОД графиком, не наезжает на подписи осей."""
     fig.update_layout(template="plotly_white", height=h, margin=dict(t=30, b=10, l=10, r=10),
                       legend=dict(orientation="h", yanchor="top", y=legend_y, xanchor="left", x=0, title_text=""),
                       font=dict(size=13))
@@ -30,7 +30,7 @@ def _fmt(v, spec: str = "{:.3f}") -> str:
 
 
 def _text_table(df: pd.DataFrame, spec: str = "{:.3f}", highlight: pd.DataFrame | None = None):
-    """Missing values as '-' (Streamlit renders Styler NaN as 'None'); optional green highlight mask."""
+    """Пропуски как '-' (Streamlit показывает NaN как 'None'); необязательная зелёная подсветка."""
     txt = df.apply(lambda col: col.map(lambda v: _fmt(v, spec)))
     if highlight is None:
         return txt
@@ -38,11 +38,11 @@ def _text_table(df: pd.DataFrame, spec: str = "{:.3f}", highlight: pd.DataFrame 
 
 
 def _rows(df: pd.DataFrame, extra: int = 1) -> int:
-    return 35 * (len(df) + extra) + 3          # whole table visible, nothing clipped mid-row
+    return 35 * (len(df) + extra) + 3          # таблица видна целиком, строки не обрезаются
 
 
 def _methods_for_chart(b: Bundle, names, key: str):
-    """Chart methods; the leaking reference ceiling is optional so it does not flatten every other bar."""
+    """Методы для графика; «утекающий» потолок по желанию, чтобы не сплющивал остальные столбцы."""
     if any(m in LEAKY for m in names) and not st.toggle("Include the reference ceiling (leaks by design)",
                                                           value=False, key=key):
         return [m for m in names if m not in LEAKY]
@@ -50,7 +50,7 @@ def _methods_for_chart(b: Bundle, names, key: str):
 
 
 def banner(b: Bundle) -> None:
-    """Always say which of the three provenance kinds applies; none of them is ever 'verified'."""
+    """Всегда пишем вид происхождения данных; ни один не бывает «проверенным»."""
     if b.kind == "synthetic_fixture":
         st.warning(f"**{b.badge}.** Every number below comes from generated data written in the LANL netflow "
                    "layout. It demonstrates the protocol and the metrics only; no statement about LANL follows.",
@@ -63,7 +63,7 @@ def banner(b: Bundle) -> None:
                  "(`--data-kind lanl --source-note ...`) to label a run as LANL.", icon="🚫")
 
 
-# --------------------------------------------------------------------------------------- overview
+# --------------------------------------------------------------------------------------- обзор
 def overview(b: Bundle) -> None:
     m, pm = b.manifest, b.processed_manifest or {}
     c = st.columns(4)
@@ -108,7 +108,7 @@ def overview(b: Bundle) -> None:
             st.caption("Invalid rows by reason: " + ", ".join(f"{k}={v}" for k, v in inv.items()))
 
 
-# --------------------------------------------------------------------------------------- leaderboard
+# --------------------------------------------------------------------------------------- таблица результатов
 def leaderboard(b: Bundle) -> None:
     target = st.radio("Reference window", b.targets, horizontal=True, key="lb_target",
                       help="Tune on validation; final numbers are reported on test.")
@@ -160,7 +160,7 @@ def leaderboard(b: Bundle) -> None:
                 st.write(f"- {u}")
 
 
-# --------------------------------------------------------------------------------------- link prediction
+# --------------------------------------------------------------------------------------- прогноз связей
 def links(b: Bundle) -> None:
     ctx, audit = b.link_context(), b.audit()
     board = b.board("test", ["link_roc_auc", "link_learned_roc_auc", "link_new_roc_auc", "link_pr_auc_lift"])
@@ -200,7 +200,7 @@ def links(b: Bundle) -> None:
     st.dataframe(_text_table(board.rename(columns=LABELS)), width="stretch")
 
 
-# --------------------------------------------------------------------------------------- neighbourhoods
+# --------------------------------------------------------------------------------------- соседство
 @st.cache_data(show_spinner=False)
 def _projection(_b: Bundle, key: str, method: str, k: int) -> pd.DataFrame:
     return _b.projection(method, k)
@@ -251,7 +251,7 @@ def neighborhoods(b: Bundle) -> None:
                "distances used by the metrics. Colour = per-host Consistency@k against the frozen reference.")
 
 
-# --------------------------------------------------------------------------------------- temporal
+# --------------------------------------------------------------------------------------- время
 def temporal(b: Bundle) -> None:
     st.markdown("##### Validation vs test")
     keys = [k for g in METRIC_GROUPS.values() for k, _ in g]
@@ -300,7 +300,7 @@ def temporal(b: Bundle) -> None:
                    f"{s['chance_consistency']:.3f}). It bounds what an earlier-window embedding can reach on the kNN metric.")
 
 
-# --------------------------------------------------------------------------------------- audit
+# --------------------------------------------------------------------------------------- аудит
 def audit_view(b: Bundle) -> None:
     a = b.audit()
     if not a:
@@ -336,12 +336,12 @@ def audit_view(b: Bundle) -> None:
     st.markdown("##### Information shared by construction")
     ov = pd.DataFrame(a["information_overlap"]).T
     ov.index.name = "method"
-    st.table(ov)                              # wraps long text instead of truncating it
+    st.table(ov)                              # длинный текст переносится, а не обрезается
     st.caption("A method whose input overlaps a reference's source scores well on it for a trivial reason. "
                "These rows are calibration points, not independent evidence.")
 
 
-# --------------------------------------------------------------------------------------- provenance
+# --------------------------------------------------------------------------------------- происхождение
 def provenance(b: Bundle) -> None:
     m = b.manifest
     st.markdown("##### Run")

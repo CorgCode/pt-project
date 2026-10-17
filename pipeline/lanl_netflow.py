@@ -1,33 +1,18 @@
-"""Reader for the LANL Unified Host and Network Dataset (2017) NETFLOW files.
+"""Чтение NetFlow-файлов LANL Unified Host and Network Dataset (2017).
 
-Source: https://csr.lanl.gov/data/2017/ (netflow_day-NN.bz2). Documented format:
-comma-separated, one record per line, NO header row, bzip2-compressed. Field order:
+Источник: https://csr.lanl.gov/data/2017/ (netflow_day-NN.bz2). CSV без заголовка, bzip2. Поля:
 
     Time, Duration, SrcDevice, DstDevice, Protocol, SrcPort, DstPort,
     SrcPackets, DstPackets, SrcBytes, DstBytes
 
-- Time        start of the event, "epoch time format". The unit/origin is NOT stated by
-              the source, so this pipeline does not guess a calendar date: Time is kept
-              as a number and windows are given in the same units.
-- Duration    seconds.
-- SrcDevice   "the device that likely initiated the event" (anonymised, e.g. Comp132598).
-- DstDevice   the receiving device.
-- Protocol    protocol number (kept as an opaque string token).
-- SrcPort/DstPort  anonymised as PortNNNN except well-known ports (kept as strings).
-- SrcPackets/SrcBytes   sent by SrcDevice; DstPackets/DstBytes sent by DstDevice.
+Единицы и начало отсчёта Time источник не указывает — в дату не переводим, окна задаются в тех же
+единицах. Устройства и редкие порты обезличены (Comp132598, Port12597).
 
-Canonical flow columns used by the benchmark (BENCHMARK_CONTRACT.md):
-
-    src, dst, dst_port, proto, bytes, packets, ts
-
-Mapping (direction = originator -> responder, nothing is invented):
+Нормализованный поток: src, dst, dst_port, proto, bytes, packets, ts
     src=SrcDevice, dst=DstDevice, dst_port=DstPort, proto=Protocol,
-    bytes=SrcBytes, packets=SrcPackets, ts=Time.
-The responder's counters and other fields are preserved as extra columns:
-    src_port, duration, resp_bytes (DstBytes), resp_packets (DstPackets).
-
-Host ID: the device string exactly as in the file (stripped; case-sensitive, never
-re-numbered), so IDs are stable across files, windows and methods.
+    bytes=SrcBytes, packets=SrcPackets, ts=Time  (направление: инициатор -> получатель).
+Остальное сохраняется в доп. колонках: src_port, duration, resp_bytes, resp_packets.
+host_id — строка устройства как есть (без перенумерации), поэтому ID одинаковы во всех файлах и окнах.
 """
 from __future__ import annotations
 
@@ -47,15 +32,14 @@ SOURCE_FORMAT = "lanl-uhn-2017-netflow"
 
 
 class PipelineError(ValueError):
-    """Input data cannot be processed; the message says why and where."""
+    """Данные нельзя обработать; в сообщении — почему и где."""
 
 
 def iter_raw_chunks(path: Path, chunksize: int = 500_000, strict: bool = True,
                     bad_lines: Counter | None = None) -> Iterator[pd.DataFrame]:
-    """Yield raw string chunks. bz2 is decompressed by pandas (streamed, bounded memory).
+    """Читать сырые куски файла (bz2 распаковывает pandas, потоково).
 
-    strict=True: a line with too many fields raises PipelineError.
-    strict=False: such lines are skipped and counted in bad_lines["wrong_field_count"].
+    strict=True: строка с лишними полями — ошибка; strict=False — пропуск и счёт в bad_lines["wrong_field_count"].
     """
     path = Path(path)
     if not path.exists():
@@ -75,7 +59,7 @@ def iter_raw_chunks(path: Path, chunksize: int = 500_000, strict: bool = True,
 
 
 def canonicalize(raw: pd.DataFrame) -> tuple[pd.DataFrame, Counter]:
-    """Convert one raw chunk into canonical flows; drop and count invalid rows by reason."""
+    """Сырой кусок -> нормализованные потоки; битые строки выбрасываются и считаются по причинам."""
     bad: Counter = Counter()
     df = raw.copy()
     for col in ("SrcDevice", "DstDevice", "Protocol", "SrcPort", "DstPort"):
@@ -108,7 +92,7 @@ def canonicalize(raw: pd.DataFrame) -> tuple[pd.DataFrame, Counter]:
 
 def read_canonical(path: Path, chunksize: int = 500_000, strict: bool = True,
                    bad: Counter | None = None) -> Iterator[pd.DataFrame]:
-    """Stream a raw netflow file as canonical-flow chunks; bad-row counts go to `bad`."""
+    """Читать файл кусками нормализованных потоков; счётчики битых строк — в bad."""
     bad = bad if bad is not None else Counter()
     for raw in iter_raw_chunks(path, chunksize, strict, bad):
         flows, counts = canonicalize(raw)

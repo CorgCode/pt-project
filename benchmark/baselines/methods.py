@@ -1,6 +1,6 @@
-"""Baseline embedding methods. Each takes (ref, dim, seed) and returns an (n_hosts, d) array.
+"""Калибровочные бейзлайны по готовому features.csv: (ref, dim, seed) -> массив (n_hosts, d).
 
-`ref` is the hosts x ref_* DataFrame from reference/features.csv. Row order follows `ref`.
+ref — таблица хосты x ref_* из reference/features.csv, порядок строк сохраняется.
 """
 from __future__ import annotations
 
@@ -19,24 +19,24 @@ def _cap(dim: int, limit: int, name: str) -> int:
 
 
 def random_embedding(ref: pd.DataFrame, dim: int, seed: int) -> np.ndarray:
-    """Gaussian noise: the floor every real method must beat."""
+    """Случайный шум — нижняя граница, которую обязан обогнать любой метод."""
     return np.random.default_rng(seed).standard_normal((len(ref), dim))
 
 
 def pca_embedding(ref: pd.DataFrame, dim: int, seed: int) -> np.ndarray:
-    """PCA of the reference features (centered, linear, reduced)."""
+    """PCA эталонных признаков (с центрированием)."""
     dim = _cap(dim, min(ref.shape), "pca")
     return PCA(n_components=dim, random_state=seed).fit_transform(ref.to_numpy(float))
 
 
 def svd_embedding(ref: pd.DataFrame, dim: int, seed: int) -> np.ndarray:
-    """TruncatedSVD of the reference features (no centering)."""
+    """TruncatedSVD эталонных признаков (без центрирования)."""
     dim = _cap(dim, min(ref.shape[0] - 1, ref.shape[1]), "svd")
     return TruncatedSVD(n_components=dim, random_state=seed).fit_transform(ref.to_numpy(float))
 
 
 def reference_identity(ref: pd.DataFrame, dim: int, seed: int) -> np.ndarray:
-    """Reference features unchanged: ceiling baseline (leaks by design; `dim`/`seed` unused)."""
+    """Эталонные признаки как есть — потолок, «утекает» намеренно (dim и seed не используются)."""
     return ref.to_numpy(float).copy()
 
 
