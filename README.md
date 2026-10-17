@@ -44,6 +44,9 @@ python -m experiments.end_to_end --fixture --workdir runs/demo
 python -m experiments.end_to_end --netflow data/raw/netflow_day-0*.bz2 --config cfg.json \
     --workdir runs/lanl --data-kind lanl --source-note "откуда, когда, кто скачал" --methods all
 
+# свой метод в общую таблицу результатов (подробно — scoreboard/README.md)
+python -m evaluation.submit scoreboard/submissions/my_method
+
 # тесты
 python -m pytest -q evaluation benchmark app pipeline experiments
 ```
@@ -54,12 +57,18 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 |---|---|---|
 | `pipeline/` | LANL → окна → когорта → графы → эталоны | [`pipeline/README.md`](pipeline/README.md) |
 | `benchmark/` | графовые методы (DeepWalk, node2vec, RolX, struc2vec, GraphSAGE) и бейзлайны | [`benchmark/README.md`](benchmark/README.md) |
-| `evaluation/` | **оценка**: все метрики одной командой, таблица результатов, как подключить метод | [`evaluation/README.md`](evaluation/README.md) |
+| `scoreboard/` | **общая таблица результатов**: данные для обучения, отправки команды, результаты, лидер | [`scoreboard/README.md`](scoreboard/README.md) |
+| `evaluation/` | оценка: все метрики одной командой, что значит каждая метрика | [`evaluation/README.md`](evaluation/README.md) |
 | `experiments/` | запуск всего вместе, подбор параметров, абляции, устойчивость | [`experiments/README.md`](experiments/README.md) |
 | `app/` | дашборд на Streamlit | [`app/README.md`](app/README.md) |
 | `docs/` | сайт на GitHub Pages и [методология](docs/METHODOLOGY.md) | |
 | `research/` | ресёрч первого этапа, по файлу на участника | [`research/README.md`](research/README.md) |
 | `demo/` | маленький синтетический результат для дашборда и сайта | |
+
+## Таблица результатов
+
+Все методы на одних данных и эталонах, лучший выделен — [`scoreboard/README.md`](scoreboard/README.md).
+Положил эмбеддинг в `scoreboard/submissions/<метод>/`, открыл PR — CI сам оценит и допишет таблицу.
 
 ## Где мы сейчас
 
