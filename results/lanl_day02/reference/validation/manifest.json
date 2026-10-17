@@ -1,0 +1,155 @@
+{
+  "chance_consistency_at_k": {
+    "10": 0.0036231884057971015,
+    "20": 0.007246376811594203,
+    "5": 0.0018115942028985507
+  },
+  "cohort_policy": "train_only",
+  "cohort_selection": {
+    "coverage": {
+      "test": 0.3474353014101968,
+      "validation": 0.4278630094529676
+    },
+    "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+    "median_train_events": {
+      "active_in_every_window": 1176.0,
+      "not_active_in_every_window": 478.5
+    },
+    "n_cohort": 6453,
+    "n_evaluable": {
+      "test": 2242,
+      "validation": 2761
+    },
+    "n_hosts_active_in_every_window": 1535,
+    "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+    "policy": "train_only"
+  },
+  "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+  "coverage": 0.4278630094529676,
+  "data_kind": "lanl_declared",
+  "files_sha256": {
+    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
+    "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
+    "features.csv": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+    "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
+    "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
+    "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
+    "triplets.csv": "cc9ce9aa4dd1676474ab6e35a38a57ca8d4dce3a94bf62d91f8be4986ee5949b"
+  },
+  "ground_truth": false,
+  "judgments": {
+    "n_anchors_without_judgments": 188,
+    "n_hosts": 2761,
+    "n_negative_pairs": 607786,
+    "n_pairs": 36648,
+    "n_positive_pairs": 38306,
+    "n_possible_pairs": 3810180,
+    "n_triplets": 17487,
+    "n_unjudged_pairs": 3164088,
+    "pairs_per_anchor": 10,
+    "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
+    "rule_version": 1,
+    "seed": 0,
+    "tau_pos": 0.6470588235294118,
+    "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
+  },
+  "kind": "heldout_temporal_behavior_proxy",
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "labels": null,
+  "labels_source": null,
+  "n_cohort": 6453,
+  "n_evaluable": 2761,
+  "n_hosts": 2761,
+  "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
+  "pipeline_manifest_sha256": "8dfcf58e1e6a6add88a2d0e9ef8a815750d8b41828d321dc217641b1ce88891e",
+  "provenance": {
+    "basis": "operator_declaration",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": false,
+      "format_sample": {
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.984416571645762,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": false
+    },
+    "declared_kind": "lanl",
+    "kind": "lanl_declared",
+    "source_note": "csr.lanl.gov/data/2017 form, 2026-10-17, physcorgi",
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
+  "provenance_verified": false,
+  "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
+  "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "real_lanl_declared": true,
+  "reference_dimensions": 57,
+  "reference_neighbor_stability": {
+    "consistency@10": 0.21122781600869253,
+    "consistency@20": 0.24686707714596157,
+    "consistency@5": 0.17681999275624774,
+    "jaccard@10": 0.1578769044442517,
+    "jaccard@20": 0.18685742552005044,
+    "jaccard@5": 0.13399073259631028,
+    "ndcg@10": 0.22487624371913487,
+    "ndcg@20": 0.26425890135792424,
+    "ndcg@5": 0.18879829314792881
+  },
+  "reference_views": {
+    "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
+    "labels.csv": "external labels, only if supplied",
+    "neighbors.csv": "behavioural-profile proxy (target window)",
+    "pairs.csv / triplets.csv": "structural proxy: shared communication peers",
+    "partners.csv": "partners of each evaluable host in train (source) and target window"
+  },
+  "seed": 0,
+  "source_window": "train",
+  "split": "validation",
+  "synthetic": false,
+  "target_window": "validation",
+  "test_events": 4526585,
+  "test_start_utc": "1970-01-02T12:00:00Z",
+  "train_end_utc": "1970-01-02T11:59:59Z",
+  "train_events": 9368480,
+  "windows": {
+    "test": {
+      "end": 133200.0,
+      "graph_edges": 69253,
+      "max_time": 133199.0,
+      "min_time": 131400.0,
+      "n_flows": 4970376,
+      "start": 131400.0
+    },
+    "train": {
+      "end": 129600.0,
+      "graph_edges": 94243,
+      "max_time": 129599.0,
+      "min_time": 126000.0,
+      "n_flows": 9368480,
+      "start": 126000.0
+    },
+    "validation": {
+      "end": 131400.0,
+      "graph_edges": 70129,
+      "max_time": 131399.0,
+      "min_time": 129600.0,
+      "n_flows": 4526585,
+      "start": 129600.0
+    }
+  }
+}

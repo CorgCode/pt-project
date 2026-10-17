@@ -26,7 +26,7 @@ train → методы → эмбеддинги → evaluation → таблиц�
 
 ```bash
 pip install -r requirements.txt
-python -m experiments.end_to_end --fixture --workdir runs/demo   # всё сразу на синтетике, ~2 минуты
+python -m experiments.end_to_end --fixture --workdir runs/demo   # самопроверка на тестовых данных, ~2 минуты
 python -m pytest -q evaluation benchmark app pipeline experiments
 ```
 
@@ -49,11 +49,18 @@ python -m pytest -q evaluation benchmark app pipeline experiments
 | `docs/` | сайт и [методология](docs/METHODOLOGY.md) |
 | [`research/`](research/README.md) | ресёрч участников |
 
-## Статус
+## Результаты на LANL
 
-- Готово: данные, 5 графовых методов, бейзлайны, оценка, таблица.
-- Идёт: первый прогон на LANL (#60).
-- В работе: кластеры и аномалии (#21), внешние метки (#25).
+Первый прогон — один день, 2 242 активных хоста ([все числа](scoreboard/README.md), [разбор](docs/METHODOLOGY.md)):
+
+- все методы, кроме struc2vec, заметно лучше случайных векторов;
+- **связи**: обученный классификатор на эмбеддингах behavioral и спектрального графа даёт ROC-AUC 0.98 —
+  выше простого правила «пара уже общалась» (0.94);
+- **новые связи**: лучше всех DeepWalk (0.65), остальные около 0.5;
+- **новые собеседники через похожих хостов**: node2vec и DeepWalk в ~3 раза лучше прогноза без эмбеддинга;
+- узнать тот же хост через полчаса пока трудно всем (до 10%).
+
+Дальше: больше дней и подбор параметров (#60), кластеры и аномалии (#21).
 
 ## Команда
 

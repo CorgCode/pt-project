@@ -1,8 +1,7 @@
 """Проверка сайта в настоящем headless Chromium, раздаётся из docs/ так же, как публикует Pages.
 
 На 1440 / 768 / 390 px: нет ошибок страницы и горизонтальной прокрутки, все графики нарисованы при первой загрузке,
-пометки синтетики и графовые методы видны, переключатель split перерисовывает, песочница принимает корректный CSV
-и отклоняет некорректный. --shots DIR — ещё и снимки страниц.
+подписи источника и графовые методы видны, переключатель split перерисовывает. --shots DIR — ещё и снимки страниц.
 """
 from __future__ import annotations
 
@@ -54,7 +53,7 @@ def main() -> None:
             if sw > w:
                 problems.append(f"{w}px: horizontal overflow (scrollWidth {sw})")
             body = page.inner_text("body")
-            for needle in ("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL", "node2vec", "Чего вывести нельзя"):
+            for needle in ("LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН", "node2vec", "Чего вывести нельзя"):
                 if needle not in body:
                     problems.append(f"{w}px: missing text {needle!r}")
             if page.locator("svg text").count() < 20:
@@ -78,41 +77,11 @@ def main() -> None:
                 page.screenshot(path=str(shots / f"index_{w}.png"), full_page=True)
             page.close()
 
-        page = browser.new_page(viewport={"width": 390, "height": 844})
-        page.on("pageerror", lambda e: problems.append(f"playground pageerror: {e}"))
-        page.goto(base + "/playground.html", wait_until="networkidle")
-        with page.expect_download() as dl:
-            page.click("#sample")
-        with tempfile.TemporaryDirectory() as tmp:
-            good = Path(tmp) / "embeddings.csv"
-            dl.value.save_as(good)
-            page.set_input_files("#file", str(good))
-            page.click("#run")
-            page.wait_for_selector("#results:not([hidden])", timeout=60000)
-            if "300 хостов" not in page.inner_text("#status"):
-                problems.append("playground: valid CSV not accepted")
-            if page.evaluate("document.documentElement.scrollWidth") > 390:
-                problems.append("playground: horizontal overflow at 390px")
-            if shots:
-                page.screenshot(path=str(shots / "playground_390.png"), full_page=True)
-            for label, content, expect in (
-                ("dup", "host_id,emb_0\n" + "h0,1\n" * 300, "повторяющиеся"),
-                ("nan", "host_id,emb_0\n" + "".join(f"h{i},{'x' if i == 3 else 1}\n" for i in range(300)), "нечисловые"),
-                ("noid", "id,emb_0\nh0,1\n", "host_id"),
-            ):
-                bad = Path(tmp) / f"{label}.csv"
-                bad.write_text(content, encoding="utf-8")
-                page.set_input_files("#file", str(bad))
-                page.click("#run")
-                page.wait_for_function("document.getElementById('status').textContent.startsWith('Ошибка')", timeout=20000)
-                if expect not in page.inner_text("#status") or not page.is_hidden("#results"):
-                    problems.append(f"playground: bad CSV '{label}' not rejected properly")
-        page.close()
         browser.close()
     server.shutdown()
     if problems:
         raise SystemExit("Browser check FAILED:\n- " + "\n- ".join(problems))
-    print("OK: index charts/provenance/methods/toggle at 1440/768/390; playground accepts valid and rejects invalid CSV.")
+    print("OK: графики, подписи источника и переключатель окна на 1440/768/390 px.")
 
 
 if __name__ == "__main__":

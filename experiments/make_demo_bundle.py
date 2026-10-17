@@ -1,6 +1,6 @@
-"""Пересобрать demo/synthetic_run — маленький СИНТЕТИЧЕСКИЙ пример прогона для дашборда и сайта.
+"""Пересобрать app/testdata/synthetic_run — маленький СИНТЕТИЧЕСКИЙ прогон для тестов дашборда.
 
-    python -m experiments.make_demo_bundle --output demo/synthetic_run
+    python -m experiments.make_demo_bundle --output app/testdata/synthetic_run
 
 Прогоняет синтетику целиком (seed фиксирован) и копирует отчёт, графики, результаты, таблицы, аудит,
 манифест, эмбеддинги и эталонных соседей test-окна, убрав абсолютные пути. Всё помечено `synthetic: true`:
@@ -69,7 +69,7 @@ def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--output", type=Path, default=Path("demo/synthetic_run"))
+    ap.add_argument("--output", type=Path, default=Path("app/testdata/synthetic_run"))
     ap.add_argument("--n-hosts", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--methods", nargs="+", default=["all"], help="графовые методы (по умолчанию все пять)")

@@ -73,3 +73,16 @@ def test_method_template_trains_saves_and_lands_in_the_table(board, monkeypatch)
     d = board / "submissions" / tm.NAME
     assert (d / "embeddings.csv").exists() and (d / "test.csv").exists() and (d / "SHARED_COORDINATES").exists()
     assert f"`{tm.NAME}`" in (board / "README.md").read_text(encoding="utf-8")
+
+
+def test_submission_without_validation_hosts_is_scored_without_learned_links(board):
+    import pandas as pd
+    hosts = pd.read_csv(board / "data" / "reference" / "test" / "eval_hosts.csv", dtype=str)["host_id"]
+    f = pd.read_csv(board / "data" / "reference" / "test" / "features.csv", dtype={"host_id": str}).set_index("host_id")
+    val = board / "data" / "reference" / "validation" / "eval_hosts.csv"
+    val.write_text(val.read_text() + "ghost-host-only-in-validation\n")   # хост, которого нет в эмбеддинге
+    d = board / "submissions" / "ceiling"
+    d.mkdir(parents=True)
+    f.loc[hosts].rename(columns=lambda c: c.replace("ref_", "emb_")).to_csv(d / "embeddings.csv")
+    r = submit.score(d)
+    assert "link_learned_roc_auc" not in r["metrics"] and "link_roc_auc" in r["metrics"]
