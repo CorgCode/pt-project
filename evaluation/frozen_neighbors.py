@@ -34,17 +34,17 @@ def save_frozen_neighbors(
     не зависели от порядка входных строк.
     """
     if not reference_window.strip():
-        raise ValueError("reference_window must be specified")
+        raise ValueError("нужно указать reference_window")
     if split not in {"train", "validation", "test"}:
-        raise ValueError("split must be train, validation, or test")
+        raise ValueError("split должен быть train, validation или test")
     if reference.index.has_duplicates or reference.index.isna().any():
-        raise ValueError("Reference host IDs must be nonmissing and unique")
+        raise ValueError("host_id эталона должны быть непустыми и уникальными")
     if len(reference) <= k_max or k_max < 1:
-        raise ValueError("k_max must satisfy 1 <= k_max < n_hosts")
+        raise ValueError("нужно 1 <= k_max < числа хостов")
     if not all(isinstance(h, str) and h.strip() for h in reference.index):
-        raise ValueError("Reference host IDs must be nonblank strings")
+        raise ValueError("host_id эталона должны быть непустыми строками")
     if not np.isfinite(reference.to_numpy(dtype=float)).all():
-        raise ValueError("Reference features must be finite")
+        raise ValueError("признаки эталона должны быть конечными числами")
 
     reference = reference.sort_index()
     hosts = reference.index.tolist()
@@ -67,9 +67,9 @@ def read_frozen_neighbors(
     Неполные списки соседей не превращаются молча в «непохожих».
     """
     if len(hosts) != len(set(hosts)) or not hosts:
-        raise ValueError("Embedding hosts must be nonempty and unique")
+        raise ValueError("хосты эмбеддинга должны быть непустыми и уникальными")
     if k_max < 1 or k_max >= len(hosts):
-        raise ValueError("k_max must satisfy 1 <= k_max < n_hosts")
+        raise ValueError("нужно 1 <= k_max < числа хостов")
     df = pd.read_csv(
         path,
         dtype={"reference_window": "string", "host_id": "string",
@@ -77,31 +77,31 @@ def read_frozen_neighbors(
     )
     missing = set(COLUMNS) - set(df.columns)
     if missing:
-        raise ValueError(f"neighbors.csv missing columns: {sorted(missing)}")
+        raise ValueError(f"в neighbors.csv нет колонок: {sorted(missing)}")
     if df.empty or df[list(COLUMNS)].isna().any().any():
-        raise ValueError("neighbors.csv has missing values or is empty")
+        raise ValueError("neighbors.csv пуст или в нём пропуски")
     df = df.loc[df["split"] == split].copy()
     if df.empty:
-        raise ValueError(f"neighbors.csv contains no {split} rows")
+        raise ValueError(f"в neighbors.csv нет строк split={split}")
     if df["reference_window"].nunique() != 1:
-        raise ValueError("Cannot combine multiple reference windows in one evaluation")
+        raise ValueError("в одной оценке нельзя смешивать несколько окон эталона")
     if df["host_id"].str.strip().eq("").any() or df["neighbor_id"].str.strip().eq("").any():
-        raise ValueError("Blank host ID in neighbors.csv")
+        raise ValueError("пустой host_id в neighbors.csv")
     valid = set(hosts)
     if not set(df["host_id"]).issubset(valid) or not set(df["neighbor_id"]).issubset(valid):
-        raise ValueError("neighbors.csv contains hosts outside embedding cohort")
+        raise ValueError("в neighbors.csv есть хосты вне когорты эмбеддинга")
     if set(df["host_id"]) != valid:
-        raise ValueError("Missing reference neighbors for some embedding hosts")
+        raise ValueError("у части хостов эмбеддинга нет эталонных соседей")
     if (df["host_id"] == df["neighbor_id"]).any():
-        raise ValueError("A host cannot be its own reference neighbor")
+        raise ValueError("хост не может быть эталонным соседом сам себе")
     rank = pd.to_numeric(df["rank"], errors="coerce")
     if rank.isna().any() or (rank < 1).any() or (rank != np.floor(rank)).any():
-        raise ValueError("Neighbor ranks must be positive integers")
+        raise ValueError("ранги соседей должны быть целыми > 0")
     df["rank"] = rank.astype(int)
     if df.duplicated(["host_id", "rank"]).any():
-        raise ValueError("Duplicate neighbor ranks per host")
+        raise ValueError("повторяющиеся ранги соседей у хоста")
     if df.duplicated(["host_id", "neighbor_id"]).any():
-        raise ValueError("Duplicate reference neighbors per host")
+        raise ValueError("повторяющиеся эталонные соседи у хоста")
 
     lookup = {host: i for i, host in enumerate(hosts)}
     ordered = np.empty((len(hosts), k_max), dtype=int)
@@ -109,7 +109,7 @@ def read_frozen_neighbors(
         rows = df[df["host_id"] == host].sort_values("rank")
         ranks = rows["rank"].tolist()
         if ranks != list(range(1, len(rows) + 1)) or len(rows) < k_max:
-            raise ValueError(f"Missing/non-contiguous neighbor ranks for {host}")
+            raise ValueError(f"у {host} неполные или непоследовательные ранги соседей")
         ordered[i] = [lookup[h] for h in rows["neighbor_id"].iloc[:k_max]]
     return ordered
 
@@ -124,10 +124,10 @@ def evaluate_frozen_neighbors(
     return_per_host=True — ещё {k: таблица по хостам} (индекс — порядок эмбеддинга).
     """
     if embeddings.index.has_duplicates or not ks:
-        raise ValueError("Embeddings must have unique hosts and ks must not be empty")
+        raise ValueError("хосты эмбеддинга должны быть уникальны, а список k — непуст")
     highest = max(ks)
     if any(k < 1 or k >= len(embeddings) for k in ks):
-        raise ValueError("Each k must be between 1 and n_hosts - 1")
+        raise ValueError("каждое k должно быть от 1 до числа хостов - 1")
     ref = read_frozen_neighbors(path, list(embeddings.index), k_max=highest, split=split)
     emb = embeddings.to_numpy(dtype=float)
     rows, per_host = [], {}

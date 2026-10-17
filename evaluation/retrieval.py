@@ -26,12 +26,12 @@ SPLITS = {"train", "validation", "test"}
 def load_pairs(path) -> pd.DataFrame:
     p = read_reference_table(path, {"host_a", "host_b", "label", "split"}, split_values=SPLITS)
     if not p["label"].isin(["0", "1"]).all():
-        raise ReferenceError(f"{path}: label must be 0 or 1")
+        raise ReferenceError(f"{path}: label должен быть 0 или 1")
     if (p["host_a"] == p["host_b"]).any():
-        raise ReferenceError(f"{path}: a host cannot be paired with itself")
+        raise ReferenceError(f"{path}: хост не может быть в паре сам с собой")
     key = p.apply(lambda r: tuple(sorted((r.host_a, r.host_b))) + (r.split,), axis=1)
     if key.duplicated().any():
-        raise ReferenceError(f"{path}: duplicate (unordered) pair within a split")
+        raise ReferenceError(f"{path}: повторяющаяся пара внутри split")
     return p
 
 
@@ -53,7 +53,7 @@ def pair_auc(emb: pd.DataFrame, pairs: pd.DataFrame, split: str = "test", *,
     p = _scored(emb, pairs, split)
     y, s = p["label"].to_numpy(), p["score"].to_numpy()
     if len(np.unique(y)) < 2:
-        raise ReferenceError(f"pairs.csv split={split!r} needs both relevant and non-relevant pairs")
+        raise ReferenceError(f"в pairs.csv для split={split!r} нужны и похожие, и непохожие пары")
     out = auc_with_ci(y, s, n_boot=n_boot, seed=seed, hosts=host_index(p.host_a, p.host_b))
     prev = float(y.mean())
     out.update(n_pairs=int(len(y)), n_positive=int(y.sum()), positive_rate=prev,
@@ -79,7 +79,7 @@ def precision_recall_at_k(emb: pd.DataFrame, pairs: pd.DataFrame, ks=(1, 3, 5), 
     result: dict = {"split": split, "judged_anchors": n_judged, "ks": list(ks), "by_k": {}}
     for k in ks:
         if k < 1:
-            raise ValueError("k must be >= 1")
+            raise ValueError("k должно быть >= 1")
         elig = [(lab[:k].sum(), lab.sum(), len(lab)) for _, lab in groups
                 if len(lab) >= k and lab.sum() >= 1]
         if not elig:

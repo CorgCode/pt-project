@@ -153,9 +153,9 @@ def test_learned_link_scorer_fit_on_earlier_window_only(reference, cohort, tmp_p
     test = load_candidate_edges(reference / "test" / "edges.csv")
     r = score_learned(emb, val, test, fit_split="validation", eval_split="test")
     assert 0.4 < r["roc_auc"] < 0.6 and r["n_fit"] == len(val) and r["n_eval"] == len(test)
-    with pytest.raises(ValueError, match="temporal leakage"):          # обучение на БОЛЕЕ ПОЗДНЕМ окне
+    with pytest.raises(ValueError, match="утечка по времени"):          # обучение на БОЛЕЕ ПОЗДНЕМ окне
         score_learned(emb, test, val, fit_split="test", eval_split="validation")
-    with pytest.raises(ValueError, match="before the evaluation window"):
+    with pytest.raises(ValueError, match="до начала окна оценки"):
         score_learned(emb, test, test, fit_split="test", eval_split="test")
     p = persistence_baseline(test, "test")
     assert p["roc_auc"] > 0.55                                          # «связь уже была» несёт настоящий сигнал

@@ -16,7 +16,7 @@
         "test": 1.0,
         "validation": 1.0
       },
-      "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+      "interpretation": "\u0435\u0441\u043b\u0438 \u043c\u0435\u0434\u0438\u0430\u043d\u044b \u0440\u0430\u0437\u043b\u0438\u0447\u0430\u044e\u0442\u0441\u044f, \u0432\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u0445\u043e\u0441\u0442\u0430 \u0441\u0432\u044f\u0437\u0430\u043d\u043e \u0441 \u0435\u0433\u043e \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c\u044e \u0432 train, \u0438 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0435 \u00ab\u0441\u0442\u0430\u0431\u0438\u043b\u044c\u043d\u044b\u043c\u0438\u00bb \u0445\u043e\u0441\u0442\u0430\u043c\u0438 \u043c\u0435\u043d\u044f\u0435\u0442 \u043e\u0446\u0435\u043d\u0438\u0432\u0430\u0435\u043c\u0443\u044e \u0441\u043e\u0432\u043e\u043a\u0443\u043f\u043d\u043e\u0441\u0442\u044c",
       "median_train_events": {
         "active_in_every_window": 151.0,
         "not_active_in_every_window": null
@@ -27,7 +27,7 @@
         "validation": 300
       },
       "n_hosts_active_in_every_window": 300,
-      "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+      "note": "\u041a\u043e\u0433\u043e\u0440\u0442\u0430 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0422\u041e\u041b\u042c\u041a\u041e \u043f\u043e train-\u043e\u043a\u043d\u0443. \u0425\u043e\u0441\u0442, \u043d\u0435\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u0432 \u043f\u043e\u0437\u0434\u043d\u0435\u043c \u043e\u043a\u043d\u0435, \u0442\u0430\u043c \u043d\u0435 \u043e\u0446\u0435\u043d\u0438\u0432\u0430\u0435\u0442\u0441\u044f; \u043a\u0430\u0436\u0434\u044b\u0439 \u044d\u0442\u0430\u043b\u043e\u043d \u0441\u0442\u0440\u043e\u0438\u0442\u0441\u044f \u043f\u043e \u043e\u0446\u0435\u043d\u0438\u0432\u0430\u0435\u043c\u044b\u043c \u0445\u043e\u0441\u0442\u0430\u043c, \u043f\u043e\u043a\u0440\u044b\u0442\u0438\u0435 \u043f\u0438\u0448\u0435\u0442\u0441\u044f \u0432 \u043e\u0442\u0447\u0451\u0442. \u00ab\u0412\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435\u00bb \u0445\u043e\u0441\u0442\u043e\u0432 \u0432 \u043f\u043e\u0437\u0434\u043d\u0438\u0435 \u043e\u043a\u043d\u0430 \u2014 \u0447\u0430\u0441\u0442\u044c \u0438\u0437\u043c\u0435\u0440\u044f\u0435\u043c\u043e\u0433\u043e \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u0430, \u0430 \u043d\u0435 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u044f \u043a\u043e\u0433\u043e\u0440\u0442\u044b.",
       "policy": "train_only"
     }
   },
@@ -43,7 +43,7 @@
   },
   "data_kind": "synthetic_fixture",
   "environment": {
-    "git_sha": "cfdd7c1a974f6ad05f5fc93d80f7c668fc142127",
+    "git_sha": "afb3611520b1c9e58c051bf84616cabfcd43ad9c",
     "numpy": "2.5.4",
     "pandas": "3.0.6",
     "python": "3.12.13",
@@ -56,9 +56,9 @@
       "description": "uniform weighted random walks + skip-gram with hierarchical softmax",
       "dim": 16,
       "fit_seconds": {
-        "test": 3.22,
-        "train": 3.23,
-        "validation": 3.22
+        "test": 3.61,
+        "train": 3.45,
+        "validation": 3.54
       },
       "fit_windows": [
         "train"
@@ -89,7 +89,7 @@
       "dim": 16,
       "final_training_loss": 14.880370503987999,
       "fit_seconds": {
-        "train": 1.73
+        "train": 1.94
       },
       "fit_windows": [
         "train"
@@ -124,9 +124,9 @@
       "description": "second-order biased random walks (p, q) + skip-gram with negative sampling",
       "dim": 16,
       "fit_seconds": {
-        "test": 2.96,
-        "train": 2.95,
-        "validation": 3.02
+        "test": 3.37,
+        "train": 3.35,
+        "validation": 3.33
       },
       "fit_windows": [
         "train"
@@ -157,9 +157,9 @@
       "description": "ReFeX recursive structural features + NMF role memberships (structural-role embedding)",
       "dim": 16,
       "fit_seconds": {
-        "test": 0.04,
+        "test": 0.05,
         "train": 0.05,
-        "validation": 0.04
+        "validation": 0.05
       },
       "fit_windows": [
         "train"
@@ -189,9 +189,9 @@
       "description": "multilayer structural-similarity graph (DTW of ring degree sequences) + biased walks + skip-gram",
       "dim": 16,
       "fit_seconds": {
-        "test": 4.94,
-        "train": 5.44,
-        "validation": 5.06
+        "test": 5.66,
+        "train": 6.23,
+        "validation": 5.81
       },
       "fit_windows": [
         "train"

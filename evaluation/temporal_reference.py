@@ -32,20 +32,20 @@ def load_flows(path: Path) -> pd.DataFrame:
     )
     missing = REQUIRED - set(f.columns)
     if missing:
-        raise ValueError(f"{path}: missing columns: {sorted(missing)}")
+        raise ValueError(f"{path}: нет колонок: {sorted(missing)}")
     if f.empty:
-        raise ValueError(f"{path}: empty flow file")
+        raise ValueError(f"{path}: пустой файл потоков")
 
     for col in ("src", "dst", "dst_port", "proto"):
         if f[col].isna().any() or f[col].str.strip().eq("").any():
-            raise ValueError(f"{path}: missing or blank {col}")
+            raise ValueError(f"{path}: пустые значения в {col}")
         f[col] = f[col].str.strip()
 
     for col in ("bytes", "packets"):
         f[col] = pd.to_numeric(f[col], errors="coerce")
         if (not np.isfinite(f[col].to_numpy(dtype=float)).all()
                 or (f[col] < 0).any()):
-            raise ValueError(f"{path}: {col} must be finite and nonnegative")
+            raise ValueError(f"{path}: {col} должен быть конечным и неотрицательным")
 
     raw = f["ts"]
     numeric = pd.api.types.is_numeric_dtype(raw)
@@ -57,7 +57,7 @@ def load_flows(path: Path) -> pd.DataFrame:
     else:
         ts = pd.to_datetime(raw, errors="coerce", utc=True)
     if ts.isna().any():
-        raise ValueError(f"{path}: invalid timestamps")
+        raise ValueError(f"{path}: некорректное время")
     # build_reference_features ждёт обычный datetime64
     f["ts"] = ts.dt.tz_convert("UTC").dt.tz_localize(None)
     return f
@@ -67,7 +67,7 @@ def _hosts_from_embeddings(path: Path) -> list[str]:
     validate_submission(str(path))
     hosts = pd.read_csv(path, dtype={"host_id": "string"})["host_id"]
     if hosts.isna().any() or hosts.str.strip().eq("").any():
-        raise ValueError("Embedding has missing or blank host IDs")
+        raise ValueError("в эмбеддинге пустые host_id")
     return hosts.astype(str).tolist()
 
 
@@ -85,15 +85,15 @@ def generate_reference(
     это дало бы случайных соседей по косинусу.
     """
     if not hosts or len(set(hosts)) != len(hosts):
-        raise ValueError("Host list must be nonempty and unique")
+        raise ValueError("список хостов должен быть непустым и без повторов")
     if not ks or any(k < 1 or k >= len(hosts) for k in ks):
-        raise ValueError("Each k must be between 1 and n_hosts - 1")
+        raise ValueError("каждое k должно быть от 1 до числа хостов - 1")
 
     train_end, test_start = train["ts"].max(), test["ts"].min()
     if not train_end < test_start:
         raise ValueError(
-            f"Windows overlap/touch: train_end={train_end}, test_start={test_start}. "
-            "Use strictly later test events."
+            f"окна пересекаются или соприкасаются: train_end={train_end}, test_start={test_start}. "
+            "Test-события должны быть строго позже."
         )
 
     for name, flows in (("train", train), ("test", test)):
@@ -101,9 +101,9 @@ def generate_reference(
         absent = sorted(set(hosts) - active)
         if absent:
             raise ValueError(
-                f"{name} window has {len(absent)} inactive embedding hosts "
-                f"(examples: {absent[:5]}). Select a common active host cohort "
-                "upstream, identically for ALL embedding methods."
+                f"в окне {name} неактивны {len(absent)} хостов эмбеддинга "
+                f"(например {absent[:5]}). Выберите общую когорту активных хостов "
+                "заранее, одинаково для ВСЕХ методов."
             )
 
     train_ref = build_reference_features(train, hosts=hosts)

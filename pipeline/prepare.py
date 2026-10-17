@@ -41,14 +41,12 @@ def detect_kind(inputs: list[Path], declared: str | None = None, source_note: st
 
 
 SELECTION_NOTE = {
-    "train_only": ("The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window "
-                   "are not evaluable there; every reference is built on the evaluable hosts and the coverage "
-                   "is reported. Survivorship of hosts into later windows is therefore part of the measured "
-                   "outcome, not of the cohort definition."),
-    "all_windows": ("The cohort is the set of hosts active in EVERY window, including the future validation and "
-                    "test windows. Future activity influences inclusion: this is a transductive stable-host "
-                    "benchmark. Scores condition on host survival and overstate persistence, identity and link "
-                    "persistence for prospective use; the models still receive no future flows or edges."),
+    "train_only": ("Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; "
+                   "каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов "
+                   "в поздние окна — часть измеряемого результата, а не определения когорты."),
+    "all_windows": ("Когорта — хосты, активные во ВСЕХ окнах, включая будущие validation и test. Будущая активность "
+                    "влияет на отбор: это бенчмарк «стабильных хостов». Результаты завышают сохранение, узнаваемость "
+                    "и сохранение связей; при этом будущих потоков и рёбер модели не получают."),
 }
 
 
@@ -79,12 +77,12 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             overwrite: bool = False) -> dict:
     inputs = [Path(p) for p in inputs]
     if not inputs:
-        raise PipelineError("No input files")
+        raise PipelineError("нет входных файлов")
     provenance = classify(inputs, data_kind, source_note)
     kind = provenance["kind"]
     out_dir = Path(out_dir)
     if (out_dir / "manifest.json").exists() and not overwrite:
-        raise PipelineError(f"{out_dir} already contains a processed dataset; use --overwrite")
+        raise PipelineError(f"в {out_dir} уже есть подготовленный датасет; добавьте --overwrite")
     (out_dir / "flows").mkdir(parents=True, exist_ok=True)
     (out_dir / "graph").mkdir(parents=True, exist_ok=True)
 
@@ -119,8 +117,8 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             totals["outside_all_windows"] += int((~assigned).sum())
     for w in names:
         if not wrote[w]:
-            raise PipelineError(f"Window {w} {config.windows[w]} contains no flows; "
-                                "check the Time range with `describe`")
+            raise PipelineError(f"в окне {w} {config.windows[w]} нет потоков; "
+                                "проверьте диапазон Time командой describe")
 
     # когорта фиксируется до моделей (см. PipelineConfig.cohort_policy)
     table = pd.DataFrame({w: host_events[w] for w in names}).fillna(0)
@@ -137,9 +135,9 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             problems.append(f"only {int(evaluable[w].sum())} cohort hosts are evaluable in {w}")
     if problems:
         raise PipelineError(
-            f"Cohort too small ({'; '.join(problems)}) with >= {config.min_events_per_window} events per window "
-            f"under policy {config.cohort_policy!r}; need >= {config.min_cohort_size}. "
-            "Use longer windows or a lower threshold.")
+            f"когорта слишком мала ({'; '.join(problems)}) при >= {config.min_events_per_window} событий в окне "
+            f"и политике {config.cohort_policy!r}; нужно >= {config.min_cohort_size}. "
+            "Возьмите окна длиннее или порог ниже.")
     stable = active.all(axis=1)
     train_events = table["train"]
     selection = {
@@ -152,8 +150,8 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
             "active_in_every_window": float(train_events[stable].median()) if stable.any() else None,
             "not_active_in_every_window": float(train_events[active["train"] & ~stable].median())
             if (active["train"] & ~stable).any() else None},
-        "interpretation": "if the two medians differ, host survival is related to train-window activity and "
-                          "restricting to stable hosts changes the population being evaluated",
+        "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, "
+                          "и ограничение «стабильными» хостами меняет оцениваемую совокупность",
     }
     cohort.columns = [f"events_{w}" for w in cohort.columns]
     for w in later:

@@ -30,8 +30,8 @@ def create(names: list[str], dim: int = 16, seed: int = 0, config: dict | None =
     names = list(reg) if list(names) == ["all"] else list(names)
     unknown = [n for n in names if n not in reg]
     if unknown:
-        raise ValueError(f"unknown method(s) {unknown}; available: {sorted(reg)}")
+        raise ValueError(f"неизвестные методы {unknown}; есть: {sorted(reg)}")
     stray = set(config) - set(names)
     if stray:
-        raise ValueError(f"config given for methods that are not selected: {sorted(stray)}")
+        raise ValueError(f"параметры заданы для невыбранных методов: {sorted(stray)}")
     return [reg[n](dim=dim, seed=seed, **{**(reg[n].fast_params if fast else {}), **config.get(n, {})}) for n in names]

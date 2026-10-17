@@ -22,7 +22,7 @@ def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Коды Хаффмана для листьев 0..n-1: (пути по внутренним узлам, биты, длины), дополнены -1 / 0."""
     n = len(freq)
     if n < 2:
-        raise ValueError("need at least two nodes")
+        raise ValueError("нужно хотя бы две вершины")
     heap = [(float(f), i) for i, f in enumerate(freq)]
     heapq.heapify(heap)
     parent = np.zeros(2 * n - 1, dtype=np.int64)
@@ -93,16 +93,16 @@ class SkipGram:
                  lr: float = 0.025, min_lr: float = 1e-4, epochs: int = 1, batch_size: int = 512, seed: int = 0,
                  node_freq: np.ndarray | None = None, max_chunk_pairs: int = 4_000_000):
         if objective not in ("neg", "hs"):
-            raise ValueError("objective must be 'neg' or 'hs'")
+            raise ValueError("objective должен быть 'neg' или 'hs'")
         if min(n_nodes, dim, window, epochs, batch_size) < 1 or (objective == "neg" and negative < 1):
-            raise ValueError("n_nodes, dim, window, epochs, batch_size (and negative for 'neg') must be >= 1")
+            raise ValueError("n_nodes, dim, window, epochs, batch_size (и negative для 'neg') должны быть >= 1")
         self.n, self.dim, self.objective = n_nodes, dim, objective
         self.window, self.negative, self.lr, self.min_lr = window, negative, lr, min_lr
         self.epochs, self.batch_size, self.max_chunk_pairs = epochs, batch_size, max_chunk_pairs
         self.rng = np.random.default_rng(seed)
         freq = np.ones(n_nodes) if node_freq is None else np.asarray(node_freq, dtype=float)
         if len(freq) != n_nodes or (freq < 0).any():
-            raise ValueError("node_freq must be non-negative with one value per node")
+            raise ValueError("node_freq: по одному неотрицательному значению на вершину")
         self.W_in = (self.rng.random((n_nodes, dim)) - 0.5) / dim
         if objective == "neg":
             self.W_out = np.zeros((n_nodes, dim))
@@ -132,7 +132,7 @@ class SkipGram:
     def fit(self, walks: np.ndarray) -> "SkipGram":
         walks = np.asarray(walks)
         if walks.ndim != 2 or walks.shape[1] < 2 or walks.min() < 0 or walks.max() >= self.n:
-            raise ValueError("walks must be an (n_walks, length>=2) array of node indices in [0, n_nodes)")
+            raise ValueError("walks — массив (n_walks, длина>=2) индексов вершин из [0, n_nodes)")
         total = self.epochs * self.expected_pairs(len(walks), walks.shape[1])
         done = 0.0
         per_chunk = max(1, int(self.max_chunk_pairs / max(1.0, self.expected_pairs(1, walks.shape[1]))))

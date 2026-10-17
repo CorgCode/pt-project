@@ -28,14 +28,14 @@ def tune(processed_dir: Path, reference_dir: Path, method: str, grid: dict[str, 
     reference_dir = Path(reference_dir)
     ref = reference_dir / "validation"
     if not ref.exists():
-        raise ValueError(f"{ref} not found: tuning needs the validation reference (run pipeline.reference with a validation window)")
+        raise ValueError(f"{ref} не найден: для подбора нужен эталон validation (pipeline.reference с окном validation)")
     if method not in graph_methods.available():
-        raise ValueError(f"unknown method {method!r}; available: {sorted(graph_methods.available())}")
+        raise ValueError(f"неизвестный метод {method!r}; есть: {sorted(graph_methods.available())}")
     keys = sorted(grid)
     configs = [dict(zip(keys, vals)) for vals in itertools.product(*(grid[k] for k in keys))] or [{}]
     if len(configs) > MAX_CONFIGS:
-        raise ValueError(f"{len(configs)} configurations exceed the limit of {MAX_CONFIGS} "
-                         "(each extra configuration inflates the optimism of the best validation score)")
+        raise ValueError(f"{len(configs)} конфигураций больше предела {MAX_CONFIGS} "
+                         "(каждая лишняя делает лучший результат на validation оптимистичнее)")
     data = ProcessedData(processed_dir)
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -45,8 +45,8 @@ def tune(processed_dir: Path, reference_dir: Path, method: str, grid: dict[str, 
             m.embed(data, "train").to_csv(path)
             res = run(path, ref, f"{method}#{i}", n_boot=n_boot, seed=seed)
             if metric not in res["metrics"]:
-                raise ValueError(f"metric {metric!r} is not available on the validation reference; "
-                                 f"choose one of {sorted(k for k in res['metrics'] if not k.endswith(('_std', '_median')))}")
+                raise ValueError(f"метрики {metric!r} нет на эталоне validation; "
+                                 f"выберите из {sorted(k for k in res['metrics'] if not k.endswith(('_std', '_median')))}")
             rows.append({"config": cfg, "metrics": res["metrics"], "fit_seconds": m.info()["fit_seconds"]["train"]})
     best = max(rows, key=lambda r: r["metrics"][metric])
     return {

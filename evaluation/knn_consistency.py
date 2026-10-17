@@ -60,12 +60,12 @@ def build_reference_features(
     exclude = tuple(sorted(set(exclude_blocks)))
     unknown = set(exclude) - set(BLOCKS)
     if unknown:
-        raise ValueError(f"unknown block(s) {sorted(unknown)}; blocks are {BLOCKS}")
+        raise ValueError(f"неизвестные блоки {sorted(unknown)}; есть {BLOCKS}")
     if len(exclude) == len(BLOCKS):
-        raise ValueError("cannot exclude every block")
+        raise ValueError("нельзя убрать все блоки")
     if fitted is not None and tuple(fitted.get("excluded", ())) != exclude:
-        raise ValueError(f"fitted state was built with excluded blocks {tuple(fitted.get('excluded', ()))}, "
-                         f"not {exclude}")
+        raise ValueError(f"fitted построен без блоков {tuple(fitted.get('excluded', ()))}, "
+                         f"а не без {exclude}")
     f = flows.copy()
     if not np.issubdtype(f["ts"].dtype, np.datetime64):
         f["ts"] = pd.to_datetime(f["ts"], unit="s")
@@ -207,19 +207,19 @@ def evaluate_embedding(
         for name, df in (("embedding", embedding), ("reference", reference)):
             if df.index.has_duplicates:
                 dups = df.index[df.index.duplicated()].unique().tolist()[:5]
-                raise ValueError(f"{name} contains duplicate host IDs, e.g. {dups}")
+                raise ValueError(f"в {name} повторяющиеся host_id, например {dups}")
         if set(embedding.index) != set(reference.index):
             only_e = list(set(embedding.index) - set(reference.index))[:5]
             only_r = list(set(reference.index) - set(embedding.index))[:5]
-            raise ValueError("embedding and reference contain different host IDs "
-                             f"(only in embedding: {only_e}, only in reference: {only_r})")
+            raise ValueError("в эмбеддинге и эталоне разные host_id "
+                             f"(только в эмбеддинге: {only_e}, только в эталоне: {only_r})")
         reference = reference.loc[embedding.index]
         hosts = embedding.index
     else:
         hosts = None
     E, R = np.asarray(embedding, float), np.asarray(reference, float)
     if len(E) != len(R):
-        raise ValueError("embedding and reference must cover the same hosts")
+        raise ValueError("эмбеддинг и эталон должны покрывать одних и тех же хостов")
 
     rows, per_host = [], {}
     for k in ks:

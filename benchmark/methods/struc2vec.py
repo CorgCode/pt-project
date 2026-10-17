@@ -182,14 +182,14 @@ class Struc2Vec(GraphEmbeddingMethod):
     def __init__(self, dim: int = 16, seed: int = 0, **params):
         super().__init__(dim, seed, **params)
         if not 0.0 <= self.params["stay_prob"] <= 1.0 or self.params["layers"] < 0:
-            raise ValueError("struc2vec: stay_prob must be in [0, 1] and layers >= 0")
+            raise ValueError("struc2vec: stay_prob в [0, 1], layers >= 0")
 
     # базовый класс передаёт нужные хосты — только они становятся вершинами многослойного графа
     def embed_graph(self, g: Graph, focus: np.ndarray | None = None) -> np.ndarray:
         p = self.params
         focus = np.flatnonzero(g.degree > 0) if focus is None else np.asarray(focus, dtype=np.int64)
         if len(focus) < 3:
-            raise ValueError("struc2vec needs at least 3 nodes to embed")
+            raise ValueError("struc2vec нужно хотя бы 3 вершины")
         K = p["layers"]
         seqs = ring_sequences(g, focus, K)
         per_side = p["candidates_per_side"] or int(np.ceil(np.log2(len(focus))))

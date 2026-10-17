@@ -179,7 +179,7 @@ def test_features_validate_and_standardise_with_train_statistics(processed):
     from pipeline.data import ProcessedData
     from benchmark.methods.graph_input import from_flows
     d = ProcessedData(processed)
-    with pytest.raises(ValueError, match="features must be"):
+    with pytest.raises(ValueError, match="features должен быть"):
         Features("bogus")
     for kind, width in (("degree", 1), ("structural", 4), ("behavioral", None)):
         f = Features(kind)
@@ -212,7 +212,7 @@ def test_registered_validated_and_declares_shared_coordinates():
     for bad in ({"samples": [5]}, {"samples": [5, 0]}, {"features": "bogus"}):
         with pytest.raises(ValueError):
             GraphSAGE(dim=4, **bad)
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         GraphSAGE(dim=4, bogus=1)
     with pytest.raises(RuntimeError, match="fit"):
         GraphSAGE(dim=4).embed(object(), "train")

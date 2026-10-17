@@ -240,7 +240,7 @@ def test_registered_and_validated():
     for bad in ({"stay_prob": 1.5}, {"layers": -1}):
         with pytest.raises(ValueError):
             Struc2Vec(dim=4, **bad)
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         Struc2Vec(dim=4, bogus=1)
 
 

@@ -47,7 +47,7 @@ def test_paired_difference_equals_the_difference_of_reported_means(ablation):
 def test_port_free_reference_diagnostic(ablation, reference):
     d = ablation[0]["port_free_reference_diagnostic"]
     n = len(pd.read_csv(reference / "test" / "eval_hosts.csv"))
-    assert "NOT comparable" in d["note"]
+    assert "НЕ сравнивается" in d["note"]
     for k in (5, 10, 20):
         assert d["chance"][f"consistency@{k}"] == pytest.approx(k / (n - 1))
         assert d["chance"][f"consistency@{k}"] < d["reference_self_agreement"][f"consistency@{k}"] <= 1.0
@@ -73,12 +73,12 @@ def test_ablation_is_reproducible(processed, reference, ablation, tmp_path):
 def test_report_states_provenance_and_the_methodological_caveats(ablation):
     rep, out = ablation
     text = (out / "ablation.md").read_text()
-    assert "SYNTHETIC FIXTURE" in text and "nothing follows for LANL" in text
-    for needle in ("by construction", "port-free reference diagnostic", "not a leaderboard reference", "leaderboard is unchanged",
-                   "service identity", "PortNNNN"):
+    assert "СИНТЕТИКА" in text and "для LANL отсюда ничего не следует" in text
+    for needle in ("по построению", "Диагностика без портов", "не является эталоном таблицы результатов",
+                   "Таблица результатов не меняется", "идентичность сервиса", "PortNNNN"):
         assert needle in text, needle
-    assert "UNVERIFIED INPUT" in render({**rep, "data_kind": "unverified", "badge": "UNVERIFIED INPUT - x"})
-    assert "declared" in render({**rep, "data_kind": "lanl_declared", "badge": "LANL (declared by the operator)"}).lower()
+    assert "НЕПРОВЕРЕННЫЕ ДАННЫЕ" in render({**rep, "data_kind": "unverified", "badge": "UNVERIFIED INPUT - x"})
+    assert "заявлено" in render({**rep, "data_kind": "lanl_declared", "badge": "LANL (declared by the operator)"})
 
 
 def test_missing_reference_is_a_clear_error(processed, tmp_path):
@@ -102,4 +102,4 @@ def test_report_renders_without_a_bootstrap(processed, reference, tmp_path):
     rep = run_ablation(processed, reference, tmp_path, n_boot=0, leave_one_out=False)
     assert all(v["ci95"] is None and v["ci_excludes_zero"] is None for v in rep["paired_full_minus_no_ports"].values())
     text = (tmp_path / "ablation.md").read_text()
-    assert "bootstrap off" in text and list(rep["protocol"]["variants"]) == ["full", "no_ports"]
+    assert "бутстреп выключен" in text and list(rep["protocol"]["variants"]) == ["full", "no_ports"]

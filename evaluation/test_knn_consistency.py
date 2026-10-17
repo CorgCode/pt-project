@@ -76,16 +76,16 @@ def test_duplicate_host_ids_raise(which):
     target = emb if which == "embedding" else ref
     dup = pd.concat([target, target.iloc[[0]]])
     args = (dup, ref) if which == "embedding" else (emb, dup)
-    with pytest.raises(ValueError, match=f"{which} contains duplicate host IDs"):
+    with pytest.raises(ValueError, match=f"в {which} повторяющиеся host_id"):
         evaluate_embedding(*args)
 
 
 def test_missing_or_mismatched_host_ids_raise():
     emb, ref = _small()
-    with pytest.raises(ValueError, match="different host IDs"):
+    with pytest.raises(ValueError, match="разные host_id"):
         evaluate_embedding(emb, ref.iloc[:-1])            # хоста нет в эталоне
-    with pytest.raises(ValueError, match="different host IDs"):
+    with pytest.raises(ValueError, match="разные host_id"):
         evaluate_embedding(emb.iloc[1:], ref)             # хоста нет в эмбеддинге
     renamed = ref.rename(index={"h0": "other"})
-    with pytest.raises(ValueError, match="different host IDs"):
+    with pytest.raises(ValueError, match="разные host_id"):
         evaluate_embedding(emb, renamed)                  # размер тот же, ID другие

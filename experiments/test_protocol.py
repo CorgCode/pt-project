@@ -83,7 +83,7 @@ def test_identity_uses_only_hosts_active_in_both_windows(attrition):
 
 def test_report_discloses_cohort_policy_and_coverage(attrition):
     text = (attrition["out"] / "report.md").read_text()
-    assert "cohort policy `train_only`" in text and "TRAIN window only" in text
+    assert "политика когорты `train_only`" in text and "ТОЛЬКО по train-окну" in text
     cov = attrition["manifest"]["cohort"]["coverage"]
     assert cov["test"] < cov["validation"] == 1.0 and f"({cov['test']:.0%})" in text
 
@@ -95,7 +95,7 @@ def test_all_windows_policy_changes_the_population_and_says_so(base_raw, tmp_pat
     processed, reference = pipeline_for(raw, tmp_path, config=cfg)
     m = run_experiment(processed, reference, tmp_path / "run", **FAST)
     assert m["cohort"]["policy"] == "all_windows" and m["cohort"]["n_cohort"] < attrition["manifest"]["cohort"]["n_cohort"]
-    assert "transductive" in (tmp_path / "run" / "report.md").read_text()
+    assert "стабильных хостов" in (tmp_path / "run" / "report.md").read_text()
 
 
 # ---------------------------------------------------------------- утечка: оцениваемые эмбеддинги зависят только от train
@@ -174,21 +174,21 @@ def other_kinds(base_raw, tmp_path_factory):
 def test_unverified_run_is_never_called_lanl(other_kinds):
     m, text = other_kinds["unverified"]
     assert m["data_kind"] == "unverified" and m["synthetic"] is False and m["real_lanl_declared"] is False
-    assert "UNVERIFIED INPUT" in text and "not presented as LANL" in text
-    assert "LANL (declared" not in text and "SYNTHETIC FIXTURE" not in text
+    assert "НЕПРОВЕРЕННЫЕ ДАННЫЕ" in text and "за LANL не выдаётся" in text
+    assert "LANL (заявлено" not in text and "СИНТЕТИКА" not in text
 
 
 def test_declared_lanl_run_says_declared_not_verified(other_kinds):
     m, text = other_kinds["lanl_declared"]
     assert m["data_kind"] == "lanl_declared" and m["real_lanl_declared"] is True and m["provenance_verified"] is False
-    assert "LANL (declared by the operator; provenance not verified by the pipeline)" in text
-    assert "unit test, not real LANL" in text and "SYNTHETIC FIXTURE" not in text
-    assert "not claims about other data" in text
+    assert "LANL (заявлено оператором; происхождение пайплайном не проверено)" in text
+    assert "unit test, not real LANL" in text and "СИНТЕТИКА" not in text
+    assert "не утверждения о других данных" in text
 
 
 def test_synthetic_run_report_says_nothing_follows_for_lanl(attrition):
     text = (attrition["out"] / "report.md").read_text()
-    assert "SYNTHETIC FIXTURE" in text and "no statement about LANL follows" in text
+    assert "СИНТЕТИКА" in text and "о LANL ни одно число" in text
 
 
 def test_every_result_file_carries_the_kind(other_kinds, attrition):
@@ -211,7 +211,7 @@ def submission(tmp, processed, name="mymodel", provenance=None):
 
 def test_submission_trained_on_a_later_window_is_refused(processed, reference, tmp_path):
     subs = submission(tmp_path, processed, provenance={"trained_on_windows": ["train", "test"]})
-    with pytest.raises(ValueError, match="temporal leakage"):
+    with pytest.raises(ValueError, match="утечка по времени"):
         run_experiment(processed, reference, tmp_path / "o", submissions_dir=subs, do_audit=False, dim=4, n_boot=0)
 
 
@@ -219,7 +219,7 @@ def test_undeclared_training_windows_are_flagged_not_trusted(processed, referenc
     m = run_experiment(processed, reference, tmp_path / "o", submissions_dir=submission(tmp_path, processed),
                        do_audit=False, dim=4, n_boot=0)
     assert m["external_provenance"]["mymodel"]["trained_on_windows"] is None
-    assert "training windows undeclared" in (tmp_path / "o" / "report.md").read_text()
+    assert "окна обучения не заявлены" in (tmp_path / "o" / "report.md").read_text()
 
 
 def test_declared_train_only_submission_is_recorded_as_declared(processed, reference, tmp_path):

@@ -28,25 +28,25 @@ SPLITS = {"train", "validation", "test"}
 def load_labels(path) -> pd.DataFrame:
     lab = read_reference_table(path, {"host_id", "target", "split"}, split_values=SPLITS)
     if lab["host_id"].duplicated().any():
-        raise ReferenceError(f"{path}: duplicate host_id (a host may have only one split)")
+        raise ReferenceError(f"{path}: повторяющийся host_id (у хоста может быть только один split)")
     return lab
 
 
 def linear_probe(emb: pd.DataFrame, labels: pd.DataFrame, *, labels_source: str | None,
                  eval_split: str = "test", n_boot: int = 0, seed: int = 0, max_iter: int = 2000) -> dict:
     if not labels_source or not str(labels_source).strip():
-        raise ReferenceError("labels.csv has no declared external provenance (manifest labels_source); "
-                             "refusing to treat unverified labels as ground truth")
+        raise ReferenceError("у labels.csv не указан внешний источник (labels_source в манифесте); "
+                             "непроверенные метки за правду не принимаем")
     if eval_split == "train":
-        raise ValueError("evaluate on validation or test, not train")
+        raise ValueError("оценивать нужно на validation или test, а не на train")
     unknown = sorted(set(labels.host_id) - set(emb.index))
     if unknown:
-        raise ReferenceError(f"labels.csv lists hosts absent from the embedding: {unknown[:5]}")
+        raise ReferenceError(f"в labels.csv есть хосты, которых нет в эмбеддинге: {unknown[:5]}")
     tr, te = labels[labels.split == "train"], labels[labels.split == eval_split]
     if tr.empty or te.empty:
-        raise ReferenceError(f"need labelled hosts in split 'train' and {eval_split!r}")
+        raise ReferenceError(f"нужны размеченные хосты в split 'train' и {eval_split!r}")
     if tr.target.nunique() < 2:
-        raise ReferenceError("train split needs at least two classes")
+        raise ReferenceError("в train нужно хотя бы два класса")
     Xtr, Xte = emb.loc[tr.host_id].to_numpy(float), emb.loc[te.host_id].to_numpy(float)
     clf = make_pipeline(StandardScaler(), LogisticRegression(C=1.0, max_iter=max_iter, random_state=seed))
     clf.fit(Xtr, tr.target.to_numpy())

@@ -48,12 +48,12 @@ def test_has_edge_matches_a_python_set():
 def test_index_of_and_unknown_hosts():
     g = from_flows(flows([("a", "b"), ("b", "c")]))
     assert g.index_of(["c", "a"]).tolist() == [2, 0]
-    with pytest.raises(KeyError, match="no edge"):
+    with pytest.raises(KeyError, match="нет рёбер"):
         g.index_of(["a", "ghost"])
 
 
 def test_empty_or_self_only_flows_are_errors():
-    with pytest.raises(ValueError, match="non-self"):
+    with pytest.raises(ValueError, match="между разными хостами"):
         from_flows(flows([("a", "a")]))
 
 

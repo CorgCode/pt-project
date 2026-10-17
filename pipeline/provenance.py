@@ -64,7 +64,7 @@ def sample_devices(path: Path, rows: int = 20000) -> tuple[set[str], dict]:
 def classify(inputs: list[Path], declared: str | None = None, source_note: str | None = None) -> dict:
     """Определить вид происхождения файлов; противоречивые заявления — ошибка."""
     if declared not in (None, "lanl", KIND_SYNTHETIC, KIND_LANL_DECLARED):
-        raise PipelineError(f"unknown data kind {declared!r}")
+        raise PipelineError(f"неизвестный вид данных {declared!r}")
     wants_lanl = declared in ("lanl", KIND_LANL_DECLARED)
     marker = any((Path(p).parent / SYNTHETIC_MARKER).exists() for p in inputs)
     devices: set[str] = set()
@@ -85,20 +85,20 @@ def classify(inputs: list[Path], declared: str | None = None, source_note: str |
            "declared_kind": declared, "source_note": (source_note or "").strip() or None, "checks": checks}
     if marker:
         if wants_lanl:
-            raise PipelineError("inputs carry a SYNTHETIC_FIXTURE marker; refusing to label them LANL")
+            raise PipelineError("у входных файлов есть маркер SYNTHETIC_FIXTURE — назвать их LANL нельзя")
         return {**out, "kind": KIND_SYNTHETIC, "basis": "marker_file"}
     if signature:
         if wants_lanl:
-            raise PipelineError("input device IDs match the synthetic fixture generator's signature; "
-                                "refusing to label them LANL")
+            raise PipelineError("ID устройств совпадают с подписью генератора синтетики — "
+                                "назвать их LANL нельзя")
         return {**out, "kind": KIND_SYNTHETIC, "basis": "fixture_signature"}
     if declared == KIND_SYNTHETIC:
         return {**out, "kind": KIND_SYNTHETIC, "basis": "operator_declaration"}
     if wants_lanl:
         if not out["source_note"]:
-            raise PipelineError("declaring LANL data requires --source-note (where and when the files were obtained)")
+            raise PipelineError("для заявления LANL нужен --source-note (откуда и когда получены файлы)")
         if not names_ok:
             bad = [Path(p).name for p in inputs if not FILENAME_RE.match(Path(p).name)]
-            raise PipelineError(f"file names do not look like LANL netflow_day-NN.bz2: {bad[:3]}")
+            raise PipelineError(f"имена файлов не похожи на LANL netflow_day-NN.bz2: {bad[:3]}")
         return {**out, "kind": KIND_LANL_DECLARED, "basis": "operator_declaration"}
     return {**out, "kind": KIND_UNVERIFIED, "basis": "no_declaration"}

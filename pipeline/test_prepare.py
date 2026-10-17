@@ -103,13 +103,13 @@ def test_unmarked_files_are_unverified_never_lanl(tmp_path):
 
 def test_empty_window_has_clear_error(raw_fixture, tmp_path):
     cfg = PipelineConfig(windows={"train": (0, 21600), "test": (900000, 900100)})
-    with pytest.raises(PipelineError, match="contains no flows"):
+    with pytest.raises(PipelineError, match="нет потоков"):
         prepare(sorted(raw_fixture.glob("*.bz2")), cfg, tmp_path / "o")
 
 
 def test_cohort_too_small(raw_fixture, tmp_path):
     cfg = PipelineConfig(windows=CONFIG.windows, min_events_per_window=10_000)
-    with pytest.raises(PipelineError, match="Cohort too small"):
+    with pytest.raises(PipelineError, match="когорта слишком мала"):
         prepare(sorted(raw_fixture.glob("*.bz2")), cfg, tmp_path / "o")
 
 

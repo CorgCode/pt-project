@@ -10,7 +10,7 @@
       "test": 1.0,
       "validation": 1.0
     },
-    "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
     "median_train_events": {
       "active_in_every_window": 151.0,
       "not_active_in_every_window": null
@@ -21,7 +21,7 @@
       "validation": 300
     },
     "n_hosts_active_in_every_window": 300,
-    "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
   "cohort_sha256": "8cf9b0fd4ea30a03d9bfe96a361336e5b739218bc85dedec114f1b18c51b2d4e",
@@ -65,7 +65,7 @@
   "n_evaluable": 300,
   "n_hosts": 300,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "946fc6efa4dd781f7c39805b4ce362353791349c060080dddb7638c744f7eae7",
+  "pipeline_manifest_sha256": "633b8a937ec3f97480af84bea9688d2d1560293f333b2f0b8b3025f88c6b1d04",
   "provenance": {
     "basis": "marker_file",
     "checks": {

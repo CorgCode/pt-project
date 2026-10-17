@@ -28,7 +28,7 @@ class DeepWalk(GraphEmbeddingMethod):
         walks = walk_corpus(g, p["num_walks"], p["walk_length"], seed=self.seed)
         nodes = np.flatnonzero(g.degree > 0)
         if len(nodes) != g.n:
-            raise ValueError("graph has isolated nodes")
+            raise ValueError("в графе есть изолированные вершины")
         freq = np.bincount(walks.ravel(), minlength=g.n).astype(float)        # частоты в корпусе (для Хаффмана и negative sampling)
         sg = SkipGram(g.n, self.dim, objective=p["objective"], window=p["window"], negative=p["negative"],
                       lr=p["lr"], epochs=p["epochs"], batch_size=p["batch_size"], seed=self.seed, node_freq=freq)

@@ -47,15 +47,15 @@ def test_validation_split_is_used_for_scoring(processed, reference, tuned):
 
 
 def test_input_errors(processed, reference, tmp_path):
-    with pytest.raises(ValueError, match="validation reference"):
+    with pytest.raises(ValueError, match="эталон validation"):
         tune(processed, tmp_path, "deepwalk", {}, fast=True)
-    with pytest.raises(ValueError, match="unknown method"):
+    with pytest.raises(ValueError, match="неизвестный метод"):
         tune(processed, reference, "nope", {})
-    with pytest.raises(ValueError, match="not available"):
+    with pytest.raises(ValueError, match="нет на эталоне validation"):
         tune(processed, reference, "deepwalk", {"num_walks": [2]}, dim=4, metric="probe_accuracy", fast=True)
-    with pytest.raises(ValueError, match="exceed the limit"):
+    with pytest.raises(ValueError, match="больше предела"):
         tune(processed, reference, "deepwalk", {"num_walks": list(range(1, MAX_CONFIGS + 2))}, fast=True)
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         tune(processed, reference, "deepwalk", {"bogus": [1]}, fast=True)
 
 

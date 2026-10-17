@@ -1,17 +1,17 @@
-# Benchmark run report
+# Отчёт о прогоне
 
-> **SYNTHETIC FIXTURE - not LANL traffic.**
+> **СИНТЕТИКА (synthetic_fixture) — не трафик LANL.**
 >
-> The numbers come from generated data in the LANL netflow layout. They demonstrate the pipeline and the metrics only and say nothing about real network behaviour.
+> Числа получены на сгенерированных данных в формате LANL NetFlow. Они показывают работу конвейера и метрик и ничего не говорят о реальной сети.
 
-* data kind: `synthetic_fixture` (basis: marker_file); cohort hosts: **300**; dim=16, seed=0, bootstrap=200; targets: validation, test
-* methods evaluated: behavioral, behavioral_pca, behavioral_svd, deepwalk, graph_spectral, graphsage, node2vec, random, reference_ceiling, rolx, struc2vec
-* **not available in this run** (no embeddings supplied, nothing simulated): none
-* cohort policy `train_only`; evaluable hosts per window: validation: 300/300 (100%), test: 300/300 (100%)
-  * The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.
+* данные: `synthetic_fixture` (основание: marker_file); хостов в когорте: **300**; dim=16, seed=0, bootstrap=200; окна оценки: validation, test
+* оценены методы: behavioral, behavioral_pca, behavioral_svd, deepwalk, graph_spectral, graphsage, node2vec, random, reference_ceiling, rolx, struc2vec
+* **в этом прогоне нет** (эмбеддинги не переданы, ничего не симулируется): нет
+* политика когорты `train_only`; оцениваемых хостов по окнам: validation: 300/300 (100%), test: 300/300 (100%)
+  * Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.
 
 
-## Scores - validation reference
+## Результаты — эталон validation
 
 | method | consistency@10_mean | ndcg@10_mean | link_roc_auc | link_learned_roc_auc | link_new_roc_auc | partner_new_mrr | pair_roc_auc | triplet_accuracy | precision@3 | recall@3 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -27,12 +27,12 @@
 | struc2vec | 0.080 | 0.075 | 0.492 | n/a | 0.494 | 0.144 | 0.644 | 0.584 | 0.381 | 0.620 |
 | reference_ceiling | 1.000 | 1.000 | 0.476 | n/a | 0.485 | 0.160 | 0.887 | 0.874 | 0.533 | 0.892 |
 
-Link-prediction reference point (no embedding): *pair already seen in the source window* scores ROC-AUC **0.710**. `link_learned_*` fits an edge classifier on the validation candidates and scores the test candidates; cosine is shown for completeness.
+Точка отсчёта для связей без эмбеддинга — *пара уже общалась в source-окне*: ROC-AUC **0.710**. `link_learned_*` — классификатор рёбер, обученный на кандидатах validation и оценённый на test; косинус показан для полноты.
 
 ![scorecard](figures/scorecard_validation.png)
 
 
-## Scores - test reference
+## Результаты — эталон test
 
 | method | consistency@10_mean | ndcg@10_mean | link_roc_auc | link_learned_roc_auc | link_new_roc_auc | partner_new_mrr | pair_roc_auc | triplet_accuracy | precision@3 | recall@3 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -48,16 +48,16 @@ Link-prediction reference point (no embedding): *pair already seen in the source
 | struc2vec | 0.089 | 0.081 | 0.493 | 0.621 | 0.499 | 0.150 | 0.607 | 0.605 | 0.270 | 0.263 |
 | reference_ceiling | 1.000 | 1.000 | 0.487 | n/a | 0.500 | 0.176 | 0.905 | 0.914 | 0.580 | 0.720 |
 
-Link-prediction reference point (no embedding): *pair already seen in the source window* scores ROC-AUC **0.708**. `link_learned_*` fits an edge classifier on the validation candidates and scores the test candidates; cosine is shown for completeness.
+Точка отсчёта для связей без эмбеддинга — *пара уже общалась в source-окне*: ROC-AUC **0.708**. `link_learned_*` — классификатор рёбер, обученный на кандидатах validation и оценённый на test; косинус показан для полноты.
 
 ![scorecard](figures/scorecard_test.png)
 
 
-## Metrics not available
+## Недоступные метрики
 
 * linear_probe: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)
 
-## 95% bootstrap intervals (test)
+## 95% бутстреп-интервалы (test)
 
 | method | metric | estimate | ci_low | ci_high |
 |---|---|---|---|---|
@@ -106,9 +106,9 @@ Link-prediction reference point (no embedding): *pair already seen in the source
 | reference_ceiling | pair_roc_auc | 0.905 | 0.859 | 0.936 |
 | reference_ceiling | triplet_accuracy | 0.914 | 0.852 | 0.966 |
 
-## Identity retrieval (train -> test)
+## Узнаваемость хоста во времени (train -> test)
 
-| method | shared coords declared | Top-1 raw | Top-1 Procrustes | MRR Procrustes | pair ROC-AUC Procrustes | chance Top-1 |
+| method | общие координаты заявлены | Top-1 сырые | Top-1 Procrustes | MRR Procrustes | ROC-AUC пар Procrustes | случайный Top-1 |
 |---|---|---|---|---|---|---|
 | random | False | 0.000 | 0.007 | 0.035 | 0.523 | 0.007 |
 | behavioral | True | 0.047 | 0.133 | 0.262 | 0.911 | 0.007 |
@@ -123,22 +123,22 @@ Link-prediction reference point (no embedding): *pair already seen in the source
 
 ![identity](figures/identity_test.png)
 
-Raw-coordinate scores are only interpretable for methods that declare a shared coordinate system.
+Сырые координаты осмысленны только для методов, заявивших общую систему координат.
 
-## Validity audit
+## Аудит валидности
 
-* **Weight sensitivity** (12 perturbed behavioural references, k=10): neighbour agreement with the canonical reference 0.74 on average (min 0.58; chance 0.033); method-ranking Kendall tau mean 0.92, min 0.86.
-* **Reference stability** train->validation: Consistency@10 = 0.28 (chance 0.033) - behavioural neighbourhoods drift between windows.
-* **Reference stability** train->test: Consistency@10 = 0.28 (chance 0.033) - behavioural neighbourhoods drift between windows.
-* **Reference stability** validation->test: Consistency@10 = 0.33 (chance 0.033) - behavioural neighbourhoods drift between windows.
-* **Validation vs test ranking agreement** (Kendall tau): consistency@10_mean: 0.89, link_roc_auc: 0.70, pair_roc_auc: 0.78, triplet_accuracy: 0.90
-* **Chance band (random embeddings, test reference)**: consistency@10_mean 0.034 ± 0.003, link_roc_auc 0.501 ± 0.007, link_learned_roc_auc 0.543 ± 0.007, pair_roc_auc 0.501 ± 0.021, triplet_accuracy 0.502 ± 0.023
-* **Link-prediction prevalence**: sampled positive rate 0.50 vs natural 0.083; 51% of positive links were already present in the source window (compare 'New-link ROC-AUC').
+* **Чувствительность к весам** (12 изменённых поведенческих эталонов, k=10): совпадение соседей с основным эталоном в среднем 0.74 (минимум 0.58; случайно 0.033); тау Кендалла порядка методов в среднем 0.92, минимум 0.86.
+* **Стабильность эталона** train->validation: Consistency@10 = 0.28 (случайно 0.033) — поведенческое соседство дрейфует между окнами.
+* **Стабильность эталона** train->test: Consistency@10 = 0.28 (случайно 0.033) — поведенческое соседство дрейфует между окнами.
+* **Стабильность эталона** validation->test: Consistency@10 = 0.33 (случайно 0.033) — поведенческое соседство дрейфует между окнами.
+* **Согласие порядка validation и test** (тау Кендалла): consistency@10_mean: 0.89, link_roc_auc: 0.70, pair_roc_auc: 0.78, triplet_accuracy: 0.90
+* **Случайный уровень (случайные эмбеддинги, test)**: consistency@10_mean 0.034 ± 0.003, link_roc_auc 0.501 ± 0.007, link_learned_roc_auc 0.543 ± 0.007, pair_roc_auc 0.501 ± 0.021, triplet_accuracy 0.502 ± 0.023
+* **Доля связей среди кандидатов**: в выборке 0.50, на самом деле 0.083; 51% будущих связей уже были в source-окне (см. ROC-AUC только новых связей).
 
 ![weights](figures/weight_sensitivity.png)
 
 
-### Information shared by construction (method input vs reference source)
+### Что метод делит с эталоном по построению
 
 | method | neighbors | edges | pairs |
 |---|---|---|---|
@@ -156,9 +156,9 @@ Raw-coordinate scores are only interpretable for methods that declare a shared c
 | rolx | weak: degree/volume-like structure correlates with behaviour | weak: structural roles, not specific peers, so link persistence is not encoded | weak: shared peers are not encoded (roles ignore identity) |
 | struc2vec | weak: degree structure correlates with behaviour | weak: structural identity, not specific peers, so link persistence is not encoded | weak: shared peers are not encoded (structure ignores identity) |
 
-## Reading these numbers
+## Как читать эти числа
 
-* **Predictive:** future links (outcome observed later) and identity stability. **Agreement with a proxy we chose:** kNN consistency (behavioural profile), pair/triplet/P@k (shared peers).
-* `reference_ceiling` uses the target-window features themselves and leaks by design; baselines share feature definitions or peer structure with the references (table above), so they are calibration points, not independent evidence.
-* Intervals: kNN and retrieval metrics resample hosts/anchors; link, pair and triplet metrics use a host-cluster bootstrap (pairs share hosts). They cover evaluation-set sampling only, not model seeds, reference choice or window choice.
-* Because the data are synthetic, no statement about LANL follows from any number above.
+* **Прогноз:** будущие связи (результат виден позже) и узнаваемость. **Согласие с выбранным нами приближением:** kNN (поведенческий профиль), пары/тройки/P@k (общие собеседники).
+* `reference_ceiling` — признаки самого целевого окна, «утекает» намеренно; бейзлайны делят с эталонами признаки или структуру собеседников (таблица выше), поэтому это точки калибровки, а не независимое доказательство.
+* Интервалы: для kNN и Precision@k пересэмплируются хосты; для связей, пар и троек — бутстреп по хостам (пары делят хостов). Они описывают только выбор оцениваемых элементов, а не seed модели, эталон или окна.
+* Данные синтетические, поэтому о LANL ни одно число выше ничего не говорит.

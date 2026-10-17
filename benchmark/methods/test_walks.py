@@ -44,10 +44,10 @@ def test_invalid_arguments():
     rng = np.random.default_rng(0)
     with pytest.raises(ValueError, match="walk_length"):
         random_walks(g, [0], 1, rng=rng)
-    with pytest.raises(ValueError, match="positive"):
+    with pytest.raises(ValueError, match="> 0"):
         random_walks(g, [0], 5, p=0.0, rng=rng)
     iso = graph([(0, 1)], n=3)
-    with pytest.raises(ValueError, match="isolated"):
+    with pytest.raises(ValueError, match="изолированной"):
         random_walks(iso, [2], 5, rng=rng)
 
 

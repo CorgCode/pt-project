@@ -26,9 +26,9 @@ def test_registered_with_defaults_and_validation():
     m = Node2Vec(dim=4)
     assert (m.params["p"], m.params["q"]) == (1.0, 1.0) and "Grover" in m.reference
     for bad in ({"p": 0}, {"q": -1.0}):
-        with pytest.raises(ValueError, match="positive"):
+        with pytest.raises(ValueError, match="> 0"):
             Node2Vec(dim=4, **bad)
-    with pytest.raises(ValueError, match="unknown parameter"):
+    with pytest.raises(ValueError, match="неизвестные параметры"):
         Node2Vec(dim=4, objective="hs")                 # node2vec — только negative sampling
     assert m.info()["params"]["q"] == 1.0 and m.info()["reference"]
 

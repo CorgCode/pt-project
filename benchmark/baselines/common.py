@@ -27,9 +27,9 @@ def write_embeddings(path: Path, hosts: pd.Index, X: np.ndarray, config: dict | 
     """Записать общий формат: host_id, emb_0, emb_1, ..."""
     config = config or load_config()
     if X.shape[0] != len(hosts):
-        raise ValueError("embedding rows do not match hosts")
+        raise ValueError("строки эмбеддинга не совпадают с хостами")
     if not np.isfinite(X).all():
-        raise ValueError("embedding contains NaN/Inf")
+        raise ValueError("в эмбеддинге есть NaN или Inf")
     cols = [f"{config['embedding_prefix']}{i}" for i in range(X.shape[1])]
     df = pd.DataFrame(X, columns=cols)
     df.insert(0, config["host_id_column"], list(hosts))

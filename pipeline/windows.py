@@ -38,22 +38,22 @@ class PipelineConfig:
     def __post_init__(self) -> None:
         names = set(self.windows)
         if not names <= set(ORDER):
-            raise ValueError(f"Unknown window names {sorted(names - set(ORDER))}; use {ORDER}")
+            raise ValueError(f"неизвестные окна {sorted(names - set(ORDER))}; допустимы {ORDER}")
         if not {"train", "test"} <= names:
-            raise ValueError("Windows 'train' and 'test' are required")
+            raise ValueError("нужны окна 'train' и 'test'")
         previous_end = None
         for name in (n for n in ORDER if n in names):
             start, end = self.windows[name]
             if not (np.isfinite(start) and np.isfinite(end) and start < end):
-                raise ValueError(f"Window {name}: need finite start < end, got {start}, {end}")
+                raise ValueError(f"окно {name}: нужно конечное start < end, получено {start}, {end}")
             if previous_end is not None and start < previous_end:
-                raise ValueError(f"Window {name} overlaps or precedes the previous window")
+                raise ValueError(f"окно {name} пересекается с предыдущим или идёт раньше него")
             previous_end = end
         if self.cohort_policy not in COHORT_POLICIES:
-            raise ValueError(f"cohort_policy must be one of {COHORT_POLICIES}")
+            raise ValueError(f"cohort_policy должен быть одним из {COHORT_POLICIES}")
         if self.min_events_per_window < 1 or self.min_cohort_size < 22:
-            raise ValueError("min_events_per_window >= 1 and min_cohort_size >= 22 "
-                             "(k=20 needs more than 21 hosts)")
+            raise ValueError("нужно min_events_per_window >= 1 и min_cohort_size >= 22 "
+                             "(для k=20 нужно больше 21 хоста)")
 
     @property
     def ordered(self) -> list[str]:
@@ -72,7 +72,7 @@ class PipelineConfig:
         try:
             windows = {k: (float(v[0]), float(v[1])) for k, v in raw["windows"].items()}
         except (KeyError, TypeError, ValueError, IndexError) as exc:
-            raise ValueError('config needs {"windows": {"train": [start, end], ...}}') from exc
+            raise ValueError('в конфиге нужно {"windows": {"train": [start, end], ...}}') from exc
         extra = {k: raw[k] for k in ("min_events_per_window", "min_cohort_size",
                                      "drop_straddling", "seed", "cohort_policy") if k in raw}
         return cls(windows=windows, **extra)

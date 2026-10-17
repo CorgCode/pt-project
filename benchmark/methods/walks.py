@@ -60,12 +60,12 @@ def random_walks(g: Graph, starts: np.ndarray, walk_length: int, *, p: float = 1
                  rng: np.random.Generator, max_rounds: int = 64) -> np.ndarray:
     """Массив (len(starts), walk_length) int32; строка i — блуждание из starts[i]."""
     if walk_length < 2:
-        raise ValueError("walk_length must be >= 2")
+        raise ValueError("walk_length должен быть >= 2")
     if p <= 0 or q <= 0:
-        raise ValueError("p and q must be positive")
+        raise ValueError("p и q должны быть > 0")
     starts = np.asarray(starts, dtype=np.int64)
     if (g.degree[starts] == 0).any():
-        raise ValueError("a walk cannot start at an isolated node")
+        raise ValueError("блуждание не может начинаться в изолированной вершине")
     walks = np.empty((len(starts), walk_length), dtype=np.int64)
     walks[:, 0] = starts
     walks[:, 1] = g.indices[_draw_neighbor_index(g, starts, rng)]
