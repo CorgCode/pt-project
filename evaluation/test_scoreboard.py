@@ -146,3 +146,13 @@ def test_markdown_has_headlines_and_chance_row(tmp_path):
     md = (tmp_path / "board.md").read_text(encoding="utf-8")
     assert md.index("`a`") < md.index("`b`")                 # лучший метод выше
     assert "случайный уровень" in md and "0.500" in md and "[0.60–0.80]" in md
+
+
+def test_overall_score_maps_chance_to_0_and_perfect_to_100():
+    from evaluation.scoreboard import column_scores, overall_score
+    summary = [{"metric": "auc", "title": "AUC", "chance": 0.5}, {"metric": "top1", "title": "Top-1", "chance": 0.0}]
+    r = {"method": "m", "metrics": {"auc": 0.75, "top1": 0.2}, "summary": summary}
+    assert column_scores(r, {"auc": "AUC", "top1": "Top-1"}) == {"auc": 50.0, "top1": 20.0}
+    worse = {"method": "w", "metrics": {"auc": 0.4, "top1": 0.0}, "summary": summary}   # ниже случайного — 0
+    s = overall_score([r, worse], {"auc": "AUC", "top1": "Top-1"})
+    assert s["m"] == 35.0 and s["w"] == 0.0
