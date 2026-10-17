@@ -38,7 +38,15 @@
     <div class="note" role="note"><strong>Важно.</strong> Все числа и графики на этой странице получены на <b>синтетическом</b> наборе из <span data-meta="hosts">300</span> хостов. Это проверка конвейера, а не результат на реальных данных LANL. Реальный эксперимент ещё не проведён (<a href="https://github.com/CorgCode/pt-project/issues/60">issue #60</a>).</div>
     <div class="cols" style="margin-top:28px">
       <div>
-        <h3 style="margin-top:0">Исследовательский вопрос</h3>
+        <h3 style="margin-top:0">Цель</h3>
+        <p>Научиться по логам сети строить для каждого хоста вектор, по которому можно:</p>
+        <ul>
+          <li>находить хосты с похожим поведением;</li>
+          <li>видеть группы и роли хостов без ручной разметки;</li>
+          <li>замечать подозрительные изменения поведения;</li>
+          <li>объяснять, почему хосты считаются похожими.</li>
+        </ul>
+        <h3>Исследовательский вопрос</h3>
         <p>Какие способы построения эмбеддингов хостов — простые поведенческие признаки или методы на графе коммуникаций — лучше сохраняют сходство хостов и устойчивы во времени, если сравнивать их по одним и тем же правилам.</p>
         <h3>Что такое эмбеддинг хоста</h3>
         <p>Это вектор из нескольких десятков чисел (<code>emb_0 … emb_d</code>), который метод строит для каждого хоста. Расстояние между векторами должно отражать различие в поведении: с кем хост общается, как часто, по каким протоколам.</p>
@@ -63,11 +71,12 @@
       <tbody>
         <tr><td>Базовая модель 1</td><td>Поведенческий профиль (+ варианты PCA и SVD): <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/baselines/temporal.py"><code>benchmark/baselines/temporal.py</code></a></td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
         <tr><td>Базовая модель 2</td><td>Спектральное вложение графа коммуникаций (<code>graph_spectral</code>) в том же файле</td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
-        <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>В main реализованы пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Результатов по ним на этом сайте нет — они не запускались на общем эталоне.</td><td><span class="tag ok">Код в main</span> <span class="tag pend">нет результатов</span></td></tr>
+        <tr><td>Метод 1–3 (графовые эмбеддинги)</td><td>Пять методов с модульными тестами: DeepWalk, node2vec, RolX, struc2vec, GraphSAGE. Все прогнаны на общем синтетическом эталоне — результаты ниже.</td><td><span class="tag ok">В main</span> <span class="tag syn">синтетика</span></td></tr>
         <tr><td>Какие три метода показываем</td><td>Решение команды не зафиксировано в репозитории. <b>Предложение:</b> node2vec (случайные обходы, обобщает DeepWalk), struc2vec (структурные роли), GraphSAGE (индуктивная нейросетевая модель) — три разных семейства. DeepWalk и RolX остаются дополнительными.</td><td><span class="tag prop">Предложение</span></td></tr>
         <tr><td>Беспортовая поведенческая модель</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/62">#62</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a>)</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
-        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): +451 строка, CI зелёный</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
-        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): +1202 строки, отдельный набор скриптов</td><td><span class="tag ok">В main</span> <span class="tag pend">влит без ревью</span></td></tr>
+        <tr><td>Устойчивость во времени</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/41">#41</a>): AUC по парам «тот же хост / другой» — сведён в общий модуль <code>evaluation/identity.py</code></td><td><span class="tag ok">В общей оценке</span> <span class="tag syn">синтетика</span></td></tr>
+        <tr><td>Прогноз связей — три метрики</td><td>Pull request <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> (issue <a href="https://github.com/CorgCode/pt-project/issues/40">#40</a>): «собеседники через похожих» и устойчивость к удалению связей перенесены в общую оценку; прямой прогноз уже покрыт ROC-AUC связей</td><td><span class="tag ok">В общей оценке</span> <span class="tag syn">синтетика</span></td></tr>
+        <tr><td>Единая оценка и таблица результатов</td><td>Все метрики одной командой, сгруппированы по вопросу; таблица с интервалами и случайным уровнем — <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md"><code>evaluation/README.md</code></a> (issue <a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>)</td><td><span class="tag ok">Готово</span> <span class="tag syn">синтетика</span></td></tr>
         <tr><td>Эксперимент на реальных данных</td><td>Issue <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a> открыт; нужен доступ к LANL</td><td><span class="tag none">Требуются реальные данные</span></td></tr>
         <tr><td>Личная ответственность и умение объяснить код</td><td>См. раздел «Команда»: по git почти весь код методов принадлежит одному автору. Это вопрос к команде, сайт его не решает.</td><td><span class="tag none">Не подтверждено</span></td></tr>
       </tbody>
@@ -107,7 +116,7 @@
       <header><h3>RolX</h3><span class="tag ok">код в main</span></header>
       <p>Рекурсивные структурные признаки хоста (ReFeX) раскладываются неотрицательной факторизацией на «роли»; вектор хоста — его принадлежность ролям. Хорошо интерпретируется. <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/rolx.py">rolx.py</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/methods/rolx.md">описание</a></p>
     </article>
-    <p><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/README.md">Общий README методов</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/BENCHMARK_CONTRACT.md">контракт формата</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a></p>
+    <p><a href="https://github.com/CorgCode/pt-project/blob/main/benchmark/README.md">Общий README методов</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">контракт формата</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a></p>
   </div>
 </section>
 
@@ -135,7 +144,7 @@
 <section class="block" id="results" aria-labelledby="h-results">
   <div class="wrap">
     <h2 id="h-results"><span class="sec-id">E</span>Экспериментальные результаты</h2>
-    <p class="intro">Графики читаются из файла <a href="./data/synthetic_demo.json"><code>data/synthetic_demo.json</code></a> (коммит <code data-meta="commit">f3db8ddd</code>, каталог <a href="https://github.com/CorgCode/pt-project/tree/main/demo/synthetic_run"><code>demo/synthetic_run</code></a>). Для пяти графовых методов запусков нет: <span data-meta="pending">DeepWalk, GraphSAGE, node2vec, RolX, struc2vec</span> — на их месте стоит пометка «Ожидаются результаты эксперимента».</p>
+    <p class="intro">Графики читаются из файла <a href="./data/synthetic_demo.json"><code>data/synthetic_demo.json</code></a> (коммит <code data-meta="commit">f3db8ddd</code>, каталог <a href="https://github.com/CorgCode/pt-project/tree/main/demo/synthetic_run"><code>demo/synthetic_run</code></a>). Данные собирает <code>python docs/build_data.py</code> из прогона <code>python -m experiments.make_demo_bundle</code>: все пять графовых методов и бейзлайны на одних и тех же хостах, окнах и эталонах. Полная таблица с интервалами — <a href="https://github.com/CorgCode/pt-project/blob/main/demo/synthetic_run/run/scoreboard_test.md"><code>scoreboard_test.md</code></a>.</p>
     <div class="tabs" role="group" aria-label="Окно оценки">
       <button type="button" data-split="test" aria-pressed="true">Тестовое окно</button>
       <button type="button" data-split="validation" aria-pressed="false">Валидационное окно</button>
@@ -147,7 +156,7 @@
       <div class="read">
         <p><b>Что измеряется.</b> Доля из k ближайших соседей хоста в пространстве эмбеддингов, которые входят и в список k соседей по эталону поведения.</p>
         <p><b>Как читать.</b> Правее — лучше; 1 означает полное совпадение. Три маркера — k = 5, 10, 20. Рост с k ожидаем: большая выборка соседей легче пересекается.</p>
-        <p><b>Что показывают результаты.</b> Все честные базовые модели лежат между случайными векторами и потолком. Поведенческие варианты и спектральный граф различаются мало.</p>
+        <p><b>Что показывают результаты.</b> Все методы лежат между случайными векторами и потолком. Выше всех — поведенческие бейзлайны (≈0,28), рядом GraphSAGE и спектральный граф; RolX и struc2vec ищут структурные роли, а не похожее поведение, и здесь слабее.</p>
         <p><b>Чего вывести нельзя.</b> Ничего о реальной сети: данные синтетические. Эталон построен из тех же поведенческих признаков, что и поведенческая модель, поэтому её преимущество частично предопределено.</p>
       </div>
     </div>
@@ -158,8 +167,8 @@
       <div class="read">
         <p><b>Что измеряется.</b> Насколько хорошо по эмбеддингам обучающего окна можно отличить пары хостов, которые свяжутся в будущем, от тех, что не свяжутся.</p>
         <p><b>Как читать.</b> 0,5 — случайное угадывание; ближе к 1 — лучше. Три маркера: косинусная близость, обученный классификатор, только новые связи (без повторов уже виденных).</p>
-        <p><b>Что показывают результаты.</b> Для косинусной близости значения около 0,5 — эмбеддинги базовых моделей сами по себе почти не предсказывают связи; обученный классификатор даёт заметно больше.</p>
-        <p><b>Чего вывести нельзя.</b> Что графовые методы будут лучше или хуже — их запусков нет. Метрика PR-AUC зависит от доли положительных примеров и здесь не сравнивается.</p>
+        <p><b>Что показывают результаты.</b> По косинусу связи предсказывают только DeepWalk (0,65), node2vec (0,62) и GraphSAGE (0,57): блуждания по графу сближают тех, кто общается. У остальных косинус около 0,5, но обученный классификатор достаёт сигнал и из них (спектральный граф — 0,73).</p>
+        <p><b>Чего вывести нельзя.</b> Половина будущих связей уже была в обучающем окне, а прогноз «пара уже общалась» даёт 0,71 — графовые методы во многом выигрывают за счёт сохранения связей. PR-AUC зависит от доли положительных примеров и здесь не сравнивается.</p>
       </div>
     </div>
 
@@ -169,7 +178,7 @@
       <div class="read">
         <p><b>Что измеряется.</b> Различает ли расстояние между векторами пары, которые эталон считает похожими, от явно непохожих.</p>
         <p><b>Как читать.</b> 0,5 — случайно, 1 — идеально. Пунктирный контур — потолок эталона, модель с утечкой.</p>
-        <p><b>Что показывают результаты.</b> Базовые модели справляются с отделением явно похожих пар от явно разных.</p>
+        <p><b>Что показывают результаты.</b> Почти все методы хорошо отделяют явно похожие пары от явно разных (0,89–0,94); лучше всех спектральный граф. RolX и struc2vec — около 0,6: общие собеседники и одинаковая структурная роль — разные вещи.</p>
         <p><b>Чего вывести нельзя.</b> Оцениваются только «крайние» пары (сходство ≥ порога или ровно 0); спорные пары исключены, поэтому доля положительных не равна доле среди всех пар.</p>
       </div>
     </div>
@@ -180,8 +189,8 @@
       <div class="read">
         <p><b>Что измеряется.</b> Доля хостов, ближайший вектор которых в следующем окне принадлежит тому же хосту (top-1).</p>
         <p><b>Как читать.</b> Пунктир — случайное угадывание (1/число хостов). Второй маркер — после ортогонального выравнивания Прокруста, когда координаты окон подгоняются друг к другу.</p>
-        <p><b>Что показывают результаты.</b> Значения невелики. Без выравнивания у спектрального графа точность 0, с выравниванием — около 0,18: его окна подгоняются отдельно, и координаты несопоставимы. Случайные векторы после выравнивания дают уровень случайного угадывания.</p>
-        <p><b>Чего вывести нельзя.</b> Расширенная оценка устойчивости из <a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> влита в main, но её результаты на сайт не включены; показан срез из синтетического прогона.</p>
+        <p><b>Что показывают результаты.</b> Значения невелики, но выше случайного уровня. Без выравнивания у методов, обученных на каждом окне заново, точность почти 0 (у спектрального графа — ровно 0), после выравнивания — до 0,18. Случайные векторы и после выравнивания на уровне угадывания.</p>
+        <p><b>Чего вывести нельзя.</b> На синтетике хосты почти не отличаются друг от друга внутри роли, поэтому узнать конкретный хост трудно любым методом. AUC по парам «тот же хост / другой» (<a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a>) есть в отчёте прогона.</p>
       </div>
     </div>
 
@@ -199,7 +208,7 @@
     <div class="chart">
       <h3>6. Сводная таблица</h3>
       <div class="fig"><div class="prov"><span>СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL</span><span data-split-label>тестовое окно</span></div><div id="leaderboard"></div></div>
-      <p>Таблица упорядочена по согласию соседей @10. Это сопоставление базовых моделей на синтетике, а не рейтинг методов проекта.</p>
+      <p>Таблица упорядочена по согласию соседей @10. Это проверка конвейера на синтетике, а не рейтинг методов: на реальных данных порядок может быть любым.</p>
     </div>
   </div>
 </section>
@@ -216,7 +225,7 @@
         <tr><td>Дима<br><span class="mono">@DrMogger</span></td><td>#18, #23, #34, #44 (закрыты)</td><td>В main нет коммитов, однозначно привязанных к аккаунту. Есть коммит «init» автора «Дмитрий Карпович» (аккаунт не определён) и ветки <code>check/embeddings</code>, <code>example-work</code> — не влиты</td><td><a href="https://github.com/CorgCode/pt-project/tree/check/embeddings">ветка</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/DrMogger.md">заметки</a></td></tr>
         <tr><td>Тихон<br><span class="mono">@Tikhon2783</span></td><td>#20 (закрыт), #22 (закрыт), #40 (открыт)</td><td>PR #65 «Link prediction»: 6 файлов, +1202 строки; влит в main без ревью. Коммит «triplet accuracy» в main подписан <code>khevikos</code> — аккаунт не сопоставлен</td><td><a href="https://github.com/CorgCode/pt-project/pull/65">PR #65</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/Tikhon2783.md">заметки</a></td></tr>
         <tr><td>Даня<br><span class="mono">@kalivixZ</span></td><td>#19, #24 (закрыт), #41</td><td>2 коммита в main (архитектурные заметки по #19, загрузка файлов); PR #64 «Temporal stability»: 5 файлов, +451 строка; влит в main без ревью</td><td><a href="https://github.com/CorgCode/pt-project/pull/64">PR #64</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/kalivixZ.md">заметки</a></td></tr>
-        <tr><td>Даша<br><span class="mono">@ElliOrNora</span></td><td>#21, #25, #43 (открыты), #6</td><td>2 коммита в main: <code>readme.md</code> и <code>linear_probe.py</code> (исходные заметки сохранены в <code>evaluation/LINEAR_PROBE_original_notes.md</code>). Реализация #43 — PR #62 автора @physcorgi (влит без ревью)</td><td><a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/LINEAR_PROBE_original_notes.md">заметки</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/ElliOrNora.md">research</a></td></tr>
+        <tr><td>Даша<br><span class="mono">@ElliOrNora</span></td><td>#21, #25, #43 (открыты), #6</td><td>2 коммита в main: <code>readme.md</code> и <code>linear_probe.py</code> (исходные заметки сохранены в <code>research/notes/linear_probe_ElliOrNora.md</code>). Реализация #43 — PR #62 автора @physcorgi (влит без ревью)</td><td><a href="https://github.com/CorgCode/pt-project/blob/main/research/notes/linear_probe_ElliOrNora.md">заметки</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/research/ElliOrNora.md">research</a></td></tr>
       </tbody>
     </table>
     </div>
@@ -234,7 +243,7 @@
       <div role="listitem"><b>2 · ПОДГОТОВКА</b>Окна и когорта<small>train / validation / test, когорта по train</small></div>
       <div role="listitem"><b>3 · ГРАФЫ</b>Временные графы<small>хост — хост, веса потоков</small></div>
       <div role="listitem"><b>4 · ЭМБЕДДИНГИ</b>Методы и базовые модели<small><code>host_id, emb_*</code></small></div>
-      <div role="listitem"><b>5 · ОЦЕНКА</b>Единый оценщик<small>соседи, связи, пары, идентичность</small></div>
+      <div role="listitem"><b>5 · ОЦЕНКА</b>Единая оценка<small>поведение, связи, общие собеседники, узнаваемость</small></div>
       <div role="listitem"><b>6 · ВЫВОДЫ</b>Отчёт и таблица<small>с указанием происхождения данных</small></div>
     </div>
     <ul class="steps">
@@ -250,9 +259,9 @@
   <div class="wrap">
     <h2 id="h-next"><span class="sec-id">H</span>Дальнейшие шаги</h2>
     <ol class="steps">
-      <li><b>Реальный эксперимент на LANL</b> — все методы на общих эталонах (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Блокер: доступ к данным.</li>
+      <li><b>Реальный эксперимент на LANL</b> — все методы на общих эталонах (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>). Блокеры: доступ к данным и машина для обучения.</li>
       <li><b>Независимый эталон сходства</b> — проверить, что оценка не зависит от тех же признаков, что и модель (<a href="https://github.com/CorgCode/pt-project/issues/45">#45</a>).</li>
-      <li><b>Независимое ревью влитых PR</b> — #62, #64, #65 влиты без ревью; нужна проверка кода и включение их результатов в сводку.</li>
+      <li><b>Взаимное ревью</b> — #62, #64, #65 влиты без ревью; их метрики уже в общей оценке (<a href="https://github.com/CorgCode/pt-project/issues/68">#68</a>), осталось проверить код командой.</li>
       <li><b>Кластеризация и аномалии</b> — оценка на уровне ролей и отклонений (<a href="https://github.com/CorgCode/pt-project/issues/21">#21</a>); линейный зонд (<a href="https://github.com/CorgCode/pt-project/issues/25">#25</a>).</li>
     </ol>
   </div>

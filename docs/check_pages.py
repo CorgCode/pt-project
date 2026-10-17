@@ -47,8 +47,8 @@ class Page(HTMLParser):
 def check() -> None:
     info = json.loads(DATA.read_text(encoding="utf-8"))
     meta = info["meta"]
-    assert meta["synthetic"] is True and meta["hosts"] == 300
-    assert set(meta["missing"]) == GRAPH_METHODS
+    assert meta["synthetic"] is True and meta["hosts"] == len(info["projection"]["points"])
+    assert GRAPH_METHODS <= set(meta["methods"]) and not meta["missing"], "все пять графовых методов должны быть посчитаны"
     assert "LANL" not in set(meta["methods"]) and "reference_ceiling" in meta["methods"]
 
     pages = {}
@@ -67,16 +67,16 @@ def check() -> None:
     for sid in SECTIONS + CHARTS:
         assert sid in ip.ids, f"index.html: missing #{sid}"
     assert idx.count("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL") >= 6, "every chart needs a provenance label"
-    for needle in ("Neighborhood Consistency@k", "результаты эксперимента",
+    for needle in ("Neighborhood Consistency@k", "docs/build_data.py",
                    "Чего вывести нельзя", "Что измеряется", "Как читать", "pull/62", "pull/64", "pull/65", "issues/60"):
         assert needle in idx, needle
     assert idx.count("Чего вывести нельзя") >= 5
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
     assert "Ожидаются результаты эксперимента" in js
     assert 'fetch("./data/synthetic_demo.json"' in js
-    # графовый метод не должен появляться с числом в файле данных
+    # у каждого графового метода есть числа и узнаваемость во времени
     for m in GRAPH_METHODS:
-        assert m not in info["results"]["test"] and m not in info["identity"], m
+        assert m in info["results"]["test"] and m in info["identity"], m
 
     # внутренние ссылки работают
     for name, (_, p) in pages.items():

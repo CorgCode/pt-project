@@ -36,11 +36,13 @@ def _clean(obj, prefix: str):
     return obj
 
 
-def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200) -> Path:
+def build(output: Path, *, n_hosts: int = 300, seed: int = 0, n_boot: int = 200,
+          methods: list[str] | None = None, fast_methods: bool = False) -> Path:
     output = Path(output)
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp).resolve()
-        end_to_end(work, fixture=True, n_hosts=n_hosts, seed=seed, n_boot=n_boot, pairs_per_anchor=10)
+        end_to_end(work, fixture=True, n_hosts=n_hosts, seed=seed, n_boot=n_boot, pairs_per_anchor=10,
+                   methods=methods, fast_methods=fast_methods)
         run_ablation(work / "processed", work / "reference", work / "ablation", n_boot=n_boot, seed=seed)
         if output.exists():
             shutil.rmtree(output)
@@ -70,8 +72,9 @@ def main() -> None:
     ap.add_argument("--output", type=Path, default=Path("demo/synthetic_run"))
     ap.add_argument("--n-hosts", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--methods", nargs="+", default=["all"], help="графовые методы (по умолчанию все пять)")
     a = ap.parse_args()
-    print(build(a.output, n_hosts=a.n_hosts, seed=a.seed))
+    print(build(a.output, n_hosts=a.n_hosts, seed=a.seed, methods=a.methods))
 
 
 if __name__ == "__main__":

@@ -12,3 +12,5 @@
 | Даша | @ElliOrNora | [#6](https://github.com/CorgCode/pt-project/issues/6) | [ElliOrNora.md](ElliOrNora.md) |
 
 Сводка — [FULL_RESEARCH.md](FULL_RESEARCH.md). Архитектурные заметки по задачам #19 и #24 — `issue_19_architecture.md`, `issue_24_architecture.md`.
+
+Исходные заметки к метрикам: [линейный зонд — Даша](notes/linear_probe_ElliOrNora.md), [тройки — Тихон](notes/triplet_accuracy_Tikhon2783.md), [прогноз связей, три идеи — Тихон](notes/link_prediction_Tikhon2783.md) (код перенесён в `evaluation/partners.py` и `experiments/robustness.py`).

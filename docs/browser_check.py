@@ -1,7 +1,7 @@
 """Проверка сайта в настоящем headless Chromium, раздаётся из docs/ так же, как публикует Pages.
 
 На 1440 / 768 / 390 px: нет ошибок страницы и горизонтальной прокрутки, все графики нарисованы при первой загрузке,
-пометки синтетики и заглушки видны, переключатель split перерисовывает, песочница принимает корректный CSV
+пометки синтетики и графовые методы видны, переключатель split перерисовывает, песочница принимает корректный CSV
 и отклоняет некорректный. --shots DIR — ещё и снимки страниц.
 """
 from __future__ import annotations
@@ -54,7 +54,7 @@ def main() -> None:
             if sw > w:
                 problems.append(f"{w}px: horizontal overflow (scrollWidth {sw})")
             body = page.inner_text("body")
-            for needle in ("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL", "Ожидаются результаты эксперимента", "Чего вывести нельзя"):
+            for needle in ("СИНТЕТИКА — НЕ РЕАЛЬНЫЕ ДАННЫЕ LANL", "node2vec", "Чего вывести нельзя"):
                 if needle not in body:
                     problems.append(f"{w}px: missing text {needle!r}")
             if page.locator("svg text").count() < 20:
@@ -112,7 +112,7 @@ def main() -> None:
     server.shutdown()
     if problems:
         raise SystemExit("Browser check FAILED:\n- " + "\n- ".join(problems))
-    print("OK: index charts/provenance/pending/toggle at 1440/768/390; playground accepts valid and rejects invalid CSV.")
+    print("OK: index charts/provenance/methods/toggle at 1440/768/390; playground accepts valid and rejects invalid CSV.")
 
 
 if __name__ == "__main__":
