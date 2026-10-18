@@ -17,37 +17,37 @@ REPO = "https://github.com/CorgCode/pt-project"
 TASK_EN = {"Поведение": "Behavior", "Будущие связи": "Future links",
            "Общие собеседники": "Shared partners", "Узнаваемость": "Identity"}
 
-# метрика → (задача, вопрос, случайный уровень)
-METRICS = [
-    ("consistency@10", "Поведение", "Из 10 ближайших соседей хоста — сколько тех же, что у эталона поведения в test.", "≈ 10 / число хостов"),
-    ("link ROC-AUC", "Будущие связи", "По паре векторов предсказать, будут ли хосты общаться в test. Классификатор учится на validation.", "тот же классификатор на случайных векторах, 0,64–0,77"),
-    ("new-partner MRR", "Будущие связи", "Для хоста ранжировать кандидатов в новые собеседники (которых не было в train).", "лучший прогноз без эмбеддинга, 0,065"),
-    ("pair ROC-AUC", "Общие собеседники", "Хосты с общими собеседниками ближе друг к другу, чем без них?", "0,5"),
-    ("identity top-1", "Узнаваемость", "Ближайший вектор в test-окне — тот же хост? Нужен test.csv.", "1 / число хостов, 0,001"),
-]
-
-# метод → (модель, кто прислал)
-MODELS = {
-    "behavioral": "Профиль поведения хоста из NetFlow: объём, порты, протоколы, собеседники.",
-    "behavioral_pca": "behavioral, сжатый PCA до 16.",
-    "behavioral_svd": "behavioral, сжатый TruncatedSVD до 16.",
-    "graph_spectral": "Спектральное вложение графа host–host.",
-    "deepwalk": "DeepWalk: random walks + skip-gram по графу host–host.",
-    "node2vec": "node2vec: блуждания с p, q + skip-gram по графу host–host.",
-    "deepwalk_services": "DeepWalk по графу host–service, ослабление хабов, dim 32.",
-    "node2vec_services": "node2vec по графу host–service, p = 0,5, q = 2 (подбор на validation), dim 32.",
-    "graphsage": "GraphSAGE: агрегация признаков соседей.",
-    "rolx": "RolX: структурные роли из признаков графа.",
-    "struc2vec": "struc2vec: похожесть по структуре окрестности.",
-    "hybrid_services": "behavioral × 4 + node2vec_services + graph_spectral (вес подобран на validation).",
-    "hybrid_weighted": "behavioral × w + node2vec + graph_spectral (вес подобран на validation).",
-    "hybrid_behavioral_node2vec_spectral": "behavioral + node2vec + graph_spectral.",
-    "hybrid_behavioral_node2vec": "behavioral + node2vec.",
-    "hybrid_behavioral_deepwalk": "behavioral + deepwalk.",
-    "random": "Случайные векторы — нижняя граница.",
-    "reference_ceiling": "Сам эталон поведения — верхняя граница для consistency.",
+# задача → [(метрика, что проверяет, случайный уровень)]
+METRICS = {
+    "Поведение": [("consistency@10", "Из 10 ближайших соседей хоста — сколько тех же, что у эталона поведения в test.", "≈ 10 / число хостов")],
+    "Будущие связи": [("link ROC-AUC", "Будут ли два хоста общаться в test (классификатор на парах векторов).", "0,64–0,77"),
+                      ("new-partner MRR", "Угадать новых собеседников хоста, которых не было в train.", "0,065")],
+    "Общие собеседники": [("pair ROC-AUC", "Хосты с общими собеседниками ближе, чем без них?", "0,5")],
+    "Узнаваемость": [("identity top-1", "Ближайший вектор в test — тот же хост?", "0,001")],
 }
-AUTHOR = "physcorgi"   # все методы в таблице прислал один участник; вклад остальных — в разделе «Кто что сделал»
+
+MODELS = {
+    "behavioral": "профиль трафика хоста",
+    "behavioral_pca": "behavioral → PCA 16",
+    "behavioral_svd": "behavioral → SVD 16",
+    "graph_spectral": "спектр графа host–host",
+    "deepwalk": "блуждания, граф host–host",
+    "node2vec": "блуждания p, q, граф host–host",
+    "deepwalk_services": "блуждания, граф host–service",
+    "node2vec_services": "блуждания p, q, граф host–service",
+    "graphsage": "агрегация соседей",
+    "rolx": "структурные роли",
+    "struc2vec": "структура окрестности",
+    "hybrid_services": "behavioral ×4 + node2vec_services + spectral",
+    "hybrid_weighted": "behavioral ×w + node2vec + spectral",
+    "hybrid_behavioral_node2vec_spectral": "behavioral + node2vec + spectral",
+    "hybrid_behavioral_node2vec": "behavioral + node2vec",
+    "hybrid_behavioral_deepwalk": "behavioral + deepwalk",
+    "random": "случайные векторы",
+    "reference_ceiling": "сам эталон поведения",
+}
+GRAPH = {"graph_spectral", "deepwalk", "node2vec", "deepwalk_services", "node2vec_services", "graphsage", "rolx", "struc2vec"}
+AUTHOR = "physcorgi"   # все методы в таблице прислал один участник; вклад остальных — в «Кто что сделал»
 
 TEAM = [
     ("physcorgi", "конвейер LANL → окна → граф, все методы в таблице, оценка и scoreboard, сайт",
@@ -83,40 +83,43 @@ def num(v) -> str:
 def build(info: dict) -> str:
     team, ds = info["team"], info["dataset"]
     tasks = list(team["tasks"])
-    cols = list(team["columns"])
     real = [r for r in team["rows"] if not r.get("service")]
     service = [r for r in team["rows"] if r.get("service")]
+    by = {r["method"]: r for r in team["rows"]}
 
-    def task_cells(r):
-        return "".join(f'<td class="n">{"—" if r["tasks"].get(t) is None else round(r["tasks"][t])}</td>' for t in tasks)
+    def cell(r, t):
+        v = r["tasks"].get(t)
+        if v is None or (r["method"] == "reference_ceiling" and t != "Поведение"):
+            return '<td class="h">—</td>'
+        raw = " · ".join(f3(r["values"].get(c)) for c in team["tasks"][t])
+        p = round(min(100, v) * 0.8)
+        dark = " d" if p > 45 else ""
+        return f'<td class="h{dark}" style="background:color-mix(in srgb,var(--heat) {p}%,transparent)">{round(v)}<small>{raw}</small></td>'
 
-    def raw_cells(r):
-        return "".join(f'<td class="n">{f3(r["values"].get(c))}</td>' for c in cols)
+    def row(r, place=None):
+        m, svc = r["method"], r.get("service")
+        sc = "—" if m == "reference_ceiling" else f1(r["score"])
+        bar = "" if svc else f'<i style="width:{max(2, r["score"]) * 1.4:.0f}px"></i>'
+        cls = ' class="svc"' if svc else (' class="lead"' if place == 1 else "")
+        return (f'<tr{cls}><td class="n">{place or ""}</td><td><code>{escape(m)}</code><small>{escape(MODELS.get(m, ""))}</small></td>'
+                f'<td class="n">{r["dim"] or "—"}</td><td class="sc"><b>{sc}</b>{bar}</td>'
+                + "".join(cell(r, t) for t in tasks) + "</tr>")
 
-    rows = []
-    for i, r in enumerate(real, 1):
-        m = r["method"]
-        rows.append(f'<tr{" class=lead" if i == 1 else ""}><td class="n">{i}</td><td><code>{escape(m)}</code>'
-                    f'<small>{escape(MODELS.get(m, ""))}</small></td><td class="n">{r["dim"] or "—"}</td>'
-                    f'<td>@{AUTHOR}</td><td class="n b">{f1(r["score"])}</td>{task_cells(r)}</tr>')
-    for r in service:
-        m = r["method"]
-        rows.append(f'<tr class="svc"><td></td><td><code>{escape(m)}</code><small>{escape(MODELS.get(m, ""))}</small></td>'
-                    f'<td class="n">{r["dim"] or "—"}</td><td>ориентир</td><td class="n">{f1(r["score"])}</td>{task_cells(r)}</tr>')
-
-    raw = "".join(f'<tr><td><code>{escape(r["method"])}</code></td>{raw_cells(r)}</tr>' for r in real + service)
-    chance = "".join(f'<td class="n">{f3(team["chance"][c][0]) if abs(team["chance"][c][1] - team["chance"][c][0]) < 1e-9 else f3(team["chance"][c][0]) + "–" + f3(team["chance"][c][1])}</td>'
-                     for c in cols)
-    metric_en = {"consistency@10_mean": "consistency@10", "link_learned_roc_auc": "link ROC-AUC",
-                 "partner_new_mrr": "new-partner MRR", "pair_roc_auc": "pair ROC-AUC", "identity_top1": "identity top-1"}
-
-    metric_rows = "".join(f"<tr><td><b>{TASK_EN[t]}</b></td><td><code>{escape(m)}</code></td><td>{escape(q)}</td><td>{escape(c)}</td></tr>"
-                          for m, t, q, c in METRICS)
+    rows = "".join(row(r, i) for i, r in enumerate(real, 1)) + "".join(row(r) for r in service)
+    metric_rows = "".join(
+        "".join(f'<tr>{f"<td rowspan={len(ms)}><b>{TASK_EN[t]}</b></td>" if j == 0 else ""}<td><code>{escape(m)}</code></td>'
+                f'<td>{escape(q)}</td><td class="n">{escape(c)}</td></tr>' for j, (m, q, c) in enumerate(ms))
+        for t, ms in METRICS.items())
     team_rows = "".join(f'<li><b>@{u}</b> — {escape(what)} ' + " ".join(f'<a href="{REPO}/{p}">{n}</a>' for n, p in links) + "</li>"
                         for u, what, links in TEAM)
     papers = "".join(f"<li><b>{n}</b> — {escape(t)}</li>" for n, t in PAPERS)
     lead = real[0]
+    single = next(r for r in real if not r["method"].startswith("hybrid"))
+    graph = [r["score"] for r in real if r["method"] in GRAPH]
     ex = " · ".join(f"{TASK_EN[t]} {round(lead['tasks'][t])}" for t in tasks)
+    n2v, n2vs = by.get("node2vec"), by.get("node2vec_services")
+    services = (f"<li>Граф host–service вместо host–host: <code>node2vec</code> {f1(n2v['score'])} → <b>{f1(n2vs['score'])}</b>.</li>"
+                if n2v and n2vs else "")
 
     return f"""<!doctype html>
 <html lang="ru">
@@ -126,8 +129,8 @@ def build(info: dict) -> str:
 <title>PT-05 — сводка</title>
 <meta name="description" content="PT-05: метрики, как считается score, результаты на LANL, кто что сделал.">
 <style>
-:root{{--bg:#fff;--ink:#17201f;--muted:#5b6664;--rule:#e1e4e0;--soft:#f3f5f3;--accent:#1f6f6b}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#151b1a;--ink:#e7ecea;--muted:#9eaaa7;--rule:#2b3432;--soft:#1d2524;--accent:#6cc2bb}}}}
+:root{{--bg:#fff;--ink:#17201f;--muted:#5b6664;--rule:#e1e4e0;--soft:#f3f5f3;--accent:#1f6f6b;--heat:#1f6f6b}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#151b1a;--ink:#e7ecea;--muted:#9eaaa7;--rule:#2b3432;--soft:#1d2524;--accent:#6cc2bb;--heat:#4fb3ab}}}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}}
 main{{max-width:1000px;margin:0 auto;padding:32px 16px 48px}}
@@ -145,9 +148,15 @@ tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:ita
 .formula{{background:var(--soft);border-radius:8px;padding:10px 14px;font:.9rem ui-monospace,Menlo,Consolas,monospace;overflow-x:auto}}
 .grid{{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}}
 .facts{{display:flex;flex-wrap:wrap;gap:6px 24px;margin:.8rem 0 0;color:var(--muted)}}.facts b{{color:var(--ink)}}
+table.res td{{vertical-align:middle}}
+td.h,th.h{{text-align:center;font-variant-numeric:tabular-nums;border-left:2px solid var(--bg);font-weight:600}}
+td.h small{{font-weight:400;font-size:.72rem;white-space:nowrap}}td.h.d{{color:#fff}}td.h.d small{{color:rgba(255,255,255,.85)}}
+td.sc{{white-space:nowrap}}td.sc b{{display:inline-block;min-width:2.4em;font-variant-numeric:tabular-nums}}
+td.sc i{{display:inline-block;height:7px;border-radius:4px;background:var(--accent);vertical-align:middle;margin-left:4px}}
+.key{{background:var(--soft);border-left:3px solid var(--accent);border-radius:6px;padding:8px 14px;margin:1rem 0 0}}.key p{{margin:0}}
 @media (max-width:700px){{.grid{{grid-template-columns:1fr}}}}
 @page{{size:A4;margin:8mm}}
-@media print{{:root{{--bg:#fff;--ink:#000;--muted:#444;--soft:#f2f2f2}}main{{padding:0;max-width:none}}body{{font-size:9px;line-height:1.35}}h2{{margin:.8rem 0 .3rem;padding-top:.4rem}}th,td{{padding:.15rem .4rem}}table{{font-size:8.5px}}td small{{display:inline;margin-left:.5em;font-size:.95em}}th{{font-size:.85em}}code{{font-size:.95em}}.formula{{font-size:1em;padding:6px 10px}}.tw{{overflow:visible}}h2{{break-after:avoid}}tr{{break-inside:avoid}}a{{color:inherit;text-decoration:none}}.noprint{{display:none}}}}
+@media print{{:root{{--bg:#fff;--ink:#000;--muted:#444;--soft:#f2f2f2}}main{{padding:0;max-width:none}}body{{font-size:9px;line-height:1.35}}h2{{margin:.8rem 0 .3rem;padding-top:.4rem}}th,td{{padding:.15rem .4rem}}table{{font-size:8.5px}}td small{{display:inline;margin-left:.5em;font-size:.95em}}td.h small{{display:block;margin:0;font-size:.85em;white-space:nowrap}}td.sc i{{height:5px}}.key{{padding:4px 10px}}main{{zoom:.8}}h1{{font-size:1.9em}}h2{{font-size:1.25em;margin:.5rem 0 .2rem;padding-top:.3rem}}p{{margin:.2rem 0}}.facts{{margin:.3rem 0 0;gap:2px 16px}}.grid p{{margin:0}}ul{{margin:.1rem 0}}table{{margin:.2rem 0}}th,td{{padding:.1rem .35rem}}*{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}th{{font-size:.85em}}code{{font-size:.95em}}.formula{{font-size:1em;padding:6px 10px}}.tw{{overflow:visible}}h2{{break-after:avoid}}tr{{break-inside:avoid}}a{{color:inherit;text-decoration:none}}.noprint{{display:none}}}}
 </style>
 </head>
 <body>
@@ -155,6 +164,16 @@ tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:ita
 <h1>PT-05 · Эмбеддинги хостов по NetFlow — сводка</h1>
 <p class="sub">МФТИ × Positive Technologies · {date.today().strftime("%d.%m.%Y")} · данные из коммита <code>{escape(info["meta"]["source_commit"][:8])}</code>
 <span class="noprint">· <a href="./">сайт</a> · <a href="{REPO}">репозиторий</a></span></p>
+
+<div class="key">
+<p><b>Главное</b></p>
+<ul>
+<li>Лучший метод — <code>{escape(lead["method"])}</code>, score <b>{f1(lead["score"])}</b> из 100. Лучший одиночный — <code>{escape(single["method"])}</code>, {f1(single["score"])}.</li>
+<li>Графовые методы в одиночку — {f1(min(graph))}–{f1(max(graph))}, но в гибриде с <code>behavioral</code> дают прирост.</li>
+{services}
+<li><b>Нужно решение:</b> веса задач в score (сейчас равные; предложение — Behavior и Identity × 2).</li>
+</ul>
+</div>
 
 <h2>Задача и данные</h2>
 <p>Для каждого хоста получить вектор по сетевому трафику: хосты с похожим поведением — рядом, тот же хост узнаётся через время.
@@ -169,11 +188,10 @@ tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:ita
 
 <h2>Метрики</h2>
 <div class="tw"><table>
-<tr><th>Задача</th><th>Метрика</th><th>Что проверяет</th><th>Случайный уровень</th></tr>
+<tr><th>Задача</th><th>Метрика</th><th>Что проверяет</th><th class="n">Случайно</th></tr>
 {metric_rows}
 </table></div>
-<p>Без эмбеддинга правило «пара уже общалась» даёт link ROC-AUC {f3(team["persistence_auc"])}: 88% связей test уже были в train.
-Поэтому в задаче Future links есть и new-partner MRR — она про новых собеседников.</p>
+<p>88% связей test уже были в train (правило «уже общались» — AUC {f3(team["persistence_auc"])}), поэтому есть new-partner MRR.</p>
 
 <h2>Как считается score</h2>
 <div class="formula">1. каждая метрика:  s = 100 · (v − случайный) / (1 − случайный), обрезка в [0, 100]<br>
@@ -182,37 +200,31 @@ tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:ita
 <p>Пример, <code>{escape(lead["method"])}</code>: {ex} → score <b>{f1(lead["score"])}</b>.</p>
 <div class="grid">
 <div><p><b>Почему так</b></p><ul>
-<li><b>Нормировка к случайному уровню.</b> У метрик разная шкала: AUC 0,75 — это слабо, MRR 0,23 — хорошо. После нормировки 0 — случайно, 100 — идеал.</li>
-<li><b>Задачи, а не метрики.</b> Две метрики про связи не должны весить вдвое больше одной про узнаваемость.</li>
-<li><b>Среднее геометрическое.</b> Считается рост во сколько раз: 8 → 16 весит как 45 → 90. Провал в одной задаче не скрыть хорошими AUC.</li>
-<li><b>Score не зависит от других методов.</b> Новый метод не меняет баллы остальных.</li>
+<li>Нормировка к случайному уровню: у метрик разная шкала.</li>
+<li>Среднее по задачам, а не по метрикам: две метрики про связи не весят вдвое больше.</li>
+<li>Геометрическое: провал в одной задаче не скрыть хорошими AUC.</li>
 </ul></div>
-<div><p><b>Проверки устойчивости</b></p><ul>
-<li>Порог «ниже 1 считать за 1» от 0,1 до 2 — порядок методов не меняется.</li>
-<li>Шум в метриках в пределах их 95% интервалов: лидер остаётся первым в 96% случаев (у простого среднего — 89%).</li>
-<li>5 вариантов весов задач: лидер везде <code>{escape(lead["method"])}</code>, лучший одиночный метод — <code>behavioral</code>.</li>
-<li>Сейчас веса задач равные. Предложение: Behavior и Identity × 2 — <b>нужно ваше решение</b>.</li>
+<div><p><b>Проверки</b></p><ul>
+<li>Порог 0,1–2 вместо 1 — порядок тот же.</li>
+<li>Шум в пределах 95% интервалов — лидер первый в 96% случаев (простое среднее — 89%).</li>
+<li>5 вариантов весов — лидер везде тот же.</li>
 </ul></div>
 </div>
 
 <h2>Результаты (test)</h2>
-<div class="tw"><table>
-<tr><th class="n">#</th><th>Method · модель</th><th class="n">dim</th><th>Прислал</th><th class="n">Score</th>{"".join(f'<th class="n">{TASK_EN[t]}</th>' for t in tasks)}</tr>
-{"".join(rows)}
+<p class="sub">Все методы прислал @{AUTHOR}; вклад команды — ниже. В ячейке — балл задачи 0–100, мелко — исходные метрики.</p>
+<div class="tw"><table class="res">
+<tr><th class="n">#</th><th>Method</th><th class="n">dim</th><th>Score</th>{"".join(f'<th class="h">{TASK_EN[t]}</th>' for t in tasks)}</tr>
+{rows}
 </table></div>
-<p>Баллы задач — 0–100. Исходные значения метрик:</p>
-<div class="tw"><table>
-<tr><th>Method</th>{"".join(f'<th class="n">{metric_en.get(c, c)}</th>' for c in cols)}</tr>
-{raw}
-<tr class="svc"><td>случайный уровень</td>{chance}</tr>
-</table></div>
-<p>95% интервалы — в <a href="{REPO}/blob/main/scoreboard/README.md">scoreboard/README.md</a>.</p>
+<p class="sub">95% интервалы — в <a href="{REPO}/blob/main/scoreboard/README.md">scoreboard/README.md</a>.</p>
 
-<h2>Кто что сделал</h2>
-<ul>{team_rows}</ul>
-
-<h2>Что прочитали</h2>
-<ul>{papers}</ul>
+<div class="grid">
+<div><h2>Кто что сделал</h2>
+<ul>{team_rows}</ul></div>
+<div><h2>Что прочитали</h2>
+<ul>{papers}</ul></div>
+</div>
 
 </main>
 </body>
