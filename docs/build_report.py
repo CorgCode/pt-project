@@ -47,26 +47,7 @@ MODELS = {
     "reference_ceiling": "сам эталон поведения",
 }
 GRAPH = {"graph_spectral", "deepwalk", "node2vec", "deepwalk_services", "node2vec_services", "graphsage", "rolx", "struc2vec"}
-AUTHOR = "physcorgi"   # все методы в таблице прислал один участник; вклад остальных — в «Кто что сделал»
-
-TEAM = [
-    ("physcorgi", "конвейер LANL → окна → граф, все методы в таблице, оценка и scoreboard, сайт",
-     [("#75", "pull/75"), ("#76", "pull/76"), ("#79", "pull/79"), ("#80", "pull/80")]),
-    ("Tikhon2783", "link prediction — основа задачи «Будущие связи»; triplet accuracy", [("#65", "pull/65"), ("#36", "pull/36")]),
-    ("kalivixZ", "устойчивость эмбеддинга во времени — основа задачи «Узнаваемость»; подготовка данных и графа",
-     [("#64", "pull/64"), ("#37", "pull/37")]),
-    ("ElliOrNora", "линейный зонд; кластеризация и поиск аномалий (на ревью)", [("#39", "pull/39"), ("#67", "pull/67")]),
-]
-
-PAPERS = [
-    ("DeepWalk", "Perozzi, Al-Rfou, Skiena. DeepWalk: Online Learning of Social Representations. KDD 2014."),
-    ("node2vec", "Grover, Leskovec. node2vec: Scalable Feature Learning for Networks. KDD 2016."),
-    ("RolX", "Henderson et al. RolX: Structural Role Extraction & Mining in Large Graphs. KDD 2012."),
-    ("struc2vec", "Ribeiro, Saverese, Figueiredo. struc2vec: Learning Node Representations from Structural Identity. KDD 2017."),
-    ("GraphSAGE", "Hamilton, Ying, Leskovec. Inductive Representation Learning on Large Graphs. NeurIPS 2017."),
-    ("LANL", "Turcotte, Kent, Hash. Unified Host and Network Data Set. LANL, 2017 (csr.lanl.gov/data/2017)."),
-]
-
+AUTHOR = "physcorgi"   # кто прислал методы в таблицу
 
 def f3(v) -> str:
     return "—" if v is None else f"{v:.3f}".replace(".", ",")
@@ -90,19 +71,15 @@ def build(info: dict) -> str:
     def cell(r, t):
         v = r["tasks"].get(t)
         if v is None or (r["method"] == "reference_ceiling" and t != "Поведение"):
-            return '<td class="h">—</td>'
-        raw = " · ".join(f3(r["values"].get(c)) for c in team["tasks"][t])
-        p = round(min(100, v) * 0.8)
-        dark = " d" if p > 45 else ""
-        return f'<td class="h{dark}" style="background:color-mix(in srgb,var(--heat) {p}%,transparent)">{round(v)}<small>{raw}</small></td>'
+            return '<td class="n">—</td>'
+        return f'<td class="n">{round(v)}</td>'
 
     def row(r, place=None):
         m, svc = r["method"], r.get("service")
         sc = "—" if m == "reference_ceiling" else f1(r["score"])
-        bar = "" if svc else f'<i style="width:{max(2, r["score"]) * 1.4:.0f}px"></i>'
         cls = ' class="svc"' if svc else (' class="lead"' if place == 1 else "")
         return (f'<tr{cls}><td class="n">{place or ""}</td><td><code>{escape(m)}</code><small>{escape(MODELS.get(m, ""))}</small></td>'
-                f'<td class="n">{r["dim"] or "—"}</td><td class="sc"><b>{sc}</b>{bar}</td>'
+                f'<td class="n">{r["dim"] or "—"}</td><td>{"—" if svc else "@" + AUTHOR}</td><td class="n b">{sc}</td>'
                 + "".join(cell(r, t) for t in tasks) + "</tr>")
 
     rows = "".join(row(r, i) for i, r in enumerate(real, 1)) + "".join(row(r) for r in service)
@@ -110,9 +87,6 @@ def build(info: dict) -> str:
         "".join(f'<tr>{f"<td rowspan={len(ms)}><b>{TASK_EN[t]}</b></td>" if j == 0 else ""}<td><code>{escape(m)}</code></td>'
                 f'<td>{escape(q)}</td><td class="n">{escape(c)}</td></tr>' for j, (m, q, c) in enumerate(ms))
         for t, ms in METRICS.items())
-    team_rows = "".join(f'<li><b>@{u}</b> — {escape(what)} ' + " ".join(f'<a href="{REPO}/{p}">{n}</a>' for n, p in links) + "</li>"
-                        for u, what, links in TEAM)
-    papers = "".join(f"<li><b>{n}</b> — {escape(t)}</li>" for n, t in PAPERS)
     lead = real[0]
     single = next(r for r in real if not r["method"].startswith("hybrid"))
     graph = [r["score"] for r in real if r["method"] in GRAPH]
@@ -129,8 +103,8 @@ def build(info: dict) -> str:
 <title>PT-05 — сводка</title>
 <meta name="description" content="PT-05: метрики, как считается score, результаты на LANL, кто что сделал.">
 <style>
-:root{{--bg:#fff;--ink:#17201f;--muted:#5b6664;--rule:#e1e4e0;--soft:#f3f5f3;--accent:#1f6f6b;--heat:#1f6f6b}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#151b1a;--ink:#e7ecea;--muted:#9eaaa7;--rule:#2b3432;--soft:#1d2524;--accent:#6cc2bb;--heat:#4fb3ab}}}}
+:root{{--bg:#fff;--ink:#17201f;--muted:#5b6664;--rule:#e1e4e0;--soft:#f3f5f3;--accent:#1f6f6b}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#151b1a;--ink:#e7ecea;--muted:#9eaaa7;--rule:#2b3432;--soft:#1d2524;--accent:#6cc2bb}}}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}}
 main{{max-width:1000px;margin:0 auto;padding:32px 16px 48px}}
@@ -144,19 +118,13 @@ th,td{{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--rule);
 th{{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600}}
 td.n,th.n{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}td.b{{font-weight:700}}
 td small{{display:block;color:var(--muted);font-size:.78rem}}
-tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:italic}}
+tr.svc td{{color:var(--muted);font-style:italic}}
 .formula{{background:var(--soft);border-radius:8px;padding:10px 14px;font:.9rem ui-monospace,Menlo,Consolas,monospace;overflow-x:auto}}
 .grid{{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}}
 .facts{{display:flex;flex-wrap:wrap;gap:6px 24px;margin:.8rem 0 0;color:var(--muted)}}.facts b{{color:var(--ink)}}
-table.res td{{vertical-align:middle}}
-td.h,th.h{{text-align:center;font-variant-numeric:tabular-nums;border-left:2px solid var(--bg);font-weight:600}}
-td.h small{{font-weight:400;font-size:.72rem;white-space:nowrap}}td.h.d{{color:#fff}}td.h.d small{{color:rgba(255,255,255,.85)}}
-td.sc{{white-space:nowrap}}td.sc b{{display:inline-block;min-width:2.4em;font-variant-numeric:tabular-nums}}
-td.sc i{{display:inline-block;height:7px;border-radius:4px;background:var(--accent);vertical-align:middle;margin-left:4px}}
-.key{{background:var(--soft);border-left:3px solid var(--accent);border-radius:6px;padding:8px 14px;margin:1rem 0 0}}.key p{{margin:0}}
 @media (max-width:700px){{.grid{{grid-template-columns:1fr}}}}
 @page{{size:A4;margin:8mm}}
-@media print{{:root{{--bg:#fff;--ink:#000;--muted:#444;--soft:#f2f2f2}}main{{padding:0;max-width:none}}body{{font-size:9px;line-height:1.35}}h2{{margin:.8rem 0 .3rem;padding-top:.4rem}}th,td{{padding:.15rem .4rem}}table{{font-size:8.5px}}td small{{display:inline;margin-left:.5em;font-size:.95em}}td.h small{{display:block;margin:0;font-size:.85em;white-space:nowrap}}td.sc i{{height:5px}}.key{{padding:4px 10px}}main{{zoom:.8}}h1{{font-size:1.9em}}h2{{font-size:1.25em;margin:.5rem 0 .2rem;padding-top:.3rem}}p{{margin:.2rem 0}}.facts{{margin:.3rem 0 0;gap:2px 16px}}.grid p{{margin:0}}ul{{margin:.1rem 0}}table{{margin:.2rem 0}}th,td{{padding:.1rem .35rem}}*{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}th{{font-size:.85em}}code{{font-size:.95em}}.formula{{font-size:1em;padding:6px 10px}}.tw{{overflow:visible}}h2{{break-after:avoid}}tr{{break-inside:avoid}}a{{color:inherit;text-decoration:none}}.noprint{{display:none}}}}
+@media print{{:root{{--bg:#fff;--ink:#000;--muted:#444;--soft:#f2f2f2}}main{{padding:0;max-width:none}}body{{font-size:9px;line-height:1.35}}h2{{margin:.8rem 0 .3rem;padding-top:.4rem}}th,td{{padding:.15rem .4rem}}table{{font-size:8.5px}}td small{{display:inline;margin-left:.5em;font-size:.95em}}main{{zoom:.8}}h1{{font-size:1.9em}}h2{{font-size:1.25em;margin:.5rem 0 .2rem;padding-top:.3rem}}p{{margin:.2rem 0}}.facts{{margin:.3rem 0 0;gap:2px 16px}}.grid p{{margin:0}}ul{{margin:.1rem 0}}table{{margin:.2rem 0}}th,td{{padding:.1rem .35rem}}th{{font-size:.85em}}code{{font-size:.95em}}.formula{{font-size:1em;padding:6px 10px}}.tw{{overflow:visible}}h2{{break-after:avoid}}tr{{break-inside:avoid}}a{{color:inherit;text-decoration:none}}.noprint{{display:none}}}}
 </style>
 </head>
 <body>
@@ -165,15 +133,13 @@ td.sc i{{display:inline-block;height:7px;border-radius:4px;background:var(--acce
 <p class="sub">МФТИ × Positive Technologies · {date.today().strftime("%d.%m.%Y")} · данные из коммита <code>{escape(info["meta"]["source_commit"][:8])}</code>
 <span class="noprint">· <a href="./">сайт</a> · <a href="{REPO}">репозиторий</a></span></p>
 
-<div class="key">
-<p><b>Главное</b></p>
+<h2>Главное</h2>
 <ul>
 <li>Лучший метод — <code>{escape(lead["method"])}</code>, score <b>{f1(lead["score"])}</b> из 100. Лучший одиночный — <code>{escape(single["method"])}</code>, {f1(single["score"])}.</li>
 <li>Графовые методы в одиночку — {f1(min(graph))}–{f1(max(graph))}, но в гибриде с <code>behavioral</code> дают прирост.</li>
 {services}
 <li><b>Нужно решение:</b> веса задач в score (сейчас равные; предложение — Behavior и Identity × 2).</li>
 </ul>
-</div>
 
 <h2>Задача и данные</h2>
 <p>Для каждого хоста получить вектор по сетевому трафику: хосты с похожим поведением — рядом, тот же хост узнаётся через время.
@@ -212,19 +178,11 @@ td.sc i{{display:inline-block;height:7px;border-radius:4px;background:var(--acce
 </div>
 
 <h2>Результаты (test)</h2>
-<p class="sub">Все методы прислал @{AUTHOR}; вклад команды — ниже. В ячейке — балл задачи 0–100, мелко — исходные метрики.</p>
 <div class="tw"><table class="res">
-<tr><th class="n">#</th><th>Method</th><th class="n">dim</th><th>Score</th>{"".join(f'<th class="h">{TASK_EN[t]}</th>' for t in tasks)}</tr>
+<tr><th class="n">#</th><th>Method</th><th class="n">dim</th><th>Отправил</th><th class="n">Score</th>{"".join(f'<th class="n">{TASK_EN[t]}</th>' for t in tasks)}</tr>
 {rows}
 </table></div>
 <p class="sub">95% интервалы — в <a href="{REPO}/blob/main/scoreboard/README.md">scoreboard/README.md</a>.</p>
-
-<div class="grid">
-<div><h2>Кто что сделал</h2>
-<ul>{team_rows}</ul></div>
-<div><h2>Что прочитали</h2>
-<ul>{papers}</ul></div>
-</div>
 
 </main>
 </body>
