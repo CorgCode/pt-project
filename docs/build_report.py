@@ -214,13 +214,6 @@ tr.lead td{{background:var(--soft)}}tr.svc td{{color:var(--muted);font-style:ita
 <h2>Что прочитали</h2>
 <ul>{papers}</ul>
 
-<h2>Ограничения</h2>
-<ul>
-<li>Один день LANL, test-окно 30 минут. Следующий шаг — несколько дней (<a href="{REPO}/issues/60">#60</a>).</li>
-<li><code>behavioral</code> и эталон поведения строятся из похожих признаков — consistency завышена для behavioral.</li>
-<li>Нет внешних меток ролей хостов: линейный зонд и оценка аномалий ждут данных (<a href="{REPO}/issues/25">#25</a>, <a href="{REPO}/issues/45">#45</a>).</li>
-<li>Метод без test.csv сейчас теряет задачу Identity и получает балл выше — исправление готовится.</li>
-</ul>
 </main>
 </body>
 </html>

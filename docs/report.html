@@ -94,13 +94,6 @@ tr.lead td{background:var(--soft)}tr.svc td{color:var(--muted);font-style:italic
 <h2>Что прочитали</h2>
 <ul><li><b>DeepWalk</b> — Perozzi, Al-Rfou, Skiena. DeepWalk: Online Learning of Social Representations. KDD 2014.</li><li><b>node2vec</b> — Grover, Leskovec. node2vec: Scalable Feature Learning for Networks. KDD 2016.</li><li><b>RolX</b> — Henderson et al. RolX: Structural Role Extraction &amp; Mining in Large Graphs. KDD 2012.</li><li><b>struc2vec</b> — Ribeiro, Saverese, Figueiredo. struc2vec: Learning Node Representations from Structural Identity. KDD 2017.</li><li><b>GraphSAGE</b> — Hamilton, Ying, Leskovec. Inductive Representation Learning on Large Graphs. NeurIPS 2017.</li><li><b>LANL</b> — Turcotte, Kent, Hash. Unified Host and Network Data Set. LANL, 2017 (csr.lanl.gov/data/2017).</li></ul>
 
-<h2>Ограничения</h2>
-<ul>
-<li>Один день LANL, test-окно 30 минут. Следующий шаг — несколько дней (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>).</li>
-<li><code>behavioral</code> и эталон поведения строятся из похожих признаков — consistency завышена для behavioral.</li>
-<li>Нет внешних меток ролей хостов: линейный зонд и оценка аномалий ждут данных (<a href="https://github.com/CorgCode/pt-project/issues/25">#25</a>, <a href="https://github.com/CorgCode/pt-project/issues/45">#45</a>).</li>
-<li>Метод без test.csv сейчас теряет задачу Identity и получает балл выше — исправление готовится.</li>
-</ul>
 </main>
 </body>
 </html>
