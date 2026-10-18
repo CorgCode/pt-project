@@ -67,6 +67,23 @@ PYTHONUNBUFFERED=1 python -m experiments.run_experiment --processed-dir $W/lanl/
 python experiments/lanl/publish.py $W/lanl results/lanl_day02
 ```
 
+## Несколько дней за ночь (#60)
+
+Одна команда: скачать → подготовить → обучить (все методы, без портов, граф host–service) → перенести итоги.
+
+```bash
+git clone https://github.com/CorgCode/pt-project && cd pt-project
+python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+LANL_TOKEN=<токен> PY=.venv/bin/python experiments/lanl/night.sh ~/lanl 03 04 05
+```
+
+- Окна — те же часы суток, что в дне 02, сдвинутые на сутки. День ≈ 3 часа (16 ГБ), три дня — на ночь.
+- Упавший день не останавливает остальные; повторный запуск продолжит с места остановки.
+- Архив дня удаляется после подготовки (`KEEP_RAW=1` — оставить). Свободного места — от 15 ГБ.
+- struc2vec не входит (дольше и хуже всех): `METHODS="deepwalk node2vec graphsage rolx struc2vec"`.
+- Прогресс: `LANL_WORKDIR=~/lanl/day03 experiments/lanl/status.sh --watch`.
+- Итоги — `results/lanl_dayNN` и `results/lanl_dayNN_services`; смотреть — `streamlit run app/streamlit_app.py`.
+
 ## Ресурсы (ноутбук, 8 ГБ)
 
 | шаг | время |
