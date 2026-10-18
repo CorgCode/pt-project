@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Эмбеддинги хостов — PT-05</title>
-<meta name="description" content="PT-05: векторные представления хостов по NetFlow. Сравнение методов на данных LANL по единой оценке.">
+<meta name="description" content="PT-05: эмбеддинги хостов по NetFlow, сравнение методов на данных LANL.">
 <link rel="stylesheet" href="./assets/site.css">
 <script src="./assets/site.js" defer></script>
 </head>
@@ -15,8 +15,7 @@
     <a class="brand" href="./">PT-05</a>
     <nav class="main" aria-label="Разделы">
       <ul>
-        <li><a href="#results">Таблица</a></li>
-        <li><a href="#findings">Выводы</a></li>
+        <li><a href="#results">Scoreboard</a></li>
         <li><a href="#metrics">Метрики</a></li>
         <li><a href="#methods">Методы</a></li>
         <li><a href="#status">Статус</a></li>
@@ -31,102 +30,78 @@
   <div class="wrap">
     <p class="kicker">PT-05 · МФТИ × Positive Technologies</p>
     <h1 id="h-overview">Эмбеддинги хостов по сетевому трафику</h1>
-    <p class="lede">Каждый хост сети — вектор из нескольких десятков чисел. Похожие хосты должны оказаться рядом, а тот же хост — узнаваться через время. Сравниваем методы по одним правилам на настоящих данных LANL.</p>
+    <p class="lede">Вектор для каждого хоста по NetFlow: похожие хосты рядом, тот же хост узнаётся через время.</p>
     <div class="kpis" role="list">
-      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="best-score">—</span><span class="kpi-l">лучший балл из 100</span><span class="kpi-s" data-kpi="best-method"></span></div>
-      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="link">—</span><span class="kpi-l">AUC прогноза связей</span><span class="kpi-s">правило «уже общались» — <span data-kpi="persistence">—</span></span></div>
-      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="partners">—</span><span class="kpi-l">новые собеседники</span><span class="kpi-s">во столько раз лучше прогноза без эмбеддинга</span></div>
-      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="identity">—</span><span class="kpi-l">хост узнан через 30 минут</span><span class="kpi-s">случайно — <span data-kpi="identity-chance">—</span></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="best-score">—</span><span class="kpi-l">best score / 100</span><span class="kpi-s mono" data-kpi="best-method"></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="link">—</span><span class="kpi-l">link ROC-AUC</span><span class="kpi-s">«уже общались» — <span data-kpi="persistence">—</span></span></div>
+      <div class="kpi" role="listitem"><span class="kpi-v" data-kpi="partners">—</span><span class="kpi-l">new-partner MRR</span><span class="kpi-s">к прогнозу без эмбеддинга</span></div>
+      <div class="kpi warn" role="listitem"><span class="kpi-v" data-kpi="identity">—</span><span class="kpi-l">identity top-1</span><span class="kpi-s">случайно — <span data-kpi="identity-chance">—</span></span></div>
     </div>
-    <p class="strip">LANL, день 02 · <b data-ds="rows">—</b> записей NetFlow · train <b data-ds="train-min">—</b> мин → test <b data-ds="test-min">—</b> мин · <b data-ds="cohort">—</b> активных хостов · оценено <b data-ds="evaluated">—</b> (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>)</p>
+    <p class="strip">LANL, день 02 · <b data-ds="rows">—</b> записей · train <b data-ds="train-min">—</b> мин → test <b data-ds="test-min">—</b> мин · <b data-ds="evaluated">—</b> хостов в оценке</p>
   </div>
 </section>
 
 <section class="block" id="results" aria-labelledby="h-results">
   <div class="wrap">
-    <h2 id="h-results">Какой метод лучше</h2>
-    <p class="intro">Балл задачи: 0 — как у случайных векторов, 100 — идеал. Общий балл — среднее геометрическое по четырём задачам, поэтому провал в одной не скрыть. <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md#как-считается-балл">Как считается</a></p>
+    <h2 id="h-results">Scoreboard</h2>
+    <p class="intro">0 — случайно, 100 — идеал. Score — среднее геометрическое по задачам. <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md#как-считается-балл">Как считается</a></p>
     <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>test</span></div><div id="leaderboard"></div></div>
-  </div>
-</section>
-
-<section class="block" id="findings" aria-labelledby="h-findings">
-  <div class="wrap">
-    <h2 id="h-findings">Что получилось</h2>
-    <div class="cards three">
-      <article class="card"><span class="card-n" data-f="hybrid">—</span><h3>Гибриды впереди</h3><p>Поведенческий профиль даёт роль хоста, граф — его связи. Лучший одиночный метод — <span data-f="single">—</span>.</p></article>
-      <article class="card"><span class="card-n" data-f="link">—</span><h3>Связи видны заранее</h3><p>По эмбеддингам будущие связи предсказываются лучше, чем правилом «пара уже общалась» (<span data-f="pers">—</span>).</p></article>
-      <article class="card warn"><span class="card-n" data-f="identity">—</span><h3>Узнаваемость — слабое место</h3><p>Тот же хост через 30 минут узнаётся редко: поведение за полчаса меняется само. Нужны окна длиннее и больше дней.</p></article>
-    </div>
   </div>
 </section>
 
 <section class="block" id="metrics" aria-labelledby="h-metrics">
   <div class="wrap">
-    <h2 id="h-metrics">Метрики по задачам</h2>
+    <h2 id="h-metrics">Метрики</h2>
     <div class="tabs" role="group" aria-label="Задача">
-      <button type="button" data-metric="neighbors" aria-pressed="true">Поведение</button>
-      <button type="button" data-metric="links" aria-pressed="false">Будущие связи</button>
-      <button type="button" data-metric="pairs" aria-pressed="false">Общие собеседники</button>
-      <button type="button" data-metric="identity" aria-pressed="false">Узнаваемость</button>
+      <button type="button" data-metric="neighbors" aria-pressed="true">Behavior</button>
+      <button type="button" data-metric="links" aria-pressed="false">Future links</button>
+      <button type="button" data-metric="pairs" aria-pressed="false">Shared partners</button>
+      <button type="button" data-metric="identity" aria-pressed="false">Identity</button>
     </div>
     <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>test</span></div><div id="chartMetric" aria-live="polite"></div></div>
-    <dl class="explain">
-      <dt>Что измеряем</dt><dd data-explain="what">—</dd>
-      <dt>Оговорка</dt><dd data-explain="caveat">—</dd>
-    </dl>
+    <p class="explain"><span data-explain="what">—</span> <span class="caveat" data-explain="caveat"></span></p>
   </div>
 </section>
 
 <section class="block" id="methods" aria-labelledby="h-methods">
   <div class="wrap">
-    <h2 id="h-methods">Как устроено</h2>
+    <h2 id="h-methods">Методы</h2>
     <ol class="flow">
-      <li><b>NetFlow</b><small>журналы потоков LANL</small></li>
-      <li><b>Окна</b><small>train → validation → test</small></li>
-      <li><b>Граф</b><small>хост — хост и хост — сервис</small></li>
+      <li><b>NetFlow</b><small>LANL</small></li>
+      <li><b>Окна</b><small>train → val → test</small></li>
+      <li><b>Граф</b><small>host–host, host–service</small></li>
       <li><b>Эмбеддинги</b><small><code>host_id, emb_*</code></small></li>
-      <li><b>Оценка</b><small>4 задачи, один балл</small></li>
+      <li><b>Оценка</b><small>4 задачи → score</small></li>
     </ol>
     <div class="cards">
-      <article class="card m"><span class="chip beh">поведение</span><h3>Поведенческий профиль</h3><p>Объём, порты, протоколы, часы. Варианты с PCA и SVD.</p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/baselines/temporal.py">код</a></article>
-      <article class="card m"><span class="chip graph">граф</span><h3>Спектральный граф</h3><p>Собственные векторы матрицы связей.</p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/baselines/temporal.py">код</a></article>
-      <article class="card m"><span class="chip graph">граф</span><h3>DeepWalk · node2vec</h3><p>Случайные блуждания + skip-gram: близки хосты, которые встречаются рядом.</p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/node2vec.md">описание</a></article>
-      <article class="card m"><span class="chip graph">граф</span><h3>GraphSAGE</h3><p>Вектор — функция признаков хоста и его соседей; общие координаты для всех окон.</p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/graphsage.md">описание</a></article>
-      <article class="card m"><span class="chip graph">граф</span><h3>RolX · struc2vec</h3><p>Структурные роли: близки хосты с похожим окружением, даже если они далеко.</p><a href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/struc2vec.md">описание</a></article>
-      <article class="card m"><span class="chip hyb">гибрид</span><h3>Гибриды</h3><p>Склейка поведения и графа, вес частей подобран на validation.</p><a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/combine.py">код</a></article>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/methods/baselines/temporal.py"><span class="chip beh">behavior</span><h3>behavioral</h3><p>объём, порты, протоколы; + PCA, SVD</p></a>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/methods/baselines/temporal.py"><span class="chip graph">graph</span><h3>graph_spectral</h3><p>спектр матрицы связей</p></a>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/node2vec.md"><span class="chip graph">graph</span><h3>DeepWalk · node2vec</h3><p>random walks + skip-gram</p></a>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/graphsage.md"><span class="chip graph">graph</span><h3>GraphSAGE</h3><p>агрегация соседей</p></a>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/methods/graph/struc2vec.md"><span class="chip graph">graph</span><h3>RolX · struc2vec</h3><p>структурные роли</p></a>
+      <a class="card m" href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/combine.py"><span class="chip hyb">hybrid</span><h3>hybrid_*</h3><p>behavioral + граф</p></a>
     </div>
-    <p class="links"><a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">Методология и защита от утечки</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/evaluation/README.md">метрики</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/experiments/lanl/README.md">как повторить на LANL</a></p>
   </div>
 </section>
 
 <section class="block" id="status" aria-labelledby="h-status">
   <div class="wrap">
-    <h2 id="h-status">Статус и дальше</h2>
+    <h2 id="h-status">Статус</h2>
     <div class="cols">
-      <div>
-        <h3>Готово</h3>
-        <ul class="check">
-          <li>Конвейер LANL → окна → графы, без утечки между окнами</li>
-          <li>7 методов и гибриды прогнаны на дне LANL</li>
-          <li>Единая оценка: 4 задачи, один балл</li>
-          <li>Свой метод попадает в таблицу одним push</li>
-          <li>Граф «хост — сервис» с ослаблением хабов</li>
-        </ul>
-      </div>
-      <div>
-        <h3>Дальше</h3>
-        <ol class="next">
-          <li><b>Больше данных</b> — несколько дней, окна длиннее <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a></li>
-          <li><b>Кластеры и аномалии</b> <a href="https://github.com/CorgCode/pt-project/issues/21">#21</a> · <a href="https://github.com/CorgCode/pt-project/pull/67">PR #67</a> <span class="who">@ElliOrNora</span></li>
-          <li><b>Профиль без портов на LANL</b> <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a> <span class="who">@ElliOrNora</span></li>
-          <li><b>Линейный зонд</b> на внешних метках <a href="https://github.com/CorgCode/pt-project/issues/25">#25</a> <span class="who">@ElliOrNora</span></li>
-          <li><b>Независимый эталон сходства</b> <a href="https://github.com/CorgCode/pt-project/issues/45">#45</a></li>
-        </ol>
-      </div>
+      <ul class="check">
+        <li>Конвейер LANL → окна → граф</li>
+        <li>7 методов и гибриды на LANL</li>
+        <li>Единая оценка и scoreboard</li>
+      </ul>
+      <ol class="next">
+        <li>Несколько дней LANL <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a></li>
+        <li>Кластеры и аномалии <a href="https://github.com/CorgCode/pt-project/pull/67">#67</a> <span class="who">@ElliOrNora</span></li>
+        <li>behavioral без портов <a href="https://github.com/CorgCode/pt-project/issues/43">#43</a> <span class="who">@ElliOrNora</span></li>
+        <li>Независимый эталон <a href="https://github.com/CorgCode/pt-project/issues/45">#45</a></li>
+      </ol>
     </div>
     <div class="cta">
-      <div><b>Проверить свой метод</b><span>Скопируй шаблон, допиши <code>fit</code> и <code>embed</code>, сделай push — CI поставит метод в таблицу.</span></div>
+      <div><b>Свой метод в scoreboard</b><span>шаблон → <code>fit</code> + <code>embed</code> → push</span></div>
       <a class="btn" href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">Инструкция</a>
     </div>
   </div>
@@ -135,8 +110,7 @@
 
 <footer>
   <div class="wrap">
-    <p><a href="https://github.com/CorgCode/pt-project">CorgCode/pt-project</a> · <a href="https://github.com/CorgCode/pt-project/issues">задачи</a> · <a href="./data/results.json">данные графиков</a> (собирает <code>docs/build_data.py</code>, коммит <code data-meta="commit">—</code>)</p>
-    <p>Один день LANL, только активные хосты. Происхождение файлов LANL заявлено, а не проверено.</p>
+    <p><a href="https://github.com/CorgCode/pt-project">CorgCode/pt-project</a> · <a href="https://github.com/CorgCode/pt-project/blob/main/docs/METHODOLOGY.md">методология</a> · <a href="./data/results.json">данные</a> (<code>docs/build_data.py</code>, <code data-meta="commit">—</code>)</p>
   </div>
 </footer>
 </body>

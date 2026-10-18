@@ -136,7 +136,7 @@ footer{padding:32px 0 56px;color:var(--muted);font-size:.85rem;border-top:1px so
   table.board th,table.board td{padding:.4rem .25rem}
   table.board th{font-size:.6rem;letter-spacing:0}
   table.board td.place,table.board th:first-child{display:none}
-  table.board td.name{white-space:normal;min-width:6rem;hyphens:auto}
+  table.board td.name{white-space:normal;min-width:6rem;overflow-wrap:anywhere;font-size:.74rem}
   table.board td.name small{display:none}
   table.board th .full{display:none}table.board th .short{display:inline}
   table.board td.heat{min-width:2rem}
@@ -144,3 +144,9 @@ footer{padding:32px 0 56px;color:var(--muted);font-size:.85rem;border-top:1px so
   .scorebar{min-width:0}.scorebar i{display:none}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.mono{font-family:var(--mono);font-size:.8rem}
+.kpi.warn .kpi-v{color:var(--warn)}
+p.explain{font-size:.93rem;margin:.8rem 0 0}p.explain .caveat{color:var(--muted)}
+a.card{color:var(--ink);text-decoration:none;transition:border-color .15s}a.card:hover{border-color:var(--accent)}
+.card.m h3{font-family:var(--mono);font-size:.95rem}

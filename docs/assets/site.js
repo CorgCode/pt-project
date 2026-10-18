@@ -3,50 +3,37 @@
 (function () {
   "use strict";
   var NS = "http://www.w3.org/2000/svg";
-  var LABEL = {
-    behavioral: "Поведенческий профиль",
-    behavioral_pca: "Поведенческий + PCA",
-    behavioral_svd: "Поведенческий + SVD",
-    graph_spectral: "Спектральный граф",
-    random: "Случайные векторы",
-    reference_ceiling: "Потолок эталона",
-    deepwalk: "DeepWalk", node2vec: "node2vec", graphsage: "GraphSAGE",
-    struc2vec: "struc2vec", rolx: "RolX",
-    node2vec_services: "node2vec · хост — сервис",
-    deepwalk_services: "DeepWalk · хост — сервис",
-    hybrid_services: "Поведение + node2vec · сервис + спектр",
-    hybrid_weighted: "Поведение×6 + node2vec + спектр",
-    hybrid_behavioral_node2vec_spectral: "Поведение + node2vec + спектр",
-    hybrid_behavioral_deepwalk: "Поведение + DeepWalk",
-    hybrid_behavioral_node2vec: "Поведение + node2vec"
-  };
-  var TASKS = ["Поведение", "Будущие связи", "Общие собеседники", "Узнаваемость"];
-  var SHORT = { "Поведение": "Повед.", "Будущие связи": "Связи", "Общие собеседники": "Собес.", "Узнаваемость": "Узнав." };
+  /* Названия методов и метрик не переводим: так они называются в коде и статьях. */
+  var TASKS = ["Поведение", "Будущие связи", "Общие собеседники", "Узнаваемость"];   // ключи групп в results.json
+  var TASK_EN = { "Поведение": "Behavior", "Будущие связи": "Future links", "Общие собеседники": "Shared partners", "Узнаваемость": "Identity" };
+  var SHORT = { "Поведение": "Beh.", "Будущие связи": "Links", "Общие собеседники": "Pairs", "Узнаваемость": "Ident." };
+  var METRIC_EN = { "consistency@10_mean": "consistency@10", "link_learned_roc_auc": "link ROC-AUC",
+    "partner_new_mrr": "new-partner MRR", "pair_roc_auc": "pair ROC-AUC", "identity_top1": "identity top-1" };
   var METRICS = {
     neighbors: {
       series: [["consistency@5_mean", "k = 5"], ["consistency@10_mean", "k = 10"], ["consistency@20_mean", "k = 20"]],
-      title: "Совпадение ближайших соседей с эталоном поведения",
-      what: "Доля из k ближайших соседей хоста по эмбеддингу, которые совпадают с соседями по поведению в test-окне.",
-      caveat: "Поведенческий профиль и эталон построены из похожих признаков, поэтому его результат частично предопределён. Выше ≈ 0,31 не прыгнуть: поведение за полчаса меняется само."
+      title: "Neighborhood consistency@k",
+      what: "Доля k ближайших соседей, совпавших с эталоном поведения.",
+      caveat: "behavioral и эталон строятся из похожих признаков; выше ≈ 0,31 не прыгнуть."
     },
     links: {
-      series: [["link_learned_roc_auc", "связь, AUC"], ["link_new_roc_auc", "только новые связи, AUC"], ["partner_new_mrr", "новые собеседники, MRR"]],
-      fixedMax: 1, ref: 0.5, refLabel: "AUC 0,5 — случайно",
-      title: "Прогноз связей test-окна по эмбеддингам train",
-      what: "Отличает ли классификатор на эмбеддингах пары, которые свяжутся, от остальных (AUC), и находятся ли новые собеседники хоста через похожие хосты (MRR).",
-      caveat: "88% будущих связей уже были в train: правило «уже общались» даёт AUC 0,939. Поэтому важнее новые связи и новые собеседники."
+      series: [["link_learned_roc_auc", "link ROC-AUC"], ["link_new_roc_auc", "new links ROC-AUC"], ["partner_new_mrr", "new-partner MRR"]],
+      fixedMax: 1, ref: 0.5, refLabel: "ROC-AUC 0,5",
+      title: "Future link prediction",
+      what: "Предсказываются ли связи test-окна по эмбеддингам train.",
+      caveat: "88% связей уже были в train («уже общались» — 0,939), поэтому важнее new links и new partners."
     },
     pairs: {
-      series: [["pair_roc_auc", "AUC пар"]], bar: true, fixedMax: 1, ref: 0.5, refLabel: "0,5 — случайно",
-      title: "Различение пар с общими собеседниками и без них",
-      what: "Различает ли расстояние между векторами пары хостов с общими собеседниками и пары без них (ROC-AUC).",
-      caveat: "Спорные пары исключены, поэтому задача легче остальных. Графовые методы и эталон пар строятся из одних связей."
+      series: [["pair_roc_auc", "pair ROC-AUC"]], bar: true, fixedMax: 1, ref: 0.5, refLabel: "0,5",
+      title: "Pair ROC-AUC",
+      what: "Отличает ли расстояние пары с общими собеседниками от пар без них.",
+      caveat: "Спорные пары исключены — задача лёгкая."
     },
     identity: {
-      series: [["identity_top1", "top-1"]], bar: true, chanceRef: true, refLabel: "случайно",
-      title: "Узнаётся ли тот же хост в test-окне",
-      what: "Доля хостов, у которых ближайший вектор в test-окне — он сам (top-1 среди всех оценённых хостов).",
-      caveat: "Нужен эмбеддинг test-окна (test.csv); у кого его нет, тот в задаче не участвует. Окна по 30 минут короткие."
+      series: [["identity_top1", "identity top-1"]], bar: true, chanceRef: true, refLabel: "random",
+      title: "Identity top-1",
+      what: "Ближайший вектор в test-окне — тот же хост?",
+      caveat: "Нужен test.csv; окна по 30 минут короткие."
     }
   };
   var state = { data: null, metric: "neighbors" };
@@ -66,11 +53,11 @@
   function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
   function comma(s) { return String(s).replace(".", ","); }
   function fmt(v) { return v == null ? "—" : comma(v.toFixed(3)); }
-  function name(m) { return LABEL[m] || m; }
+  function name(m) { return m; }
   function kind(m) {
-    if (m === "random" || m === "reference_ceiling") return "ориентир";
-    if (m.indexOf("hybrid") === 0) return "гибрид";
-    return m.indexOf("behavioral") === 0 ? "поведение" : "граф";
+    if (m === "random" || m === "reference_ceiling") return "baseline";
+    if (m.indexOf("hybrid") === 0) return "hybrid";
+    return m.indexOf("behavioral") === 0 ? "behavior" : "graph";
   }
   function rows() { return state.data.team.rows.filter(function (r) { return r.method !== "reference_ceiling"; }); }
   function real() { return state.data.team.rows.filter(function (r) { return !r.service; }); }
@@ -80,11 +67,11 @@
     host.textContent = "";
     var tb = html("table", { "class": "board" }), head = html("tr");
     head.appendChild(html("th", null, "#"));
-    head.appendChild(html("th", null, "Метод"));
-    head.appendChild(html("th", null, "Балл"));
+    head.appendChild(html("th", null, "Method"));
+    head.appendChild(html("th", null, "Score"));
     TASKS.forEach(function (t) {
-      var th = html("th", { "class": "heat", title: t });
-      th.appendChild(html("span", { "class": "full" }, t)); th.appendChild(html("span", { "class": "short" }, SHORT[t]));
+      var th = html("th", { "class": "heat", title: TASK_EN[t] });
+      th.appendChild(html("span", { "class": "full" }, TASK_EN[t])); th.appendChild(html("span", { "class": "short" }, SHORT[t]));
       head.appendChild(th);
     });
     tb.appendChild(head);
@@ -94,7 +81,7 @@
       if (!r.service && place === 0) tr.className = "lead";
       tr.appendChild(html("td", { "class": "place" }, r.service ? "" : String(++place)));
       var nm = html("td", { "class": "name" }, name(r.method));
-      nm.appendChild(html("small", null, kind(r.method) + (r.dim ? " · " + r.dim + " чисел" : "")));
+      nm.appendChild(html("small", null, kind(r.method) + (r.dim ? " · dim " + r.dim : "")));
       tr.appendChild(nm);
       var sc = html("td"), bar = html("div", { "class": "scorebar" }), fill = html("i");
       fill.style.width = Math.max(2, r.score) * 2 + "px";
@@ -106,7 +93,7 @@
           var p = Math.round(Math.min(100, v) * 0.85);
           td.style.background = "color-mix(in srgb, var(--heat) " + p + "%, transparent)";
           if (p > 48) td.style.color = "var(--on-accent)";
-          td.title = t + ": " + comma(v.toFixed(1)) + " из 100";
+          td.title = TASK_EN[t] + ": " + v.toFixed(1) + " / 100";
         }
         tr.appendChild(td);
       });
@@ -119,17 +106,17 @@
   /* Исходные метрики — под спойлером. */
   function rawTable() {
     var t = state.data.team, keys = Object.keys(t.columns);
-    var det = html("details"); det.appendChild(html("summary", null, "Исходные метрики и случайный уровень"));
+    var det = html("details"); det.appendChild(html("summary", null, "Raw metrics"));
     var tb = html("table"), head = html("tr");
-    head.appendChild(html("th", null, "Метод"));
-    keys.forEach(function (k) { head.appendChild(html("th", { "class": "num" }, t.columns[k])); });
+    head.appendChild(html("th", null, "Method"));
+    keys.forEach(function (k) { head.appendChild(html("th", { "class": "num" }, METRIC_EN[k] || k)); });
     tb.appendChild(head);
     rows().forEach(function (r) {
       var tr = html("tr"); tr.appendChild(html("td", null, name(r.method)));
       keys.forEach(function (k) { tr.appendChild(html("td", { "class": "num" }, fmt(r.values[k]))); });
       tb.appendChild(tr);
     });
-    var tr = html("tr"); tr.appendChild(html("td", null, "случайный уровень"));
+    var tr = html("tr"); tr.appendChild(html("td", null, "random level"));
     keys.forEach(function (k) { var c = t.chance[k]; tr.appendChild(html("td", { "class": "num" }, !c ? "—" : (c[1] - c[0] < 1e-9 ? fmt(c[0]) : fmt(c[0]) + "–" + fmt(c[1])))); });
     tr.style.color = "var(--muted)"; tb.appendChild(tr);
     var wrap = html("div", { "class": "tablewrap" }); wrap.appendChild(tb); det.appendChild(wrap);
@@ -215,19 +202,16 @@
     function set(sel, txt) { document.querySelectorAll(sel).forEach(function (n) { n.textContent = txt; }); }
     function num(v) { return v == null ? "—" : Number(v).toLocaleString("ru-RU"); }
     function bestOf(k) { return Math.max.apply(null, r.map(function (x) { return x.values[k] == null ? -1 : x.values[k]; })); }
-    var single = r.filter(function (x) { return x.method.indexOf("hybrid") !== 0; })[0];
     var pct = function (v) { return Math.round(v * 100) + "%"; };
     set("[data-kpi=best-score]", comma(r[0].score.toFixed(1)));
     set("[data-kpi=best-method]", name(r[0].method));
-    set("[data-kpi=link], [data-f=link]", fmt(bestOf("link_learned_roc_auc")));
-    set("[data-kpi=persistence], [data-f=pers]", fmt(t.persistence_auc));
+    set("[data-kpi=link]", fmt(bestOf("link_learned_roc_auc")));
+    set("[data-kpi=persistence]", fmt(t.persistence_auc));
     set("[data-kpi=partners]", "×" + comma((bestOf("partner_new_mrr") / t.chance.partner_new_mrr[0]).toFixed(1)));
-    set("[data-kpi=identity], [data-f=identity]", pct(bestOf("identity_top1")));
+    set("[data-kpi=identity]", pct(bestOf("identity_top1")));
     set("[data-kpi=identity-chance]", comma((t.chance.identity_top1[0] * 100).toFixed(1)) + "%");
-    set("[data-f=hybrid]", comma(r[0].score.toFixed(1)));
-    set("[data-f=single]", name(single.method).toLowerCase() + ", " + comma(single.score.toFixed(1)));
     set("[data-ds=rows]", num(ds.valid_rows)); set("[data-ds=train-min]", ds.windows.train.minutes);
-    set("[data-ds=test-min]", ds.windows.test.minutes); set("[data-ds=cohort]", num(ds.cohort)); set("[data-ds=evaluated]", num(ds.evaluated));
+    set("[data-ds=test-min]", ds.windows.test.minutes); set("[data-ds=evaluated]", num(ds.evaluated));
     set("[data-meta=commit]", state.data.meta.source_commit.slice(0, 8));
   }
 

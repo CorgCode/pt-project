@@ -20,7 +20,7 @@ LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
 PAGES = ["index.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
 CHARTS = ["leaderboard", "chartMetric"]
-SECTIONS = ["overview", "results", "findings", "metrics", "methods", "status"]
+SECTIONS = ["overview", "results", "metrics", "methods", "status"]
 
 
 class Page(HTMLParser):
@@ -68,7 +68,7 @@ def check() -> None:
     for sid in SECTIONS + CHARTS:
         assert sid in ip.ids, f"index.html: missing #{sid}"
     assert idx.count(LABEL) >= len(CHARTS), "у каждого графика должна быть подпись источника данных"
-    for needle in ("docs/build_data.py", "Что измеряем", "Оговорка", "issues/60", "scoreboard/README.md"):
+    for needle in ("docs/build_data.py", "Scoreboard", "issues/60", "scoreboard/README.md"):
         assert needle in idx, needle
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
     for task in info["team"]["tasks"]:
