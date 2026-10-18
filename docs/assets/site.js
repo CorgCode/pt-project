@@ -11,9 +11,9 @@
     "partner_new_mrr": "new-partner MRR", "pair_roc_auc": "pair ROC-AUC", "identity_top1": "identity top-1" };
   var METRICS = {
     neighbors: {
-      series: [["consistency@5_mean", "k = 5"], ["consistency@10_mean", "k = 10"], ["consistency@20_mean", "k = 20"]],
+      series: [["consistency@5_mean", "k = 5 neighbors"], ["consistency@10_mean", "k = 10"], ["consistency@20_mean", "k = 20"]],
       title: "Neighborhood consistency@k",
-      what: "Доля k ближайших соседей, совпавших с эталоном поведения.",
+      what: "Из k ближайших соседей хоста — доля тех же, что у эталона поведения в test.",
       caveat: "behavioral и эталон строятся из похожих признаков; выше ≈ 0,31 не прыгнуть."
     },
     links: {
@@ -36,7 +36,7 @@
       caveat: "Нужен test.csv; окна по 30 минут короткие."
     }
   };
-  var state = { data: null, metric: "neighbors" };
+  var state = { data: null, metric: "neighbors", weights: {} };
 
   function el(tag, attrs, text) {
     var n = document.createElementNS(NS, tag);
@@ -60,6 +60,39 @@
     return m.indexOf("behavioral") === 0 ? "behavior" : "graph";
   }
   function rows() { return state.data.team.rows.filter(function (r) { return r.method !== "reference_ceiling"; }); }
+  function w(t) { return state.weights[t] == null ? 1 : state.weights[t]; }
+  function equalWeights() { return TASKS.every(function (t) { return w(t) === w(TASKS[0]); }); }
+  /* Взвешенное среднее геометрическое по задачам (как в evaluation/scoreboard.py, пол 1). При равных весах — score из файла. */
+  function score(r) {
+    if (equalWeights()) return r.score;
+    var s = 0, n = 0;
+    TASKS.forEach(function (t) { if (r.tasks[t] != null && w(t) > 0) { s += w(t) * Math.log(Math.max(r.tasks[t], 1)); n += w(t); } });
+    return n ? Math.exp(s / n) : r.score;
+  }
+  function ranked() {
+    var base = {}, i = 0;
+    rows().forEach(function (r) { if (!r.service) base[r.method] = ++i; });
+    var list = rows().slice().sort(function (a, b) { if (a.service !== b.service) return a.service - b.service;
+      var d = score(b) - score(a);   // разница меньше округления — порядок как при равных весах
+      return Math.abs(d) < 0.05 ? (base[a.method] || 99) - (base[b.method] || 99) : d; });
+    return { list: list, base: base };
+  }
+
+  /* Ползунки весов задач: проверить, меняется ли порядок. Официальный score — равные веса. */
+  function weightsUI(host) {
+    host.textContent = "";
+    host.appendChild(html("span", { "class": "wl" }, "Task weights"));
+    TASKS.forEach(function (t) {
+      var lab = html("label"), inp = html("input", { type: "range", min: "0", max: "3", step: "1", value: String(w(t)), "aria-label": TASK_EN[t] + " weight" });
+      var out = html("output", null, "×" + w(t));
+      inp.addEventListener("input", function () { state.weights[t] = Number(inp.value); out.textContent = "×" + inp.value; reset.hidden = equalWeights(); leaderboard(document.getElementById("leaderboard")); });
+      lab.appendChild(document.createTextNode(TASK_EN[t])); lab.appendChild(inp); lab.appendChild(out); host.appendChild(lab);
+    });
+    var reset = html("button", { type: "button", "class": "reset" }, "Equal weights");
+    reset.hidden = equalWeights();
+    reset.addEventListener("click", function () { state.weights = {}; weightsUI(host); leaderboard(document.getElementById("leaderboard")); });
+    host.appendChild(reset);
+  }
   function real() { return state.data.team.rows.filter(function (r) { return !r.service; }); }
 
   /* Главная таблица: общий балл полоской и балл каждой задачи тепловой ячейкой. */
@@ -75,17 +108,21 @@
       head.appendChild(th);
     });
     tb.appendChild(head);
-    var place = 0;
-    rows().forEach(function (r) {
+    var place = 0, rk = ranked();
+    rk.list.forEach(function (r) {
       var tr = html("tr", r.service ? { "class": "service" } : null);
       if (!r.service && place === 0) tr.className = "lead";
-      tr.appendChild(html("td", { "class": "place" }, r.service ? "" : String(++place)));
+      var pl = html("td", { "class": "place" }, r.service ? "" : String(++place));
+      var moved = r.service ? 0 : rk.base[r.method] - place;
+      if (moved) pl.appendChild(html("span", { "class": moved > 0 ? "up" : "down", title: "was #" + rk.base[r.method] }, (moved > 0 ? "▲" : "▼") + Math.abs(moved)));
+      tr.appendChild(pl);
       var nm = html("td", { "class": "name" }, name(r.method));
       nm.appendChild(html("small", null, kind(r.method) + (r.dim ? " · dim " + r.dim : "")));
       tr.appendChild(nm);
       var sc = html("td"), bar = html("div", { "class": "scorebar" }), fill = html("i");
-      fill.style.width = Math.max(2, r.score) * 2 + "px";
-      bar.appendChild(html("b", null, comma(r.score.toFixed(1)))); bar.appendChild(fill); sc.appendChild(bar);
+      var v0 = score(r);
+      fill.style.width = Math.max(2, v0) * 2 + "px";
+      bar.appendChild(html("b", null, comma(v0.toFixed(1)))); bar.appendChild(fill); sc.appendChild(bar);
       tr.appendChild(sc);
       TASKS.forEach(function (t) {
         var v = r.tasks[t], td = html("td", { "class": "heat" }, v == null ? "—" : String(Math.round(v)));
@@ -189,6 +226,56 @@
     }
   }
 
+  /* Карта хостов: PCA эмбеддинга behavioral, цвет — доля соседей, сохранившихся в test. */
+  function hostMap(host) {
+    host.textContent = "";
+    var pr = state.data.projection, pts = pr.points.slice().sort(function (a, b) { return a.agreement - b.agreement; });
+    var W = Math.max(280, Math.floor(host.clientWidth || 700)), H = Math.round(Math.min(500, Math.max(300, W * 0.55))), pad = 14;
+    var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var k = Math.min((W - 2 * pad) / (x1 - x0), (H - 2 * pad) / (y1 - y0));
+    var ox = (W - k * (x1 - x0)) / 2, oy = (H - k * (y1 - y0)) / 2;
+    function X(v) { return ox + (v - x0) * k; } function Y(v) { return H - oy - (v - y0) * k; }
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": pts.length + " hosts; mean share of neighbors kept " + comma(pr.per_host_mean_agreement.toFixed(2)) });
+    svg.appendChild(el("rect", { x: 0.5, y: 0.5, width: W - 1, height: H - 1, rx: 8, fill: "none", stroke: css("--rule") }));
+    var lo = css("--heat-lo"), hi = css("--heat"), r = W < 560 ? 2.2 : 2.8;
+    pts.forEach(function (p) {
+      svg.appendChild(el("circle", { cx: X(p.x).toFixed(1), cy: Y(p.y).toFixed(1), r: r,
+        fill: "color-mix(in srgb, " + hi + " " + Math.round(15 + p.agreement * 85) + "%, " + lo + ")" }));
+    });
+    var named = pts.filter(function (p) { return !/^Comp/.test(p.id); });
+    named.forEach(function (p) {
+      var cx = X(p.x), cy = Y(p.y), right = cx > W * 0.6;
+      svg.appendChild(el("circle", { cx: cx, cy: cy, r: r + 3, fill: "none", stroke: css("--ink"), "stroke-width": 1.2 }));
+      svg.appendChild(el("text", { x: right ? cx - 8 : cx + 8, y: cy + 4, "text-anchor": right ? "end" : "start", "class": "lbl" }, p.id));
+    });
+    var ring = el("circle", { r: r + 4, fill: "none", stroke: css("--ink"), "stroke-width": 2, visibility: "hidden" });
+    svg.appendChild(ring);
+    var tip = html("div", { "class": "tip", hidden: "" });
+    svg.addEventListener("pointermove", function (e) {
+      var b = svg.getBoundingClientRect(), mx = (e.clientX - b.left) * W / b.width, my = (e.clientY - b.top) * H / b.height, best = null, bd = 400;
+      pts.forEach(function (p) { var d = Math.pow(X(p.x) - mx, 2) + Math.pow(Y(p.y) - my, 2); if (d < bd) { bd = d; best = p; } });
+      if (!best) { ring.setAttribute("visibility", "hidden"); tip.hidden = true; return; }
+      ring.setAttribute("cx", X(best.x)); ring.setAttribute("cy", Y(best.y)); ring.setAttribute("visibility", "visible");
+      tip.textContent = ""; tip.appendChild(html("b", null, best.id));
+      tip.appendChild(html("span", null, Math.round(best.agreement * 10) + " / 10 neighbors kept"));
+      tip.hidden = false;
+      var f = host.parentElement.getBoundingClientRect();   // подсказка позиционируется внутри .fig
+      var tx = b.left - f.left + (X(best.x) / W) * b.width + 12, ty = b.top - f.top + (Y(best.y) / H) * b.height + 12;
+      if (tx > f.width - 190) tx -= 200;
+      tip.style.left = tx + "px"; tip.style.top = ty + "px";
+    });
+    svg.addEventListener("pointerleave", function () { ring.setAttribute("visibility", "hidden"); tip.hidden = true; });
+    host.appendChild(svg); host.appendChild(tip);
+    var lg = html("div", { "class": "legend ramp" });
+    lg.appendChild(html("span", null, "0 / 10"));
+    var bar = html("i"); bar.style.background = "linear-gradient(90deg, color-mix(in srgb, " + hi + " 15%, " + lo + "), " + hi + ")";
+    lg.appendChild(bar); lg.appendChild(html("span", null, "10 / 10 neighbors kept"));
+    lg.appendChild(html("span", { "class": "mean" }, "mean " + comma((pr.per_host_mean_agreement * 10).toFixed(1)) + " / 10"));
+    host.appendChild(lg);
+  }
+
   function renderMetric() {
     var cfg = METRICS[state.metric], host = document.getElementById("chartMetric");
     if (host) draw(host, cfg);
@@ -217,8 +304,10 @@
 
   function renderAll() {
     if (!state.data) return;
+    weightsUI(document.getElementById("weights"));
     leaderboard(document.getElementById("leaderboard"));
     renderMetric();
+    hostMap(document.getElementById("hostMap"));
   }
 
   function init() {
@@ -226,7 +315,7 @@
       b.addEventListener("click", function () { state.metric = b.dataset.metric; renderMetric(); });
     });
     var timer;
-    window.addEventListener("resize", function () { clearTimeout(timer); timer = setTimeout(renderMetric, 120); });
+    window.addEventListener("resize", function () { clearTimeout(timer); timer = setTimeout(function () { renderMetric(); if (state.data) hostMap(document.getElementById("hostMap")); }, 120); });
     var links = [].slice.call(document.querySelectorAll("nav.main a[href^='#']"));
     if ("IntersectionObserver" in window && links.length) {
       var io = new IntersectionObserver(function (es) {

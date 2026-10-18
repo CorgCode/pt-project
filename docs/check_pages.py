@@ -19,8 +19,8 @@ DATA = ROOT / "data" / "results.json"
 LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
 PAGES = ["index.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
-CHARTS = ["leaderboard", "chartMetric"]
-SECTIONS = ["overview", "results", "metrics", "methods", "status"]
+CHARTS = ["leaderboard", "chartMetric", "hostMap"]
+SECTIONS = ["overview", "results", "metrics", "map", "methods", "status"]
 
 
 class Page(HTMLParser):

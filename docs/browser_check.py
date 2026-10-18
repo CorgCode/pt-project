@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent
 SIZES = ((1440, 900), (768, 1024), (390, 844))
-CHARTS = ["leaderboard", "chartMetric"]
+CHARTS = ["leaderboard", "chartMetric", "hostMap"]
 
 
 class Quiet(SimpleHTTPRequestHandler):
@@ -69,6 +69,12 @@ def main() -> None:
             if page.inner_html("#chartMetric") == before:
                 problems.append(f"{w}px: metric tabs did not change chartMetric")
             page.click("button[data-metric=neighbors]")
+            order = page.eval_on_selector_all("#leaderboard table.board td.name", "ns => ns.map(n => n.firstChild.textContent)")
+            page.eval_on_selector("#weights input", "i => { i.value = 0; i.dispatchEvent(new Event('input')); }")
+            if page.eval_on_selector_all("#leaderboard table.board td.name", "ns => ns.map(n => n.firstChild.textContent)") == order:
+                problems.append(f"{w}px: task weights did not re-rank the scoreboard")
+            if page.locator("#hostMap circle").count() < 1000:
+                problems.append(f"{w}px: host map points missing")
             page.goto(base + "/index.html", wait_until="networkidle")
             page.keyboard.press("Tab")
             if page.evaluate("document.activeElement.className") != "skip":
@@ -81,7 +87,7 @@ def main() -> None:
     server.shutdown()
     if problems:
         raise SystemExit("Browser check FAILED:\n- " + "\n- ".join(problems))
-    print("OK: графики, подписи источника и вкладки метрик на 1440/768/390 px.")
+    print("OK: графики, подписи источника, вкладки метрик, веса задач и карта хостов на 1440/768/390 px.")
 
 
 if __name__ == "__main__":
