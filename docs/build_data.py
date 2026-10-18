@@ -114,6 +114,9 @@ def main() -> None:
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{a.output}: методов {len(data['meta']['methods'])}, хостов {data['meta']['hosts']}")
+    if a.output == ROOT / "docs" / "data" / "results.json":   # сводка для ментора — из тех же чисел
+        import build_report
+        build_report.main()
 
 
 if __name__ == "__main__":

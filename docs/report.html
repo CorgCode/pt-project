@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PT-05 — сводка</title>
+<meta name="description" content="PT-05: метрики, как считается score, результаты на LANL, кто что сделал.">
+<style>
+:root{--bg:#fff;--ink:#17201f;--muted:#5b6664;--rule:#e1e4e0;--soft:#f3f5f3;--accent:#1f6f6b}
+@media (prefers-color-scheme:dark){:root{--bg:#151b1a;--ink:#e7ecea;--muted:#9eaaa7;--rule:#2b3432;--soft:#1d2524;--accent:#6cc2bb}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:32px 16px 48px}
+h1{font-size:1.6rem;margin:0}h2{font-size:1.1rem;margin:1.8rem 0 .5rem;padding-top:.8rem;border-top:1px solid var(--rule)}
+p,li{max-width:80ch}p{margin:.4rem 0}ul,ol{margin:.3rem 0;padding-left:1.2rem}
+.sub{color:var(--muted);margin:.3rem 0 0}
+a{color:var(--accent)}code{font:.86em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:.4rem 0}
+th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.b{font-weight:700}
+td small{display:block;color:var(--muted);font-size:.78rem}
+tr.lead td{background:var(--soft)}tr.svc td{color:var(--muted);font-style:italic}
+.formula{background:var(--soft);border-radius:8px;padding:10px 14px;font:.9rem ui-monospace,Menlo,Consolas,monospace;overflow-x:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+.facts{display:flex;flex-wrap:wrap;gap:6px 24px;margin:.8rem 0 0;color:var(--muted)}.facts b{color:var(--ink)}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+@page{size:A4;margin:8mm}
+@media print{:root{--bg:#fff;--ink:#000;--muted:#444;--soft:#f2f2f2}main{padding:0;max-width:none}body{font-size:9px;line-height:1.35}h2{margin:.8rem 0 .3rem;padding-top:.4rem}th,td{padding:.15rem .4rem}table{font-size:8.5px}td small{display:inline;margin-left:.5em;font-size:.95em}th{font-size:.85em}code{font-size:.95em}.formula{font-size:1em;padding:6px 10px}.tw{overflow:visible}h2{break-after:avoid}tr{break-inside:avoid}a{color:inherit;text-decoration:none}.noprint{display:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>PT-05 · Эмбеддинги хостов по NetFlow — сводка</h1>
+<p class="sub">МФТИ × Positive Technologies · 18.10.2026 · данные из коммита <code>27718748</code>
+<span class="noprint">· <a href="./">сайт</a> · <a href="https://github.com/CorgCode/pt-project">репозиторий</a></span></p>
+
+<h2>Задача и данные</h2>
+<p>Для каждого хоста получить вектор по сетевому трафику: хосты с похожим поведением — рядом, тот же хост узнаётся через время.
+Учимся только на train-окне, всё оцениваем на более позднем test-окне.</p>
+<div class="facts">
+<span>Данные: <b>LANL Unified Host and Network 2017</b>, NetFlow, день 02</span>
+<span>Записей: <b>115 949 436</b></span>
+<span>Окна: train <b>60 мин</b> → validation → test <b>30 мин</b></span>
+<span>Хостов в оценке: <b>2 242</b></span>
+</div>
+<p>Эталоны для метрик строятся из логов test-окна, без эмбеддингов (<code>pipeline/reference.py</code>). Подбор параметров — только на validation.</p>
+
+<h2>Метрики</h2>
+<div class="tw"><table>
+<tr><th>Задача</th><th>Метрика</th><th>Что проверяет</th><th>Случайный уровень</th></tr>
+<tr><td><b>Behavior</b></td><td><code>consistency@10</code></td><td>Из 10 ближайших соседей хоста — сколько тех же, что у эталона поведения в test.</td><td>≈ 10 / число хостов</td></tr><tr><td><b>Future links</b></td><td><code>link ROC-AUC</code></td><td>По паре векторов предсказать, будут ли хосты общаться в test. Классификатор учится на validation.</td><td>тот же классификатор на случайных векторах, 0,64–0,77</td></tr><tr><td><b>Future links</b></td><td><code>new-partner MRR</code></td><td>Для хоста ранжировать кандидатов в новые собеседники (которых не было в train).</td><td>лучший прогноз без эмбеддинга, 0,065</td></tr><tr><td><b>Shared partners</b></td><td><code>pair ROC-AUC</code></td><td>Хосты с общими собеседниками ближе друг к другу, чем без них?</td><td>0,5</td></tr><tr><td><b>Identity</b></td><td><code>identity top-1</code></td><td>Ближайший вектор в test-окне — тот же хост? Нужен test.csv.</td><td>1 / число хостов, 0,001</td></tr>
+</table></div>
+<p>Без эмбеддинга правило «пара уже общалась» даёт link ROC-AUC 0,939: 88% связей test уже были в train.
+Поэтому в задаче Future links есть и new-partner MRR — она про новых собеседников.</p>
+
+<h2>Как считается score</h2>
+<div class="formula">1. каждая метрика:  s = 100 · (v − случайный) / (1 − случайный), обрезка в [0, 100]<br>
+2. задача:         среднее геометрическое её метрик<br>
+3. score:          среднее геометрическое 4 задач, значения ниже 1 считаются за 1</div>
+<p>Пример, <code>hybrid_services</code>: Behavior 26 · Future links 42 · Shared partners 91 · Identity 16 → score <b>35,4</b>.</p>
+<div class="grid">
+<div><p><b>Почему так</b></p><ul>
+<li><b>Нормировка к случайному уровню.</b> У метрик разная шкала: AUC 0,75 — это слабо, MRR 0,23 — хорошо. После нормировки 0 — случайно, 100 — идеал.</li>
+<li><b>Задачи, а не метрики.</b> Две метрики про связи не должны весить вдвое больше одной про узнаваемость.</li>
+<li><b>Среднее геометрическое.</b> Считается рост во сколько раз: 8 → 16 весит как 45 → 90. Провал в одной задаче не скрыть хорошими AUC.</li>
+<li><b>Score не зависит от других методов.</b> Новый метод не меняет баллы остальных.</li>
+</ul></div>
+<div><p><b>Проверки устойчивости</b></p><ul>
+<li>Порог «ниже 1 считать за 1» от 0,1 до 2 — порядок методов не меняется.</li>
+<li>Шум в метриках в пределах их 95% интервалов: лидер остаётся первым в 96% случаев (у простого среднего — 89%).</li>
+<li>5 вариантов весов задач: лидер везде <code>hybrid_services</code>, лучший одиночный метод — <code>behavioral</code>.</li>
+<li>Сейчас веса задач равные. Предложение: Behavior и Identity × 2 — <b>нужно ваше решение</b>.</li>
+</ul></div>
+</div>
+
+<h2>Результаты (test)</h2>
+<div class="tw"><table>
+<tr><th class="n">#</th><th>Method · модель</th><th class="n">dim</th><th>Прислал</th><th class="n">Score</th><th class="n">Behavior</th><th class="n">Future links</th><th class="n">Shared partners</th><th class="n">Identity</th></tr>
+<tr class=lead><td class="n">1</td><td><code>hybrid_services</code><small>behavioral × 4 + node2vec_services + graph_spectral (вес подобран на validation).</small></td><td class="n">105</td><td>@physcorgi</td><td class="n b">35,4</td><td class="n">26</td><td class="n">42</td><td class="n">91</td><td class="n">16</td></tr><tr><td class="n">2</td><td><code>hybrid_weighted</code><small>behavioral × w + node2vec + graph_spectral (вес подобран на validation).</small></td><td class="n">89</td><td>@physcorgi</td><td class="n b">33,6</td><td class="n">26</td><td class="n">40</td><td class="n">91</td><td class="n">13</td></tr><tr><td class="n">3</td><td><code>hybrid_behavioral_node2vec_spectral</code><small>behavioral + node2vec + graph_spectral.</small></td><td class="n">89</td><td>@physcorgi</td><td class="n b">32,6</td><td class="n">17</td><td class="n">40</td><td class="n">93</td><td class="n">18</td></tr><tr><td class="n">4</td><td><code>hybrid_behavioral_node2vec</code><small>behavioral + node2vec.</small></td><td class="n">73</td><td>@physcorgi</td><td class="n b">32,1</td><td class="n">18</td><td class="n">40</td><td class="n">92</td><td class="n">17</td></tr><tr><td class="n">5</td><td><code>hybrid_behavioral_deepwalk</code><small>behavioral + deepwalk.</small></td><td class="n">73</td><td>@physcorgi</td><td class="n b">31,4</td><td class="n">19</td><td class="n">40</td><td class="n">94</td><td class="n">14</td></tr><tr><td class="n">6</td><td><code>behavioral</code><small>Профиль поведения хоста из NetFlow: объём, порты, протоколы, собеседники.</small></td><td class="n">57</td><td>@physcorgi</td><td class="n b">31,0</td><td class="n">27</td><td class="n">37</td><td class="n">91</td><td class="n">10</td></tr><tr><td class="n">7</td><td><code>behavioral_pca</code><small>behavioral, сжатый PCA до 16.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">28,0</td><td class="n">24</td><td class="n">35</td><td class="n">91</td><td class="n">8</td></tr><tr><td class="n">8</td><td><code>behavioral_svd</code><small>behavioral, сжатый TruncatedSVD до 16.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">28,0</td><td class="n">24</td><td class="n">35</td><td class="n">91</td><td class="n">8</td></tr><tr><td class="n">9</td><td><code>node2vec_services</code><small>node2vec по графу host–service, p = 0,5, q = 2 (подбор на validation), dim 32.</small></td><td class="n">32</td><td>@physcorgi</td><td class="n b">23,8</td><td class="n">8</td><td class="n">24</td><td class="n">81</td><td class="n">20</td></tr><tr><td class="n">10</td><td><code>deepwalk_services</code><small>DeepWalk по графу host–service, ослабление хабов, dim 32.</small></td><td class="n">32</td><td>@physcorgi</td><td class="n b">18,3</td><td class="n">8</td><td class="n">20</td><td class="n">81</td><td class="n">8</td></tr><tr><td class="n">11</td><td><code>node2vec</code><small>node2vec: блуждания с p, q + skip-gram по графу host–host.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">17,6</td><td class="n">7</td><td class="n">25</td><td class="n">96</td><td class="n">6</td></tr><tr><td class="n">12</td><td><code>deepwalk</code><small>DeepWalk: random walks + skip-gram по графу host–host.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">16,3</td><td class="n">7</td><td class="n">26</td><td class="n">95</td><td class="n">4</td></tr><tr><td class="n">13</td><td><code>graph_spectral</code><small>Спектральное вложение графа host–host.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">15,0</td><td class="n">7</td><td class="n">36</td><td class="n">97</td><td class="n">2</td></tr><tr><td class="n">14</td><td><code>graphsage</code><small>GraphSAGE: агрегация признаков соседей.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">13,2</td><td class="n">12</td><td class="n">29</td><td class="n">67</td><td class="n">1</td></tr><tr><td class="n">15</td><td><code>rolx</code><small>RolX: структурные роли из признаков графа.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">12,4</td><td class="n">5</td><td class="n">32</td><td class="n">63</td><td class="n">2</td></tr><tr><td class="n">16</td><td><code>struc2vec</code><small>struc2vec: похожесть по структуре окрестности.</small></td><td class="n">16</td><td>@physcorgi</td><td class="n b">3,8</td><td class="n">2</td><td class="n">15</td><td class="n">6</td><td class="n">1</td></tr><tr class="svc"><td></td><td><code>random</code><small>Случайные векторы — нижняя граница.</small></td><td class="n">16</td><td>ориентир</td><td class="n">1,2</td><td class="n">1</td><td class="n">1</td><td class="n">2</td><td class="n">1</td></tr><tr class="svc"><td></td><td><code>reference_ceiling</code><small>Сам эталон поведения — верхняя граница для consistency.</small></td><td class="n">57</td><td>ориентир</td><td class="n">55,1</td><td class="n">100</td><td class="n">18</td><td class="n">95</td><td class="n">—</td></tr>
+</table></div>
+<p>Баллы задач — 0–100. Исходные значения метрик:</p>
+<div class="tw"><table>
+<tr><th>Method</th><th class="n">consistency@10</th><th class="n">link ROC-AUC</th><th class="n">new-partner MRR</th><th class="n">pair ROC-AUC</th><th class="n">identity top-1</th></tr>
+<tr><td><code>hybrid_services</code></td><td class="n">0,258</td><td class="n">0,994</td><td class="n">0,235</td><td class="n">0,953</td><td class="n">0,162</td></tr><tr><td><code>hybrid_weighted</code></td><td class="n">0,262</td><td class="n">0,993</td><td class="n">0,221</td><td class="n">0,956</td><td class="n">0,135</td></tr><tr><td><code>hybrid_behavioral_node2vec_spectral</code></td><td class="n">0,177</td><td class="n">0,993</td><td class="n">0,216</td><td class="n">0,963</td><td class="n">0,178</td></tr><tr><td><code>hybrid_behavioral_node2vec</code></td><td class="n">0,179</td><td class="n">0,993</td><td class="n">0,216</td><td class="n">0,959</td><td class="n">0,167</td></tr><tr><td><code>hybrid_behavioral_deepwalk</code></td><td class="n">0,191</td><td class="n">0,992</td><td class="n">0,220</td><td class="n">0,971</td><td class="n">0,139</td></tr><tr><td><code>behavioral</code></td><td class="n">0,269</td><td class="n">0,983</td><td class="n">0,204</td><td class="n">0,954</td><td class="n">0,103</td></tr><tr><td><code>behavioral_pca</code></td><td class="n">0,242</td><td class="n">0,973</td><td class="n">0,191</td><td class="n">0,956</td><td class="n">0,081</td></tr><tr><td><code>behavioral_svd</code></td><td class="n">0,242</td><td class="n">0,973</td><td class="n">0,190</td><td class="n">0,956</td><td class="n">0,081</td></tr><tr><td><code>node2vec_services</code></td><td class="n">0,088</td><td class="n">0,822</td><td class="n">0,181</td><td class="n">0,906</td><td class="n">0,200</td></tr><tr><td><code>deepwalk_services</code></td><td class="n">0,085</td><td class="n">0,794</td><td class="n">0,169</td><td class="n">0,906</td><td class="n">0,086</td></tr><tr><td><code>node2vec</code></td><td class="n">0,073</td><td class="n">0,776</td><td class="n">0,215</td><td class="n">0,981</td><td class="n">0,060</td></tr><tr><td><code>deepwalk</code></td><td class="n">0,075</td><td class="n">0,801</td><td class="n">0,204</td><td class="n">0,977</td><td class="n">0,042</td></tr><tr><td><code>graph_spectral</code></td><td class="n">0,077</td><td class="n">0,980</td><td class="n">0,196</td><td class="n">0,984</td><td class="n">0,021</td></tr><tr><td><code>graphsage</code></td><td class="n">0,129</td><td class="n">0,917</td><td class="n">0,168</td><td class="n">0,835</td><td class="n">0,013</td></tr><tr><td><code>rolx</code></td><td class="n">0,059</td><td class="n">0,971</td><td class="n">0,168</td><td class="n">0,816</td><td class="n">0,022</td></tr><tr><td><code>struc2vec</code></td><td class="n">0,027</td><td class="n">0,842</td><td class="n">0,104</td><td class="n">0,530</td><td class="n">0,004</td></tr><tr><td><code>random</code></td><td class="n">0,004</td><td class="n">0,598</td><td class="n">0,063</td><td class="n">0,511</td><td class="n">0,000</td></tr><tr><td><code>reference_ceiling</code></td><td class="n">1,000</td><td class="n">—</td><td class="n">0,230</td><td class="n">0,973</td><td class="n">—</td></tr>
+<tr class="svc"><td>случайный уровень</td><td class="n">0,004</td><td class="n">0,639–0,766</td><td class="n">0,065</td><td class="n">0,500</td><td class="n">0,001</td></tr>
+</table></div>
+<p>95% интервалы — в <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md">scoreboard/README.md</a>.</p>
+
+<h2>Кто что сделал</h2>
+<ul><li><b>@physcorgi</b> — конвейер LANL → окна → граф, все методы в таблице, оценка и scoreboard, сайт <a href="https://github.com/CorgCode/pt-project/pull/75">#75</a> <a href="https://github.com/CorgCode/pt-project/pull/76">#76</a> <a href="https://github.com/CorgCode/pt-project/pull/79">#79</a> <a href="https://github.com/CorgCode/pt-project/pull/80">#80</a></li><li><b>@Tikhon2783</b> — link prediction — основа задачи «Будущие связи»; triplet accuracy <a href="https://github.com/CorgCode/pt-project/pull/65">#65</a> <a href="https://github.com/CorgCode/pt-project/pull/36">#36</a></li><li><b>@kalivixZ</b> — устойчивость эмбеддинга во времени — основа задачи «Узнаваемость»; подготовка данных и графа <a href="https://github.com/CorgCode/pt-project/pull/64">#64</a> <a href="https://github.com/CorgCode/pt-project/pull/37">#37</a></li><li><b>@ElliOrNora</b> — линейный зонд; кластеризация и поиск аномалий (на ревью) <a href="https://github.com/CorgCode/pt-project/pull/39">#39</a> <a href="https://github.com/CorgCode/pt-project/pull/67">#67</a></li></ul>
+
+<h2>Что прочитали</h2>
+<ul><li><b>DeepWalk</b> — Perozzi, Al-Rfou, Skiena. DeepWalk: Online Learning of Social Representations. KDD 2014.</li><li><b>node2vec</b> — Grover, Leskovec. node2vec: Scalable Feature Learning for Networks. KDD 2016.</li><li><b>RolX</b> — Henderson et al. RolX: Structural Role Extraction &amp; Mining in Large Graphs. KDD 2012.</li><li><b>struc2vec</b> — Ribeiro, Saverese, Figueiredo. struc2vec: Learning Node Representations from Structural Identity. KDD 2017.</li><li><b>GraphSAGE</b> — Hamilton, Ying, Leskovec. Inductive Representation Learning on Large Graphs. NeurIPS 2017.</li><li><b>LANL</b> — Turcotte, Kent, Hash. Unified Host and Network Data Set. LANL, 2017 (csr.lanl.gov/data/2017).</li></ul>
+
+<h2>Ограничения</h2>
+<ul>
+<li>Один день LANL, test-окно 30 минут. Следующий шаг — несколько дней (<a href="https://github.com/CorgCode/pt-project/issues/60">#60</a>).</li>
+<li><code>behavioral</code> и эталон поведения строятся из похожих признаков — consistency завышена для behavioral.</li>
+<li>Нет внешних меток ролей хостов: линейный зонд и оценка аномалий ждут данных (<a href="https://github.com/CorgCode/pt-project/issues/25">#25</a>, <a href="https://github.com/CorgCode/pt-project/issues/45">#45</a>).</li>
+<li>Метод без test.csv сейчас теряет задачу Identity и получает балл выше — исправление готовится.</li>
+</ul>
+</main>
+</body>
+</html>
