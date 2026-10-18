@@ -17,6 +17,7 @@
       <ul>
         <li><a href="#results">Scoreboard</a></li>
         <li><a href="#metrics">Метрики</a></li>
+        <li><a href="#map">Карта</a></li>
         <li><a href="#methods">Методы</a></li>
         <li><a href="#status">Статус</a></li>
       </ul>
@@ -45,7 +46,7 @@
   <div class="wrap">
     <h2 id="h-results">Scoreboard</h2>
     <p class="intro">0 — случайно, 100 — идеал. Score — среднее геометрическое по задачам. <a href="https://github.com/CorgCode/pt-project/blob/main/scoreboard/README.md#как-считается-балл">Как считается</a></p>
-    <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>test</span></div><div id="leaderboard"></div></div>
+    <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>test</span></div><div class="weights" id="weights" role="group" aria-label="Task weights"></div><div id="leaderboard"></div></div>
   </div>
 </section>
 
@@ -60,6 +61,14 @@
     </div>
     <div class="fig"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>test</span></div><div id="chartMetric" aria-live="polite"></div></div>
     <p class="explain"><span data-explain="what">—</span> <span class="caveat" data-explain="caveat"></span></p>
+  </div>
+</section>
+
+<section class="block" id="map" aria-labelledby="h-map">
+  <div class="wrap">
+    <h2 id="h-map">Карта хостов</h2>
+    <p class="intro">Точка — хост, эмбеддинг <span class="mono">behavioral</span> на train, сжатый PCA до 2D. Цвет — сколько из 10 соседей осталось соседями в test.</p>
+    <div class="fig map"><div class="prov"><span>LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН</span><span>train → test</span></div><div id="hostMap"></div></div>
   </div>
 </section>
 
@@ -89,9 +98,9 @@
     <h2 id="h-status">Статус</h2>
     <div class="cols">
       <ul class="check">
-        <li>Конвейер LANL → окна → граф</li>
-        <li>7 методов и гибриды на LANL</li>
-        <li>Единая оценка и scoreboard</li>
+        <li>Конвейер LANL → окна → граф <a href="https://github.com/CorgCode/pt-project/pull/75">#75</a></li>
+        <li>7 методов и гибриды на LANL <a href="https://github.com/CorgCode/pt-project/pull/76">#76</a> <a href="https://github.com/CorgCode/pt-project/pull/79">#79</a></li>
+        <li>Единая оценка и scoreboard <a href="https://github.com/CorgCode/pt-project/pull/80">#80</a></li>
       </ul>
       <ol class="next">
         <li>Несколько дней LANL <a href="https://github.com/CorgCode/pt-project/issues/60">#60</a></li>
