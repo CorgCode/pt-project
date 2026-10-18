@@ -53,7 +53,7 @@ def main() -> None:
             if sw > w:
                 problems.append(f"{w}px: horizontal overflow (scrollWidth {sw})")
             body = page.inner_text("body")
-            for needle in ("LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН", "node2vec", "Какой метод лучше"):
+            for needle in ("LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН", "node2vec", "Scoreboard"):
                 if needle not in body:
                     problems.append(f"{w}px: missing text {needle!r}")
             if page.locator("svg text").count() < 20:
