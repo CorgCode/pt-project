@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data" / "results.json"
 LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
-PAGES = ["index.html"]
+PAGES = ["index.html", "report.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
 CHARTS = ["leaderboard", "chartMetric", "hostMap"]
 SECTIONS = ["overview", "results", "metrics", "map", "methods", "status"]
@@ -75,6 +75,9 @@ def check() -> None:
         assert f'"{task}"' in js, f"задача {task} не показана на сайте"
     assert all(set(r["tasks"]) <= set(info["team"]["tasks"]) for r in info["team"]["rows"])
     assert 'fetch("./data/results.json"' in js
+    rep = pages["report.html"][0]
+    for r in info["team"]["rows"]:
+        assert f"<code>{r['method']}</code>" in rep, f"report.html: нет метода {r['method']} — запустите docs/build_report.py"
     # у каждого графового метода есть числа и узнаваемость во времени
     for m in GRAPH_METHODS:
         assert m in info["results"]["test"] and m in info["identity"], m
