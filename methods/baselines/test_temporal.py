@@ -69,11 +69,27 @@ def test_shared_coordinates_flag_matches_behaviour(data):
     np.testing.assert_allclose(tr.to_numpy(), again)
 
 
-def test_other_windows_use_train_scaling_not_their_own(data):
+def test_other_windows_keep_train_columns_and_scale(data):
     b = BehavioralBaseline().fit(data)
-    test_emb = b.embed(data, "test").to_numpy()
-    # если бы test-окно нормировалось заново, у каждой колонки было бы среднее ~0 и std ~1
-    assert np.abs(test_emb.mean(0)).max() > 1e-3 or np.abs(test_emb.std(0) - test_emb.std(0).mean()).max() > 0
+    tr, te = b.embed(data, "train"), b.embed(data, "test")
+    assert list(tr.columns) == list(te.columns)
+    live = te.std() > 1e-12                      # колонка, постоянная в окне, остаётся нулём
+    np.testing.assert_allclose(te.std()[live].to_numpy(), tr.std()[live].to_numpy(), rtol=1e-6)
+
+
+class Doubled(ProcessedData):
+    """Test-окно, где каждый поток повторён дважды: как окно другой длины с тем же поведением."""
+
+    def flows(self, window):
+        f = super().flows(window)
+        return pd.concat([f, f], ignore_index=True) if window == "test" else f
+
+
+def test_window_length_does_not_shift_behavioral(processed):
+    plain, doubled = ProcessedData(processed), Doubled(processed)
+    b = BehavioralBaseline().fit(plain)
+    diff = np.abs(b.embed(doubled, "test").to_numpy() - b.embed(plain, "test").to_numpy()).max()
+    assert diff < 0.05                           # log1p(2x) — почти сдвиг; без пересчёта масштаба разница ~0.2
 
 
 def test_baselines_score_above_random_on_their_matching_reference(data, reference, tmp_path):

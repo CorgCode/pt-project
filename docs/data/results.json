@@ -3,7 +3,7 @@
     "synthetic": false,
     "kind": "lanl_declared",
     "label": "LANL (заявлено)",
-    "source_commit": "2771874868d42062f615c35b0d419a5141244caf",
+    "source_commit": "d75a33817f579c0a3056dd2106fcdeecc4936547",
     "source_path": "results/lanl_day02",
     "hosts": 2242,
     "seed": 0,
@@ -379,22 +379,52 @@
     },
     "rows": [
       {
+        "method": "hybrid_tfidf",
+        "service": false,
+        "score": 45.3,
+        "dim": 313,
+        "values": {
+          "consistency@10_mean": 0.23777876895628905,
+          "link_learned_roc_auc": 0.9848937287019653,
+          "partner_new_mrr": 0.22543641702771977,
+          "pair_roc_auc": 0.9408220505211224,
+          "identity_top1": 0.5254237288135594
+        },
+        "tasks": {
+          "Поведение": 23.4,
+          "Будущие связи": 38.9,
+          "Общие собеседники": 88.2,
+          "Узнаваемость": 52.5
+        },
+        "detail": {
+          "consistency@5_mean": 0.20847457627118643,
+          "consistency@10_mean": 0.23777876895628905,
+          "consistency@20_mean": 0.2692908117752007,
+          "link_roc_auc": 0.30057321896722194,
+          "link_learned_roc_auc": 0.9848937287019653,
+          "link_new_roc_auc": 0.22398418810672388,
+          "partner_new_mrr": 0.22543641702771977,
+          "pair_roc_auc": 0.9408220505211224,
+          "identity_top1": 0.5254237288135594
+        }
+      },
+      {
         "method": "hybrid_services",
         "service": false,
-        "score": 35.4,
+        "score": 42.7,
         "dim": 105,
         "values": {
           "consistency@10_mean": 0.2584745762711864,
           "link_learned_roc_auc": 0.9936199298872945,
           "partner_new_mrr": 0.2353352441694848,
           "pair_roc_auc": 0.9530028549238525,
-          "identity_top1": 0.1623550401427297
+          "identity_top1": 0.3407671721677074
         },
         "tasks": {
           "Поведение": 25.5,
           "Будущие связи": 42.1,
           "Общие собеседники": 90.6,
-          "Узнаваемость": 16.2
+          "Узнаваемость": 34.0
         },
         "detail": {
           "consistency@5_mean": 0.21810883140053527,
@@ -405,26 +435,26 @@
           "link_new_roc_auc": 0.20937949391412708,
           "partner_new_mrr": 0.2353352441694848,
           "pair_roc_auc": 0.9530028549238525,
-          "identity_top1": 0.1623550401427297
+          "identity_top1": 0.3407671721677074
         }
       },
       {
         "method": "hybrid_weighted",
         "service": false,
-        "score": 33.6,
+        "score": 41.7,
         "dim": 89,
         "values": {
           "consistency@10_mean": 0.26150758251561107,
           "link_learned_roc_auc": 0.9933990829437233,
           "partner_new_mrr": 0.22107215796389626,
           "pair_roc_auc": 0.9564239507311698,
-          "identity_top1": 0.13470115967885815
+          "identity_top1": 0.3193577163247101
         },
         "tasks": {
           "Поведение": 25.8,
           "Будущие связи": 40.3,
           "Общие собеседники": 91.3,
-          "Узнаваемость": 13.4
+          "Узнаваемость": 31.9
         },
         "detail": {
           "consistency@5_mean": 0.2210526315789474,
@@ -435,116 +465,26 @@
           "link_new_roc_auc": 0.20510037375037146,
           "partner_new_mrr": 0.22107215796389626,
           "pair_roc_auc": 0.9564239507311698,
-          "identity_top1": 0.13470115967885815
-        }
-      },
-      {
-        "method": "hybrid_behavioral_node2vec_spectral",
-        "service": false,
-        "score": 32.6,
-        "dim": 89,
-        "values": {
-          "consistency@10_mean": 0.17653880463871544,
-          "link_learned_roc_auc": 0.9933936979227815,
-          "partner_new_mrr": 0.21587345879544045,
-          "pair_roc_auc": 0.9627608447079611,
-          "identity_top1": 0.1784121320249777
-        },
-        "tasks": {
-          "Поведение": 17.3,
-          "Будущие связи": 39.6,
-          "Общие собеседники": 92.6,
-          "Узнаваемость": 17.8
-        },
-        "detail": {
-          "consistency@5_mean": 0.15450490633363068,
-          "consistency@10_mean": 0.17653880463871544,
-          "consistency@20_mean": 0.20015611061552185,
-          "link_roc_auc": 0.34983365152997664,
-          "link_learned_roc_auc": 0.9933936979227815,
-          "link_new_roc_auc": 0.2411655463174735,
-          "partner_new_mrr": 0.21587345879544045,
-          "pair_roc_auc": 0.9627608447079611,
-          "identity_top1": 0.1784121320249777
-        }
-      },
-      {
-        "method": "hybrid_behavioral_node2vec",
-        "service": false,
-        "score": 32.1,
-        "dim": 73,
-        "values": {
-          "consistency@10_mean": 0.17903657448706511,
-          "link_learned_roc_auc": 0.99298850993443,
-          "partner_new_mrr": 0.21611178799142072,
-          "pair_roc_auc": 0.958674260113604,
-          "identity_top1": 0.16681534344335414
-        },
-        "tasks": {
-          "Поведение": 17.5,
-          "Будущие связи": 39.6,
-          "Общие собеседники": 91.7,
-          "Узнаваемость": 16.6
-        },
-        "detail": {
-          "consistency@5_mean": 0.15744870651204282,
-          "consistency@10_mean": 0.17903657448706511,
-          "consistency@20_mean": 0.20323371989295272,
-          "link_roc_auc": 0.3424699532248032,
-          "link_learned_roc_auc": 0.99298850993443,
-          "link_new_roc_auc": 0.2407433544641947,
-          "partner_new_mrr": 0.21611178799142072,
-          "pair_roc_auc": 0.958674260113604,
-          "identity_top1": 0.16681534344335414
-        }
-      },
-      {
-        "method": "hybrid_behavioral_deepwalk",
-        "service": false,
-        "score": 31.4,
-        "dim": 73,
-        "values": {
-          "consistency@10_mean": 0.19107939339875113,
-          "link_learned_roc_auc": 0.9918787317565189,
-          "partner_new_mrr": 0.21965086859202415,
-          "pair_roc_auc": 0.9714742014476614,
-          "identity_top1": 0.1391614629794826
-        },
-        "tasks": {
-          "Поведение": 18.7,
-          "Будущие связи": 40.0,
-          "Общие собеседники": 94.3,
-          "Узнаваемость": 13.8
-        },
-        "detail": {
-          "consistency@5_mean": 0.16467439785905438,
-          "consistency@10_mean": 0.19107939339875113,
-          "consistency@20_mean": 0.21226583407671723,
-          "link_roc_auc": 0.3140809951894373,
-          "link_learned_roc_auc": 0.9918787317565189,
-          "link_new_roc_auc": 0.21679787540637224,
-          "partner_new_mrr": 0.21965086859202415,
-          "pair_roc_auc": 0.9714742014476614,
-          "identity_top1": 0.1391614629794826
+          "identity_top1": 0.3193577163247101
         }
       },
       {
         "method": "behavioral",
         "service": false,
-        "score": 31.0,
+        "score": 40.4,
         "dim": 57,
         "values": {
           "consistency@10_mean": 0.26926851025869764,
           "link_learned_roc_auc": 0.9831508173289721,
           "partner_new_mrr": 0.2040713277444545,
           "pair_roc_auc": 0.9540981605562511,
-          "identity_top1": 0.10347903657448707
+          "identity_top1": 0.2952720785013381
         },
         "tasks": {
           "Поведение": 26.6,
           "Будущие связи": 37.4,
           "Общие собеседники": 90.8,
-          "Узнаваемость": 10.3
+          "Узнаваемость": 29.5
         },
         "detail": {
           "consistency@5_mean": 0.23059768064228367,
@@ -555,26 +495,116 @@
           "link_new_roc_auc": 0.2043982345245121,
           "partner_new_mrr": 0.2040713277444545,
           "pair_roc_auc": 0.9540981605562511,
-          "identity_top1": 0.10347903657448707
+          "identity_top1": 0.2952720785013381
+        }
+      },
+      {
+        "method": "hybrid_behavioral_node2vec",
+        "service": false,
+        "score": 36.4,
+        "dim": 73,
+        "values": {
+          "consistency@10_mean": 0.17903657448706511,
+          "link_learned_roc_auc": 0.99298850993443,
+          "partner_new_mrr": 0.21611178799142072,
+          "pair_roc_auc": 0.958674260113604,
+          "identity_top1": 0.27475468331846564
+        },
+        "tasks": {
+          "Поведение": 17.5,
+          "Будущие связи": 39.6,
+          "Общие собеседники": 91.7,
+          "Узнаваемость": 27.4
+        },
+        "detail": {
+          "consistency@5_mean": 0.15744870651204282,
+          "consistency@10_mean": 0.17903657448706511,
+          "consistency@20_mean": 0.20323371989295272,
+          "link_roc_auc": 0.3424699532248032,
+          "link_learned_roc_auc": 0.99298850993443,
+          "link_new_roc_auc": 0.2407433544641947,
+          "partner_new_mrr": 0.21611178799142072,
+          "pair_roc_auc": 0.958674260113604,
+          "identity_top1": 0.27475468331846564
+        }
+      },
+      {
+        "method": "hybrid_behavioral_node2vec_spectral",
+        "service": false,
+        "score": 36.3,
+        "dim": 89,
+        "values": {
+          "consistency@10_mean": 0.17653880463871544,
+          "link_learned_roc_auc": 0.9933936979227815,
+          "partner_new_mrr": 0.21587345879544045,
+          "pair_roc_auc": 0.9627608447079611,
+          "identity_top1": 0.27475468331846564
+        },
+        "tasks": {
+          "Поведение": 17.3,
+          "Будущие связи": 39.6,
+          "Общие собеседники": 92.6,
+          "Узнаваемость": 27.4
+        },
+        "detail": {
+          "consistency@5_mean": 0.15450490633363068,
+          "consistency@10_mean": 0.17653880463871544,
+          "consistency@20_mean": 0.20015611061552185,
+          "link_roc_auc": 0.34983365152997664,
+          "link_learned_roc_auc": 0.9933936979227815,
+          "link_new_roc_auc": 0.2411655463174735,
+          "partner_new_mrr": 0.21587345879544045,
+          "pair_roc_auc": 0.9627608447079611,
+          "identity_top1": 0.27475468331846564
+        }
+      },
+      {
+        "method": "hybrid_behavioral_deepwalk",
+        "service": false,
+        "score": 36.2,
+        "dim": 73,
+        "values": {
+          "consistency@10_mean": 0.19107939339875113,
+          "link_learned_roc_auc": 0.9918787317565189,
+          "partner_new_mrr": 0.21965086859202415,
+          "pair_roc_auc": 0.9714742014476614,
+          "identity_top1": 0.24353256021409456
+        },
+        "tasks": {
+          "Поведение": 18.7,
+          "Будущие связи": 40.0,
+          "Общие собеседники": 94.3,
+          "Узнаваемость": 24.3
+        },
+        "detail": {
+          "consistency@5_mean": 0.16467439785905438,
+          "consistency@10_mean": 0.19107939339875113,
+          "consistency@20_mean": 0.21226583407671723,
+          "link_roc_auc": 0.3140809951894373,
+          "link_learned_roc_auc": 0.9918787317565189,
+          "link_new_roc_auc": 0.21679787540637224,
+          "partner_new_mrr": 0.21965086859202415,
+          "pair_roc_auc": 0.9714742014476614,
+          "identity_top1": 0.24353256021409456
         }
       },
       {
         "method": "behavioral_pca",
         "service": false,
-        "score": 28.0,
+        "score": 35.2,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.2418376449598573,
           "link_learned_roc_auc": 0.9733592648657273,
           "partner_new_mrr": 0.19053855818730442,
           "pair_roc_auc": 0.9556149896284423,
-          "identity_top1": 0.08117752007136485
+          "identity_top1": 0.2016057091882248
         },
         "tasks": {
           "Поведение": 23.8,
           "Будущие связи": 35.2,
           "Общие собеседники": 91.1,
-          "Узнаваемость": 8.0
+          "Узнаваемость": 20.1
         },
         "detail": {
           "consistency@5_mean": 0.2087421944692239,
@@ -585,26 +615,26 @@
           "link_new_roc_auc": 0.20401675705547817,
           "partner_new_mrr": 0.19053855818730442,
           "pair_roc_auc": 0.9556149896284423,
-          "identity_top1": 0.08117752007136485
+          "identity_top1": 0.2016057091882248
         }
       },
       {
         "method": "behavioral_svd",
         "service": false,
-        "score": 28.0,
+        "score": 35.2,
         "dim": 16,
         "values": {
           "consistency@10_mean": 0.24192685102586975,
           "link_learned_roc_auc": 0.9733345464551727,
           "partner_new_mrr": 0.19021460156131428,
           "pair_roc_auc": 0.9556138374331681,
-          "identity_top1": 0.08117752007136485
+          "identity_top1": 0.20071364852809992
         },
         "tasks": {
           "Поведение": 23.9,
           "Будущие связи": 35.2,
           "Общие собеседники": 91.1,
-          "Узнаваемость": 8.0
+          "Узнаваемость": 20.0
         },
         "detail": {
           "consistency@5_mean": 0.20856378233719894,
@@ -615,7 +645,7 @@
           "link_new_roc_auc": 0.20402492871704497,
           "partner_new_mrr": 0.19021460156131428,
           "pair_roc_auc": 0.9556138374331681,
-          "identity_top1": 0.08117752007136485
+          "identity_top1": 0.20071364852809992
         }
       },
       {
@@ -941,7 +971,7 @@
       ],
       "link_learned_roc_auc": [
         0.6392304914645376,
-        0.7660800524041758
+        0.8698711922843344
       ],
       "partner_new_mrr": [
         0.06517239183471678,

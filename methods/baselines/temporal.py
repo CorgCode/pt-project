@@ -88,8 +88,11 @@ class BehavioralBaseline(Baseline):
         hosts = list(hosts) if hosts is not None else data.cohort
         if window == "train":
             return self._train_feats.loc[hosts]
-        return build_reference_features(data.flows(window), hosts=hosts, fitted=self._fitted,
-                                        exclude_blocks=self.exclude_blocks)
+        x = build_reference_features(data.flows(window), hosts=hosts, fitted=self._fitted,
+                                     exclude_blocks=self.exclude_blocks)
+        # Окна разной длины (train — час, test — полчаса): объёмы сдвинуты. Колонки — из train,
+        # а среднее и разброс каждой колонки — по своему окну, в масштабе train.
+        return (x - x.mean()) / x.std().replace(0, 1.0) * self._train_feats.std()
 
     def embed(self, data, window, hosts=None):
         hosts = list(hosts) if hosts is not None else data.cohort
