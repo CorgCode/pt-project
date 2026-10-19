@@ -1,0 +1,93 @@
+{
+  "bootstrap": 200,
+  "cache": {
+    "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+    "exact_flow_counts_and_cohort_event_counts": true,
+    "n_flows": {
+      "test": 4970376,
+      "train": 9368480,
+      "validation": 4526585
+    },
+    "n_hosts": 6453,
+    "n_self_flows": {
+      "test": 22705,
+      "train": 34317,
+      "validation": 10019
+    },
+    "original_inputs": [
+      {
+        "bytes": 1077270484,
+        "file": "netflow_day-02.bz2",
+        "sha256": "7e1a148ec1828ff829b613e026769f038a9bc699e5f3d85c4652f4058df9f019"
+      }
+    ],
+    "rows_scanned": 75674815,
+    "seconds": 46.33458837500075,
+    "source": "/Users/ghostmelon/Developer/PTPTPT/pt-project/data/processed/flows/train.csv",
+    "source_manifest_sha256": "411c8f893065c1c6af144ca06912308ebfb77c30c63f5ed51014548e3fe7db36",
+    "source_sha256": "95231347be9f02a666a72e665d9b08e34f529c6dec90e4a546054be684148721",
+    "target_manifest_sha256": "8dfcf58e1e6a6add88a2d0e9ef8a815750d8b41828d321dc217641b1ce88891e",
+    "window_sec": 1800,
+    "windows": {
+      "test": [
+        131400.0,
+        133200.0
+      ],
+      "train": [
+        126000.0,
+        129600.0
+      ],
+      "validation": [
+        129600.0,
+        131400.0
+      ]
+    }
+  },
+  "configs": {
+    "log_directed": {
+      "center": false,
+      "direction": true,
+      "weighting": "log"
+    },
+    "raw_directed": {
+      "center": false,
+      "direction": true,
+      "weighting": "raw"
+    },
+    "raw_undirected": {
+      "center": false,
+      "direction": false,
+      "weighting": "raw"
+    },
+    "tfidf_centered": {
+      "center": true,
+      "direction": true,
+      "weighting": "tfidf"
+    },
+    "tfidf_directed": {
+      "center": false,
+      "direction": true,
+      "weighting": "tfidf"
+    },
+    "tfidf_struct": {
+      "center": true,
+      "direction": true,
+      "struct_weight": 0.5,
+      "weighting": "tfidf"
+    },
+    "tfidf_undirected": {
+      "center": false,
+      "direction": false,
+      "weighting": "tfidf"
+    }
+  },
+  "dim": 32,
+  "host_profile_sha256": "449c18272185f18169d470f72629213a3ee6645d9d5d65949b9172f2785c2986",
+  "python": "3.14.2",
+  "seed": 0,
+  "selection_metric": "partner_new_mrr",
+  "selection_reference": "validation",
+  "trained_on_windows": [
+    "train"
+  ]
+}
