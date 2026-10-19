@@ -93,6 +93,7 @@ def main() -> None:
         x = np.hstack([_block(parts[k]) * w for k, w in WEIGHTS.items()])
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.5g")
     (out / "SHARED_COORDINATES").touch()
+    (out / "AUTHOR").write_text("physcorgi\n", encoding="utf-8")
     r = submit.score(out)
     submit.render()
     print(f"\n{NAME}: " + ", ".join(f"{s['title']} = {s['value']:.3f}" for s in r["summary"] if s["value"] is not None))

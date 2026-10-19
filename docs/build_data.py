@@ -42,7 +42,7 @@ def team_table(results_dir: Path = ROOT / "scoreboard" / "results") -> dict:
     for m in list(order.index) + sorted(sb.SERVICE & set(by)):
         r = by[m]
         rows.append({"method": m, "service": m in sb.SERVICE, "score": None if score[m] != score[m] else round(float(score[m]), 1),
-                     "dim": r.get("dim"), "values": {k: r["metrics"].get(k) for k in cols},
+                     "dim": r.get("dim"), "author": r.get("author"), "values": {k: r["metrics"].get(k) for k in cols},
                      "tasks": {g: round(v, 1) for g, v in sb.task_scores(r, cols).items()},
                      "detail": {k: r["metrics"].get(k) for k in DETAIL}})
     chance = {}

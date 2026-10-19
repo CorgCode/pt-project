@@ -145,7 +145,7 @@ def test_markdown_has_headlines_and_chance_row(tmp_path):
     build(f, tmp_path / "board")
     md = (tmp_path / "board.md").read_text(encoding="utf-8")
     assert md.index("`a`") < md.index("`b`")                 # лучший метод выше
-    assert "случайный уровень" in md and "0.500" in md and "[0.60–0.80]" in md
+    assert "chance level" in md and "0.500" in md and "[0.60–0.80]" in md
 
 
 def test_overall_score_maps_chance_to_0_and_perfect_to_100():
