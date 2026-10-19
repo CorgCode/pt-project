@@ -17,7 +17,7 @@
 | хочу | куда |
 |---|---|
 | посмотреть результаты | [таблица](scoreboard/README.md), [сайт](https://corgcode.github.io/pt-project/), `streamlit run app/streamlit_app.py` |
-| проверить свой метод | [3 шага в таблице](scoreboard/README.md#как-добавить-свой-метод) |
+| проверить свой метод | [3 шага](CONTRIBUTING.md#свой-метод-в-таблицу) |
 | понять, что значат метрики | [`evaluation/README.md`](evaluation/README.md) |
 | понять, можно ли верить числам | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) |
 | повторить прогон на LANL | [`experiments/lanl/README.md`](experiments/lanl/README.md) |

@@ -43,6 +43,15 @@ python scoreboard/my_method.py                             # обучит, со�
 Дальше commit, push — CI добавит метод в [таблицу](scoreboard/README.md). Все учатся на одних данных
 (только train-окно) и сравниваются с одними бейзлайнами — шаблон это обеспечивает.
 
+Уже есть эмбеддинг из своего кода? Папка `scoreboard/submissions/<метод>/`:
+
+- `embeddings.csv` — `host_id, emb_0, emb_1, …` по train-окну (обязательно);
+- `test.csv` — те же хосты по test-окну, добавит колонку Identity;
+- `SHARED_COORDINATES` — пустой файл, если у окон одна система координат;
+- `AUTHOR` — ваш логин на GitHub, для колонки submitted by.
+
+Подбирать параметры по таблице нельзя — для этого `experiments.tune_methods` (validation).
+
 ## Код
 
 - Комментарии — по-русски и коротко. Имена в коде — по-английски.

@@ -67,6 +67,10 @@ def _fmt(v, ci=None) -> str:
     return f"{s} [{ci[0]:.2f}–{ci[1]:.2f}]" if ci else s
 
 
+COL_EN = {"Соседи@10": "Neighbors@10", "Связь, AUC": "Links, AUC", "Новые собеседники, MRR": "New partners, MRR",
+          "Пары, AUC": "Pairs, AUC", "Узнаваемость, Top-1": "Identity, Top-1"}
+TASK_EN = {"Поведение": "Behavior", "Будущие связи": "Future links", "Общие собеседники": "Shared partners",
+           "Узнаваемость": "Identity"}
 SERVICE = {"random", "reference_ceiling"}      # ориентиры, а не методы: в выборе лучшего не участвуют
 
 
@@ -137,8 +141,9 @@ def headline_table(results: list[dict]) -> str:
     real = values.loc[order.index]
     best = {k: real[k].max() for k in cols if real[k].notna().any()}
     score, ranks = overall_score(results, cols), average_rank(values)
-    lines = ["| место | метод | **балл** | разм. | " + " | ".join(cols.values()) + " | средний ранг |",
-             "|---|---|---|---|" + "---|" * len(cols) + "---|"]
+    lines = ["| # | method | submitted by | **score** | dim | " + " | ".join(COL_EN.get(t, t) for t in cols.values())
+             + " | avg rank |",
+             "|---|---|---|---|---|" + "---|" * len(cols) + "---|"]
     by_name = {r["method"]: r for r in results}
 
     def row(place: str, m: str, rank: str) -> str:
@@ -155,7 +160,8 @@ def headline_table(results: list[dict]) -> str:
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
         dim = r.get("dim") or "—"
-        return f"| {place} | {name} | {sc} | {dim} | " + " | ".join(cells) + f" | {rank} |"
+        who = f"@{r['author']}" if r.get("author") else "—"
+        return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + f" | {rank} |"
 
     for i, m in enumerate(order.index, 1):
         lines.append(row(str(i), m, f"{ranks[m]:.1f}"))
@@ -167,7 +173,7 @@ def headline_table(results: list[dict]) -> str:
         lo, hi = min(vals), max(vals)
         return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
 
-    lines.append("| | *случайный уровень* | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
+    lines.append("| | *chance level* | | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
     return "\n".join(lines) + "\n"
 
 

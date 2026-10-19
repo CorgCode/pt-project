@@ -13,6 +13,7 @@
     embeddings.csv        эмбеддинг train-окна: host_id, emb_0, emb_1, ...   (обязательно)
     test.csv              эмбеддинг test-окна тех же хостов — для «узнаваемости во времени» (по желанию)
     SHARED_COORDINATES    пустой файл, если оба файла в одной системе координат (по желанию)
+    AUTHOR                логин на GitHub того, кто прислал метод (по желанию; колонка submitted by)
 
 Всё сохраняется в scoreboard/: results/<метод>.json — полный результат, README.md — таблица,
 scoreboard.csv — все метрики. Данные для обучения и эталоны — scoreboard/data/.
@@ -57,7 +58,8 @@ def _sha(*paths: Path) -> str:
 
 
 def _inputs(d: Path) -> list[Path]:
-    return [d / "embeddings.csv", d / "test.csv", d / "SHARED_COORDINATES", DATA / "reference" / "test" / "manifest.json"]
+    return [d / "embeddings.csv", d / "test.csv", d / "SHARED_COORDINATES", d / "AUTHOR",
+            DATA / "reference" / "test" / "manifest.json"]
 
 
 def score(sub: Path) -> dict:
@@ -92,6 +94,8 @@ def score(sub: Path) -> dict:
     else:
         r["metric_status"]["identity"] = "unavailable: нет test.csv (эмбеддинга test-окна)"
         r["unavailable_metrics"].append("identity: нет test.csv (эмбеддинга test-окна)")
+    author = sub / "AUTHOR"
+    r["author"] = author.read_text(encoding="utf-8").strip().lstrip("@") if author.exists() else None
     r["submission"] = str(emb_file.relative_to(ROOT)) if emb_file.is_relative_to(ROOT) else str(emb_file)
     r["inputs_sha256"] = _sha(*_inputs(sub))
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -127,8 +131,8 @@ def render() -> None:
         m = order.index[0]
         r = next(x for x in results if x["method"] == m)
         cs = scoreboard.column_scores(r, cols)
-        parts = "; ".join(f"{cols[k]} {r['metrics'][k]:.3f} → {v:.0f}" for k, v in cs.items())
-        tasks = ", ".join(f"{g} {v:.0f}" for g, v in scoreboard.task_scores(r, cols).items())
+        parts = "; ".join(f"{scoreboard.COL_EN.get(cols[k], cols[k])} {r['metrics'][k]:.3f} → {v:.0f}" for k, v in cs.items())
+        tasks = ", ".join(f"{scoreboard.TASK_EN.get(g, g)} {v:.0f}" for g, v in scoreboard.task_scores(r, cols).items())
         example = f"Пример, `{m}`: {parts}.\nПо задачам: {tasks}. Балл — **{order.iloc[0]:.1f}**."
     pers = next((r["metric_details"].get("future_link_prediction", {}).get("persistence_baseline")
                  for r in results if r.get("metric_details", {}).get("future_link_prediction")), None)
@@ -136,25 +140,20 @@ def render() -> None:
                 if pers else "")
     text = f"""# Таблица результатов
 
-## Как добавить свой метод
-
-1. Скопируй шаблон: `cp scoreboard/template_method.py scoreboard/<метод>.py`.
-2. Поменяй в нём `NAME` и две функции: `fit` (обучение на train) и `embed` (вектор для каждого хоста).
-3. Запусти: `python scoreboard/<метод>.py` — увидишь свои числа и место.
-4. Commit и push в свою ветку. CI добавит метод в эту таблицу.
-
-Уже есть эмбеддинг из своего кода? Положи `scoreboard/submissions/<метод>/embeddings.csv`
-(`host_id, emb_0, emb_1, …`) и сделай push.
-
-## Таблица
-
 Данные: {kind}. Хостов: {results[0].get('n_hosts')}. {leader}
 
 {scoreboard.headline_table(results)}
-{baseline}- **Жирным** — лучшее в колонке.
-- «разм.» — размерность вектора. Сравнивать честнее при равной размерности.
-- В скобках — 95% интервал. Сильно перекрываются — разница может быть случайной.
+{baseline}- **Жирным** — лучшее в колонке. В скобках — 95% интервал: сильно перекрываются — разница может быть случайной.
+- dim — размерность вектора.
 - *Курсивом* — ориентиры: `random` (хуже нельзя) и `reference_ceiling` (лучше нельзя). В рейтинге не участвуют.
+
+Колонки:
+
+- **Neighbors@10** — ближайшие соседи хоста те же, что по поведению в следующем окне?
+- **Links, AUC** — по паре векторов видно, будут ли хосты общаться?
+- **New partners, MRR** — похожие хосты подсказывают новых собеседников?
+- **Pairs, AUC** — хосты с общими собеседниками ближе, чем без них?
+- **Identity, Top-1** — тот же хост через полчаса находится первым?
 
 ## Как считается балл
 
@@ -162,9 +161,9 @@ def render() -> None:
 
 1. В каждой колонке: **0** — случайный уровень (строка внизу), **100** — идеальный результат (1.0).
    Например, AUC 0.75 при случайном уровне 0.5 — это 50.
-2. Колонки собраны в задачи: поведение, будущие связи, общие собеседники, узнаваемость.
-   Балл задачи — среднее геометрическое её колонок.
-3. **Балл** — среднее геометрическое по задачам. Место в таблице — по баллу.
+2. Колонки собраны в задачи: Behavior (Neighbors), Future links (Links, New partners),
+   Shared partners (Pairs), Identity. Балл задачи — среднее геометрическое её колонок.
+3. **Score** — среднее геометрическое по задачам. Место в таблице — по нему.
 4. Балл не зависит от других методов: добавили новый метод — баллы остальных не меняются.
 
 Почему не простое среднее:
@@ -172,21 +171,12 @@ def render() -> None:
 - **Каждая задача весит одинаково.** В простом среднем почти всё решали два AUC: они у всех 0.8–0.99,
   а трудные колонки (новые собеседники, узнаваемость) меняли балл на 1–3 пункта.
 - **Важен рост во столько-то раз, а не на столько-то пунктов.** Узнаваемость 8 → 16 весит столько же, сколько 45 → 90.
-  Поэтому не важно, что у одних колонок потолок 1.0, а у других — около 0.3.
-- **Провал в одной задаче не скрыть.** Метод, который не узнаёт хосты (балл 2), не выйдет наверх
+- **Провал в одной задаче не скрыть.** Метод, который не узнаёт хосты, не выйдет наверх
   за счёт хороших AUC. Колонка ниже 1 балла считается за 1, чтобы один ноль не обнулял всё.
 
-Рядом — средний ранг: какое место метод в среднем занимает по колонкам. Чем меньше, тем лучше.
+avg rank — какое место метод в среднем занимает по колонкам. Чем меньше, тем лучше.
 
 {example}
-
-Что значит каждая колонка — [`evaluation/README.md`](../evaluation/README.md). Все числа — [`scoreboard.csv`](scoreboard.csv).
-
-## Дополнительно
-
-- `test.csv` в той же папке — эмбеддинг test-окна. Добавит колонку «узнаваемость».
-- `SHARED_COORDINATES` — пустой файл, если у окон одна система координат.
-- Подбирать параметры по этой таблице нельзя. Для подбора есть `experiments.tune_methods`.
 """
     (BOARD / "README.md").write_text(text, encoding="utf-8")
 

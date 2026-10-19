@@ -48,7 +48,6 @@ MODELS = {
     "reference_ceiling": "сам эталон поведения",
 }
 GRAPH = {"graph_spectral", "deepwalk", "node2vec", "deepwalk_services", "node2vec_services", "graphsage", "rolx", "struc2vec"}
-AUTHOR = "physcorgi"   # кто прислал методы в таблицу
 
 def f3(v) -> str:
     return "—" if v is None else f"{v:.3f}".replace(".", ",")
@@ -80,7 +79,7 @@ def build(info: dict) -> str:
         sc = "—" if m == "reference_ceiling" else f1(r["score"])
         cls = ' class="svc"' if svc else (' class="lead"' if place == 1 else "")
         return (f'<tr{cls}><td class="n">{place or ""}</td><td><code>{escape(m)}</code><small>{escape(MODELS.get(m, ""))}</small></td>'
-                f'<td class="n">{r["dim"] or "—"}</td><td>{"—" if svc else "@" + AUTHOR}</td><td class="n b">{sc}</td>'
+                f'<td class="n">{r["dim"] or "—"}</td><td>{"@" + r["author"] if r.get("author") else "—"}</td><td class="n b">{sc}</td>'
                 + "".join(cell(r, t) for t in tasks) + "</tr>")
 
     rows = "".join(row(r, i) for i, r in enumerate(real, 1)) + "".join(row(r) for r in service)
