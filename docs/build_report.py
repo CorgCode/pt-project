@@ -38,6 +38,7 @@ MODELS = {
     "graphsage": "агрегация соседей",
     "rolx": "структурные роли",
     "struc2vec": "структура окрестности",
+    "hybrid_tfidf": "behavioral ×2 + peers + services (TF-IDF → SVD)",
     "hybrid_services": "behavioral ×4 + node2vec_services + spectral",
     "hybrid_weighted": "behavioral ×w + node2vec + spectral",
     "hybrid_behavioral_node2vec_spectral": "behavioral + node2vec + spectral",
