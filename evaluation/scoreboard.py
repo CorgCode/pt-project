@@ -4,8 +4,7 @@
 
 Пишет два файла:
   <output>.csv — все метрики, строка на метод;
-  <output>.md  — главные числа по группам с 95% интервалами, строка «случайный уровень»
-                 и средний ранг метода по этим числам.
+  <output>.md  — главные числа по группам с 95% интервалами и строка «случайный уровень».
 Смешивать результаты нельзя: если методы оценены на разных эталонах, когортах, split
 или типах данных (синтетика / реальные), скрипт падает с ошибкой.
 """
@@ -122,11 +121,6 @@ def overall_score(results: list[dict], cols) -> pd.Series:
                       for r in results})
 
 
-def average_rank(values: pd.DataFrame) -> pd.Series:
-    real = values.drop(index=[m for m in values.index if m in SERVICE])
-    return real.rank(ascending=False).mean(axis=1)
-
-
 def headline_table(results: list[dict]) -> str:
     cols, values, order = ranking(results)
     if not cols:
@@ -140,13 +134,13 @@ def headline_table(results: list[dict]) -> str:
                 chance.setdefault(s["metric"], []).append(s["chance"])
     real = values.loc[order.index]
     best = {k: real[k].max() for k in cols if real[k].notna().any()}
-    score, ranks = overall_score(results, cols), average_rank(values)
+    score = overall_score(results, cols)
     lines = ["| # | method | submitted by | **score** | dim | " + " | ".join(COL_EN.get(t, t) for t in cols.values())
-             + " | avg rank |",
-             "|---|---|---|---|---|" + "---|" * len(cols) + "---|"]
+             + " |",
+             "|---|---|---|---|---|" + "---|" * len(cols)]
     by_name = {r["method"]: r for r in results}
 
-    def row(place: str, m: str, rank: str) -> str:
+    def row(place: str, m: str) -> str:
         r = by_name[m]
         cells = []
         for k in cols:
@@ -161,19 +155,19 @@ def headline_table(results: list[dict]) -> str:
             sc = f"**{sc}**"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
-        return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + f" | {rank} |"
+        return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + " |"
 
     for i, m in enumerate(order.index, 1):
-        lines.append(row(str(i), m, f"{ranks[m]:.1f}"))
+        lines.append(row(str(i), m))
     for m in sorted(SERVICE & set(by_name)):
-        lines.append(row("—", m, "—"))
+        lines.append(row("—", m))
     def chance_cell(vals):                         # у некоторых метрик уровень зависит от метода (размерности)
         if not vals:
             return "—"
         lo, hi = min(vals), max(vals)
         return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
 
-    lines.append("| | *chance level* | | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " | |")
+    lines.append("| | *chance level* | | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " |")
     return "\n".join(lines) + "\n"
 
 
