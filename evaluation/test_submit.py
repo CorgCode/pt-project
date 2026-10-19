@@ -30,7 +30,7 @@ def test_builtin_methods_land_in_the_table_with_a_leader(board):
     submit.builtin(["random", "behavioral", "graph_spectral"])
     _scores(board)
     md = (board / "README.md").read_text(encoding="utf-8")
-    assert "Лидер:" in md and "**" in md and "случайный уровень" in md
+    assert "| 1 | `" in md and "**" in md and "chance level" in md
     assert "*`random`*" in md                                      # ориентир, а не участник
     r = json.loads((board / "results" / "behavioral.json").read_text())
     assert "identity_top1" in r["metrics"] and any(s["metric"] == "identity_top1" for s in r["summary"])
