@@ -14,6 +14,7 @@
     test.csv              эмбеддинг test-окна тех же хостов — для «узнаваемости во времени» (по желанию)
     SHARED_COORDINATES    пустой файл, если оба файла в одной системе координат (по желанию)
     AUTHOR                логин на GitHub того, кто прислал метод (по желанию; колонка submitted by)
+    README.md             карточка метода по scoreboard/CARD_TEMPLATE.md (обязательно; на неё ссылка из таблицы)
 
 Всё сохраняется в scoreboard/: results/<метод>.json — полный результат, README.md — таблица,
 scoreboard.csv — все метрики. Данные для обучения и эталоны — scoreboard/data/.
@@ -24,6 +25,8 @@ import argparse
 import hashlib
 import json
 import os
+import re
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -36,11 +39,14 @@ from evaluation.validate import validate_submission
 
 ROOT = Path(__file__).resolve().parents[1]
 BOARD = ROOT / "scoreboard"
+BOARD_IN_REPO = BOARD                                   # не подменяется в тестах: отсюда берутся карточки встроенных методов
 DATA = BOARD / "data"
 SUBMISSIONS = BOARD / "submissions"
 RESULTS = BOARD / "results"
 N_BOOT = 200
 SEED = 0
+CARD_SECTIONS = ("Кратко", "Архитектура", "Данные", "Обучение и подбор", "Ограничения")
+CARD_URL = "https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/{}/README.md"
 
 
 def processed_dir() -> Path:
@@ -62,11 +68,31 @@ def _inputs(d: Path) -> list[Path]:
             DATA / "reference" / "test" / "manifest.json"]
 
 
+def check_card(sub: Path) -> None:
+    """Карточка README.md: все разделы CARD_SECTIONS есть, не пустые и без TODO."""
+    card = Path(sub) / "README.md"
+    if not card.exists():
+        raise ValueError(f"{card}: нет карточки метода — скопируй scoreboard/CARD_TEMPLATE.md и заполни")
+    body: dict[str, str] = {}
+    current = None
+    for line in card.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            current = line[3:].strip()
+            body[current] = ""
+        elif current is not None:
+            body[current] += line + "\n"
+    bad = [h for h in CARD_SECTIONS
+           if not re.sub(r"<!--.*?-->", "", body.get(h, ""), flags=re.S).strip() or "TODO" in body.get(h, "")]
+    if bad:
+        raise ValueError(f"{card}: заполни разделы {', '.join(bad)} (по scoreboard/CARD_TEMPLATE.md)")
+
+
 def score(sub: Path) -> dict:
     """Проверить и оценить одну отправку, сохранить results/<метод>.json."""
     sub = Path(sub)
     method = sub.name
     emb_file = sub / "embeddings.csv"
+    check_card(sub)
     validate_submission(str(emb_file))
     ref_test, ref_val = DATA / "reference" / "test", DATA / "reference" / "validation"
     # классификатор связей учится на кандидатах validation — нужен эмбеддинг и для их хостов
@@ -119,6 +145,8 @@ def render() -> None:
     results = [r for r in results if r["method"] in known]
     if not results:
         return
+    for m in sorted(known):
+        check_card(SUBMISSIONS / m)
     scoreboard.check_compatible(results)
     scoreboard.full_table(results).to_csv(BOARD / "scoreboard.csv", index=False)
     cols, values, order = scoreboard.ranking(results)
@@ -131,8 +159,9 @@ def render() -> None:
 {data}, компьютеров: {results[0].get('n_hosts')}. Вектор строится по часу трафика и проверяется на следующих 30 минутах.
 
 **Score** — итог от 0 до 100: 0 — как у случайных векторов, 100 — идеал. Места — по нему.
+Название метода — ссылка на его карточку: устройство, какие данные берёт, как обучается.
 
-{scoreboard.headline_table(results)}
+{scoreboard.headline_table(results, card_url=CARD_URL.format)}
 | колонка | что проверяет (больше — лучше) |
 |---|---|
 | Neighbors@10 | у компьютеров с похожими векторами похожее поведение в сети |
@@ -155,6 +184,13 @@ Shared partners (Pairs), Identity. Score — среднее геометриче
     (BOARD / "README.md").write_text(text, encoding="utf-8")
 
 
+def _copy_card(name: str, d: Path) -> None:
+    """Встроенным методам — их карточка из репозитория (если отправки лежат в другом месте, например в тестах)."""
+    src = BOARD_IN_REPO / "submissions" / name / "README.md"
+    if src.exists() and not (d / "README.md").exists():
+        shutil.copyfile(src, d / "README.md")
+
+
 def builtin(names: list[str], dim: int = 16) -> None:
     """Обучить бейзлайны и графовые методы на общих данных и положить их как обычные отправки."""
     from methods import graph as graph_methods
@@ -170,6 +206,7 @@ def builtin(names: list[str], dim: int = 16) -> None:
         m.fit(data)
         d = SUBMISSIONS / name
         d.mkdir(parents=True, exist_ok=True)
+        _copy_card(name, d)
         m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
         m.embed(data, "test", hosts_test).to_csv(d / "test.csv", index_label="host_id")
         shared = d / "SHARED_COORDINATES"
@@ -181,6 +218,7 @@ def builtin(names: list[str], dim: int = 16) -> None:
     if names == ["all"]:                                # потолок: признаки эталона как эмбеддинг
         d = SUBMISSIONS / "reference_ceiling"
         d.mkdir(parents=True, exist_ok=True)
+        _copy_card("reference_ceiling", d)
         f = load_embeddings(DATA / "reference" / "test" / "features.csv", "host_id", "ref_")
         f.columns = [c.replace("ref_", "emb_") for c in f.columns]
         f.to_csv(d / "embeddings.csv", index_label="host_id")
