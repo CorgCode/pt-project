@@ -56,15 +56,6 @@ python scoreboard/my_method.py                             # обучит, со�
 
 Подбирать параметры по таблице нельзя — для этого `experiments.tune_methods` (validation).
 
-Колонки Stability в разделе «Метрики Тихона» берутся из `scoreboard/robustness/robustness.json`.
-Посчитать (долго: каждый метод обучается заново 5 раз):
-
-```bash
-python -m experiments.robustness --processed-dir $PT_DATA --out-dir scoreboard/robustness \
-    --methods behavioral graph_spectral deepwalk node2vec graphsage rolx hybrid_tfidf
-python -c "from evaluation import submit; submit.render()"
-```
-
 ## Код
 
 - Комментарии — по-русски и коротко. Имена в коде — по-английски.

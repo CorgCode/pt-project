@@ -117,15 +117,9 @@ def test_table_links_each_method_to_its_card(board):
     assert "[`behavioral`](" + submit.CARD_URL.format("behavioral") + ")" in md
 
 
-def test_tikhon_metrics_table_reads_robustness_if_present(board):
+def test_tikhon_metrics_are_columns_outside_the_score(board):
     submit.builtin(["random", "behavioral"])
     _scores(board)
     md = (board / "README.md").read_text(encoding="utf-8")
-    assert "## Метрики Тихона (#40)" in md and "Stability ещё не посчитана" in md
-    rob = {"fractions": [0.1], "methods": {"behavioral": {"noise_floor": {"overlap": 1.0},
-                                                          "by_fraction": {"0.1": {"overlap": 0.812}}}}}
-    (board / "robustness").mkdir()
-    (board / "robustness" / "robustness.json").write_text(json.dumps(rob), encoding="utf-8")
-    submit.render()
-    md = (board / "README.md").read_text(encoding="utf-8")
-    assert "Stability −10%" in md and "| 0.812 | 1.000 |" in md
+    head = next(line for line in md.splitlines() if line.startswith("| # |"))
+    assert head.endswith("| Triplets* | Cosine links, AUC* |") and "в score не входят" in md
