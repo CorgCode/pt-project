@@ -83,6 +83,45 @@
   function issueLink(i) { return el("a", { href: i.html_url }, "#" + i.number + " " + i.title); }
   function chip(s) { return el("span", { "class": "st " + s.kind }, s.text); }
 
+  // По неделям: сколько коммитов в main, PR и комментариев в issues у каждого. Неделя — от предыдущего срока до своего.
+  function weekly(milestones, issues, commits, pulls, comments) {
+    var weeks = milestones.filter(function (m) { return m.due_on; }).map(function (m) { return { m: m, due: deadline(m) }; })
+      .sort(function (a, b) { return a.due - b.due; });
+    var shown = weeks.filter(function (w, i) { return i === 0 || weeks[i - 1].due < now; });
+    var box = document.getElementById("weeks");
+    if (!shown.length) { box.append(el("p", {}, "Сроков пока нет.")); return; }
+    function bucket(t) {
+      for (var i = 0; i < shown.length; i++) if (t <= shown[i].due && (i === 0 || t > shown[i - 1].due)) return i;
+      return -1;
+    }
+    var act = {};
+    function row(key) { return act[key] || (act[key] = shown.map(function () { return { c: 0, p: 0, m: 0 }; })); }
+    function add(key, i, what) { if (i >= 0) row(key)[i][what]++; }
+    issues.forEach(function (i) { (i.assignees || []).forEach(function (a) { row(a.login); }); });   // и те, у кого ноль
+    commits.forEach(function (c) {
+      var key = c.author && c.author.login ? c.author.login : "?" + c.commit.author.name;
+      add(key, bucket(Date.parse(c.commit.author.date)), "c");
+    });
+    pulls.forEach(function (pr) { add(pr.user.login, bucket(Date.parse(pr.created_at)), "p"); });
+    comments.forEach(function (c) { if (c.user.type !== "Bot") add(c.user.login, bucket(Date.parse(c.created_at)), "m"); });
+    var head = el("tr", {}, [el("th", {}, "Участник")].concat(shown.map(function (w) {
+      return el("th", {}, [el("a", { href: w.m.html_url }, "до " + fmt(w.due)), w.due > now ? el("br") : "", w.due > now ? el("span", { "class": "note" }, "идёт") : ""]);
+    })));
+    var tb = el("tbody");
+    Object.keys(act).sort(function (a, b) { return (a[0] === "?") - (b[0] === "?") || a.localeCompare(b); }).forEach(function (k) {
+      var name = k[0] === "?" ? el("span", {}, [k.slice(1) + " ", el("span", { "class": "note" }, "(git без привязки к GitHub)")]) : who(k);
+      tb.append(el("tr", {}, [el("td", {}, name)].concat(act[k].map(function (x, i) {
+        if (!x.c && !x.p && !x.m) return el("td", {}, shown[i].due > now ? el("span", { "class": "st work" }, "пока нет") : el("span", { "class": "st over" }, "ничего"));
+        var parts = [];
+        if (x.c) parts.push(x.c + " коммит.");
+        if (x.p) parts.push(x.p + " PR");
+        if (x.m) parts.push(x.m + " комм. в issues");
+        return el("td", {}, el("span", { "class": "st ok" }, parts.join(" · ")));
+      }))));
+    });
+    box.append(el("div", { "class": "tablewrap" }, el("table", {}, [el("thead", {}, head), tb])));
+  }
+
   function render(milestones, issues, pulls) {
     issues = issues.filter(function (i) {
       return !i.pull_request && !(i.labels || []).some(function (l) { return l.name === "outdated"; });
@@ -147,10 +186,14 @@
       ", сроков: " + withDue.length + ".";
   }
 
-  Promise.all([all("/milestones?state=all"), all("/issues?state=all"), all("/pulls?state=all")])
+  Promise.all([all("/milestones?state=all"), all("/issues?state=all"), all("/pulls?state=all"),
+               all("/commits?since=2026-09-01T00:00:00Z"), all("/issues/comments?since=2026-09-01T00:00:00Z")])
     .then(function (r) {
       var dated = r[1].filter(function (i) { return !i.pull_request && i.closed_at && i.milestone && i.milestone.due_on; });
-      return Promise.all(dated.map(delivery)).then(function () { render(r[0], r[1], r[2]); });
+      return Promise.all(dated.map(delivery)).then(function () {
+        render(r[0], r[1], r[2]);
+        weekly(r[0], r[1].filter(function (i) { return !i.pull_request; }), r[3], r[2], r[4]);
+      });
     })
     .catch(function (e) {
       document.getElementById("updated").textContent = "";
