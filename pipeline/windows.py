@@ -1,7 +1,8 @@
 """Окна времени и правила против утечки.
 
 Окна — полуинтервалы [start, end) на оси Time самого датасета (в тех же единицах). Требование:
-    train < validation (необязательно) < test   — строго по порядку, без пересечений.
+    train < validation (необязательно) < test < test_<метка> ...   — строго по порядку, без пересечений.
+Test-окон может быть несколько (например test — тот же день, test_day03 — другой день): итог — среднее по ним.
 
 Когорта (кого оцениваем):
 - train_only (по умолчанию): все хосты, активные в train; в позднем окне оцениваются те, кто активен
@@ -17,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +26,21 @@ import numpy as np
 
 ORDER = ("train", "validation", "test")
 COHORT_POLICIES = ("train_only", "all_windows")
+TEST_NAME = re.compile(r"^test(_[a-z0-9]+)?$")
+
+
+def is_test(name: str) -> bool:
+    """test или test_<метка>: окна для итоговых чисел."""
+    return bool(TEST_NAME.match(name))
+
+
+def ordered_windows(windows: dict) -> list[str]:
+    """train, validation, затем test-окна по времени начала (windows: имя -> (start, end) или {"start": ...})."""
+    def start(w):
+        v = windows[w]
+        return v["start"] if isinstance(v, dict) else v[0]
+    tests = sorted((w for w in windows if is_test(w)), key=start)
+    return [w for w in ("train", "validation") if w in windows] + tests
 
 
 @dataclass(frozen=True)
@@ -37,12 +54,13 @@ class PipelineConfig:
 
     def __post_init__(self) -> None:
         names = set(self.windows)
-        if not names <= set(ORDER):
-            raise ValueError(f"неизвестные окна {sorted(names - set(ORDER))}; допустимы {ORDER}")
+        unknown = sorted(n for n in names if n not in ("train", "validation") and not is_test(n))
+        if unknown:
+            raise ValueError(f"неизвестные окна {unknown}; допустимы train, validation, test, test_<метка>")
         if not {"train", "test"} <= names:
             raise ValueError("нужны окна 'train' и 'test'")
         previous_end = None
-        for name in (n for n in ORDER if n in names):
+        for name in ordered_windows(self.windows):
             start, end = self.windows[name]
             if not (np.isfinite(start) and np.isfinite(end) and start < end):
                 raise ValueError(f"окно {name}: нужно конечное start < end, получено {start}, {end}")
@@ -57,7 +75,7 @@ class PipelineConfig:
 
     @property
     def ordered(self) -> list[str]:
-        return [n for n in ORDER if n in self.windows]
+        return ordered_windows(self.windows)
 
     def to_dict(self) -> dict:
         return {"windows": {k: list(v) for k, v in self.windows.items()},

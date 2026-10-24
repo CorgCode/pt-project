@@ -37,6 +37,7 @@ from evaluation.evaluate import run
 from evaluation.identity import identity_retrieval
 from evaluation.io import load_embeddings
 from evaluation.validate import validate_submission
+from pipeline.windows import is_test, ordered_windows
 
 ROOT = Path(__file__).resolve().parents[1]
 BOARD = ROOT / "scoreboard"
@@ -64,9 +65,28 @@ def _sha(*paths: Path) -> str:
     return h.hexdigest()
 
 
+def test_windows() -> list[str]:
+    """Test-окна, для которых есть эталоны: test и test_<метка> (другие дни), по времени."""
+    ref = DATA / "reference"
+    m = json.loads((ref / "test" / "manifest.json").read_text(encoding="utf-8"))
+    return [w for w in ordered_windows(m["windows"]) if is_test(w) and (ref / w / "manifest.json").exists()]
+
+
+def window_file(w: str) -> str:
+    """Имя файла эмбеддинга test-окна: test.csv для test, test_day03.csv для test_day03."""
+    return f"{w}.csv"
+
+
+def _train_file(sub: Path, w: str) -> Path:
+    """Эмбеддинг, который оценивается на окне w: обычно embeddings.csv (свой — только у reference_ceiling)."""
+    own = sub / f"embeddings_{w}.csv"
+    return own if own.exists() else sub / "embeddings.csv"
+
+
 def _inputs(d: Path) -> list[Path]:
-    return [d / "embeddings.csv", d / "test.csv", d / "SHARED_COORDINATES", d / "AUTHOR",
-            DATA / "reference" / "test" / "manifest.json"]
+    ws = test_windows()
+    return ([d / "embeddings.csv"] + [d / window_file(w) for w in ws] + [d / f"embeddings_{w}.csv" for w in ws]
+            + [d / "SHARED_COORDINATES", d / "AUTHOR"] + [DATA / "reference" / w / "manifest.json" for w in ws])
 
 
 def check_card(sub: Path) -> None:
@@ -88,19 +108,17 @@ def check_card(sub: Path) -> None:
         raise ValueError(f"{card}: заполни разделы {', '.join(bad)} (по scoreboard/CARD_TEMPLATE.md)")
 
 
-def score(sub: Path) -> dict:
-    """Проверить и оценить одну отправку, сохранить results/<метод>.json."""
-    sub = Path(sub)
+def _score_window(sub: Path, w: str) -> dict:
+    """Оценка отправки на одном test-окне w (эталоны scoreboard/data/reference/<w>)."""
     method = sub.name
-    emb_file = sub / "embeddings.csv"
-    check_card(sub)
+    emb_file = _train_file(sub, w)
     validate_submission(str(emb_file))
-    ref_test, ref_val = DATA / "reference" / "test", DATA / "reference" / "validation"
+    ref_test, ref_val = DATA / "reference" / w, DATA / "reference" / "validation"
     # классификатор связей учится на кандидатах validation — нужен эмбеддинг и для их хостов
     val_hosts = set(pd.read_csv(ref_val / "eval_hosts.csv", dtype=str)["host_id"]) if (ref_val / "eval_hosts.csv").exists() else set()
     covers_val = val_hosts <= set(pd.read_csv(emb_file, dtype={"host_id": str}, usecols=["host_id"])["host_id"])
     r = run(emb_file, ref_test, method, n_boot=N_BOOT, seed=SEED, fit_reference_dir=ref_val if covers_val else None)
-    test_file = sub / "test.csv"
+    test_file = sub / window_file(w)
     if test_file.exists():
         validate_submission(str(test_file))
         hosts = pd.read_csv(ref_test / "eval_hosts.csv", dtype=str)["host_id"].tolist()
@@ -119,8 +137,54 @@ def score(sub: Path) -> dict:
                              "value": ident["top1"], "ci": r["metrics_ci"].get("identity_top1"),
                              "chance": ident["chance_top1"]})
     else:
-        r["metric_status"]["identity"] = "unavailable: нет test.csv (эмбеддинга test-окна)"
-        r["unavailable_metrics"].append("identity: нет test.csv (эмбеддинга test-окна)")
+        r["metric_status"]["identity"] = f"unavailable: нет {test_file.name} (эмбеддинга окна {w})"
+        r["unavailable_metrics"].append(f"identity: нет {test_file.name} (эмбеддинга окна {w})")
+    return r
+
+
+def _mean(xs):
+    xs = [x for x in xs if isinstance(x, (int, float)) and not isinstance(x, bool) and x == x]
+    return sum(xs) / len(xs) if xs else None
+
+
+def combine_windows(per: dict[str, dict]) -> dict:
+    """Итог по нескольким test-окнам: значения — среднее по окнам, в скобках — от меньшего до большего по окнам.
+
+    Метрика учитывается, только если она есть во всех окнах (иначе среднее сравнивало бы разные дни).
+    """
+    ws = list(per)
+    r = json.loads(json.dumps(per[ws[0]]))
+    if len(ws) == 1:
+        return r
+    keys = set.intersection(*(set(p["metrics"]) for p in per.values()))
+    r["metrics"] = {k: _mean([per[w]["metrics"][k] for w in ws]) for k in sorted(keys)}
+    r["metrics_ci"] = {}
+    for k in keys:
+        vals = [per[w]["metrics"][k] for w in ws if isinstance(per[w]["metrics"][k], (int, float))]
+        if len(vals) == len(ws):
+            r["metrics_ci"][k] = [min(vals), max(vals)]
+    summary = []
+    for s in r["summary"]:
+        rows = [next((x for x in per[w]["summary"] if x["metric"] == s["metric"]), None) for w in ws]
+        if any(x is None for x in rows):
+            continue
+        summary.append({**s, "value": _mean([x["value"] for x in rows]), "chance": _mean([x.get("chance") for x in rows]),
+                        "ci": r["metrics_ci"].get(s["metric"])})
+    r["summary"] = summary
+    r["ci_kind"] = "range over test windows"
+    r["test_windows"] = ws
+    r["by_window"] = {w: {"metrics": per[w]["metrics"], "summary": per[w]["summary"],
+                          "metrics_ci": per[w].get("metrics_ci", {})} for w in ws}
+    return r
+
+
+def score(sub: Path) -> dict:
+    """Проверить и оценить одну отправку на всех test-окнах, сохранить results/<метод>.json."""
+    sub = Path(sub)
+    method = sub.name
+    check_card(sub)
+    r = combine_windows({w: _score_window(sub, w) for w in test_windows()})
+    emb_file = sub / "embeddings.csv"
     author = sub / "AUTHOR"
     r["author"] = author.read_text(encoding="utf-8").strip().lstrip("@") if author.exists() else None
     r["submission"] = str(emb_file.relative_to(ROOT)) if emb_file.is_relative_to(ROOT) else str(emb_file)
@@ -154,10 +218,20 @@ def render() -> None:
     info = results[0].get("reference_info") or {}
     data = ("Данные — LANL, корпоративная сеть" if info.get("data_kind") == "lanl_declared"
             else "Данные — синтетика (проверка кода, не реальная сеть)")
+    labels, plan = _window_labels()
+    multi = len(labels) > 1
+    ci_text = ("В скобках — от худшего до лучшего значения по test-окнам (дням)." if multi
+               else "В скобках — диапазон, в котором значение лежит с вероятностью 95%.")
+    by_day = (f"""
+## По дням
+
+Score на каждом test-окне отдельно. Хороший метод держится на всех днях, а не только на соседнем с обучением.
+
+{scoreboard.window_scores_table(results, labels)}""" if multi else "")
     text = f"""# Таблица результатов
 
 Каждый метод описывает компьютер в сети набором чисел — вектором. Таблица показывает, насколько эти векторы полезны.
-{data}, компьютеров: {results[0].get('n_hosts')}. Вектор строится по часу трафика и проверяется на следующих 30 минутах.
+{data}, компьютеров: {results[0].get('n_hosts')}. {plan}
 
 **Score** — итог от 0 до 100: 0 — как у случайных векторов, 100 — идеал. Места — по нему.
 Название метода — ссылка на его карточку: устройство, какие данные берёт, как обучается.
@@ -169,13 +243,13 @@ def render() -> None:
 | Links, AUC | по двум векторам можно сказать, будут ли компьютеры обмениваться трафиком |
 | New partners, MRR | по похожим компьютерам угадываются их новые собеседники |
 | Pairs, AUC | компьютеры с общими собеседниками получают близкие векторы |
-| Identity, Top-1 | компьютер узнаётся по вектору через полчаса |
+| Identity, Top-1 | компьютер узнаётся по вектору, построенному по более позднему трафику |
 | Triplets* | из двух компьютеров ближе к данному тот, у кого с ним больше общих собеседников |
 | Cosine links, AUC* | будут ли компьютеры обмениваться трафиком, видно прямо по близости векторов, без обучения. Ниже 0.5 — близкие векторы, наоборот, реже связаны |
 
 \\* Метрики, предложенные Тихоном (#40, #22): показаны для сравнения, в score не входят.
 
-Жирным — лучшее в колонке. В скобках — диапазон, в котором значение лежит с вероятностью 95%.
+Жирным — лучшее в колонке. {ci_text}
 dim — длина вектора. Chance level — значение при случайном угадывании.
 `random` (случайные векторы) и `reference_ceiling` (точный ответ для Neighbors) — ориентиры, в рейтинге не участвуют.
 
@@ -184,9 +258,30 @@ dim — длина вектора. Chance level — значение при сл
 Каждая колонка переводится в шкалу 0–100 (0 — случайное угадывание, 100 — идеал).
 Колонки объединены в четыре задачи: Behavior (Neighbors), Future links (Links и New partners),
 Shared partners (Pairs), Identity. Score — среднее геометрическое четырёх задач:
-метод, который провалил хотя бы одну задачу, не поднимется высоко за счёт остальных.
-"""
+метод, который провалил хотя бы одну задачу, не поднимется высоко за счёт остальных.{" Для нескольких test-окон каждая колонка — среднее по окнам." if multi else ""}
+{by_day}"""
     (BOARD / "README.md").write_text(text, encoding="utf-8")
+
+
+def _span(seconds: float) -> str:
+    return f"{seconds / 3600:g} ч" if seconds >= 3600 and seconds % 1800 == 0 else f"{seconds / 60:g} мин"
+
+
+def _window_labels() -> tuple[dict[str, str], str]:
+    """Подписи test-окон («день 03, 30 мин») и одна фраза о том, на чём учатся и проверяются методы."""
+    m = json.loads((DATA / "reference" / "test" / "manifest.json").read_text(encoding="utf-8"))["windows"]
+    day = lambda w: f"{int(m[w]['start'] // 86400) + 1:02d}"                      # LANL: день 01 — с 0 по 86400
+    span = lambda w: _span(m[w]["end"] - m[w]["start"])
+    clock = lambda t: f"{int(t % 86400 // 3600):02d}:{int(t % 3600 // 60):02d}"
+    ws = test_windows()
+    labels = {w: f"день {day(w)}, {clock(m[w]['start'])}–{clock(m[w]['end'])}" for w in ws}
+    if len(ws) == 1:
+        plan = f"Вектор строится по {span('train')} трафика и проверяется на следующих {span(ws[0])}."
+    else:
+        plan = (f"Вектор строится по {span('train')} трафика (день {day('train')}, "
+                f"{clock(m['train']['start'])}–{clock(m['train']['end'])}) и проверяется на {len(ws)} отрезках: "
+                + "; ".join(labels[w] for w in ws) + ". Итог — среднее по ним.")
+    return labels, plan
 
 
 def _copy_card(name: str, d: Path) -> None:
@@ -196,7 +291,16 @@ def _copy_card(name: str, d: Path) -> None:
         shutil.copyfile(src, d / "README.md")
 
 
-BUILTIN_ORDER = ("struc2vec", "deepwalk", "node2vec", "graphsage", "rolx")   # долгие — первыми, чтобы процессы не простаивали
+BUILTIN_ORDER = ("struc2vec", "node2vec_services", "deepwalk_services", "deepwalk", "node2vec", "graphsage", "rolx")
+# варианты графовых методов: граф «хост — хост + хост — сервис», веса подобраны на validation (#79)
+VARIANTS_FILE = ROOT / "experiments" / "lanl" / "methods_v2.json"
+VARIANT_DIM = 32
+
+
+def variants() -> dict[str, tuple[str, dict]]:
+    """deepwalk_services, node2vec_services: (базовый метод, параметры) из experiments/lanl/methods_v2.json."""
+    cfg = json.loads(VARIANTS_FILE.read_text(encoding="utf-8"))
+    return {f"{base}_services": (base, params) for base, params in cfg.items()}   # долгие — первыми, чтобы процессы не простаивали
 
 
 def _code_sha() -> str:
@@ -206,7 +310,7 @@ def _code_sha() -> str:
 
 
 def _build_sha(name: str, dim: int, data_dir: Path) -> str:
-    h = hashlib.sha256(f"{name}|{dim}|{SEED}|{_code_sha()}".encode())
+    h = hashlib.sha256(f"{name}|{dim}|{SEED}|{_code_sha()}|{variants().get(name)}".encode())
     h.update((Path(data_dir) / "manifest.json").read_bytes())
     return h.hexdigest()
 
@@ -220,13 +324,18 @@ def _build_one(job: tuple) -> str:
 
     data = ProcessedData(data_dir)
     base = {b.name: b for b in default_baselines(dim, SEED)}
-    m = base[name] if name in base else graph_methods.create([name], dim, SEED)[0]
+    if name in variants():
+        parent, params = variants()[name]
+        m = graph_methods.create([parent], VARIANT_DIM, SEED, config={parent: params})[0]
+    else:
+        m = base[name] if name in base else graph_methods.create([name], dim, SEED)[0]
     m.fit(data)
     d = Path(out_dir) / name
     d.mkdir(parents=True, exist_ok=True)
     _copy_card(name, d)
     m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
-    m.embed(data, "test", data.evaluable("test")).to_csv(d / "test.csv", index_label="host_id")
+    for w in data.test_windows:
+        m.embed(data, w, data.evaluable(w)).to_csv(d / window_file(w), index_label="host_id")
     shared = d / "SHARED_COORDINATES"
     if m.info().get("shared_coordinate_system"):
         shared.touch()
@@ -254,7 +363,7 @@ def builtin(names: list[str], dim: int = 16, jobs: int = 1, force: bool = False)
 
     data_dir = processed_dir()
     base = [b.name for b in default_baselines(dim, SEED)]
-    wanted = base + sorted(graph_methods.available()) if names == ["all"] else names
+    wanted = base + sorted(graph_methods.available()) + sorted(variants()) if names == ["all"] else names
     todo = []
     for name in wanted:
         stamp = SUBMISSIONS / name / ".build"
@@ -271,9 +380,10 @@ def builtin(names: list[str], dim: int = 16, jobs: int = 1, force: bool = False)
         d = SUBMISSIONS / "reference_ceiling"
         d.mkdir(parents=True, exist_ok=True)
         _copy_card("reference_ceiling", d)
-        f = load_embeddings(DATA / "reference" / "test" / "features.csv", "host_id", "ref_")
-        f.columns = [c.replace("ref_", "emb_") for c in f.columns]
-        f.to_csv(d / "embeddings.csv", index_label="host_id")
+        for w in test_windows():                         # у каждого окна свой потолок — его же признаки
+            f = load_embeddings(DATA / "reference" / w / "features.csv", "host_id", "ref_")
+            f.columns = [c.replace("ref_", "emb_") for c in f.columns]
+            f.to_csv(d / ("embeddings.csv" if w == "test" else f"embeddings_{w}.csv"), index_label="host_id")
 
 
 def main() -> None:

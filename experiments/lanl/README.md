@@ -84,6 +84,20 @@ LANL_TOKEN=<токен> PY=.venv/bin/python experiments/lanl/night.sh ~/lanl 03 
 - Прогресс: `LANL_WORKDIR=~/lanl/day03 experiments/lanl/status.sh --watch`.
 - Итоги — `results/lanl_dayNN` и `results/lanl_dayNN_services`; смотреть — `streamlit run app/streamlit_app.py`.
 
+## Проверка на нескольких днях
+
+Один день и полчаса test — мало: метод может просто угадать этот отрезок. Таблица с проверкой на трёх днях:
+train — день 02, 11:00–12:00; test — по часу (12:30–13:30) в днях 02, 03 и 04. Итог — среднее по дням,
+в разделе «По дням» — score на каждом. День 05 не трогаем: он для последней проверки, когда методы выбраны.
+
+```bash
+LANL_TOKEN=<токен> NOTE="форма LANL, <дата>, <кто>" experiments/lanl/multiday.sh ~/lanl_multiday
+```
+
+Скрипт докачает дни 03 и 04, подготовит данные (`config_multiday.json`), построит эталоны, обучит все методы
+и гибриды и пересоберёт `scoreboard/`. Train 6 часов: `CONFIG=experiments/lanl/config_multiday_train6h.json`
+(нужно больше памяти, см. [BIG_MACHINE.md](BIG_MACHINE.md)). Окна и день 05 выбраны до просмотра результатов.
+
 ## Ресурсы (ноутбук, 8 ГБ)
 
 | шаг | время |

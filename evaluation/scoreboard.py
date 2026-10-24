@@ -15,6 +15,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -116,11 +117,23 @@ def task_scores(r: dict, cols) -> dict[str, float]:
     return {g: _geo(v) for g, v in by.items()}
 
 
+def _one_score(r: dict, cols) -> float:
+    ts = task_scores(r, cols)
+    return _geo(ts.values()) if ts else float("nan")
+
+
 def overall_score(results: list[dict], cols) -> pd.Series:
     """Общий балл 0–100: среднее геометрическое по задачам. Каждая задача весит одинаково,
-    провал в одной тянет вниз весь балл, рост в k раз в любой колонке весит одинаково."""
-    return pd.Series({r["method"]: (_geo(ts.values()) if (ts := task_scores(r, cols)) else float("nan"))
-                      for r in results})
+    провал в одной тянет вниз весь балл, рост в k раз в любой колонке весит одинаково.
+    Если test-окон несколько (by_window) — балл считается на каждом и усредняется."""
+    out = {}
+    for r in results:
+        if r.get("by_window"):
+            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols) for w in r["by_window"].values()]
+            out[r["method"]] = float(np.mean(days)) if not any(np.isnan(days)) else float("nan")
+        else:
+            out[r["method"]] = _one_score(r, cols)
+    return pd.Series(out)
 
 
 def headline_table(results: list[dict], card_url=None) -> str:
@@ -176,6 +189,23 @@ def headline_table(results: list[dict], card_url=None) -> str:
 
     lines.append("| | *chance level* | | 0 | | " + " | ".join([chance_cell(chance.get(k)) for k in cols]
                                                            + [_fmt(EXTRA_CHANCE)] * len(extra)) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def window_scores_table(results: list[dict], labels: dict[str, str]) -> str:
+    """Score каждого метода на каждом test-окне (если окон несколько): видно, устойчив ли метод по дням."""
+    multi = [r for r in results if r.get("by_window")]
+    if not multi:
+        return ""
+    ws = multi[0]["test_windows"]
+    cols, _, order = ranking(results)
+    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols) for r in multi}) for w in ws}
+    lines = ["| method | " + " | ".join(labels.get(w, w) for w in ws) + " | **mean** |",
+             "|---|" + "---|" * (len(ws) + 1)]
+    mean = overall_score(results, cols)
+    for m in list(order.index) + sorted(SERVICE & {r["method"] for r in multi}):
+        cells = ["—" if pd.isna(per[w].get(m)) else f"{per[w][m]:.1f}" for w in ws]
+        lines.append(f"| `{m}` | " + " | ".join(cells) + f" | {'—' if pd.isna(mean.get(m)) else f'{mean[m]:.1f}'} |")
     return "\n".join(lines) + "\n"
 
 
