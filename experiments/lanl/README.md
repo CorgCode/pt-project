@@ -95,7 +95,7 @@ LANL_TOKEN=<токен> NOTE="форма LANL, <дата>, <кто>" experiments
 ```
 
 Скрипт докачает дни 03 и 04, подготовит данные (`config_multiday.json`), построит эталоны, обучит все методы
-и гибриды и пересоберёт `scoreboard/`. Train 6 часов: `CONFIG=experiments/lanl/config_multiday_train6h.json`
+и гибриды и пересоберёт `scoreboard/`. С установленным torch добавится и `temporal_encoder`. Train 6 часов: `CONFIG=experiments/lanl/config_multiday_train6h.json`
 (нужно больше памяти, см. [BIG_MACHINE.md](BIG_MACHINE.md)). Окна и день 05 выбраны до просмотра результатов.
 
 ## Ресурсы (ноутбук, 8 ГБ)

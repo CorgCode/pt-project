@@ -32,6 +32,11 @@ export PT_DATA=$W/processed
 
 run "$PY" -m evaluation.submit --builtin all
 run "$PY" scoreboard/hybrid_tfidf.py --tune          # DIM и веса — на validation, с узнаваемостью
+if "$PY" -c "import torch" 2>/dev/null; then
+  run "$PY" scoreboard/temporal_encoder.py           # рецепт выбран на validation дня 02, здесь не перенастраивается
+else
+  echo "temporal_encoder пропущен: нет torch (pip install torch)"
+fi
 run "$PY" scoreboard/combine.py behavioral node2vec_services graph_spectral --name hybrid_services --tune-weights
 run "$PY" scoreboard/combine.py behavioral node2vec graph_spectral --name hybrid_weighted --tune-weights
 run "$PY" scoreboard/combine.py behavioral deepwalk --name hybrid_behavioral_deepwalk
