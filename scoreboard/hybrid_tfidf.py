@@ -108,7 +108,8 @@ def main() -> None:
     model = HybridTfidf().fit(data)
     out = ROOT / "scoreboard" / "submissions" / NAME
     out.mkdir(parents=True, exist_ok=True)
-    for window, hosts, fname in (("train", data.cohort, "embeddings.csv"), ("test", data.evaluable("test"), "test.csv")):
+    for window, hosts, fname in [("train", data.cohort, "embeddings.csv")] + [
+            (w, data.evaluable(w), submit.window_file(w)) for w in data.test_windows]:
         model.embed(data, window, hosts).to_csv(out / fname, float_format="%.5g")
     (out / "SHARED_COORDINATES").touch()
     (out / "AUTHOR").write_text("physcorgi\n", encoding="utf-8")

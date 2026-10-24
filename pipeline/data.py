@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from pipeline.windows import ORDER
+from pipeline.windows import is_test, ordered_windows
 
 FLOW_DTYPES = {"src": "string", "dst": "string", "dst_port": "string", "proto": "string",
                "src_port": "string"}
@@ -73,8 +73,13 @@ class ProcessedData:
 
     @property
     def windows(self) -> list[str]:
-        """Окна по времени (train, validation, test)."""
-        return [w for w in ORDER if w in self.manifest["windows"]]
+        """Окна по времени (train, validation, test, test_<метка>...)."""
+        return ordered_windows(self.manifest["windows"])
+
+    @property
+    def test_windows(self) -> list[str]:
+        """Окна для итоговых чисел: test и, если объявлены, test_<метка> (другие дни)."""
+        return [w for w in self.windows if is_test(w)]
 
     def flows(self, window: str) -> pd.DataFrame:
         """Потоки одного окна (для обучения используйте training_flows)."""

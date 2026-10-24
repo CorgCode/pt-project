@@ -4,7 +4,7 @@
     python scoreboard/combine.py behavioral node2vec --name hybrid --tune-weights   # вес частей подобрать на validation
 
 Каждая часть нормируется (среднее 0, общая норма 1 на хост), чтобы ни одна не перевешивала из-за масштаба,
-затем векторы склеиваются. Берутся train (embeddings.csv) и, если есть у всех частей, test (test.csv).
+затем векторы склеиваются. Берутся train (embeddings.csv) и test-окна (test.csv, test_<метка>.csv), если они есть у всех частей.
 Результат — обычная отправка в scoreboard/submissions/<name>/, она сразу оценивается.
 """
 from __future__ import annotations
@@ -33,7 +33,8 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
     subs = Path(submit.SUBMISSIONS)                       # части берём из таблицы
     out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
-    for fname in ("embeddings.csv", "test.csv"):
+    tests = sorted({f.name for p in parts for f in (subs / p).glob("test*.csv")})   # test.csv, test_day03.csv, ...
+    for fname in ["embeddings.csv"] + tests:
         files = [subs / p / fname for p in parts]
         if not all(f.exists() for f in files):
             continue
