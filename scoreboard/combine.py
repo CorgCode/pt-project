@@ -34,7 +34,7 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
     out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
     tests = sorted({f.name for p in parts for f in (subs / p).glob("test*.csv")})   # test.csv, test_day03.csv, ...
-    for fname in ["embeddings.csv"] + tests:
+    for fname in ["embeddings.csv"] + tests + ["validation.csv"]:
         files = [subs / p / fname for p in parts]
         if not all(f.exists() for f in files):
             continue
@@ -83,23 +83,19 @@ def _card(parts: list[str], name: str, weights: list[float] | None) -> str:
 
 
 def tune_weights(parts: list[str], grid=(1.0, 2.0, 3.0, 4.0, 6.0, 10.0)) -> tuple[list[float], list[dict]]:
-    """Вес первой части (остальные = 1) по общему баллу на validation. Test не используется."""
+    """Вес первой части (остальные = 1) по общему баллу на validation. Test не используется.
+    Узнаваемость тоже учитывается, если у всех частей есть validation.csv (эмбеддинг validation-окна)."""
     import tempfile
 
-    from evaluation import scoreboard
-    from evaluation.evaluate import run
-
-    ref_val = submit.DATA / "reference" / "validation"
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
         for w0 in grid:
             weights = [w0] + [1.0] * (len(parts) - 1)
             d = combine(parts, "w", Path(tmp), weights)
-            r = run(d / "embeddings.csv", ref_val, "w", n_boot=0)
-            cols = {s["metric"]: s["title"] for s in r["summary"]}
-            score = float(scoreboard.overall_score([r], cols)["w"])
-            rows.append({"weight": w0, "score": score})
-            print(f"  вес {parts[0]} = {w0}: балл на validation {score:.1f}")
+            score, tasks = submit.validation_score(d / "embeddings.csv", d / "validation.csv")
+            rows.append({"weight": w0, "score": score, "tasks": tasks})
+            print(f"  вес {parts[0]} = {w0}: балл на validation {score:.1f}  "
+                  + ", ".join(f"{k} {v:.0f}" for k, v in tasks.items()))
     best = max(rows, key=lambda x: x["score"])
     return [best["weight"]] + [1.0] * (len(parts) - 1), rows
 
