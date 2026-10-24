@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,31 @@ from pipeline.windows import ORDER
 
 FLOW_DTYPES = {"src": "string", "dst": "string", "dst_port": "string", "proto": "string",
                "src_port": "string"}
+
+
+def _read_cached(path: Path) -> pd.DataFrame:
+    """CSV потоков, но со второго раза — из бинарной копии рядом (.cache/<окно>.pkl): в разы быстрее.
+
+    Копия пересоздаётся, если CSV изменился (размер или время). Нет прав на запись — читаем CSV.
+    """
+    cache = path.parent / ".cache" / (path.stem + ".pkl")
+    stamp = f"{path.stat().st_size}:{path.stat().st_mtime_ns}"
+    tag = cache.with_suffix(".stamp")
+    try:
+        if cache.exists() and tag.exists() and tag.read_text() == stamp:
+            return pd.read_pickle(cache)
+    except Exception:                                    # битая копия — просто читаем CSV
+        pass
+    flows = pd.read_csv(path, dtype=FLOW_DTYPES)
+    try:
+        cache.parent.mkdir(exist_ok=True)
+        tmp = cache.with_suffix(f".tmp{os.getpid()}")
+        flows.to_pickle(tmp)
+        os.replace(tmp, cache)
+        tag.write_text(stamp)
+    except OSError:
+        pass
+    return flows
 
 
 class ProcessedData:
@@ -58,7 +84,7 @@ class ProcessedData:
         if not path.exists():
             raise FileNotFoundError(f"{path}: потоков нет (в git они не хранятся — слишком большие). Скачайте и подготовьте "
                                     "данные по experiments/lanl/README.md и укажите путь в PT_DATA")
-        return pd.read_csv(path, dtype=FLOW_DTYPES)
+        return _read_cached(path)
 
     def graph(self, window: str) -> pd.DataFrame:
         return pd.read_csv(self.root / "graph" / f"edges_{window}.csv",

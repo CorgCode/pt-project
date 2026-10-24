@@ -6,7 +6,8 @@
     # оценить все отправки, у которых нет свежего результата (так делает CI)
     python -m evaluation.submit --all
 
-    # пересчитать бейзлайны и пять графовых методов на общих данных
+    # пересчитать бейзлайны и пять графовых методов на общих данных (уже обученные на тех же данных
+    # пропускаются; --force — заново; --jobs N — сколько процессов, по умолчанию по ядрам и памяти)
     python -m evaluation.submit --builtin all
 
 Папка отправки:
@@ -212,30 +213,77 @@ def _copy_card(name: str, d: Path) -> None:
         shutil.copyfile(src, d / "README.md")
 
 
-def builtin(names: list[str], dim: int = 16) -> None:
-    """Обучить бейзлайны и графовые методы на общих данных и положить их как обычные отправки."""
+BUILTIN_ORDER = ("struc2vec", "deepwalk", "node2vec", "graphsage", "rolx")   # долгие — первыми, чтобы процессы не простаивали
+
+
+def _code_sha() -> str:
+    """Код методов и загрузки данных: поменялся — встроенные методы обучаются заново."""
+    files = sorted((ROOT / "methods").rglob("*.py")) + [ROOT / "pipeline" / "data.py"]
+    return _sha(*[f for f in files if "test_" not in f.name])
+
+
+def _build_sha(name: str, dim: int, data_dir: Path) -> str:
+    h = hashlib.sha256(f"{name}|{dim}|{SEED}|{_code_sha()}".encode())
+    h.update((Path(data_dir) / "manifest.json").read_bytes())
+    return h.hexdigest()
+
+
+def _build_one(job: tuple) -> str:
+    """Обучить один встроенный метод и записать отправку (в отдельном процессе или здесь же)."""
+    name, dim, data_dir, out_dir = job
     from methods import graph as graph_methods
     from methods.baselines.temporal import default_baselines
     from pipeline.data import ProcessedData
 
-    data = ProcessedData(processed_dir())
-    hosts_test = data.evaluable("test")
+    data = ProcessedData(data_dir)
     base = {b.name: b for b in default_baselines(dim, SEED)}
-    wanted = list(base) + sorted(graph_methods.available()) if names == ["all"] else names
+    m = base[name] if name in base else graph_methods.create([name], dim, SEED)[0]
+    m.fit(data)
+    d = Path(out_dir) / name
+    d.mkdir(parents=True, exist_ok=True)
+    _copy_card(name, d)
+    m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
+    m.embed(data, "test", data.evaluable("test")).to_csv(d / "test.csv", index_label="host_id")
+    shared = d / "SHARED_COORDINATES"
+    if m.info().get("shared_coordinate_system"):
+        shared.touch()
+    elif shared.exists():
+        shared.unlink()
+    (d / ".build").write_text(_build_sha(name, dim, data_dir) + "\n")
+    return name
+
+
+def _train_gb(data_dir: Path) -> float:
+    """Сколько памяти нужно одному процессу обучения: ≈ 3 ГБ на час LANL (9.4 млн потоков в train)."""
+    m = json.loads((Path(data_dir) / "manifest.json").read_text(encoding="utf-8"))
+    return max(1.0, 3.0 * m["windows"]["train"].get("n_flows", 9.4e6) / 9.4e6)
+
+
+def builtin(names: list[str], dim: int = 16, jobs: int = 1, force: bool = False) -> None:
+    """Обучить бейзлайны и графовые методы на общих данных и положить их как обычные отправки.
+
+    Метод, уже обученный на этих же данных этим же кодом (файл .build в его папке), пропускается, если не force.
+    jobs > 1 — методы обучаются параллельно в отдельных процессах.
+    """
+    from methods import graph as graph_methods
+    from methods.baselines.temporal import default_baselines
+    from pipeline import speed
+
+    data_dir = processed_dir()
+    base = [b.name for b in default_baselines(dim, SEED)]
+    wanted = base + sorted(graph_methods.available()) if names == ["all"] else names
+    todo = []
     for name in wanted:
-        m = base[name] if name in base else graph_methods.create([name], dim, SEED)[0]
-        m.fit(data)
-        d = SUBMISSIONS / name
-        d.mkdir(parents=True, exist_ok=True)
-        _copy_card(name, d)
-        m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
-        m.embed(data, "test", hosts_test).to_csv(d / "test.csv", index_label="host_id")
-        shared = d / "SHARED_COORDINATES"
-        if m.info().get("shared_coordinate_system"):
-            shared.touch()
-        elif shared.exists():
-            shared.unlink()
-        print("готово:", name)
+        stamp = SUBMISSIONS / name / ".build"
+        if not force and stamp.exists() and stamp.read_text().strip() == _build_sha(name, dim, data_dir) \
+                and (SUBMISSIONS / name / "embeddings.csv").exists():
+            print("уже обучен на этих данных, пропускаю:", name)
+            continue
+        todo.append(name)
+    todo.sort(key=lambda n: BUILTIN_ORDER.index(n) if n in BUILTIN_ORDER else len(BUILTIN_ORDER))
+    jobs_list = [(n, dim, data_dir, SUBMISSIONS) for n in todo]
+    for job, _, secs in speed.run_parallel(_build_one, jobs_list, jobs, "обучение"):
+        print(f"готово: {job[0]} за {secs:.0f} с")
     if names == ["all"]:                                # потолок: признаки эталона как эмбеддинг
         d = SUBMISSIONS / "reference_ceiling"
         d.mkdir(parents=True, exist_ok=True)
@@ -251,18 +299,19 @@ def main() -> None:
     ap.add_argument("--all", action="store_true", help="оценить все отправки без свежего результата")
     ap.add_argument("--force", action="store_true", help="пересчитать даже свежие (например, после смены данных)")
     ap.add_argument("--builtin", nargs="+", metavar="METHOD", help="'all' или имена бейзлайнов / графовых методов")
+    ap.add_argument("--jobs", type=int, default=None,
+                    help="сколько процессов (по умолчанию — по ядрам и памяти: на M2 с 8 ГБ и часе train — 2 на обучение, 4 на оценку)")
     a = ap.parse_args()
+    from pipeline import speed
     if a.builtin:
-        builtin(a.builtin)
+        builtin(a.builtin, jobs=a.jobs or speed.default_jobs(gb_per_job=_train_gb(processed_dir())), force=a.force)
     todo = list(a.submission)
     if a.all or a.builtin:
         todo += sorted(d for d in SUBMISSIONS.iterdir() if d.is_dir() and (d / "embeddings.csv").exists())
-    for d in dict.fromkeys(todo):
-        if not a.force and not a.submission.count(d) and is_fresh(d):
-            continue
-        r = score(d)
-        print(f"оценено: {d.name}  " + ", ".join(f"{s['title']}: {s['value']:.3f}" for s in r["summary"]
-                                                 if s["value"] is not None))
+    todo = [d for d in dict.fromkeys(todo) if a.force or a.submission.count(d) or not is_fresh(d)]
+    for d, r, secs in speed.run_parallel(score, todo, a.jobs or speed.default_jobs(gb_per_job=1.5), "оценка"):
+        print(f"оценено за {secs:.0f} с: {d.name}  " + ", ".join(f"{s['title']}: {s['value']:.3f}" for s in r["summary"]
+                                                             if s["value"] is not None))
     render()
     if (BOARD / "README.md").exists():
         print((BOARD / "README.md").read_text(encoding="utf-8").split("**Жирным**")[0])

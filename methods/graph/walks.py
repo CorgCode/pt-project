@@ -16,6 +16,7 @@ from __future__ import annotations
 import numpy as np
 
 from methods.graph.graph_input import Graph
+from pipeline.speed import progress
 
 
 def _draw_neighbor_index(g: Graph, v: np.ndarray, rng: np.random.Generator) -> np.ndarray:
@@ -83,7 +84,7 @@ def walk_corpus(g: Graph, num_walks: int, walk_length: int, *, p: float = 1.0, q
     rng = np.random.default_rng(seed)
     pool = np.flatnonzero(g.degree > 0) if nodes is None else np.asarray(nodes)
     out = []
-    for _ in range(num_walks):
+    for _ in progress(range(num_walks), desc="блуждания", leave=False):
         order = rng.permutation(pool)
         out.append(random_walks(g, order, walk_length, p=p, q=q, rng=rng))
     return np.concatenate(out)

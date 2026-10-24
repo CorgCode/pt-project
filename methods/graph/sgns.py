@@ -16,6 +16,8 @@ import heapq
 import numpy as np
 from scipy.special import expit
 
+from pipeline.speed import progress
+
 
 # ------------------------------------------------------------------------------------ дерево Хаффмана
 def huffman(freq: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -91,7 +93,10 @@ def scatter_sub(W: np.ndarray, idx: np.ndarray, grad: np.ndarray, lr: float) -> 
 class SkipGram:
     def __init__(self, n_nodes: int, dim: int, *, objective: str = "neg", window: int = 10, negative: int = 5,
                  lr: float = 0.025, min_lr: float = 1e-4, epochs: int = 1, batch_size: int = 512, seed: int = 0,
-                 node_freq: np.ndarray | None = None, max_chunk_pairs: int = 4_000_000):
+                 node_freq: np.ndarray | None = None, max_chunk_pairs: int = 4_000_000, engine: str = "numba"):
+        if engine not in ("numba", "numpy"):
+            raise ValueError("engine должен быть 'numba' или 'numpy'")
+        self.engine = engine
         if objective not in ("neg", "hs"):
             raise ValueError("objective должен быть 'neg' или 'hs'")
         if min(n_nodes, dim, window, epochs, batch_size) < 1 or (objective == "neg" and negative < 1):
@@ -135,6 +140,7 @@ class SkipGram:
             raise ValueError("walks — массив (n_walks, длина>=2) индексов вершин из [0, n_nodes)")
         total = self.epochs * self.expected_pairs(len(walks), walks.shape[1])
         done = 0.0
+        bar = progress(total=int(total), desc="skip-gram", unit=" пар", unit_scale=True, leave=False)
         per_chunk = max(1, int(self.max_chunk_pairs / max(1.0, self.expected_pairs(1, walks.shape[1]))))
         for _ in range(self.epochs):
             order = self.rng.permutation(len(walks))
@@ -142,13 +148,29 @@ class SkipGram:
                 c, x = self._pairs(walks[order[s:s + per_chunk]])
                 perm = self.rng.permutation(len(c))
                 c, x = c[perm], x[perm]
-                chunk_loss = 0.0
-                for i in range(0, len(c), self.batch_size):
-                    lr = max(self.min_lr, self.lr * (1.0 - (done + i) / max(total, 1.0)))
-                    chunk_loss += self._step(c[i:i + self.batch_size], x[i:i + self.batch_size], lr)
+                starts = np.arange(0, len(c), self.batch_size)
+                lrs = np.maximum(self.min_lr, self.lr * (1.0 - (done + starts) / max(total, 1.0)))
+                if self.engine == "numba":
+                    chunk_loss = self._chunk_numba(c, x, lrs)
+                else:
+                    chunk_loss = sum(self._step(c[i:i + self.batch_size], x[i:i + self.batch_size], lr)
+                                     for i, lr in zip(starts, lrs))
                 done += len(c)
                 self.loss_history.append(chunk_loss / max(len(c), 1))
+                bar.update(len(c))
+                bar.set_postfix_str(f"потери {self.loss_history[-1]:.3f}")
+        bar.close()
         return self
+
+    def _chunk_numba(self, c: np.ndarray, x: np.ndarray, lrs: np.ndarray) -> float:
+        from methods.graph import kernels
+        c, x = c.astype(np.int64), x.astype(np.int64)
+        if self.objective == "neg":                      # те же случайные числа, что по батчам в _step
+            negs = np.minimum(np.searchsorted(self._neg_cdf, self.rng.random((len(c), self.negative))), self.n - 1)
+            return float(kernels.sgns_neg_epoch(self.W_in, self.W_out, c, x, negs.astype(np.int64), lrs,
+                                                self.batch_size))
+        return float(kernels.sgns_hs_epoch(self.W_in, self.W_out, c, x, self.paths, self.codes.astype(np.int64),
+                                           self.lens, lrs, self.batch_size))
 
     def _step(self, c: np.ndarray, x: np.ndarray, lr: float) -> float:
         if self.objective == "neg":

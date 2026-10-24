@@ -129,3 +129,21 @@ def test_tikhon_metrics_table_reads_robustness_if_present(board):
     submit.render()
     md = (board / "README.md").read_text(encoding="utf-8")
     assert "Stability −10%" in md and "| 0.812 | 1.000 |" in md
+
+
+def test_builtin_skips_methods_already_trained_on_same_data(board, capsys):
+    submit.builtin(["behavioral"])
+    first = (board / "submissions" / "behavioral" / "embeddings.csv").stat().st_mtime_ns
+    submit.builtin(["behavioral"])
+    assert "пропускаю: behavioral" in capsys.readouterr().out
+    assert (board / "submissions" / "behavioral" / "embeddings.csv").stat().st_mtime_ns == first
+    submit.builtin(["behavioral"], force=True)
+    assert (board / "submissions" / "behavioral" / "embeddings.csv").stat().st_mtime_ns != first
+
+
+def test_builtin_in_two_processes_gives_same_vectors(board, tmp_path):
+    submit.builtin(["behavioral", "graph_spectral"])
+    one = {m: (board / "submissions" / m / "embeddings.csv").read_text() for m in ("behavioral", "graph_spectral")}
+    submit.builtin(["behavioral", "graph_spectral"], jobs=2, force=True)
+    for m, text in one.items():
+        assert (board / "submissions" / m / "embeddings.csv").read_text() == text
