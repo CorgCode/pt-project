@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data" / "results.json"
 LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
-PAGES = ["index.html", "report.html"]
+PAGES = ["index.html", "report.html", "team.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
 CHARTS = ["leaderboard", "chartMetric", "hostMap"]
 SECTIONS = ["overview", "results", "metrics", "map", "methods", "status"]
