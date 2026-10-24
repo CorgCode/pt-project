@@ -63,7 +63,8 @@ class TfidfSVD:
         self.vocab = pd.Index(df[df >= self.min_df].index)     # токен хотя бы у двух хостов
         x = counts(flows, self.kind, hosts, self.vocab)
         self.tfidf = TfidfTransformer().fit(x)
-        self.svd = TruncatedSVD(self.dim, random_state=self.seed).fit(normalize(self.tfidf.transform(x)))
+        dim = min(self.dim, len(self.vocab) - 1)                 # на маленьких данных словарь бывает короче DIM
+        self.svd = TruncatedSVD(dim, random_state=self.seed).fit(normalize(self.tfidf.transform(x)))
         return self
 
     def embed(self, flows: pd.DataFrame, hosts: list[str]) -> np.ndarray:
@@ -79,19 +80,36 @@ def _block(x: np.ndarray) -> np.ndarray:
     return x / np.sqrt((x ** 2).sum(1).mean())
 
 
+class HybridTfidf:
+    """fit(data) учится только на train; embed(data, window, hosts) — как у бейзлайнов (для experiments.robustness)."""
+    name = NAME
+    shared_coordinate_system = True
+
+    def __init__(self, seed: int = 0):
+        self.seed = seed
+
+    def fit(self, data: ProcessedData) -> "HybridTfidf":
+        self.train = data.training_flows()
+        self.beh = BehavioralBaseline().fit(data)
+        self.graph = {k: TfidfSVD(k, seed=self.seed).fit(self.train, data.cohort) for k in ("peers", "services")}
+        return self
+
+    def embed(self, data: ProcessedData, window: str, hosts: list[str] | None = None) -> pd.DataFrame:
+        hosts = list(hosts) if hosts is not None else data.cohort
+        flows = self.train if window == "train" else data.flows(window)
+        parts = {"behavioral": self.beh.embed(data, window, hosts).to_numpy()}
+        parts.update({k: m.embed(flows, hosts) for k, m in self.graph.items()})
+        x = np.hstack([_block(parts[k]) * w for k, w in WEIGHTS.items()])
+        return pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_")
+
+
 def main() -> None:
     data = ProcessedData(os.environ.get("PT_DATA", ROOT / "scoreboard" / "data" / "processed"))
-    train = data.training_flows()
-    beh = BehavioralBaseline().fit(data)
-    graph = {k: TfidfSVD(k).fit(train, data.cohort) for k in ("peers", "services")}
+    model = HybridTfidf().fit(data)
     out = ROOT / "scoreboard" / "submissions" / NAME
     out.mkdir(parents=True, exist_ok=True)
     for window, hosts, fname in (("train", data.cohort, "embeddings.csv"), ("test", data.evaluable("test"), "test.csv")):
-        flows = train if window == "train" else data.flows(window)
-        parts = {"behavioral": beh.embed(data, window, hosts).to_numpy()}
-        parts.update({k: m.embed(flows, hosts) for k, m in graph.items()})
-        x = np.hstack([_block(parts[k]) * w for k, w in WEIGHTS.items()])
-        pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.5g")
+        model.embed(data, window, hosts).to_csv(out / fname, float_format="%.5g")
     (out / "SHARED_COORDINATES").touch()
     (out / "AUTHOR").write_text("physcorgi\n", encoding="utf-8")
     r = submit.score(out)

@@ -27,6 +27,8 @@ from methods import graph as graph_methods
 from methods.baselines.temporal import default_baselines
 from pipeline.data import ProcessedData
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 def knn_overlap(a: pd.DataFrame, b: pd.DataFrame, k: int = 10) -> float:
     """Средняя доля общих k ближайших соседей (по косинусу) в двух эмбеддингах одних хостов."""
@@ -79,6 +81,12 @@ class ReducedData(ProcessedData):
 
 
 def _make(name: str, dim: int, seed: int, fast: bool):
+    if name == "hybrid_tfidf":                             # лидер таблицы; размерность у него своя (313)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("hybrid_tfidf", ROOT / "scoreboard" / "hybrid_tfidf.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.HybridTfidf(seed)
     base = {b.name: b for b in default_baselines(dim, seed)}
     return base[name] if name in base else graph_methods.create([name], dim, seed, fast=fast)[0]
 
@@ -124,7 +132,7 @@ def main() -> None:
     ap.add_argument("--processed-dir", type=Path, required=True)
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--methods", nargs="+", default=["behavioral", "graph_spectral"],
-                    help="бейзлайны и/или графовые методы: " + ", ".join(sorted(graph_methods.available())))
+                    help="бейзлайны, hybrid_tfidf и/или графовые методы: " + ", ".join(sorted(graph_methods.available())))
     ap.add_argument("--fractions", nargs="+", type=float, default=[0.1, 0.2, 0.3])
     ap.add_argument("--dim", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
