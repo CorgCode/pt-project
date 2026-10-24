@@ -70,6 +70,8 @@ COL_EN = {"Соседи@10": "Neighbors@10", "Связь, AUC": "Links, AUC", "�
           "Пары, AUC": "Pairs, AUC", "Узнаваемость, Top-1": "Identity, Top-1"}
 TASK_EN = {"Поведение": "Behavior", "Будущие связи": "Future links", "Общие собеседники": "Shared partners",
            "Узнаваемость": "Identity"}
+EXTRA = {"triplet_accuracy": "Triplets", "link_roc_auc": "Cosine links, AUC"}   # метрики Тихона (#40), в score не входят
+EXTRA_CHANCE = 0.5
 SERVICE = {"random", "reference_ceiling"}      # ориентиры, а не методы: в выборе лучшего не участвуют
 
 
@@ -133,18 +135,21 @@ def headline_table(results: list[dict], card_url=None) -> str:
         for s in r.get("summary", []):
             if s.get("chance") is not None:
                 chance.setdefault(s["metric"], []).append(s["chance"])
-    real = values.loc[order.index]
-    best = {k: real[k].max() for k in cols if real[k].notna().any()}
     score = overall_score(results, cols)
+    extra = {k: t for k, t in EXTRA.items() if any(r["metrics"].get(k) is not None for r in results)}
+    shown = list(cols) + list(extra)
+    real = pd.DataFrame({m: {k: r["metrics"].get(k) for k in shown} for m, r in ((r["method"], r) for r in results)
+                         if m in order.index}).T.astype(float)
+    best = {k: real[k].max() for k in shown if k in real and real[k].notna().any()}
     lines = ["| # | method | submitted by | **score** | dim | " + " | ".join(COL_EN.get(t, t) for t in cols.values())
-             + " |",
-             "|---|---|---|---|---|" + "---|" * len(cols)]
+             + "".join(f" | {t}*" for t in extra.values()) + " |",
+             "|---|---|---|---|---|" + "---|" * len(shown)]
     by_name = {r["method"]: r for r in results}
 
     def row(place: str, m: str) -> str:
         r = by_name[m]
         cells = []
-        for k in cols:
+        for k in shown:
             c = _fmt(r["metrics"].get(k), r.get("metrics_ci", {}).get(k))
             v = r["metrics"].get(k)
             if m not in SERVICE and v is not None and k in best and abs(v - best[k]) < 1e-12:
@@ -169,32 +174,8 @@ def headline_table(results: list[dict], card_url=None) -> str:
         lo, hi = min(vals), max(vals)
         return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
 
-    lines.append("| | *chance level* | | 0 | | " + " | ".join(chance_cell(chance.get(k)) for k in cols) + " |")
-    return "\n".join(lines) + "\n"
-
-
-def tikhon_table(results: list[dict], robustness: dict | None = None) -> str:
-    """Метрики Тихона (#40): идея 1 — связи по косинусу, идея 2 — устойчивость, идея 3 — собеседники; плюс тройки (#22).
-    В score не входят. robustness — содержимое robustness.json (experiments.robustness) или None."""
-    _, _, order = ranking(results)
-    by_name = {r["method"]: r for r in results}
-    rob = (robustness or {}).get("methods", {})
-    fracs = (robustness or {}).get("fractions", [0.1, 0.2, 0.3])
-    lines = ["| method | Cosine links, AUC | Partners MRR, all | Partners MRR, new | Recall@10, new | "
-             "new vs best baseline | Triplets | " + " | ".join(f"Stability −{f:.0%}" for f in fracs)
-             + " | Stability floor |",
-             "|---|---|---|---|---|---|---|" + "---|" * len(fracs) + "---|"]
-    for m in list(order.index) + sorted(SERVICE & set(by_name)):
-        x = by_name[m]["metrics"]
-        lift = x.get("partner_new_lift")
-        st = rob.get(m, {})
-        by_f = st.get("by_fraction", {})
-        stab = [_fmt(by_f.get(str(f), {}).get("overlap")) for f in fracs]
-        name = f"*`{m}`*" if m in SERVICE else f"`{m}`"
-        lines.append(f"| {name} | " + " | ".join(
-            [_fmt(x.get("link_roc_auc")), _fmt(x.get("partner_mrr")), _fmt(x.get("partner_new_mrr")),
-             _fmt(x.get("partner_new_recall@10")), "—" if lift is None else f"×{1 + lift:.1f}",
-             _fmt(x.get("triplet_accuracy"))] + stab + [_fmt(st.get("noise_floor", {}).get("overlap"))]) + " |")
+    lines.append("| | *chance level* | | 0 | | " + " | ".join([chance_cell(chance.get(k)) for k in cols]
+                                                           + [_fmt(EXTRA_CHANCE)] * len(extra)) + " |")
     return "\n".join(lines) + "\n"
 
 
