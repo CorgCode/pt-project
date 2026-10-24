@@ -173,6 +173,31 @@ def headline_table(results: list[dict], card_url=None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def tikhon_table(results: list[dict], robustness: dict | None = None) -> str:
+    """Метрики Тихона (#40): идея 1 — связи по косинусу, идея 2 — устойчивость, идея 3 — собеседники; плюс тройки (#22).
+    В score не входят. robustness — содержимое robustness.json (experiments.robustness) или None."""
+    _, _, order = ranking(results)
+    by_name = {r["method"]: r for r in results}
+    rob = (robustness or {}).get("methods", {})
+    fracs = (robustness or {}).get("fractions", [0.1, 0.2, 0.3])
+    lines = ["| method | Cosine links, AUC | Partners MRR, all | Partners MRR, new | Recall@10, new | "
+             "new vs best baseline | Triplets | " + " | ".join(f"Stability −{f:.0%}" for f in fracs)
+             + " | Stability floor |",
+             "|---|---|---|---|---|---|---|" + "---|" * len(fracs) + "---|"]
+    for m in list(order.index) + sorted(SERVICE & set(by_name)):
+        x = by_name[m]["metrics"]
+        lift = x.get("partner_new_lift")
+        st = rob.get(m, {})
+        by_f = st.get("by_fraction", {})
+        stab = [_fmt(by_f.get(str(f), {}).get("overlap")) for f in fracs]
+        name = f"*`{m}`*" if m in SERVICE else f"`{m}`"
+        lines.append(f"| {name} | " + " | ".join(
+            [_fmt(x.get("link_roc_auc")), _fmt(x.get("partner_mrr")), _fmt(x.get("partner_new_mrr")),
+             _fmt(x.get("partner_new_recall@10")), "—" if lift is None else f"×{1 + lift:.1f}",
+             _fmt(x.get("triplet_accuracy"))] + stab + [_fmt(st.get("noise_floor", {}).get("overlap"))]) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def build(results_dir: Path, output: Path) -> pd.DataFrame | None:
     results = load_results(results_dir)
     if not results:

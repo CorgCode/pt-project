@@ -38,3 +38,10 @@ def test_robustness_report(processed, tmp_path):
     assert rnd["noise_floor"]["overlap"] < 0.3                      # случайный эмбеддинг: другой seed — другие соседи
     assert b["by_fraction"]["0.2"]["overlap"] > rnd["noise_floor"]["overlap"]
     assert "Устойчивость" in (tmp_path / "robustness.md").read_text(encoding="utf-8")
+
+
+def test_hybrid_tfidf_is_supported(processed, tmp_path):
+    r = robustness(processed, tmp_path, ["hybrid_tfidf"], fractions=(0.2,))
+    h = r["methods"]["hybrid_tfidf"]
+    assert h["noise_floor"]["overlap"] > 0.9                        # от seed почти не зависит
+    assert 0 < h["by_fraction"]["0.2"]["overlap"] <= 1
