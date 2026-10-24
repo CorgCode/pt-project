@@ -24,7 +24,9 @@
     <nav class="main" aria-label="Разделы">
       <ul>
         <li><a href="./">Сайт</a></li>
+        <li><a href="scoreboard/">Таблица</a></li>
         <li><a href="#people">Участники</a></li>
+        <li><a href="#weekly">По неделям</a></li>
         <li><a href="#deadlines">Сроки</a></li>
         <li><a href="#open">Открытые задачи</a></li>
       </ul>
@@ -51,6 +53,16 @@
       <th>Участник</th><th class="num">Задач</th><th class="num">Сдано</th><th class="num">Из них с опозданием</th>
       <th class="num">Просрочено</th><th class="num">В работе</th><th class="num">PR влито</th><th class="num">PR открыто</th>
     </tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section class="block" id="weekly" aria-labelledby="h-weekly">
+  <div class="wrap">
+    <h2 id="h-weekly">По неделям</h2>
+    <p class="note">Дедлайн — каждое воскресенье в 19:00 по Москве. Неделя — от прошлого дедлайна до своего.
+      В ячейке — что участник сделал за неделю: коммиты в main, открытые PR и комментарии в issues (там сдаются ресёрчи).
+      «ничего» — за неделю ни одного.</p>
+    <div id="weeks"></div>
   </div>
 </section>
 

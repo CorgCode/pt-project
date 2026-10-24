@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import posixpath
 import re
 import shutil
 import subprocess
@@ -17,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data" / "results.json"
 LABEL = "LANL · ДЕНЬ 02 · ИСТОЧНИК ЗАЯВЛЕН"
-PAGES = ["index.html", "report.html", "team.html"]
+PAGES = ["index.html", "report.html", "team.html", "scoreboard/index.html"]
 GRAPH_METHODS = {"deepwalk", "node2vec", "graphsage", "rolx", "struc2vec"}
 CHARTS = ["leaderboard", "chartMetric", "hostMap"]
 SECTIONS = ["overview", "results", "metrics", "map", "methods", "status"]
@@ -68,7 +69,7 @@ def check() -> None:
     for sid in SECTIONS + CHARTS:
         assert sid in ip.ids, f"index.html: missing #{sid}"
     assert idx.count(LABEL) >= len(CHARTS), "у каждого графика должна быть подпись источника данных"
-    for needle in ("docs/build_data.py", "Scoreboard", "issues/60", "scoreboard/README.md"):
+    for needle in ("docs/build_data.py", "Scoreboard", "issues/60", "scoreboard/"):
         assert needle in idx, needle
     js = (ROOT / "assets" / "site.js").read_text(encoding="utf-8")
     for task in info["team"]["tasks"]:
@@ -88,12 +89,15 @@ def check() -> None:
             if href.startswith(("http:", "https:", "mailto:")):
                 continue
             target, _, frag = href.partition("#")
+            if target:                                        # путь относительно страницы
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
+                target = "./" if target == "." else target
             if target in ("", "./"):
                 tp = pages["index.html"][1] if target == "./" else p
                 path_ok = True
             else:
                 path_ok = (ROOT / target).exists()
-                tp = pages[target][1] if target in pages else None
+                tp = pages[target][1] if target in pages else None   # якоря таблицы появляются после загрузки
             assert path_ok, f"{name}: broken link {href}"
             if frag and tp is not None:
                 assert frag in tp.ids, f"{name}: broken anchor {href}"

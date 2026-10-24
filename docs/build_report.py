@@ -182,7 +182,7 @@ tr.svc td{{color:var(--muted);font-style:italic}}
 <tr><th class="n">#</th><th>Method</th><th class="n">dim</th><th>Отправил</th><th class="n">Score</th>{"".join(f'<th class="n">{TASK_EN[t]}</th>' for t in tasks)}</tr>
 {rows}
 </table></div>
-<p class="sub">95% интервалы — в <a href="{REPO}/blob/main/scoreboard/README.md">scoreboard/README.md</a>.</p>
+<p class="sub">95% интервалы — в <a href="scoreboard/">таблице</a>.</p>
 
 </main>
 </body>
