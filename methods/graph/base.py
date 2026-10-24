@@ -89,4 +89,4 @@ class GraphEmbeddingMethod(Baseline):
         return {"name": self.name, "description": self.description, "reference": self.reference,
                 "fit_windows": ["train"], "shared_coordinate_system": self.shared_coordinate_system, "overlap": self.overlap,
                 "dim": self.dim, "seed": self.seed, "params": self.params,
-                "fit_seconds": {k: round(v, 2) for k, v in self.fit_seconds.items()}}
+                "fit_seconds": {k: round(v, 3) for k, v in self.fit_seconds.items()}}
