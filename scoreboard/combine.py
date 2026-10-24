@@ -43,7 +43,42 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
         x = np.hstack([b.loc[hosts].to_numpy() for b in blocks])
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.7g")
     (out / "SHARED_COORDINATES").unlink(missing_ok=True)       # части могут быть в разных координатах
+    if not (out / "README.md").exists():
+        (out / "README.md").write_text(_card(parts, name, weights), encoding="utf-8")
     return out
+
+
+def _card(parts: list[str], name: str, weights: list[float] | None) -> str:
+    """Карточка гибрида по рецепту; при желании её можно дописать руками."""
+    w = weights or [1.0] * len(parts)
+    tuning = ("Вес первой части подобран по баллу на validation (`scoreboard/combine.py --tune-weights`), "
+              "test при этом не используется." if weights else "Веса равные, не подбирались.")
+    recipe = " + ".join(f"`{p}` ×{wi:g}" for p, wi in zip(parts, w))
+    links = ", ".join(f"[`{p}`](../{p}/README.md)" for p in parts)
+    return f"""# {name}
+
+## Кратко
+
+Гибрид: {recipe}. Части ловят разное, вместе — лучше, чем по отдельности.
+
+## Архитектура
+
+Векторы частей ({links}) склеиваются (конкатенация). Перед склейкой каждая часть нормируется:
+среднее 0, средняя длина вектора 1 — чтобы ни одна не перевешивала из-за масштаба. Затем умножается на свой вес.
+
+## Данные
+
+Те же, что у частей: всё строится только по train-окну. Вектор test-окна — склейка test-векторов частей.
+
+## Обучение и подбор
+
+Своего обучения нет. {tuning}
+
+## Ограничения
+
+Наследует ограничения частей. Размерность — сумма размерностей частей, поэтому сравнение с одиночными методами
+не при равной размерности.
+"""
 
 
 def tune_weights(parts: list[str], grid=(1.0, 2.0, 3.0, 4.0, 6.0, 10.0)) -> tuple[list[float], list[dict]]:

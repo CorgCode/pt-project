@@ -121,7 +121,8 @@ def overall_score(results: list[dict], cols) -> pd.Series:
                       for r in results})
 
 
-def headline_table(results: list[dict]) -> str:
+def headline_table(results: list[dict], card_url=None) -> str:
+    """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок."""
     cols, values, order = ranking(results)
     if not cols:
         return "Нет главных метрик (результаты без поля summary).\n"
@@ -149,7 +150,8 @@ def headline_table(results: list[dict]) -> str:
             if m not in SERVICE and v is not None and k in best and abs(v - best[k]) < 1e-12:
                 c = f"**{c}**"
             cells.append(c)
-        name = f"*`{m}`*" if m in SERVICE else f"`{m}`"
+        name = f"[`{m}`]({card_url(m)})" if card_url else f"`{m}`"
+        name = f"*{name}*" if m in SERVICE else name
         sc = "—" if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
