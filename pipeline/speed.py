@@ -1,6 +1,7 @@
 """Скорость: сколько процессов запускать, сколько потоков им дать, прогресс-бары.
 
-На Apple M-процессорах numpy считает через Accelerate, циклы методов скомпилированы numba.
+Работает на macOS, Linux и Windows. Циклы методов скомпилированы numba (есть под все три),
+numpy считает через свою библиотеку BLAS: Accelerate на Mac, OpenBLAS или MKL на остальных.
 Процессы запускаются через spawn; каждому достаётся своя доля ядер (NUMBA_NUM_THREADS и потоки BLAS),
 чтобы четыре процесса по восемь потоков не дрались за восемь ядер.
 
@@ -27,16 +28,33 @@ def _sysctl(name: str) -> int | None:
         return None
 
 
+def _windows_memory() -> int | None:
+    import ctypes
+
+    class Status(ctypes.Structure):
+        _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong), ("total", ctypes.c_ulonglong),
+                    ("avail", ctypes.c_ulonglong), ("page_total", ctypes.c_ulonglong), ("page_avail", ctypes.c_ulonglong),
+                    ("virt_total", ctypes.c_ulonglong), ("virt_avail", ctypes.c_ulonglong), ("ext", ctypes.c_ulonglong)]
+    st = Status()
+    st.length = ctypes.sizeof(Status)
+    try:
+        return int(st.total) if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)) else None
+    except (AttributeError, OSError):
+        return None
+
+
 def machine() -> dict:
-    """Ядра (все и производительные — у M-процессоров есть ещё энергоэффективные) и память в ГБ."""
+    """Ядра (все и производительные: у M-процессоров есть ещё энергоэффективные, на остальных — все) и память в ГБ."""
     cores = os.cpu_count() or 1
     perf = _sysctl("hw.perflevel0.physicalcpu") if sys.platform == "darwin" else None
     mem = _sysctl("hw.memsize") if sys.platform == "darwin" else None
     if mem is None:
+        mem = _windows_memory() if sys.platform == "win32" else None
+    if mem is None:
         try:
             mem = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
         except (ValueError, OSError, AttributeError):
-            mem = 8 * 2 ** 30
+            mem = 8 * 2 ** 30                              # не узнали — считаем, что 8 ГБ
     return {"cores": cores, "perf_cores": perf or cores, "mem_gb": mem / 2 ** 30}
 
 
