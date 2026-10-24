@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Команда и сроки — PT-05</title>
+<meta name="description" content="PT-05: кто какие задачи сдал и в какие сроки — по issues и PR на GitHub.">
+<link rel="stylesheet" href="./assets/site.css">
+<style>
+.st{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.st.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.st.late,.st.over{background:var(--warn-bg);color:var(--warn)}
+.st.work,.st.none{background:var(--soft);color:var(--muted)}
+.note{color:var(--muted);font-size:.88rem}
+#err{display:none;padding:.8rem 1rem;border-radius:var(--r);background:var(--warn-bg);color:var(--warn)}
+</style>
+<script src="./assets/team.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./">PT-05</a>
+    <nav class="main" aria-label="Разделы">
+      <ul>
+        <li><a href="./">Сайт</a></li>
+        <li><a href="#people">Участники</a></li>
+        <li><a href="#deadlines">Сроки</a></li>
+        <li><a href="#open">Открытые задачи</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero" aria-labelledby="h-team">
+  <div class="wrap">
+    <h1 id="h-team">Команда и сроки</h1>
+    <p>Кто какие задачи взял, что сдал и успел ли к сроку. Данные подтягиваются с GitHub при открытии страницы:
+      задачи (issues), сроки (milestones) и влитые PR. Проект — LANL, эмбеддинги хостов.</p>
+    <p class="note" id="updated">Загрузка…</p>
+    <p id="err" role="alert"></p>
+  </div>
+</section>
+
+<section class="block" id="people" aria-labelledby="h-people">
+  <div class="wrap">
+    <h2 id="h-people">Участники</h2>
+    <p class="note">«Сдано» — задача закрыта как выполненная. PR — влитые в main и ещё открытые, где участник автор.</p>
+    <div class="tablewrap"><table id="tPeople"><thead><tr>
+      <th>Участник</th><th class="num">Задач</th><th class="num">Сдано</th><th class="num">Из них с опозданием</th>
+      <th class="num">Просрочено</th><th class="num">В работе</th><th class="num">PR влито</th><th class="num">PR открыто</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section class="block" id="deadlines" aria-labelledby="h-deadlines">
+  <div class="wrap">
+    <h2 id="h-deadlines">Сроки</h2>
+    <p class="note">Срок — это milestone с датой. Время можно уточнить строкой «срок: ГГГГ-ММ-ДД ЧЧ:ММ» (по Москве) в его описании,
+      иначе срок — конец указанного дня. Задача без milestone срока не имеет.
+      Время сдачи — когда задачу закрыл сам исполнитель; если закрыл другой — последний комментарий исполнителя до закрытия.</p>
+    <div id="milestones"></div>
+  </div>
+</section>
+
+<section class="block" id="open" aria-labelledby="h-open">
+  <div class="wrap">
+    <h2 id="h-open">Открытые задачи</h2>
+    <div class="tablewrap"><table id="tOpen"><thead><tr>
+      <th>Задача</th><th>Исполнитель</th><th>Срок</th><th>Статус</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><a href="https://github.com/CorgCode/pt-project/issues">issues</a> · <a href="https://github.com/CorgCode/pt-project/milestones">milestones</a> ·
+      <a href="https://github.com/CorgCode/pt-project/pulls">PR</a> · <a href="./">сайт проекта</a></p>
+  </div>
+</footer>
+</body>
+</html>
