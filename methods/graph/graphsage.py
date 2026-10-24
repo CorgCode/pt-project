@@ -33,6 +33,7 @@ from methods.graph.base import GraphEmbeddingMethod
 from methods.graph.graph_input import Graph, from_flows
 from methods.graph.walks import walk_corpus
 from evaluation.knn_consistency import build_reference_features
+from pipeline.speed import progress
 
 EPS = 1e-12
 
@@ -99,10 +100,18 @@ class Batch:
         self.targets, self.nbr2, self.nbr1, self.pu, self.pv, self.neg = targets, nbr2, nbr1, pu, pv, neg
 
 
+def _neighbor_mean(X: np.ndarray, nbrs: np.ndarray) -> np.ndarray:
+    """X[nbrs].mean(axis=1) без промежуточного массива (строки, соседи, признаки): разреженное среднее."""
+    rows, size = nbrs.shape
+    A = sp.csr_matrix((np.full(nbrs.size, 1.0 / size), nbrs.ravel(), np.arange(0, nbrs.size + 1, size)),
+                      shape=(rows, len(X)))
+    return A @ X
+
+
 def forward(W1: np.ndarray, W2: np.ndarray, X: np.ndarray, b: Batch):
     T, S2 = b.nbr2.shape
     M_nodes = np.concatenate([b.targets, b.nbr2.ravel()])
-    C1 = np.hstack([X[M_nodes], X[b.nbr1].mean(axis=1)])
+    C1 = np.hstack([X[M_nodes], _neighbor_mean(X, b.nbr1)])
     P1 = C1 @ W1
     N1, H1n = _unit(np.maximum(P1, 0.0))
     h = N1.shape[1]
@@ -177,10 +186,10 @@ def train(g: Graph, X: np.ndarray, dim: int, *, hidden: int, samples: tuple[int,
     pu_all, pv_all = pu_all[keep], pv_all[keep]
     cdf = np.cumsum((g.degree.astype(float) ** 0.75) / (g.degree.astype(float) ** 0.75).sum())
     history = []
-    for _ in range(epochs):
+    for ep in range(epochs):
         order = rng.permutation(len(pu_all))
         total, count = 0.0, 0
-        for s in range(0, len(order), batch_size):
+        for s in progress(range(0, len(order), batch_size), desc=f"graphsage, эпоха {ep + 1}/{epochs}", leave=False):
             sel = order[s:s + batch_size]
             u, v = pu_all[sel], pv_all[sel]
             neg = np.minimum(np.searchsorted(cdf, rng.random(negatives)), g.n - 1)

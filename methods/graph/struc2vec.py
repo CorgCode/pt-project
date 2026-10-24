@@ -20,6 +20,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
 
+from methods.graph import kernels
 from methods.graph.base import GraphEmbeddingMethod
 from methods.graph.graph_input import Graph
 from methods.graph.sgns import SkipGram
@@ -59,7 +60,8 @@ def ring_sequences(g: Graph, focus: np.ndarray, K: int) -> list[list[tuple[np.nd
 
 
 def dtw(a: np.ndarray, ca: np.ndarray, b: np.ndarray, cb: np.ndarray) -> float:
-    """DTW двух сжатых последовательностей, цена d(x, y) * max(count_x, count_y)."""
+    """DTW двух сжатых последовательностей, цена d(x, y) * max(count_x, count_y).
+    Эталон для тестов; в расчёте — то же самое, скомпилированное (kernels.dtw)."""
     if len(a) == 0 and len(b) == 0:
         return 0.0
     if len(a) == 0:
@@ -108,7 +110,7 @@ def structural_distances(seqs, pairs: np.ndarray) -> np.ndarray:
         for t, (i, j) in enumerate(pairs):
             key = (min(ids[i], ids[j]), max(ids[i], ids[j]))
             if key not in cache:
-                cache[key] = dtw(*seqs[k][i], *seqs[k][j])
+                cache[key] = kernels.dtw(*seqs[k][i], *seqs[k][j], EMPTY_DEGREE)
             gk[t] = cache[key]
         run = run + gk
         f[k] = run

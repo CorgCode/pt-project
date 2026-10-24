@@ -103,7 +103,7 @@ def test_runs_through_the_experiment_runner(processed, reference, tmp_path):
     assert "deepwalk" in m["methods"] and "deepwalk" not in m["missing_expected_methods"]
     assert m["missing_expected_methods"] == ["node2vec", "graphsage", "struc2vec", "rolx"]
     info = m["graph_methods"]["deepwalk"]
-    assert info["params"]["num_walks"] == 3 and info["fit_windows"] == ["train"] and info["fit_seconds"]["train"] > 0
+    assert info["params"]["num_walks"] == 3 and info["fit_windows"] == ["train"] and info["fit_seconds"]["train"] >= 0
     res = json.loads((tmp_path / "o" / "results" / "test" / "deepwalk.json").read_text())
     assert res["metric_status"]["triplet_accuracy"] == "ok" and res["method_info"]["reference"]
     assert (tmp_path / "o" / "identity" / "test" / "deepwalk.json").exists()

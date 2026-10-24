@@ -57,9 +57,13 @@ def load_partners(path: Path) -> pd.DataFrame:
 def _mid_ranks(scores: np.ndarray, items: np.ndarray) -> np.ndarray:
     """Ранг (1 = лучший) элементов `items` в строке `scores`; при равенстве — средний ранг."""
     s = scores[items]
-    greater = (scores[None, :] > s[:, None]).sum(1)
-    ties = (scores[None, :] == s[:, None]).sum(1) - 1
-    return 1 + greater + ties / 2
+    if len(items) <= 8:                                      # мало целей — прямое сравнение быстрее сортировки
+        greater = (scores[None, :] > s[:, None]).sum(1)
+        ties = (scores[None, :] == s[:, None]).sum(1) - 1
+        return 1 + greater + ties / 2
+    srt = np.sort(scores)
+    lo, hi = np.searchsorted(srt, s, "left"), np.searchsorted(srt, s, "right")
+    return 1 + (len(scores) - hi) + (hi - lo - 1) / 2
 
 
 def _per_host(score_rows, hosts_idx, cand_mask_fn, targets, top_n):
