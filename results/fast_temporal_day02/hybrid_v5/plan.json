@@ -1,0 +1,24 @@
+{
+  "architecture": "Temporal contrastive residual MLP + directed multiscale graph encoder",
+  "fit_windows": [
+    "train"
+  ],
+  "positive_pairs": "same host in first and second halves of train",
+  "context_vocabulary": "peer + protocol/service + direction, min_df=2, max_features=32768",
+  "graph": "hub-normalized outgoing, incoming and two-hop service messages",
+  "encoder": [
+    512,
+    256,
+    128
+  ],
+  "epochs": 60,
+  "checkpoints": [
+    20,
+    60
+  ],
+  "loss": "symmetric InfoNCE + behavioral/service relational distillation",
+  "selection": "validation only, original recipe included; test only for selected recipe",
+  "seed": 17,
+  "device": "cpu",
+  "threads": 2
+}

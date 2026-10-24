@@ -1,0 +1,28 @@
+{
+  "selected_on": "validation",
+  "selected_recipe": {
+    "name": "fast_candidate_02",
+    "recipe": {
+      "alpha": 0.0,
+      "dim": 384
+    },
+    "validation_score": 38.93836581785574
+  },
+  "base_encoder": "../hybrid_v5/encoder_epoch20.pt",
+  "preprocessing": "../hybrid_v5/preprocessing.joblib",
+  "adapter": "projection_alpha0.joblib",
+  "input_dimensions": 825,
+  "output_dimensions": 384,
+  "retained_train_variance": 0.9977329636760754,
+  "fresh_holdout_config": "../holdout_day02_1500/config.json",
+  "fit_windows": [
+    "train"
+  ],
+  "source_note": "Reuses v5 features and encoder; no new-day training. Fresh evaluation is a later window of LANL day02.",
+  "historical_test_score": 47.56868935546047,
+  "fresh_holdout_score": 46.487007705650306,
+  "fresh_holdout_baseline_score": 44.10035652461333,
+  "fresh_holdout_v5_score": 45.89673422921293,
+  "status": "selected_on_validation_and_evaluated_on_both_windows",
+  "architecture_selected": "Frozen v5 temporal graph encoder followed by train-fitted PCA to 384 dimensions; adaptive gate not selected"
+}
