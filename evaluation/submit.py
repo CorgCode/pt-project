@@ -120,26 +120,45 @@ def _score_window(sub: Path, w: str) -> dict:
     r = run(emb_file, ref_test, method, n_boot=N_BOOT, seed=SEED, fit_reference_dir=ref_val if covers_val else None)
     test_file = sub / window_file(w)
     if test_file.exists():
-        validate_submission(str(test_file))
-        hosts = pd.read_csv(ref_test / "eval_hosts.csv", dtype=str)["host_id"].tolist()
-        a, b = load_embeddings(emb_file), load_embeddings(test_file)
-        missing = sorted(set(hosts) - set(b.index))
-        if missing:
-            raise ValueError(f"{test_file}: нет {len(missing)} оцениваемых хостов (например {missing[:5]})")
-        ident = identity_retrieval(a.loc[hosts], b.loc[hosts], alignment="procrustes", seed=SEED, n_boot=N_BOOT)
-        r["metrics"].update({"identity_top1": ident["top1"], "identity_mrr": ident["mrr"],
-                             "identity_pair_roc_auc": ident["pair_roc_auc"]})
-        if ident.get("top1_ci"):
-            r["metrics_ci"]["identity_top1"] = list(ident["top1_ci"])
-        r["metric_details"]["identity"] = {**ident, "shared_coordinate_system_declared": (sub / "SHARED_COORDINATES").exists()}
-        r["metric_status"]["identity"] = "ok"
-        r["summary"].append({"group": "Узнаваемость", "metric": "identity_top1", "title": "Узнаваемость, Top-1",
-                             "value": ident["top1"], "ci": r["metrics_ci"].get("identity_top1"),
-                             "chance": ident["chance_top1"]})
+        add_identity(r, emb_file, test_file, ref_test, shared=(sub / "SHARED_COORDINATES").exists())
     else:
         r["metric_status"]["identity"] = f"unavailable: нет {test_file.name} (эмбеддинга окна {w})"
         r["unavailable_metrics"].append(f"identity: нет {test_file.name} (эмбеддинга окна {w})")
     return r
+
+
+def add_identity(r: dict, emb_file: Path, later_file: Path, ref_dir: Path, *, shared: bool = False,
+                 n_boot: int | None = None) -> None:
+    """Узнаваемость: хост по вектору позднего окна (later_file) ищется среди векторов train (emb_file)."""
+    validate_submission(str(later_file))
+    hosts = pd.read_csv(ref_dir / "eval_hosts.csv", dtype=str)["host_id"].tolist()
+    a, b = load_embeddings(emb_file), load_embeddings(later_file)
+    missing = sorted(set(hosts) - set(b.index))
+    if missing:
+        raise ValueError(f"{later_file}: нет {len(missing)} оцениваемых хостов (например {missing[:5]})")
+    ident = identity_retrieval(a.loc[hosts], b.loc[hosts], alignment="procrustes", seed=SEED,
+                               n_boot=N_BOOT if n_boot is None else n_boot)
+    r["metrics"].update({"identity_top1": ident["top1"], "identity_mrr": ident["mrr"],
+                         "identity_pair_roc_auc": ident["pair_roc_auc"]})
+    if ident.get("top1_ci"):
+        r["metrics_ci"]["identity_top1"] = list(ident["top1_ci"])
+    r["metric_details"]["identity"] = {**ident, "shared_coordinate_system_declared": shared}
+    r["metric_status"]["identity"] = "ok"
+    r["summary"].append({"group": "Узнаваемость", "metric": "identity_top1", "title": "Узнаваемость, Top-1",
+                         "value": ident["top1"], "ci": r["metrics_ci"].get("identity_top1"),
+                         "chance": ident["chance_top1"]})
+
+
+def validation_score(emb_file: Path, validation_file: Path | None = None) -> tuple[float, dict]:
+    """Балл на validation для подбора (test не трогается): те же колонки, Identity — если есть
+    эмбеддинг validation-окна (validation.csv). Возвращает (score, баллы по задачам)."""
+    ref_val = DATA / "reference" / "validation"
+    r = run(emb_file, ref_val, "candidate", n_boot=0)
+    if validation_file is not None and Path(validation_file).exists():
+        add_identity(r, emb_file, validation_file, ref_val, n_boot=0)
+    cols = {s["metric"]: s["title"] for s in r["summary"]}
+    return float(scoreboard.overall_score([dict(r, method="candidate")], cols)["candidate"]), \
+        {scoreboard.TASK_EN.get(k, k): v for k, v in scoreboard.task_scores(r, cols).items()}
 
 
 def _mean(xs):
@@ -336,6 +355,8 @@ def _build_one(job: tuple) -> str:
     m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
     for w in data.test_windows:
         m.embed(data, w, data.evaluable(w)).to_csv(d / window_file(w), index_label="host_id")
+    if "validation" in data.windows:                    # только для подбора на validation; в git не кладётся
+        m.embed(data, "validation", data.evaluable("validation")).to_csv(d / "validation.csv", index_label="host_id")
     shared = d / "SHARED_COORDINATES"
     if m.info().get("shared_coordinate_system"):
         shared.touch()

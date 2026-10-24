@@ -31,7 +31,7 @@ run rm -f scoreboard/results/*.json
 export PT_DATA=$W/processed
 
 run "$PY" -m evaluation.submit --builtin all
-run "$PY" scoreboard/hybrid_tfidf.py
+run "$PY" scoreboard/hybrid_tfidf.py --tune          # DIM и веса — на validation, с узнаваемостью
 run "$PY" scoreboard/combine.py behavioral node2vec_services graph_spectral --name hybrid_services --tune-weights
 run "$PY" scoreboard/combine.py behavioral node2vec graph_spectral --name hybrid_weighted --tune-weights
 run "$PY" scoreboard/combine.py behavioral deepwalk --name hybrid_behavioral_deepwalk
