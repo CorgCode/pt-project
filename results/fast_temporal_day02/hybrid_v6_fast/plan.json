@@ -1,0 +1,42 @@
+{
+  "recipes": [
+    {
+      "alpha": 0.0,
+      "dim": 256
+    },
+    {
+      "alpha": 0.0,
+      "dim": 384
+    },
+    {
+      "alpha": 0.5,
+      "dim": 0
+    },
+    {
+      "alpha": 1.0,
+      "dim": 0
+    },
+    {
+      "alpha": 1.0,
+      "dim": 256
+    },
+    {
+      "alpha": 1.0,
+      "dim": 384
+    }
+  ],
+  "epochs": 20,
+  "training_budget_seconds": 60,
+  "selection_budget_seconds": 300,
+  "seed": 29,
+  "baseline": "v5 checkpoint20",
+  "fit_windows": [
+    "train"
+  ],
+  "selection_window": "validation",
+  "fresh_holdout": [
+    140400,
+    142200
+  ],
+  "test_policy": "select before fresh holdout, no retuning afterwards"
+}

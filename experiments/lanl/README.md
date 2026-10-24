@@ -113,3 +113,5 @@ LANL_TOKEN=<токен> NOTE="форма LANL, <дата>, <кто>" experiments
 - Для всех дней нужна машина с 32+ ГБ.
 
 Обучение на 6 часах и проверка на другом дне — [BIG_MACHINE.md](BIG_MACHINE.md).
+
+Быстрый временной графовый энкодер и PCA-сжатие — [код, запуск и ограничения](fast_temporal/README.md), [результаты двух окон](../../results/fast_temporal_day02/README.md).
