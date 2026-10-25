@@ -119,7 +119,15 @@ def task_scores(r: dict, cols) -> dict[str, float]:
     return {g: _geo(v) for g, v in by.items()}
 
 
-def _one_score(r: dict, cols) -> float:
+def complete(r: dict, cols) -> bool:
+    """Есть ли все обязательные колонки: без любой из них общего балла и места нет."""
+    return all(r["metrics"].get(k) is not None for k in cols)
+
+
+def _one_score(r: dict, cols, required: bool = True) -> float:
+    """required=False — только для ориентиров (SERVICE): у reference_ceiling части задач нет по устройству."""
+    if required and not complete(r, cols):
+        return float("nan")             # пропуск сложной задачи не должен поднимать балл
     ts = task_scores(r, cols)
     return _geo(ts.values()) if ts else float("nan")
 
@@ -130,11 +138,13 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     Если test-окон несколько (by_window) — балл считается на каждом и усредняется."""
     out = {}
     for r in results:
+        req = r["method"] not in SERVICE
         if r.get("by_window"):
-            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols) for w in r["by_window"].values()]
+            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req)
+                    for w in r["by_window"].values()]
             out[r["method"]] = float(np.mean(days)) if not any(np.isnan(days)) else float("nan")
         else:
-            out[r["method"]] = _one_score(r, cols)
+            out[r["method"]] = _one_score(r, cols, req)
     return pd.Series(out)
 
 
@@ -172,15 +182,18 @@ def headline_table(results: list[dict], card_url=None) -> str:
             cells.append(c)
         name = f"[`{m}`]({card_url(m)})" if card_url else f"`{m}`"
         name = f"*{name}*" if m in SERVICE else name
-        sc = "—" if pd.isna(score.get(m)) else f"{score[m]:.1f}"
+        sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
         return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + " |"
 
-    for i, m in enumerate(order.index, 1):
+    ranked = order.dropna()                        # без всех задач — без места (неполная оценка)
+    for i, m in enumerate(ranked.index, 1):
         lines.append(row(str(i), m))
+    for m in order.index.difference(ranked.index):
+        lines.append(row("—", m))
     for m in sorted(SERVICE & set(by_name)):
         lines.append(row("—", m))
     def chance_cell(vals):                         # у некоторых метрик уровень зависит от метода (размерности)
@@ -203,7 +216,8 @@ def window_scores_table(results: list[dict], labels: dict[str, str]) -> str:
         return ""
     ws = multi[0]["test_windows"]
     cols, _, order = ranking(results)
-    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols) for r in multi}) for w in ws}
+    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols, r["method"] not in SERVICE)
+                           for r in multi}) for w in ws}
     lines = ["| method | " + " | ".join(labels.get(w, w) for w in ws) + " | **mean** |",
              "|---|" + "---|" * (len(ws) + 1)]
     mean = overall_score(results, cols)

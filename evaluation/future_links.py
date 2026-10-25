@@ -8,6 +8,10 @@
     --edges reference/edges.csv --output results/link_prediction.json
 
 Связь (неориентированная) — хотя бы один поток в любую сторону.
+Повторная связь — пара уже общалась в source-окне; новая — не общалась. Source-окно — вся история,
+которую протокол даёт методам (train), поэтому «новая» значит «не было во всей доступной предыстории».
+Высокий общий AUC может держаться на повторных связях, поэтому обе части считаются и отдельно,
+рядом с бейзлайнами без эмбеддинга: history (пара уже общалась) и popularity (произведение степеней в source).
 """
 from __future__ import annotations
 
@@ -155,6 +159,29 @@ def load_candidate_edges(file: Path) -> pd.DataFrame:
     return df
 
 
+def _seen(edges: pd.DataFrame) -> np.ndarray | None:
+    if "seen_in_source" not in edges.columns:
+        return None
+    return edges["seen_in_source"].astype(str).str.lower().eq("true").to_numpy()
+
+
+def _auc(y: np.ndarray, s: np.ndarray) -> float | None:
+    return float(roc_auc_score(y, s)) if len(np.unique(y)) == 2 else None
+
+
+def split_by_history(labels: np.ndarray, score: np.ndarray, seen: np.ndarray) -> dict:
+    """ROC-AUC отдельно на повторных (seen) и новых (не seen) кандидатах."""
+    return {"seen_roc_auc": _auc(labels[seen], score[seen]), "new_roc_auc": _auc(labels[~seen], score[~seen]),
+            "n_seen": int(seen.sum()), "n_new": int((~seen).sum()),
+            "n_seen_positive": int(labels[seen].sum()), "n_new_positive": int(labels[~seen].sum())}
+
+
+def popularity_score(edges: pd.DataFrame, degree: pd.Series) -> np.ndarray:
+    """Бейзлайн popularity: произведение степеней хостов в source-окне (хабы связаны чаще)."""
+    d = degree.astype(float)
+    return d.reindex(edges.host_a).fillna(0).to_numpy() * d.reindex(edges.host_b).fillna(0).to_numpy()
+
+
 def score_embeddings(
     embedding: pd.DataFrame, edges: pd.DataFrame,
     *, split: str = "test", n_boot: int = 0, seed: int = 0,
@@ -198,9 +225,10 @@ def score_embeddings(
         "pr_auc_at_natural_prevalence": (reweighted_average_precision(labels, cosine, natural)
                                          if 0 < natural < 1 else None),
     }
-    if "seen_in_source" in edges.columns:
-        seen = edges["seen_in_source"].astype(str).str.lower().eq("true").to_numpy()
+    seen = _seen(edges)
+    if seen is not None:
         extra["share_positives_seen_in_source"] = float(seen[labels == 1].mean())
+        extra["by_history"] = split_by_history(labels, cosine, seen)
         new = ~seen
         if new.any() and len(np.unique(labels[new])) == 2:
             extra["new_links"] = {
@@ -237,13 +265,15 @@ def _window_bounds(window: str) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: pd.DataFrame, *,
                   fit_split: str = "validation", eval_split: str = "test", seed: int = 0,
-                  n_boot: int = 0) -> dict:
+                  n_boot: int = 0, degree: pd.Series | None = None) -> dict:
     """Классификатор связей на замороженных эмбеддингах: LogisticRegression на [|e_a - e_b|, e_a * e_b].
 
     Учится на кандидатах БОЛЕЕ РАННЕГО целевого окна (validation), оценивается на позднем (test);
     эмбеддинг в обоих случаях один — из source-окна. Косинус для трафика плох: клиенты связаны
     с серверами, а не с похожими клиентами. Окно обучения должно закончиться до окна оценки и иметь
     тот же source, иначе — отказ. C=1 фиксирован и на test не подбирается.
+    Если у кандидатов есть seen_in_source, AUC считается ещё отдельно на повторных и новых связях
+    (by_history); degree — степени хостов в source-окне для бейзлайна popularity.
     """
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
@@ -276,7 +306,18 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
     # случайный уровень: тот же классификатор на случайных векторах той же размерности (запоминает хабы)
     z = pd.DataFrame(np.random.default_rng(seed).standard_normal(z.shape), index=z.index)
     rnd = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
-    out["random_roc_auc"] = float(roc_auc_score(ye, rnd.predict_proba(feats(ev))[:, 1]))
+    rnd_score = rnd.predict_proba(feats(ev))[:, 1]
+    out["random_roc_auc"] = float(roc_auc_score(ye, rnd_score))
+    seen = _seen(ev)
+    if seen is not None:
+        out["by_history"] = split_by_history(ye, score, seen)
+        out["by_history"]["random"] = split_by_history(ye, rnd_score, seen)
+        out["history_roc_auc"] = _auc(ye, seen.astype(float))
+    if degree is not None:
+        pop = popularity_score(ev, degree)
+        out["popularity_roc_auc"] = _auc(ye, pop)
+        if seen is not None:
+            out["by_history"]["popularity"] = split_by_history(ye, pop, seen)
     out.update(n_fit=int(len(fit)), n_eval=int(len(ev)), fit_split=fit_split, eval_split=eval_split,
                fit_target_window=fw["target_window"], eval_target_window=ew["target_window"],
                pr_auc_lift=out["pr_auc"] / float(ye.mean()))

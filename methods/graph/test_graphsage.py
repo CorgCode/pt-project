@@ -264,3 +264,13 @@ def test_runs_through_the_runner_with_shared_coordinates_and_the_tuner(processed
     assert res["metric_status"]["pairwise_roc_auc"] == "ok"
     out = tune(processed, reference, "graphsage", {"hidden": [8, 16], "lr": [0.01, 0.02]}, dim=4, metric="pair_roc_auc", fast=True)
     assert out["n_configurations"] == 4 and out["test_reference_read"] is False
+
+
+def test_refit_recomputes_later_windows(data):
+    w = data.test_windows[0]
+    m = GraphSAGE(dim=4, seed=0, **FAST).fit(data)
+    old = m.embed(data, w).to_numpy()
+    m.seed = 1
+    m.fit(data)                                      # новые веса — векторы позднего окна считаются заново
+    assert set(m._embedded) == {"train"}
+    assert not np.allclose(old, m.embed(data, w).to_numpy())

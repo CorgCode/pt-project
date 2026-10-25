@@ -33,10 +33,16 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
     subs = Path(submit.SUBMISSIONS)                       # части берём из таблицы
     out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("*.csv"):                         # векторы прошлой сборки не должны пережить новую
+        old.unlink()
     tests = sorted({f.name for p in parts for f in (subs / p).glob("test*.csv")})   # test.csv, test_day03.csv, ...
     for fname in ["embeddings.csv"] + tests + ["validation.csv"]:
         files = [subs / p / fname for p in parts]
-        if not all(f.exists() for f in files):
+        missing = [p for p, f in zip(parts, files) if not f.exists()]
+        if missing and fname == "embeddings.csv":
+            raise FileNotFoundError(f"нет embeddings.csv у {missing}")
+        if missing:                                       # без файла окна задача не оценится — балла не будет
+            print(f"{name}: {fname} нет у {missing} — это окно не собрано", file=sys.stderr)
             continue
         w = weights or [1.0] * len(files)
         blocks = [_block(load_embeddings(f)) * wi for f, wi in zip(files, w)]

@@ -230,6 +230,8 @@ class GraphSAGE(GraphEmbeddingMethod):
 
     def fit(self, data):
         p = self.params
+        self._reset()
+        self._embedded = {}                       # векторы окон от прошлых весов — выбросить
         flows = data.training_flows()
         g = from_flows(flows, p["weight"])
         self.features_ = Features(p["features"])

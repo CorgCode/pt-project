@@ -129,3 +129,11 @@ def test_all_and_fast_selection(processed, reference, tmp_path):
     m = run_experiment(processed, reference, tmp_path / "o", dim=4, n_boot=0, do_audit=False,
                        methods=["all"], fast_methods=True)
     assert set(M.available()) <= set(m["methods"])
+
+
+def test_refit_forgets_previous_windows(data):
+    m = DeepWalk(dim=4, seed=0, num_walks=2, walk_length=10, window=3, epochs=1).fit(data)
+    m.embed(data, data.test_windows[0])
+    assert set(m._cache) == {"train", data.test_windows[0]}
+    m.fit(data)                                      # повторный fit: прошлые графы и векторы окон не переиспользуются
+    assert set(m._cache) == set(m._graphs) == {"train"}
