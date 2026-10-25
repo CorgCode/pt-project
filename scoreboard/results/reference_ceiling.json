@@ -27,6 +27,7 @@
         "link_pr_auc_at_natural_prevalence": 0.003211602927200876,
         "link_pr_auc_lift": 0.7114490362790308,
         "link_roc_auc": 0.24804074397840914,
+        "link_seen_roc_auc": 0.5625014531166446,
         "ndcg@10_mean": 0.9999751623844498,
         "ndcg@10_median": 1.0,
         "ndcg@10_std": 0.0004612374465074085,
@@ -239,6 +240,7 @@
         "link_pr_auc_at_natural_prevalence": 0.003566173400345929,
         "link_pr_auc_lift": 0.7148408168306838,
         "link_roc_auc": 0.253357658171208,
+        "link_seen_roc_auc": 0.6054546179636463,
         "ndcg@10_mean": 0.9999890915718925,
         "ndcg@10_median": 1.0,
         "ndcg@10_std": 0.00030364785911422354,
@@ -451,6 +453,7 @@
         "link_pr_auc_at_natural_prevalence": 0.0032911827020450733,
         "link_pr_auc_lift": 0.7150688901345011,
         "link_roc_auc": 0.25434809907385525,
+        "link_seen_roc_auc": 0.5799158921576157,
         "ndcg@10_mean": 0.9999971465732106,
         "ndcg@10_median": 1.0,
         "ndcg@10_std": 0.00010558925319414146,
@@ -667,10 +670,18 @@
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
   "dim": 57,
-  "inputs_sha256": "2e5688ea9adb3bbf5f5f2cc5f9e6cd85051b35de4f841a0ffd0c524ed01a3b67",
+  "inputs_sha256": "b402b3dd7309266af4bc018a84b266668016311f0da7f3a6ddd73476f61f564f",
   "method": "reference_ceiling",
   "metric_details": {
     "future_link_prediction": {
+      "by_history": {
+        "n_new": 89569,
+        "n_new_positive": 11280,
+        "n_seen": 67127,
+        "n_seen_positive": 67068,
+        "new_roc_auc": 0.22750732782310748,
+        "seen_roc_auc": 0.5625014531166446
+      },
       "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
       "n_examples": 156696,
       "n_positive": 78348,
@@ -915,6 +926,7 @@
     "link_pr_auc_at_natural_prevalence": 0.003356319676530626,
     "link_pr_auc_lift": 0.713786247748072,
     "link_roc_auc": 0.2519155004078241,
+    "link_seen_roc_auc": 0.5826239877459689,
     "ndcg@10_mean": 0.999987133509851,
     "ndcg@10_median": 1.0,
     "ndcg@10_std": 0.0002901581862719245,
@@ -1059,6 +1071,10 @@
     "link_roc_auc": [
       0.24804074397840914,
       0.25434809907385525
+    ],
+    "link_seen_roc_auc": [
+      0.5625014531166446,
+      0.6054546179636463
     ],
     "ndcg@10_mean": [
       0.9999751623844498,
