@@ -1,0 +1,187 @@
+{
+  "chance_consistency_at_k": {
+    "10": 0.0019091256204658267,
+    "20": 0.0038182512409316535,
+    "5": 0.0009545628102329134
+  },
+  "cohort_policy": "train_only",
+  "cohort_selection": {
+    "coverage": {
+      "test": 0.8437935843793585,
+      "test_day03": 0.7771579110491245,
+      "test_day04": 0.8118704478537114,
+      "validation": 0.4278630094529676
+    },
+    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
+    "median_train_events": {
+      "active_in_every_window": 878.0,
+      "not_active_in_every_window": 455.0
+    },
+    "n_cohort": 6453,
+    "n_evaluable": {
+      "test": 5445,
+      "test_day03": 5015,
+      "test_day04": 5239,
+      "validation": 2761
+    },
+    "n_hosts_active_in_every_window": 2142,
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
+    "policy": "train_only"
+  },
+  "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
+  "coverage": 0.8118704478537114,
+  "data_kind": "lanl_declared",
+  "files_sha256": {
+    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "edges.csv": "e5d66a080d1e5265364d8eed6542cfd19b982042b88cddbffee462d7024a536e",
+    "eval_hosts.csv": "c905a28cf6a83c1abaa4a4eab6fb0c88a0151afa17e728b82cbae1c38863d523",
+    "features.csv": "b6d3052975527d9d076818fa57cfd79bbbeb7c0dca64e87cd7f9c8705e9ce159",
+    "neighbors.csv": "00f30f7dcf9c20d8c4830b3e0f64d6a3110a392281a38b94abc429973bf0cdc2",
+    "pairs.csv": "e36e1462c652de6965e18f765befb09e0558cb4d64c1c5f5e7cfb3d303276835",
+    "partners.csv": "7c1a0c935c265492aaaea4268fa2d76a69319dac22065f8bb7e724ce35a6e7fc",
+    "triplets.csv": "521edaa5da2c1811825685b9c75ee72812598a93635e5db7eccb429384afe412"
+  },
+  "ground_truth": false,
+  "judgments": {
+    "n_anchors_without_judgments": 389,
+    "n_hosts": 5239,
+    "n_negative_pairs": 3834178,
+    "n_pairs": 51727,
+    "n_positive_pairs": 138377,
+    "n_possible_pairs": 13720941,
+    "n_triplets": 23020,
+    "n_unjudged_pairs": 9748386,
+    "pairs_per_anchor": 10,
+    "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
+    "rule_version": 1,
+    "seed": 0,
+    "tau_pos": 0.7692307692307693,
+    "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
+  },
+  "kind": "heldout_temporal_behavior_proxy",
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "labels": null,
+  "labels_source": null,
+  "n_cohort": 6453,
+  "n_evaluable": 5239,
+  "n_hosts": 5239,
+  "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
+  "pipeline_manifest_sha256": "328b571bf69859e7fcec2542b41942462c01e7ca706e3130711a2b0073773067",
+  "provenance": {
+    "basis": "operator_declaration",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": false,
+      "format_sample": {
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.984416571645762,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9864253393665159,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-04.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.8552317247969422,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": false
+    },
+    "declared_kind": "lanl",
+    "kind": "lanl_declared",
+    "source_note": "форма LANL, 2026-10-24, physcorgi",
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
+  "provenance_verified": false,
+  "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
+  "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "real_lanl_declared": true,
+  "reference_dimensions": 57,
+  "reference_neighbor_stability": {
+    "consistency@10": 0.13405230005726282,
+    "consistency@20": 0.15836037411719794,
+    "consistency@5": 0.11334224088566519,
+    "jaccard@10": 0.0964075763635153,
+    "jaccard@20": 0.11506435072854676,
+    "jaccard@5": 0.08309398073666063,
+    "ndcg@10": 0.14496772403820554,
+    "ndcg@20": 0.1720659332074756,
+    "ndcg@5": 0.1209083540483664
+  },
+  "reference_views": {
+    "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
+    "labels.csv": "external labels, only if supplied",
+    "neighbors.csv": "behavioural-profile proxy (target window)",
+    "pairs.csv / triplets.csv": "structural proxy: shared communication peers",
+    "partners.csv": "partners of each evaluable host in train (source) and target window"
+  },
+  "seed": 0,
+  "source_window": "train",
+  "split": "test",
+  "synthetic": false,
+  "target_window": "test_day04",
+  "test_events": 10187029,
+  "test_start_utc": "1970-01-04T12:30:00Z",
+  "train_end_utc": "1970-01-02T11:59:59Z",
+  "train_events": 9368480,
+  "windows": {
+    "test": {
+      "end": 135000.0,
+      "graph_edges": 87510,
+      "max_time": 134999.0,
+      "min_time": 131400.0,
+      "n_flows": 10297984,
+      "start": 131400.0
+    },
+    "test_day03": {
+      "end": 221400.0,
+      "graph_edges": 84385,
+      "max_time": 221399.0,
+      "min_time": 217800.0,
+      "n_flows": 9046675,
+      "start": 217800.0
+    },
+    "test_day04": {
+      "end": 307800.0,
+      "graph_edges": 82151,
+      "max_time": 307799.0,
+      "min_time": 304200.0,
+      "n_flows": 10187029,
+      "start": 304200.0
+    },
+    "train": {
+      "end": 129600.0,
+      "graph_edges": 94243,
+      "max_time": 129599.0,
+      "min_time": 126000.0,
+      "n_flows": 9368480,
+      "start": 126000.0
+    },
+    "validation": {
+      "end": 131400.0,
+      "graph_edges": 70129,
+      "max_time": 131399.0,
+      "min_time": 129600.0,
+      "n_flows": 4526585,
+      "start": 129600.0
+    }
+  }
+}

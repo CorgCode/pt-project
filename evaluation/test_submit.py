@@ -141,3 +141,14 @@ def test_builtin_in_two_processes_gives_same_vectors(board, tmp_path):
     submit.builtin(["behavioral", "graph_spectral"], jobs=2, force=True)
     for m, text in one.items():
         assert (board / "submissions" / m / "embeddings.csv").read_text() == text
+
+
+def test_result_goes_stale_when_evaluation_code_changes(board, monkeypatch, tmp_path):
+    submit.builtin(["random"])
+    d = board / "submissions" / "random"
+    submit.score(d)
+    assert submit.is_fresh(d)
+    extra = tmp_path / "metric.py"
+    extra.write_text("x = 1\n")
+    monkeypatch.setattr(submit, "_evaluation_code", lambda: [extra])
+    assert not submit.is_fresh(d)

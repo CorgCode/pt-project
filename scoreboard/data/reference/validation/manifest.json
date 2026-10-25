@@ -7,24 +7,28 @@
   "cohort_policy": "train_only",
   "cohort_selection": {
     "coverage": {
-      "test": 0.3474353014101968,
+      "test": 0.8437935843793585,
+      "test_day03": 0.7771579110491245,
+      "test_day04": 0.8118704478537114,
       "validation": 0.4278630094529676
     },
-    "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
     "median_train_events": {
-      "active_in_every_window": 1176.0,
-      "not_active_in_every_window": 478.5
+      "active_in_every_window": 878.0,
+      "not_active_in_every_window": 455.0
     },
     "n_cohort": 6453,
     "n_evaluable": {
-      "test": 2242,
+      "test": 5445,
+      "test_day03": 5015,
+      "test_day04": 5239,
       "validation": 2761
     },
-    "n_hosts_active_in_every_window": 1535,
-    "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+    "n_hosts_active_in_every_window": 2142,
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
-  "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+  "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
   "coverage": 0.4278630094529676,
   "data_kind": "lanl_declared",
   "files_sha256": {
@@ -37,7 +41,7 @@
     "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
     "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
-    "features.csv": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+    "features.csv": "dbfffa916f66b78ff00e4b08a1ca820fd71a9a330ac5109738fc406b904c99fb",
     "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
     "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
     "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
@@ -72,7 +76,7 @@
   "n_evaluable": 2761,
   "n_hosts": 2761,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "8dfcf58e1e6a6add88a2d0e9ef8a815750d8b41828d321dc217641b1ce88891e",
+  "pipeline_manifest_sha256": "328b571bf69859e7fcec2542b41942462c01e7ca706e3130711a2b0073773067",
   "provenance": {
     "basis": "operator_declaration",
     "checks": {
@@ -84,13 +88,25 @@
           "share_devices_named_CompN": 0.984416571645762,
           "share_ports_numeric_or_PortN": 1.0,
           "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9864253393665159,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-04.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.8552317247969422,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
         }
       },
       "marker_file": false
     },
     "declared_kind": "lanl",
     "kind": "lanl_declared",
-    "source_note": "csr.lanl.gov/data/2017 form, 2026-10-17, physcorgi",
+    "source_note": "форма LANL, 2026-10-24, physcorgi",
     "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
     "verified": false
   },
@@ -128,12 +144,28 @@
   "train_events": 9368480,
   "windows": {
     "test": {
-      "end": 133200.0,
-      "graph_edges": 69253,
-      "max_time": 133199.0,
+      "end": 135000.0,
+      "graph_edges": 87510,
+      "max_time": 134999.0,
       "min_time": 131400.0,
-      "n_flows": 4970376,
+      "n_flows": 10297984,
       "start": 131400.0
+    },
+    "test_day03": {
+      "end": 221400.0,
+      "graph_edges": 84385,
+      "max_time": 221399.0,
+      "min_time": 217800.0,
+      "n_flows": 9046675,
+      "start": 217800.0
+    },
+    "test_day04": {
+      "end": 307800.0,
+      "graph_edges": 82151,
+      "max_time": 307799.0,
+      "min_time": 304200.0,
+      "n_flows": 10187029,
+      "start": 304200.0
     },
     "train": {
       "end": 129600.0,
