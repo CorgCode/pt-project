@@ -122,7 +122,7 @@ def test_tikhon_metrics_are_columns_outside_the_score(board):
     _scores(board)
     md = (board / "README.md").read_text(encoding="utf-8")
     head = next(line for line in md.splitlines() if line.startswith("| # |"))
-    assert head.endswith("| Triplets* | Cosine links, AUC* |") and "в score не входят" in md
+    assert head.endswith("| Tikhon LP, MRR* | Tikhon transfer, MRR* | Tikhon soft transfer, MRR* |") and "в score не входят" in md
 
 
 def test_builtin_skips_methods_already_trained_on_same_data(board, capsys):
