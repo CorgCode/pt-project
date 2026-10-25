@@ -1,5 +1,677 @@
 {
   "author": "physcorgi",
+  "by_window": {
+    "test": {
+      "metrics": {
+        "consistency@10_mean": 0.10216712580348943,
+        "consistency@10_median": 0.0,
+        "consistency@10_std": 0.19482392242387947,
+        "consistency@20_mean": 0.12032139577594125,
+        "consistency@20_median": 0.05,
+        "consistency@20_std": 0.19553894021736043,
+        "consistency@5_mean": 0.08653810835629018,
+        "consistency@5_median": 0.0,
+        "consistency@5_std": 0.1925996995282204,
+        "identity_mrr": 0.23499353266256706,
+        "identity_pair_roc_auc": 0.9190026458696953,
+        "identity_top1": 0.17376928728875826,
+        "jaccard@10_mean": 0.06928612710708933,
+        "jaccard@10_median": 0.0,
+        "jaccard@10_std": 0.15310898402350553,
+        "jaccard@20_mean": 0.07915641622471771,
+        "jaccard@20_median": 0.02564102564102564,
+        "jaccard@20_std": 0.14727411072089516,
+        "jaccard@5_mean": 0.06023656478201934,
+        "jaccard@5_median": 0.0,
+        "jaccard@5_std": 0.15185798034361775,
+        "link_learned_pr_auc": 0.9945813448294154,
+        "link_learned_pr_auc_lift": 1.9891626896588308,
+        "link_learned_random_roc_auc": 0.7136748707650165,
+        "link_learned_roc_auc": 0.9948393330481415,
+        "link_new_pr_auc": 0.08163286045374046,
+        "link_new_roc_auc": 0.25334116778087806,
+        "link_pr_auc": 0.393965657592357,
+        "link_pr_auc_at_natural_prevalence": 0.003694266633234947,
+        "link_pr_auc_lift": 0.787931315184714,
+        "link_roc_auc": 0.3574974575366784,
+        "ndcg@10_mean": 0.1140824049017031,
+        "ndcg@10_median": 0.0,
+        "ndcg@10_std": 0.22114721078798064,
+        "ndcg@20_mean": 0.13709417750385502,
+        "ndcg@20_median": 0.015494883697461074,
+        "ndcg@20_std": 0.2270679595153205,
+        "ndcg@5_mean": 0.09381857308370217,
+        "ndcg@5_median": 0.0,
+        "ndcg@5_std": 0.214605201461675,
+        "pair_pr_auc": 0.9839442946728305,
+        "pair_pr_auc_at_judged_prevalence": 0.8981949075745558,
+        "pair_pr_auc_lift": 2.779457916913721,
+        "pair_roc_auc": 0.989803177055474,
+        "partner_history_mrr": 0.9786331456359947,
+        "partner_lift": -0.0487984800624055,
+        "partner_mrr": 0.9308773355902674,
+        "partner_new_history_mrr": 7.833983873336343e-05,
+        "partner_new_lift": 2.1198641555604603,
+        "partner_new_mrr": 0.2591564472212233,
+        "partner_new_popularity_mrr": 0.08306658056227699,
+        "partner_new_recall@10": 0.29457958280205276,
+        "partner_popularity_mrr": 0.8105378821465642,
+        "partner_recall@10": 0.49594760462028464,
+        "precision@1": 0.9847551086603957,
+        "precision@3": 0.8385771434749701,
+        "precision@5": 0.7538112228349011,
+        "precision_lift@1": 2.693359755122762,
+        "precision_lift@3": 2.2935549254207444,
+        "precision_lift@5": 2.0617154383746046,
+        "recall@1": 0.31456399214765857,
+        "recall@3": 0.5541268357179391,
+        "recall@5": 0.6881693424622656,
+        "triplet_accuracy": 0.9872917626917759
+      },
+      "metrics_ci": {
+        "consistency@10_mean": [
+          0.09735904499540864,
+          0.10771763085399448
+        ],
+        "consistency@20_mean": [
+          0.11564669421487604,
+          0.1261253443526171
+        ],
+        "consistency@5_mean": [
+          0.08138934802571168,
+          0.09148025711662076
+        ],
+        "identity_top1": [
+          0.16090191036002938,
+          0.18772961058045554
+        ],
+        "jaccard@10_mean": [
+          0.06533049466123522,
+          0.0738105080437531
+        ],
+        "jaccard@20_mean": [
+          0.07567463006415609,
+          0.08313441060509337
+        ],
+        "jaccard@5_mean": [
+          0.0563346670164852,
+          0.06426257524742372
+        ],
+        "link_learned_roc_auc": [
+          0.9916108518742686,
+          0.9966216397565202
+        ],
+        "link_pr_auc": [
+          0.3357823652873224,
+          0.4505265276786325
+        ],
+        "link_roc_auc": [
+          0.32628801487857495,
+          0.3948918203468402
+        ],
+        "ndcg@10_mean": [
+          0.10821171172935017,
+          0.11977293572473685
+        ],
+        "ndcg@20_mean": [
+          0.1306977948084566,
+          0.14363936443853048
+        ],
+        "ndcg@5_mean": [
+          0.08806660358749693,
+          0.09957478018689693
+        ],
+        "pair_pr_auc": [
+          0.9803681029590948,
+          0.9867857344712432
+        ],
+        "pair_roc_auc": [
+          0.9873599491693758,
+          0.99173075155877
+        ],
+        "partner_mrr": [
+          0.9253497203253203,
+          0.9371091047474275
+        ],
+        "partner_new_mrr": [
+          0.24983753835634506,
+          0.26823129550338265
+        ],
+        "precision@1": [
+          0.9798816088225754,
+          0.9889717807330523
+        ],
+        "precision@3": [
+          0.8297086171477998,
+          0.8482025083792842
+        ],
+        "precision@5": [
+          0.7430376256892637,
+          0.765300032435939
+        ],
+        "recall@1": [
+          0.30336698901624976,
+          0.32404332331578317
+        ],
+        "recall@3": [
+          0.5419757129771624,
+          0.5649019279248397
+        ],
+        "recall@5": [
+          0.6774027097479489,
+          0.697179525677953
+        ],
+        "triplet_accuracy": [
+          0.9805445030013669,
+          0.9929565857661661
+        ]
+      },
+      "summary": [
+        {
+          "chance": 0.0018368846436443791,
+          "ci": [
+            0.09735904499540864,
+            0.10771763085399448
+          ],
+          "group": "Поведение",
+          "metric": "consistency@10_mean",
+          "title": "Соседи@10",
+          "value": 0.10216712580348943
+        },
+        {
+          "chance": 0.7136748707650165,
+          "ci": [
+            0.9916108518742686,
+            0.9966216397565202
+          ],
+          "group": "Будущие связи",
+          "metric": "link_learned_roc_auc",
+          "title": "Связь, AUC",
+          "value": 0.9948393330481415
+        },
+        {
+          "chance": 0.08306658056227699,
+          "ci": [
+            0.24983753835634506,
+            0.26823129550338265
+          ],
+          "group": "Будущие связи",
+          "metric": "partner_new_mrr",
+          "title": "Новые собеседники, MRR",
+          "value": 0.2591564472212233
+        },
+        {
+          "chance": 0.5,
+          "ci": [
+            0.9873599491693758,
+            0.99173075155877
+          ],
+          "group": "Общие собеседники",
+          "metric": "pair_roc_auc",
+          "title": "Пары, AUC",
+          "value": 0.989803177055474
+        },
+        {
+          "chance": 0.0003673769287288758,
+          "ci": [
+            0.16090191036002938,
+            0.18772961058045554
+          ],
+          "group": "Узнаваемость",
+          "metric": "identity_top1",
+          "title": "Узнаваемость, Top-1",
+          "value": 0.17376928728875826
+        }
+      ]
+    },
+    "test_day03": {
+      "metrics": {
+        "consistency@10_mean": 0.09772681954137588,
+        "consistency@10_median": 0.0,
+        "consistency@10_std": 0.19015145525589258,
+        "consistency@20_mean": 0.11408773678963112,
+        "consistency@20_median": 0.0,
+        "consistency@20_std": 0.19189407218912938,
+        "consistency@5_mean": 0.08323030907278166,
+        "consistency@5_median": 0.0,
+        "consistency@5_std": 0.18922915292343054,
+        "identity_mrr": 0.2173609488530908,
+        "identity_pair_roc_auc": 0.9079320655560896,
+        "identity_top1": 0.15789473684210525,
+        "jaccard@10_mean": 0.06574765523893374,
+        "jaccard@10_median": 0.0,
+        "jaccard@10_std": 0.14606669427210633,
+        "jaccard@20_mean": 0.07481790013999105,
+        "jaccard@20_median": 0.0,
+        "jaccard@20_std": 0.14223724405696828,
+        "jaccard@5_mean": 0.057866875563784836,
+        "jaccard@5_median": 0.0,
+        "jaccard@5_std": 0.14902786458672007,
+        "link_learned_pr_auc": 0.9932256415451906,
+        "link_learned_pr_auc_lift": 1.986451283090381,
+        "link_learned_random_roc_auc": 0.7130485964189219,
+        "link_learned_roc_auc": 0.993425192324117,
+        "link_new_pr_auc": 0.0980463950107642,
+        "link_new_roc_auc": 0.24899714580061139,
+        "link_pr_auc": 0.39677534690906346,
+        "link_pr_auc_at_natural_prevalence": 0.004122122786451296,
+        "link_pr_auc_lift": 0.7935506938181269,
+        "link_roc_auc": 0.36707672770811794,
+        "ndcg@10_mean": 0.10970156596929054,
+        "ndcg@10_median": 0.0,
+        "ndcg@10_std": 0.21864629001774666,
+        "ndcg@20_mean": 0.13047209725129147,
+        "ndcg@20_median": 0.0,
+        "ndcg@20_std": 0.22466276443978242,
+        "ndcg@5_mean": 0.09068185907475802,
+        "ndcg@5_median": 0.0,
+        "ndcg@5_std": 0.21189027777373365,
+        "pair_pr_auc": 0.9859355213600369,
+        "pair_pr_auc_at_judged_prevalence": 0.9123777373148565,
+        "pair_pr_auc_lift": 2.8622509688608853,
+        "pair_roc_auc": 0.9914487219804942,
+        "partner_history_mrr": 0.9692594861788373,
+        "partner_lift": -0.04695123020599942,
+        "partner_mrr": 0.923751560913906,
+        "partner_new_history_mrr": 7.859055567968089e-05,
+        "partner_new_lift": 2.5588365403323508,
+        "partner_new_mrr": 0.30318549355512736,
+        "partner_new_popularity_mrr": 0.08519230656399117,
+        "partner_new_recall@10": 0.3569103283307821,
+        "partner_popularity_mrr": 0.8040946851880424,
+        "partner_recall@10": 0.4806852194511111,
+        "precision@1": 0.9843020789138736,
+        "precision@3": 0.8246358365153444,
+        "precision@5": 0.7381154499151104,
+        "precision_lift@1": 2.7979550072838593,
+        "precision_lift@3": 2.344091328659797,
+        "precision_lift@5": 2.097892762955537,
+        "recall@1": 0.33116012265230105,
+        "recall@3": 0.5644141541537355,
+        "recall@5": 0.6938141752383359,
+        "triplet_accuracy": 0.989009025109463
+      },
+      "metrics_ci": {
+        "consistency@10_mean": [
+          0.09264157527417748,
+          0.1028619142572283
+        ],
+        "consistency@20_mean": [
+          0.10869765702891326,
+          0.11975573280159521
+        ],
+        "consistency@5_mean": [
+          0.07768693918245265,
+          0.08790129611166501
+        ],
+        "identity_top1": [
+          0.14586323763955344,
+          0.17066387559808613
+        ],
+        "jaccard@10_mean": [
+          0.061677687407880724,
+          0.06961263422598458
+        ],
+        "jaccard@20_mean": [
+          0.07089933784619042,
+          0.0790295686106899
+        ],
+        "jaccard@5_mean": [
+          0.053392243903211005,
+          0.06159315703682604
+        ],
+        "link_learned_roc_auc": [
+          0.9897741960657288,
+          0.9957987330480307
+        ],
+        "link_pr_auc": [
+          0.3299409030197666,
+          0.4568543206404434
+        ],
+        "link_roc_auc": [
+          0.3384867647973393,
+          0.4007123088490715
+        ],
+        "ndcg@10_mean": [
+          0.10371772050247849,
+          0.11589618773560668
+        ],
+        "ndcg@20_mean": [
+          0.12405818256927013,
+          0.13674331394715347
+        ],
+        "ndcg@5_mean": [
+          0.08433072618122321,
+          0.09611083887831748
+        ],
+        "pair_pr_auc": [
+          0.9820617202489654,
+          0.9893390845166053
+        ],
+        "pair_roc_auc": [
+          0.9891005744119701,
+          0.9936891463825512
+        ],
+        "partner_mrr": [
+          0.9168776047700713,
+          0.9308612724610824
+        ],
+        "partner_new_mrr": [
+          0.2930952526194778,
+          0.31298098961257087
+        ],
+        "precision@1": [
+          0.9796351294017819,
+          0.9893932965634281
+        ],
+        "precision@3": [
+          0.812890680243247,
+          0.8379295714891811
+        ],
+        "precision@5": [
+          0.7246901528013583,
+          0.752922325976231
+        ],
+        "recall@1": [
+          0.31602086617431324,
+          0.34344702743165856
+        ],
+        "recall@3": [
+          0.5495105053873454,
+          0.5780947481111816
+        ],
+        "recall@5": [
+          0.681772001953987,
+          0.705663813166963
+        ],
+        "triplet_accuracy": [
+          0.9815891494983838,
+          0.9953708857776571
+        ]
+      },
+      "summary": [
+        {
+          "chance": 0.001994415636218588,
+          "ci": [
+            0.09264157527417748,
+            0.1028619142572283
+          ],
+          "group": "Поведение",
+          "metric": "consistency@10_mean",
+          "title": "Соседи@10",
+          "value": 0.09772681954137588
+        },
+        {
+          "chance": 0.7130485964189219,
+          "ci": [
+            0.9897741960657288,
+            0.9957987330480307
+          ],
+          "group": "Будущие связи",
+          "metric": "link_learned_roc_auc",
+          "title": "Связь, AUC",
+          "value": 0.993425192324117
+        },
+        {
+          "chance": 0.08519230656399117,
+          "ci": [
+            0.2930952526194778,
+            0.31298098961257087
+          ],
+          "group": "Будущие связи",
+          "metric": "partner_new_mrr",
+          "title": "Новые собеседники, MRR",
+          "value": 0.30318549355512736
+        },
+        {
+          "chance": 0.5,
+          "ci": [
+            0.9891005744119701,
+            0.9936891463825512
+          ],
+          "group": "Общие собеседники",
+          "metric": "pair_roc_auc",
+          "title": "Пары, AUC",
+          "value": 0.9914487219804942
+        },
+        {
+          "chance": 0.00039872408293460925,
+          "ci": [
+            0.14586323763955344,
+            0.17066387559808613
+          ],
+          "group": "Узнаваемость",
+          "metric": "identity_top1",
+          "title": "Узнаваемость, Top-1",
+          "value": 0.15789473684210525
+        }
+      ]
+    },
+    "test_day04": {
+      "metrics": {
+        "consistency@10_mean": 0.08786027867913723,
+        "consistency@10_median": 0.0,
+        "consistency@10_std": 0.17519307721463048,
+        "consistency@20_mean": 0.1067188394731819,
+        "consistency@20_median": 0.0,
+        "consistency@20_std": 0.18641761370435375,
+        "consistency@5_mean": 0.07631227333460583,
+        "consistency@5_median": 0.0,
+        "consistency@5_std": 0.17866884707472208,
+        "identity_mrr": 0.1996696204298204,
+        "identity_pair_roc_auc": 0.8986175922149059,
+        "identity_top1": 0.13702290076335877,
+        "jaccard@10_mean": 0.05754087544697621,
+        "jaccard@10_median": 0.0,
+        "jaccard@10_std": 0.12806106857507454,
+        "jaccard@20_mean": 0.0698651191568371,
+        "jaccard@20_median": 0.0,
+        "jaccard@20_std": 0.138799646465072,
+        "jaccard@5_mean": 0.05219325752824512,
+        "jaccard@5_median": 0.0,
+        "jaccard@5_std": 0.1371120564692812,
+        "link_learned_pr_auc": 0.9930726806392309,
+        "link_learned_pr_auc_lift": 1.9861453612784619,
+        "link_learned_random_roc_auc": 0.7142073073264184,
+        "link_learned_roc_auc": 0.9930724242984535,
+        "link_new_pr_auc": 0.09457522094471339,
+        "link_new_roc_auc": 0.24200578028533404,
+        "link_pr_auc": 0.3921414291278577,
+        "link_pr_auc_at_natural_prevalence": 0.003755699029656132,
+        "link_pr_auc_lift": 0.7842828582557154,
+        "link_roc_auc": 0.3555706160831963,
+        "ndcg@10_mean": 0.1009045072792089,
+        "ndcg@10_median": 0.0,
+        "ndcg@10_std": 0.2070437720802247,
+        "ndcg@20_mean": 0.12176477345123865,
+        "ndcg@20_median": 0.0,
+        "ndcg@20_std": 0.21627304769671968,
+        "ndcg@5_mean": 0.08460246411863248,
+        "ndcg@5_median": 0.0,
+        "ndcg@5_std": 0.20341219901806668,
+        "pair_pr_auc": 0.9808123695949031,
+        "pair_pr_auc_at_judged_prevalence": 0.8663303664654376,
+        "pair_pr_auc_lift": 2.606994941703652,
+        "pair_roc_auc": 0.9871064964714881,
+        "partner_history_mrr": 0.9660260825689369,
+        "partner_lift": -0.04218501082562533,
+        "partner_mrr": 0.9252742618179298,
+        "partner_new_history_mrr": 7.783887106093373e-05,
+        "partner_new_lift": 2.5422518226814708,
+        "partner_new_mrr": 0.30432304480213745,
+        "partner_new_popularity_mrr": 0.08591231229059432,
+        "partner_new_recall@10": 0.37992589558699863,
+        "partner_popularity_mrr": 0.8162271603312813,
+        "partner_recall@10": 0.4857287079495923,
+        "precision@1": 0.9847253818654533,
+        "precision@3": 0.8625284367890803,
+        "precision@5": 0.7870611183355006,
+        "precision_lift@1": 2.511825780679239,
+        "precision_lift@3": 2.2001272679612875,
+        "precision_lift@5": 2.007389692514792,
+        "recall@1": 0.2745571090722593,
+        "recall@3": 0.5097857607556506,
+        "recall@5": 0.6494794220015137,
+        "triplet_accuracy": 0.9826764833261152
+      },
+      "metrics_ci": {
+        "consistency@10_mean": [
+          0.08329833937774384,
+          0.0918763122733346
+        ],
+        "consistency@20_mean": [
+          0.10184672647451806,
+          0.11107272380225235
+        ],
+        "consistency@5_mean": [
+          0.07173029204046574,
+          0.08094197365909525
+        ],
+        "identity_top1": [
+          0.1262881679389313,
+          0.15
+        ],
+        "jaccard@10_mean": [
+          0.0542967934882743,
+          0.06065855929116531
+        ],
+        "jaccard@20_mean": [
+          0.06636163673914582,
+          0.07317401699517141
+        ],
+        "jaccard@5_mean": [
+          0.048868358344164795,
+          0.05610900162699171
+        ],
+        "link_learned_roc_auc": [
+          0.9888837093564243,
+          0.9955640492879518
+        ],
+        "link_pr_auc": [
+          0.3298383496497379,
+          0.4417235062583758
+        ],
+        "link_roc_auc": [
+          0.3285069440315289,
+          0.3923617987500963
+        ],
+        "ndcg@10_mean": [
+          0.09590795571745386,
+          0.10583346220322785
+        ],
+        "ndcg@20_mean": [
+          0.11642073902427047,
+          0.1267117776804337
+        ],
+        "ndcg@5_mean": [
+          0.07987213683062315,
+          0.08959011355873264
+        ],
+        "pair_pr_auc": [
+          0.9771423141865797,
+          0.9848448854047892
+        ],
+        "pair_roc_auc": [
+          0.9843945829977405,
+          0.9899327728451195
+        ],
+        "partner_mrr": [
+          0.9194629346009564,
+          0.9301894586983833
+        ],
+        "partner_new_mrr": [
+          0.29535879823417427,
+          0.313835643701662
+        ],
+        "precision@1": [
+          0.9801673708157296,
+          0.9886334091647708
+        ],
+        "precision@3": [
+          0.8552675766439173,
+          0.8717446647167153
+        ],
+        "precision@5": [
+          0.7768481794538362,
+          0.7976056566970091
+        ],
+        "recall@1": [
+          0.2654217205999313,
+          0.2836178512553272
+        ],
+        "recall@3": [
+          0.4990414825100156,
+          0.5208814229818624
+        ],
+        "recall@5": [
+          0.6402280959418603,
+          0.6589416671886811
+        ],
+        "triplet_accuracy": [
+          0.9753177207889773,
+          0.9882375497813086
+        ]
+      },
+      "summary": [
+        {
+          "chance": 0.0019091256204658267,
+          "ci": [
+            0.08329833937774384,
+            0.0918763122733346
+          ],
+          "group": "Поведение",
+          "metric": "consistency@10_mean",
+          "title": "Соседи@10",
+          "value": 0.08786027867913723
+        },
+        {
+          "chance": 0.7142073073264184,
+          "ci": [
+            0.9888837093564243,
+            0.9955640492879518
+          ],
+          "group": "Будущие связи",
+          "metric": "link_learned_roc_auc",
+          "title": "Связь, AUC",
+          "value": 0.9930724242984535
+        },
+        {
+          "chance": 0.08591231229059432,
+          "ci": [
+            0.29535879823417427,
+            0.313835643701662
+          ],
+          "group": "Будущие связи",
+          "metric": "partner_new_mrr",
+          "title": "Новые собеседники, MRR",
+          "value": 0.30432304480213745
+        },
+        {
+          "chance": 0.5,
+          "ci": [
+            0.9843945829977405,
+            0.9899327728451195
+          ],
+          "group": "Общие собеседники",
+          "metric": "pair_roc_auc",
+          "title": "Пары, AUC",
+          "value": 0.9871064964714881
+        },
+        {
+          "chance": 0.0003816793893129771,
+          "ci": [
+            0.1262881679389313,
+            0.15
+          ],
+          "group": "Узнаваемость",
+          "metric": "identity_top1",
+          "title": "Узнаваемость, Top-1",
+          "value": 0.13702290076335877
+        }
+      ]
+    }
+  },
+  "ci_kind": "range over test windows",
   "ci_methods": {
     "consistency@10_mean": "item bootstrap (hosts / anchors resampled)",
     "consistency@20_mean": "item bootstrap (hosts / anchors resampled)",
@@ -26,194 +698,194 @@
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
   "dim": 89,
-  "inputs_sha256": "3af39a8cf3bcb419a2b6362278d5d3540e338492ee06472684c094e23beef10e",
+  "inputs_sha256": "46ef66126dc8549312e0f46c4394f57e632906fb8f1acb7823730bd9c52265bf",
   "method": "hybrid_behavioral_node2vec_spectral",
   "metric_details": {
     "future_link_prediction": {
       "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
-      "n_examples": 45776,
-      "n_positive": 22888,
-      "natural_prevalence": 0.009110881030316131,
+      "n_examples": 156696,
+      "n_positive": 78348,
+      "natural_prevalence": 0.00528617954307621,
       "new_links": {
-        "n_examples": 25577,
-        "n_positive": 2738,
+        "n_examples": 89569,
+        "n_positive": 11280,
         "note": "candidates not observed in the source window (new links vs unseen non-links)",
-        "positive_rate": 0.10704930210736208,
-        "pr_auc": 0.06580773843354482,
-        "roc_auc": 0.2411655463174735
+        "positive_rate": 0.12593642889839118,
+        "pr_auc": 0.08163286045374046,
+        "roc_auc": 0.25334116778087806
       },
       "persistence_baseline": {
         "note": "trivial predictor: pair seen in the source window; embeddings should be read against it",
-        "pr_auc": 0.9380513311460441,
-        "roc_auc": 0.9391165676336944
+        "pr_auc": 0.9272610897141971,
+        "roc_auc": 0.9276369530811253
       },
       "positive_rate": 0.5,
-      "share_positives_seen_in_source": 0.8803739951066061,
+      "share_positives_seen_in_source": 0.8560269566549242,
       "source_window": "1970-01-02T11:00:00Z/1970-01-02T11:59:59Z",
       "split": "test",
-      "target_window": "1970-01-02T12:30:00Z/1970-01-02T12:59:59Z"
+      "target_window": "1970-01-02T12:30:00Z/1970-01-02T13:29:59Z"
     },
     "identity": {
       "alignment": "procrustes",
-      "chance_mrr": 0.006779338137367894,
+      "chance_mrr": 0.003117752213567288,
       "chance_recall": {
-        "1": 0.0008920606601248885,
-        "10": 0.008920606601248885,
-        "5": 0.0044603033006244425
+        "1": 0.0003673769287288758,
+        "10": 0.0036737692872887582,
+        "5": 0.0018368846436443791
       },
-      "chance_top1": 0.0008920606601248885,
-      "mrr": 0.3629724175273728,
-      "n_alignment_hosts": 1121,
-      "n_eval_hosts": 1121,
+      "chance_top1": 0.0003673769287288758,
+      "mrr": 0.23499353266256706,
+      "n_alignment_hosts": 2723,
+      "n_eval_hosts": 2722,
       "negatives_per_positive": 5,
       "pair_positive_rate": 0.16666666666666666,
-      "pair_pr_auc": 0.7860180849855453,
-      "pair_roc_auc": 0.9309977949151746,
+      "pair_pr_auc": 0.7088344017693123,
+      "pair_roc_auc": 0.9190026458696953,
       "pair_roc_auc_ci": [
-        0.9178533099268052,
-        0.9425685754776536
+        0.9108436985813304,
+        0.9279438630402728
       ],
       "recall": {
-        "1": 0.27475468331846564,
-        "10": 0.5316681534344335,
-        "5": 0.46030330062444247
+        "1": 0.17376928728875826,
+        "10": 0.3493754592211609,
+        "5": 0.2942689199118295
       },
       "seed": 0,
       "shared_coordinate_system_declared": false,
-      "top1": 0.27475468331846564,
+      "top1": 0.17376928728875826,
       "top1_ci": [
-        0.24794826048171276,
-        0.3015388046387154
+        0.16090191036002938,
+        0.18772961058045554
       ]
     },
     "link_learned": {
       "ci_method": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
       "eval_split": "test",
-      "eval_target_window": "1970-01-02T12:30:00Z/1970-01-02T12:59:59Z",
+      "eval_target_window": "1970-01-02T12:30:00Z/1970-01-02T13:29:59Z",
       "fit_split": "validation",
       "fit_target_window": "1970-01-02T12:00:00Z/1970-01-02T12:29:59Z",
-      "n_eval": 45776,
+      "n_eval": 156696,
       "n_fit": 57796,
-      "pr_auc": 0.991828946928322,
-      "pr_auc_lift": 1.983657893856644,
-      "random_roc_auc": 0.7630201922594116,
-      "roc_auc": 0.9933936979227815
+      "pr_auc": 0.9945813448294154,
+      "pr_auc_lift": 1.9891626896588308,
+      "random_roc_auc": 0.7136748707650165,
+      "roc_auc": 0.9948393330481415
     },
     "pairwise_auc": {
       "interpretation": "Размечены только явные пары: Jaccard >= tau (похожи) или 0 (не похожи). Доля положительных — среди размеченных, а не среди всех пар хостов.",
-      "judged_population_prevalence": 0.04601270851318359,
-      "n_pairs": 18747,
-      "n_positive": 7242,
-      "population_positive_rate": 0.010120370469886284,
-      "positive_rate": 0.3863018082893263,
+      "judged_population_prevalence": 0.034337669130712366,
+      "n_pairs": 35361,
+      "n_positive": 12518,
+      "population_positive_rate": 0.010240404175345061,
+      "positive_rate": 0.3540058256271033,
       "split": "test",
-      "unjudged_share": 0.7800527115897429
+      "unjudged_share": 0.7017734623639372
     },
     "partner_ranking": {
       "all": {
         "embedding": {
-          "mrr": 0.8869130363322789,
+          "mrr": 0.9308773355902674,
           "mrr_ci": [
-            0.8772465928332949,
-            0.8982328030080646
+            0.9253497203253203,
+            0.9371091047474275
           ],
-          "n_hosts": 2242,
-          "recall_at_n": 0.5216160503154156
+          "n_hosts": 5445,
+          "recall_at_n": 0.49594760462028464
         },
         "history": {
-          "mrr": 0.9715129716327093,
-          "n_hosts": 2242,
-          "recall_at_n": 0.6811863256778605
+          "mrr": 0.9786331456359947,
+          "n_hosts": 5445,
+          "recall_at_n": 0.6044585822458654
         },
-        "lift_vs_best_baseline": -0.08708060290564427,
+        "lift_vs_best_baseline": -0.0487984800624055,
         "popularity": {
-          "mrr": 0.8585836760306644,
-          "n_hosts": 2242,
-          "recall_at_n": 0.21863668549847676
+          "mrr": 0.8105378821465642,
+          "n_hosts": 5445,
+          "recall_at_n": 0.22121554944425506
         }
       },
       "k_neighbors": 10,
-      "n_candidates": 25287,
+      "n_candidates": 25595,
       "new": {
         "embedding": {
-          "mrr": 0.21587345879544045,
+          "mrr": 0.2591564472212233,
           "mrr_ci": [
-            0.20068559457520108,
-            0.23099338053989393
+            0.24983753835634506,
+            0.26823129550338265
           ],
-          "n_hosts": 1419,
-          "recall_at_n": 0.28734912367675014
+          "n_hosts": 4215,
+          "recall_at_n": 0.29457958280205276
         },
         "history": {
-          "mrr": 7.956614349443921e-05,
-          "n_hosts": 1419,
+          "mrr": 7.833983873336343e-05,
+          "n_hosts": 4215,
           "recall_at_n": 0.0
         },
-        "lift_vs_best_baseline": 2.3123451927760383,
+        "lift_vs_best_baseline": 2.1198641555604603,
         "popularity": {
-          "mrr": 0.06517239183471678,
-          "n_hosts": 1419,
-          "recall_at_n": 0.10676875816320636
+          "mrr": 0.08306658056227699,
+          "n_hosts": 4215,
+          "recall_at_n": 0.08638847868611715
         }
       },
-      "target_coverage": 0.9885834094213926,
+      "target_coverage": 0.9855189673764344,
       "top_n": 10
     },
     "retrieval": {
       "by_k": {
         "1": {
-          "chance_precision": 0.45548811592853716,
-          "coverage": 0.7966269841269841,
-          "eligible_anchors": 1606,
+          "chance_precision": 0.3656233099894637,
+          "coverage": 0.6422916666666667,
+          "eligible_anchors": 3083,
           "oracle_precision": 1.0,
-          "precision": 0.976961394769614,
+          "precision": 0.9847551086603957,
           "precision_ci": [
-            0.9694894146948941,
-            0.9838107098381071
+            0.9798816088225754,
+            0.9889717807330523
           ],
-          "precision_lift": 2.1448669254038064,
-          "recall": 0.23332351313782282,
+          "precision_lift": 2.693359755122762,
+          "recall": 0.31456399214765857,
           "recall_ci": [
-            0.2208090375557101,
-            0.24761875053867202
+            0.30336698901624976,
+            0.32404332331578317
           ]
         },
         "3": {
-          "chance_precision": 0.45548811592853716,
-          "coverage": 0.7966269841269841,
-          "eligible_anchors": 1606,
-          "oracle_precision": 0.9076380240763802,
-          "precision": 0.8868825238688254,
+          "chance_precision": 0.3656233099894637,
+          "coverage": 0.6422916666666667,
+          "eligible_anchors": 3083,
+          "oracle_precision": 0.8485241647745703,
+          "precision": 0.8385771434749701,
           "precision_ci": [
-            0.8756693648816937,
-            0.898090493980905
+            0.8297086171477998,
+            0.8482025083792842
           ],
-          "precision_lift": 1.947103542011996,
-          "recall": 0.4789726497372673,
+          "precision_lift": 2.2935549254207444,
+          "recall": 0.5541268357179391,
           "recall_ci": [
-            0.46382305952943315,
-            0.496615485239202
+            0.5419757129771624,
+            0.5649019279248397
           ]
         },
         "5": {
-          "chance_precision": 0.45587268507874645,
-          "coverage": 0.7951388888888888,
-          "eligible_anchors": 1603,
-          "oracle_precision": 0.8424204616344355,
-          "precision": 0.8238303181534622,
+          "chance_precision": 0.3656233099894637,
+          "coverage": 0.6422916666666667,
+          "eligible_anchors": 3083,
+          "oracle_precision": 0.7614661044437238,
+          "precision": 0.7538112228349011,
           "precision_ci": [
-            0.8080786026200873,
-            0.8367248908296944
+            0.7430376256892637,
+            0.765300032435939
           ],
-          "precision_lift": 1.8071499897195102,
-          "recall": 0.6380000057395805,
+          "precision_lift": 2.0617154383746046,
+          "recall": 0.6881693424622656,
           "recall_ci": [
-            0.621927576071911,
-            0.6526407523807166
+            0.6774027097479489,
+            0.697179525677953
           ]
         }
       },
-      "judged_anchors": 2016,
+      "judged_anchors": 4800,
       "ks": [
         1,
         3,
@@ -224,7 +896,7 @@
     "triplet_accuracy": {
       "chance": 0.5,
       "n_ties": 0,
-      "n_triplets": 8912,
+      "n_triplets": 15187,
       "split": "test"
     }
   },
@@ -242,191 +914,351 @@
     "triplet_accuracy": "ok"
   },
   "metrics": {
-    "consistency@10_mean": 0.17653880463871544,
+    "consistency@10_mean": 0.09591807467466751,
     "consistency@10_median": 0.0,
-    "consistency@10_std": 0.250591394324334,
-    "consistency@20_mean": 0.20015611061552185,
-    "consistency@20_median": 0.05,
-    "consistency@20_std": 0.2541555084445031,
-    "consistency@5_mean": 0.15450490633363068,
+    "consistency@10_std": 0.1867228182981342,
+    "consistency@20_mean": 0.1137093240129181,
+    "consistency@20_median": 0.016666666666666666,
+    "consistency@20_std": 0.19128354203694786,
+    "consistency@5_mean": 0.08202689692122589,
     "consistency@5_median": 0.0,
-    "consistency@5_std": 0.24887027246130103,
-    "identity_mrr": 0.3629724175273728,
-    "identity_pair_roc_auc": 0.9309977949151746,
-    "identity_top1": 0.27475468331846564,
-    "jaccard@10_mean": 0.1236105665190295,
+    "consistency@5_std": 0.18683256650879101,
+    "identity_mrr": 0.2173413673151594,
+    "identity_pair_roc_auc": 0.9085174345468969,
+    "identity_top1": 0.15622897496474075,
+    "jaccard@10_mean": 0.06419155259766642,
     "jaccard@10_median": 0.0,
-    "jaccard@10_std": 0.19762300989051512,
-    "jaccard@20_mean": 0.13959364414176914,
-    "jaccard@20_median": 0.02564102564102564,
-    "jaccard@20_std": 0.20378791038252733,
-    "jaccard@5_mean": 0.11007745352080767,
+    "jaccard@10_std": 0.14241224895689547,
+    "jaccard@20_mean": 0.07461314517384862,
+    "jaccard@20_median": 0.008547008547008546,
+    "jaccard@20_std": 0.14277033374764514,
+    "jaccard@5_mean": 0.056765565958016434,
     "jaccard@5_median": 0.0,
-    "jaccard@5_std": 0.19874793503986424,
-    "link_learned_pr_auc": 0.991828946928322,
-    "link_learned_pr_auc_lift": 1.983657893856644,
-    "link_learned_random_roc_auc": 0.7630201922594116,
-    "link_learned_roc_auc": 0.9933936979227815,
-    "link_new_pr_auc": 0.06580773843354482,
-    "link_new_roc_auc": 0.2411655463174735,
-    "link_pr_auc": 0.41017505425495704,
-    "link_pr_auc_at_natural_prevalence": 0.0065886368704364835,
-    "link_pr_auc_lift": 0.8203501085099141,
-    "link_roc_auc": 0.34983365152997664,
-    "ndcg@10_mean": 0.19926272347029284,
+    "jaccard@5_std": 0.14599930046653967,
+    "link_learned_pr_auc": 0.993626555671279,
+    "link_learned_pr_auc_lift": 1.987253111342558,
+    "link_learned_random_roc_auc": 0.7136435915034522,
+    "link_learned_roc_auc": 0.9937789832235707,
+    "link_new_pr_auc": 0.09141815880307269,
+    "link_new_roc_auc": 0.24811469795560784,
+    "link_pr_auc": 0.39429414454309275,
+    "link_pr_auc_at_natural_prevalence": 0.0038573628164474583,
+    "link_pr_auc_lift": 0.7885882890861855,
+    "link_roc_auc": 0.36004826710933086,
+    "ndcg@10_mean": 0.10822949271673417,
     "ndcg@10_median": 0.0,
-    "ndcg@10_std": 0.28452827755953997,
-    "ndcg@20_mean": 0.23100872873842285,
-    "ndcg@20_median": 0.06908445612951723,
-    "ndcg@20_std": 0.2919635662185078,
-    "ndcg@5_mean": 0.17014695810327135,
+    "ndcg@10_std": 0.21561242429531732,
+    "ndcg@20_mean": 0.12977701606879505,
+    "ndcg@20_median": 0.0051649612324870245,
+    "ndcg@20_std": 0.22266792388394085,
+    "ndcg@5_mean": 0.08970096542569755,
     "ndcg@5_median": 0.0,
-    "ndcg@5_std": 0.27960497284323504,
-    "pair_pr_auc": 0.9407168147452513,
-    "pair_pr_auc_at_judged_prevalence": 0.6649354594086498,
-    "pair_pr_auc_lift": 2.435186153828946,
-    "pair_roc_auc": 0.9627608447079611,
-    "partner_history_mrr": 0.9715129716327093,
-    "partner_lift": -0.08708060290564427,
-    "partner_mrr": 0.8869130363322789,
-    "partner_new_history_mrr": 7.956614349443921e-05,
-    "partner_new_lift": 2.3123451927760383,
-    "partner_new_mrr": 0.21587345879544045,
-    "partner_new_popularity_mrr": 0.06517239183471678,
-    "partner_new_recall@10": 0.28734912367675014,
-    "partner_popularity_mrr": 0.8585836760306644,
-    "partner_recall@10": 0.5216160503154156,
-    "precision@1": 0.976961394769614,
-    "precision@3": 0.8868825238688254,
-    "precision@5": 0.8238303181534622,
-    "precision_lift@1": 2.1448669254038064,
-    "precision_lift@3": 1.947103542011996,
-    "precision_lift@5": 1.8071499897195102,
-    "recall@1": 0.23332351313782282,
-    "recall@3": 0.4789726497372673,
-    "recall@5": 0.6380000057395805,
-    "triplet_accuracy": 0.9749775583482945
+    "ndcg@5_std": 0.20996922608449178,
+    "pair_pr_auc": 0.9835640618759235,
+    "pair_pr_auc_at_judged_prevalence": 0.8923010037849499,
+    "pair_pr_auc_lift": 2.749567942492753,
+    "pair_roc_auc": 0.9894527985024855,
+    "partner_history_mrr": 0.9713062381279229,
+    "partner_lift": -0.04597824036467676,
+    "partner_mrr": 0.9266343861073677,
+    "partner_new_history_mrr": 7.825642182465935e-05,
+    "partner_new_lift": 2.406984172858094,
+    "partner_new_mrr": 0.2888883285261627,
+    "partner_new_popularity_mrr": 0.08472373313895416,
+    "partner_new_recall@10": 0.34380526890661117,
+    "partner_popularity_mrr": 0.8102865758886293,
+    "partner_recall@10": 0.487453844006996,
+    "precision@1": 0.9845941898132408,
+    "precision@3": 0.8419138055931317,
+    "precision@5": 0.759662597028504,
+    "precision_lift@1": 2.6677135143619535,
+    "precision_lift@3": 2.2792578406806094,
+    "precision_lift@5": 2.055665964614978,
+    "recall@1": 0.3067604079574063,
+    "recall@3": 0.5427755835424417,
+    "recall@5": 0.6771543132340384,
+    "triplet_accuracy": 0.9863257570424514
   },
   "metrics_ci": {
     "consistency@10_mean": [
-      0.16756913470115967,
-      0.18568688670829617
+      0.08786027867913723,
+      0.10216712580348943
+    ],
+    "consistency@10_median": [
+      0.0,
+      0.0
+    ],
+    "consistency@10_std": [
+      0.17519307721463048,
+      0.19482392242387947
     ],
     "consistency@20_mean": [
-      0.19052129794826045,
-      0.20858608385370203
+      0.1067188394731819,
+      0.12032139577594125
+    ],
+    "consistency@20_median": [
+      0.0,
+      0.05
+    ],
+    "consistency@20_std": [
+      0.18641761370435375,
+      0.19553894021736043
     ],
     "consistency@5_mean": [
-      0.14530999107939344,
-      0.16301962533452277
+      0.07631227333460583,
+      0.08653810835629018
+    ],
+    "consistency@5_median": [
+      0.0,
+      0.0
+    ],
+    "consistency@5_std": [
+      0.17866884707472208,
+      0.1925996995282204
+    ],
+    "identity_mrr": [
+      0.1996696204298204,
+      0.23499353266256706
+    ],
+    "identity_pair_roc_auc": [
+      0.8986175922149059,
+      0.9190026458696953
     ],
     "identity_top1": [
-      0.24794826048171276,
-      0.3015388046387154
+      0.13702290076335877,
+      0.17376928728875826
     ],
     "jaccard@10_mean": [
-      0.11637215507257047,
-      0.13051029098459002
+      0.05754087544697621,
+      0.06928612710708933
+    ],
+    "jaccard@10_median": [
+      0.0,
+      0.0
+    ],
+    "jaccard@10_std": [
+      0.12806106857507454,
+      0.15310898402350553
     ],
     "jaccard@20_mean": [
-      0.13228935404009085,
-      0.1466394336695245
+      0.0698651191568371,
+      0.07915641622471771
+    ],
+    "jaccard@20_median": [
+      0.0,
+      0.02564102564102564
+    ],
+    "jaccard@20_std": [
+      0.138799646465072,
+      0.14727411072089516
     ],
     "jaccard@5_mean": [
-      0.10303141327896011,
-      0.11795568547073901
+      0.05219325752824512,
+      0.06023656478201934
+    ],
+    "jaccard@5_median": [
+      0.0,
+      0.0
+    ],
+    "jaccard@5_std": [
+      0.1371120564692812,
+      0.15185798034361775
+    ],
+    "link_learned_pr_auc": [
+      0.9930726806392309,
+      0.9945813448294154
+    ],
+    "link_learned_pr_auc_lift": [
+      1.9861453612784619,
+      1.9891626896588308
+    ],
+    "link_learned_random_roc_auc": [
+      0.7130485964189219,
+      0.7142073073264184
     ],
     "link_learned_roc_auc": [
-      0.9904511410138355,
-      0.9953647630660394
+      0.9930724242984535,
+      0.9948393330481415
+    ],
+    "link_new_pr_auc": [
+      0.08163286045374046,
+      0.0980463950107642
+    ],
+    "link_new_roc_auc": [
+      0.24200578028533404,
+      0.25334116778087806
     ],
     "link_pr_auc": [
-      0.3333241920934181,
-      0.4650577198131911
+      0.3921414291278577,
+      0.39677534690906346
+    ],
+    "link_pr_auc_at_natural_prevalence": [
+      0.003694266633234947,
+      0.004122122786451296
+    ],
+    "link_pr_auc_lift": [
+      0.7842828582557154,
+      0.7935506938181269
     ],
     "link_roc_auc": [
-      0.31788945237150923,
-      0.4059391601251659
+      0.3555706160831963,
+      0.36707672770811794
     ],
     "ndcg@10_mean": [
-      0.18823183331174603,
-      0.20935179322291583
+      0.1009045072792089,
+      0.1140824049017031
+    ],
+    "ndcg@10_median": [
+      0.0,
+      0.0
+    ],
+    "ndcg@10_std": [
+      0.2070437720802247,
+      0.22114721078798064
     ],
     "ndcg@20_mean": [
-      0.22007618551738567,
-      0.2407645744528868
+      0.12176477345123865,
+      0.13709417750385502
+    ],
+    "ndcg@20_median": [
+      0.0,
+      0.015494883697461074
+    ],
+    "ndcg@20_std": [
+      0.21627304769671968,
+      0.2270679595153205
     ],
     "ndcg@5_mean": [
-      0.15858160030327467,
-      0.17903688265631137
+      0.08460246411863248,
+      0.09381857308370217
+    ],
+    "ndcg@5_median": [
+      0.0,
+      0.0
+    ],
+    "ndcg@5_std": [
+      0.20341219901806668,
+      0.214605201461675
     ],
     "pair_pr_auc": [
-      0.9295376928619467,
-      0.9521180642782513
+      0.9808123695949031,
+      0.9859355213600369
+    ],
+    "pair_pr_auc_at_judged_prevalence": [
+      0.8663303664654376,
+      0.9123777373148565
+    ],
+    "pair_pr_auc_lift": [
+      2.606994941703652,
+      2.8622509688608853
     ],
     "pair_roc_auc": [
-      0.9564161059690497,
-      0.9699368426742064
+      0.9871064964714881,
+      0.9914487219804942
+    ],
+    "partner_history_mrr": [
+      0.9660260825689369,
+      0.9786331456359947
+    ],
+    "partner_lift": [
+      -0.0487984800624055,
+      -0.04218501082562533
     ],
     "partner_mrr": [
-      0.8772465928332949,
-      0.8982328030080646
+      0.923751560913906,
+      0.9308773355902674
+    ],
+    "partner_new_history_mrr": [
+      7.783887106093373e-05,
+      7.859055567968089e-05
+    ],
+    "partner_new_lift": [
+      2.1198641555604603,
+      2.5588365403323508
     ],
     "partner_new_mrr": [
-      0.20068559457520108,
-      0.23099338053989393
+      0.2591564472212233,
+      0.30432304480213745
+    ],
+    "partner_new_popularity_mrr": [
+      0.08306658056227699,
+      0.08591231229059432
+    ],
+    "partner_new_recall@10": [
+      0.29457958280205276,
+      0.37992589558699863
+    ],
+    "partner_popularity_mrr": [
+      0.8040946851880424,
+      0.8162271603312813
+    ],
+    "partner_recall@10": [
+      0.4806852194511111,
+      0.49594760462028464
     ],
     "precision@1": [
-      0.9694894146948941,
-      0.9838107098381071
+      0.9843020789138736,
+      0.9847551086603957
     ],
     "precision@3": [
-      0.8756693648816937,
-      0.898090493980905
+      0.8246358365153444,
+      0.8625284367890803
     ],
     "precision@5": [
-      0.8080786026200873,
-      0.8367248908296944
+      0.7381154499151104,
+      0.7870611183355006
+    ],
+    "precision_lift@1": [
+      2.511825780679239,
+      2.7979550072838593
+    ],
+    "precision_lift@3": [
+      2.2001272679612875,
+      2.344091328659797
+    ],
+    "precision_lift@5": [
+      2.007389692514792,
+      2.097892762955537
     ],
     "recall@1": [
-      0.2208090375557101,
-      0.24761875053867202
+      0.2745571090722593,
+      0.33116012265230105
     ],
     "recall@3": [
-      0.46382305952943315,
-      0.496615485239202
+      0.5097857607556506,
+      0.5644141541537355
     ],
     "recall@5": [
-      0.621927576071911,
-      0.6526407523807166
+      0.6494794220015137,
+      0.6938141752383359
     ],
     "triplet_accuracy": [
-      0.961865470198938,
-      0.9840914823231246
+      0.9826764833261152,
+      0.989009025109463
     ]
   },
   "n_bootstrap": 200,
   "n_embedded_hosts": 6453,
-  "n_hosts": 2242,
+  "n_hosts": 5445,
   "reference_info": {
     "cohort_policy": "train_only",
-    "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
+    "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
     "data_kind": "lanl_declared",
-    "evaluable_coverage": 0.3474353014101968,
-    "features_sha256": "e8e17743e80797bd68f81324a49b57dbbf076a918e7fd7d20f8f84f553c9bdba",
+    "evaluable_coverage": 0.8437935843793585,
+    "features_sha256": "f6a8a0223875382cca56c984decf6ac05eacb8dc216e9405a267a3f43a1efc8c",
     "files_sha256": {
-      "edges.csv": "d67de21c6766feeed3cb2acaabca69f44858d04fea409c0a8d562051afb053e8",
-      "eval_hosts.csv": "63d6267ba9fdfd9198b94d90aed1c5b8679a38c26db08c01a442a28218e01957",
-      "features.csv": "e8e17743e80797bd68f81324a49b57dbbf076a918e7fd7d20f8f84f553c9bdba",
-      "neighbors.csv": "e5e21f84b5c462d272786e3129f30e4cb23d9924d6b0f9e202a2067047962901",
-      "pairs.csv": "6d408a475c5db3d2f26bf5a47060443a1120ee4fba9c7b7bf3c2baa3ed421581",
-      "partners.csv": "91aded4180218193349378d3196aaf326ece71cbde49f388326d923b9eb02beb",
-      "triplets.csv": "79ca8c52afd257fd326731d5353eab73a8038044944dc6811c3c0af67ae1c2e7"
+      "edges.csv": "98726c476f16c45a876975d4d3a4dc4811acc2a1d2b97d9727519bc1f86a6892",
+      "eval_hosts.csv": "16df41ecc9c9ea038ead3059d9be0a9418f8bb14f446f8751463899b5b8fbf72",
+      "features.csv": "f6a8a0223875382cca56c984decf6ac05eacb8dc216e9405a267a3f43a1efc8c",
+      "neighbors.csv": "dfdadd615ad136ebca559cddf551de1f1ff8a464db102da69a2dc1e5529564a1",
+      "pairs.csv": "923744a0b97d3c660a0dd6e12d3b108a5e943456a7a89e79722ad040bbc60c08",
+      "partners.csv": "d1b4796e1a39b71600f8523f2bbb6e05715fa15d67ad1597c1ce28209ae5edcf",
+      "triplets.csv": "e47f29ad2c118b30038816cc230b1eccd512ab586ae18a77ed54c3494aa370bb"
     },
     "fit_reference_files_sha256": {
       "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
       "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
-      "features.csv": "d5c2c8747c0d4f7ee0407acfd5022d48e892e01e1671ed147e1425ce0d26177b",
+      "features.csv": "dbfffa916f66b78ff00e4b08a1ca820fd71a9a330ac5109738fc406b904c99fb",
       "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
       "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
       "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
@@ -436,8 +1268,8 @@
     "kind": "heldout_temporal_behavior_proxy",
     "labels_source": null,
     "n_cohort": 6453,
-    "n_evaluable": 2242,
-    "neighbors_sha256": "e5e21f84b5c462d272786e3129f30e4cb23d9924d6b0f9e202a2067047962901",
+    "n_evaluable": 5445,
+    "neighbors_sha256": "dfdadd615ad136ebca559cddf551de1f1ff8a464db102da69a2dc1e5529564a1",
     "provenance_verified": false,
     "provenance_verified_by_pipeline": false,
     "real_lanl_declared": true,
@@ -452,60 +1284,65 @@
   "submission": "scoreboard/submissions/hybrid_behavioral_node2vec_spectral/embeddings.csv",
   "summary": [
     {
-      "chance": 0.004462293618920125,
+      "chance": 0.001913475300109598,
       "ci": [
-        0.16756913470115967,
-        0.18568688670829617
+        0.08786027867913723,
+        0.10216712580348943
       ],
       "group": "Поведение",
       "metric": "consistency@10_mean",
       "title": "Соседи@10",
-      "value": 0.17653880463871544
+      "value": 0.09591807467466751
     },
     {
-      "chance": 0.7630201922594116,
+      "chance": 0.7136435915034522,
       "ci": [
-        0.9904511410138355,
-        0.9953647630660394
+        0.9930724242984535,
+        0.9948393330481415
       ],
       "group": "Будущие связи",
       "metric": "link_learned_roc_auc",
       "title": "Связь, AUC",
-      "value": 0.9933936979227815
+      "value": 0.9937789832235707
     },
     {
-      "chance": 0.06517239183471678,
+      "chance": 0.08472373313895416,
       "ci": [
-        0.20068559457520108,
-        0.23099338053989393
+        0.2591564472212233,
+        0.30432304480213745
       ],
       "group": "Будущие связи",
       "metric": "partner_new_mrr",
       "title": "Новые собеседники, MRR",
-      "value": 0.21587345879544045
+      "value": 0.2888883285261627
     },
     {
       "chance": 0.5,
       "ci": [
-        0.9564161059690497,
-        0.9699368426742064
+        0.9871064964714881,
+        0.9914487219804942
       ],
       "group": "Общие собеседники",
       "metric": "pair_roc_auc",
       "title": "Пары, AUC",
-      "value": 0.9627608447079611
+      "value": 0.9894527985024855
     },
     {
-      "chance": 0.0008920606601248885,
+      "chance": 0.00038259346699215407,
       "ci": [
-        0.24794826048171276,
-        0.3015388046387154
+        0.13702290076335877,
+        0.17376928728875826
       ],
       "group": "Узнаваемость",
       "metric": "identity_top1",
       "title": "Узнаваемость, Top-1",
-      "value": 0.27475468331846564
+      "value": 0.15622897496474075
     }
+  ],
+  "test_windows": [
+    "test",
+    "test_day03",
+    "test_day04"
   ],
   "unavailable_metrics": [
     "linear_probe: нет labels.csv (внешних меток хостов нет, придумывать их нельзя)"
