@@ -1,5 +1,6 @@
 """temporal_encoder: учится только на train, детерминирован, peers/services совпадают с hybrid_tfidf."""
 import importlib.util
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -62,3 +63,20 @@ def test_peers_and_services_match_hybrid_tfidf(te, processed):
         want = ref.embed(flows, data.cohort)
         nonzero = np.linalg.norm(got, axis=1) > 0
         np.testing.assert_allclose(got[nonzero], want[nonzero], atol=1e-8)
+
+
+def test_more_slices_and_tuning_pick_from_grid(te, processed, reference, tmp_path, monkeypatch):
+    from evaluation import submit
+    root = tmp_path / "scoreboard"
+    shutil.copytree(processed, root / "data" / "processed")
+    shutil.copytree(reference, root / "data" / "reference")
+    for name, value in (("BOARD", root), ("DATA", root / "data"), ("SUBMISSIONS", root / "submissions"),
+                        ("RESULTS", root / "results"), ("N_BOOT", 0)):
+        monkeypatch.setattr(submit, name, value)
+    data = ProcessedData(processed)
+    m = te.TemporalEncoder(epochs=1, pca_dim=8, splits=4).fit(data)
+    assert m.embed(data, "test", data.evaluable("test")).shape == (len(data.evaluable("test")), 8)
+    monkeypatch.setattr(te, "EPOCHS", 1)
+    grid = {"splits": (2,), "behavioral": (2.0,), "neural": (0.5, 1.0), "diffusion": (0.0,)}
+    best, rows = te.tune(data, grid, pca_dim=8)
+    assert len(rows) == 2 and best.recipe["neural"] in (0.5, 1.0) and best.recipe["diffusion"] == 0.0
