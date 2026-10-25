@@ -27,6 +27,7 @@ from evaluation.io import load_embeddings
 from evaluation.knn_consistency import evaluate_embedding
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.partners import load_partners, partner_ranking
+from evaluation.tikhon import tikhon_metrics
 from evaluation.retrieval import load_pairs, pair_auc, precision_recall_at_k
 from evaluation.triplet_accuracy import load_triplets, triplet_accuracy
 from evaluation.uncertainty import bootstrap_ci
@@ -139,6 +140,17 @@ def _partners(c: Context) -> None:
     c.result["metric_details"]["partner_ranking"] = r
 
 
+def _tikhon(c: Context) -> None:
+    r = tikhon_metrics(c.emb, load_partners(c.ref / "partners.csv"), n_boot=c.n_boot, seed=c.seed)
+    m = c.result["metrics"]
+    for name in ("lp_direct", "lp_inverted", "transfer_direct", "transfer_soft", "history", "popularity", "random"):
+        m[f"tikhon_{name}_mrr"] = r[name]["mrr"]
+        m[f"tikhon_{name}_recall@{r['top_n']}"] = r[name]["recall_at_n"]
+    for name in ("lp_direct", "transfer_direct", "transfer_soft"):
+        c.ci(f"tikhon_{name}_mrr", r[name].get("mrr_ci"))
+    c.result["metric_details"]["tikhon"] = r
+
+
 def _pairs(c: Context) -> None:
     pairs = load_pairs(c.ref / "pairs.csv")
     j = c.protocol.get("judgments") or {}
@@ -213,6 +225,8 @@ METRICS: list[Metric] = [
            _pairs, "pair_roc_auc", lambda r: 0.5, also=("pairwise_pr_auc", "precision_at_k", "recall_at_k")),
     Metric("triplet_accuracy", "Общие собеседники", "Тройки", ("triplets.csv",),
            _triplets, "triplet_accuracy", lambda r: 0.5, show=False),
+    Metric("tikhon", "Будущие связи", "Метрики Тихона", ("partners.csv",),
+           _tikhon, "tikhon_lp_direct_mrr", lambda r: r["metrics"].get("tikhon_random_mrr"), show=False),
     Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
 ]

@@ -32,8 +32,10 @@ export PT_DATA=$W/processed
 
 run "$PY" -m evaluation.submit --builtin all
 run "$PY" scoreboard/hybrid_tfidf.py --tune          # DIM и веса — на validation, с узнаваемостью
+run "$PY" scoreboard/temporal_encoder.py --encoder cca --tune   # лёгкая версия без torch: секунды
 if "$PY" -c "import torch" 2>/dev/null; then
   run "$PY" scoreboard/temporal_encoder.py           # рецепт выбран на validation дня 02, здесь не перенастраивается
+  run "$PY" scoreboard/temporal_encoder.py --tune    # те же части, веса и куски train — на validation этого прогона
 else
   echo "temporal_encoder пропущен: нет torch (pip install torch)"
 fi

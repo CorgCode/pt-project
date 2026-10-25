@@ -71,8 +71,10 @@ COL_EN = {"Соседи@10": "Neighbors@10", "Связь, AUC": "Links, AUC", "�
           "Пары, AUC": "Pairs, AUC", "Узнаваемость, Top-1": "Identity, Top-1"}
 TASK_EN = {"Поведение": "Behavior", "Будущие связи": "Future links", "Общие собеседники": "Shared partners",
            "Узнаваемость": "Identity"}
-EXTRA = {"triplet_accuracy": "Triplets", "link_roc_auc": "Cosine links, AUC"}   # метрики Тихона (#40), в score не входят
-EXTRA_CHANCE = 0.5
+# метрики Тихона (#40, evaluation/tikhon.py): в score не входят; уровень случайности — его бейзлайн random
+EXTRA = {"tikhon_lp_direct_mrr": "Tikhon LP, MRR", "tikhon_transfer_direct_mrr": "Tikhon transfer, MRR",
+         "tikhon_transfer_soft_mrr": "Tikhon soft transfer, MRR"}
+EXTRA_CHANCE = "tikhon_random_mrr"
 SERVICE = {"random", "reference_ceiling"}      # ориентиры, а не методы: в выборе лучшего не участвуют
 
 
@@ -188,7 +190,9 @@ def headline_table(results: list[dict], card_url=None) -> str:
         return _fmt(lo) if hi - lo < 1e-9 else f"{lo:.2f}–{hi:.2f}"
 
     lines.append("| | *chance level* | | 0 | | " + " | ".join([chance_cell(chance.get(k)) for k in cols]
-                                                           + [_fmt(EXTRA_CHANCE)] * len(extra)) + " |")
+                                                           + [chance_cell([r["metrics"][EXTRA_CHANCE] for r in results
+                                                                           if r["metrics"].get(EXTRA_CHANCE) is not None])]
+                                                              * len(extra)) + " |")
     return "\n".join(lines) + "\n"
 
 
