@@ -14,12 +14,19 @@ size() { [ -f "$1" ] && (stat -f %z "$1" 2>/dev/null || stat -c %s "$1") || echo
 HAVE=$(size $F)
 [ "$HAVE" -ge "$TOTAL" ] && { echo "$F уже скачан"; exit 0; }
 STEP=$(( (TOTAL-HAVE+N-1)/N ))
-for i in $(seq 0 $((N-1))); do
-  S=$((HAVE+i*STEP)); E=$((S+STEP-1)); [ $E -ge $TOTAL ] && E=$((TOTAL-1))
-  P=$F.part$i; GOT=$(size $P)
-  [ $((S+GOT)) -le $E ] && curl -s --retry 10 --retry-delay 3 -r $((S+GOT))-$E "$U" >> $P &
+# куски докачиваются, пока все не дойдут до конца: сервер иногда обрывает соединение
+for attempt in $(seq 1 30); do
+  left=0
+  for i in $(seq 0 $((N-1))); do
+    S=$((HAVE+i*STEP)); E=$((S+STEP-1)); [ $E -ge $TOTAL ] && E=$((TOTAL-1))
+    P=$F.part$i; GOT=$(size $P)
+    [ $((S+GOT)) -le $E ] && { left=$((left+1)); curl -s --retry 10 --retry-delay 3 -r $((S+GOT))-$E "$U" >> $P & }
+  done
+  wait
+  [ $left = 0 ] && break
+  [ $attempt -gt 1 ] && echo "повтор $attempt: оборвались $left кусков, докачиваю"
 done
-wait
 touch $F
 for i in $(seq 0 $((N-1))); do cat $F.part$i >> $F; rm $F.part$i; done
-[ "$(size $F)" -eq "$TOTAL" ] && bzip2 -t $F && echo "$F: $TOTAL байт, bz2 в порядке"
+[ "$(size $F)" -eq "$TOTAL" ] && bzip2 -t $F && echo "$F: $TOTAL байт, bz2 в порядке" \
+  || { echo "$F: размер $(size $F) из $TOTAL или архив битый — удалите файл и запустите снова"; exit 1; }
