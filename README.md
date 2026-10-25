@@ -70,7 +70,7 @@ python -m pytest -q evaluation methods app pipeline experiments
 | [`pipeline/`](pipeline/README.md) | подготовка данных |
 | [`experiments/`](experiments/README.md) | запуски, в том числе [на LANL](experiments/lanl/README.md) |
 | [`app/`](app/README.md) | дашборд |
-| [`docs/`](docs/README.md) | сайт и [методология](docs/METHODOLOGY.md) |
+| [`docs/`](docs/README.md) | [методология](docs/METHODOLOGY.md) |
 | [`research/`](research/README.md) | ресёрч участников |
 
 ## Результаты на LANL
