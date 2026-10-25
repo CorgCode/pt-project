@@ -1,7 +1,8 @@
 """Временной графовый энкодер поверх hybrid_tfidf (v5) и сжатие PCA (v6).
 
     pip install torch
-    PT_DATA=/путь/к/lanl/processed python scoreboard/temporal_encoder.py
+    PT_DATA=/путь/к/lanl/processed python scoreboard/temporal_encoder.py          # рецепт дня 02
+    PT_DATA=/путь/к/lanl/processed python scoreboard/temporal_encoder.py --tune   # подобрать на validation → temporal_encoder_tuned
 
 Части эмбеддинга (каждая нормируется: среднее 0, средняя длина 1, затем умножается на вес):
   behavioral ×2 — профиль трафика (methods.baselines.temporal);
@@ -10,6 +11,8 @@
   neural ×1 — нейросеть 512→256→128, обученная узнавать один хост в двух половинах train.
 Итог 825 чисел сжимается PCA до 384 (v6). Всё обучается только на train.
 Рецепт и число эпох выбраны на validation дня 02 (results/fast_temporal_day02/).
+--tune: train делится на 2 или 4 куска (больше пар «тот же хост в другое время»), веса частей
+перебираются по сетке GRID; выбор — по баллу на validation со всеми четырьмя задачами, test не смотрим.
 """
 from __future__ import annotations
 
@@ -38,6 +41,7 @@ RECIPE = {"behavioral": 2.0, "peers": 1.0, "services": 1.0, "diffusion": 0.5, "n
 SVD_DIM, CONTEXT_VOCAB, PCA_DIM = 128, 32768, 384
 EPOCHS, BATCH, TEMPERATURE, MIN_FLOWS = 20, 256, 0.15, 20
 SEED = 17
+GRID = {"splits": (2, 4), "behavioral": (2.0, 3.0, 4.0), "neural": (0.5, 1.0, 2.0), "diffusion": (0.0, 0.5)}
 STATS = ("bytes", "packets", "resp_bytes", "resp_packets", "duration")
 KINDS = ("peers", "services", "context")
 
@@ -130,8 +134,10 @@ class TemporalEncoder:
     name = NAME
     shared_coordinate_system = True
 
-    def __init__(self, recipe: dict | None = None, epochs: int = EPOCHS, pca_dim: int | None = PCA_DIM):
-        self.recipe, self.epochs, self.pca_dim = dict(recipe or RECIPE), epochs, pca_dim
+    def __init__(self, recipe: dict | None = None, epochs: int = EPOCHS, pca_dim: int | None = PCA_DIM,
+                 splits: int = 2):
+        self.recipe, self.epochs, self.pca_dim, self.splits = dict(recipe or RECIPE), epochs, pca_dim, splits
+        self._parts_cache: dict = {}
 
     def _features(self, v: dict) -> dict:
         """Признаки окна в координатах train; input — вход нейросети после стандартизации train."""
@@ -161,9 +167,12 @@ class TemporalEncoder:
         self.beh = BehavioralBaseline().fit(data)
         flows = data.training_flows()
         start, end = _span(data, "train")
-        mid = (start + end) / 2                          # один хост в двух половинах train — положительная пара
+        # train режется на куски по времени; один хост в двух кусках — положительная пара
+        edges = np.linspace(start, end, self.splits + 1)
+        edges[-1] = np.inf
         full = view(flows, self.hosts, end - start)
-        halves = [view(flows.loc[m], self.hosts, (end - start) / 2) for m in (flows.ts < mid, flows.ts >= mid)]
+        slices = [view(flows.loc[(flows.ts >= a) & (flows.ts < b)], self.hosts, (end - start) / self.splits)
+                  for a, b in zip(edges[:-1], edges[1:])]
         self.vocab = {k: vocabulary(full["counts"][k], CONTEXT_VOCAB if k == "context" else None) for k in KINDS}
         self.models = {}
         for kind in KINDS:
@@ -175,10 +184,12 @@ class TemporalEncoder:
         self._train = self._features(full)
         self.scaler = StandardScaler().fit(self._train["raw"])
         self._train["input"] = np.clip(self.scaler.transform(self._train["raw"]), -8, 8).astype(np.float32)
-        a, b = (torch.from_numpy(self._features(h)["input"]) for h in halves)
-        active = np.flatnonzero((halves[0]["flows"] >= MIN_FLOWS) & (halves[1]["flows"] >= MIN_FLOWS))
+        xs = [torch.from_numpy(self._features(v)["input"]) for v in slices]
+        ok = np.stack([v["flows"] >= MIN_FLOWS * 2 / self.splits for v in slices])   # хост активен в куске
+        active = np.flatnonzero(ok.all(0) if self.splits == 2 else ok.sum(0) >= 2)
+        pair_rng = np.random.default_rng(SEED + 1)    # отдельный поток: при splits=2 числа как в исследовании
 
-        self.net = _encoder(a.shape[1])
+        self.net = _encoder(xs[0].shape[1])
         opt = torch.optim.AdamW(self.net.parameters(), lr=1e-3, weight_decay=1e-4)
         behavior = normalize(self.beh.embed(data, "train", self.hosts).to_numpy()).astype(np.float32)
         services = normalize(self._train["services"]).astype(np.float32)
@@ -188,10 +199,12 @@ class TemporalEncoder:
             self.net.train()
             order = rng.permutation(active)
             for off in range(0, len(order), BATCH):
-                ix = torch.from_numpy(order[off:off + BATCH])
+                i, j = (0, 1) if self.splits == 2 else pair_rng.choice(self.splits, 2, replace=False)
+                batch = order[off:off + BATCH]
+                ix = torch.from_numpy(batch[ok[i, batch] & ok[j, batch]])
                 if len(ix) < 2:
                     continue
-                za, zb = self.net(a[ix]), self.net(b[ix])
+                za, zb = self.net(xs[i][ix]), self.net(xs[j][ix])
                 logits, labels = za @ zb.T / TEMPERATURE, torch.arange(len(ix))
                 contrastive = 0.5 * (F.cross_entropy(logits, labels) + F.cross_entropy(logits.T, labels))
                 target = teacher[ix] @ teacher[ix].T     # сохранить сходство по поведению и сервисам
@@ -202,24 +215,38 @@ class TemporalEncoder:
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 5.0)
                 opt.step()
 
+        self._parts_cache = {}
+        self.fit_pca(data)
+        return self
+
+    def fit_pca(self, data: ProcessedData) -> None:
+        """PCA по train для текущего рецепта (после смены весов вызвать заново)."""
         self.pca = None
         if self.pca_dim:
             x = self._concat(data, "train", self.hosts)
             n = min(self.pca_dim, *x.shape)
             self.pca = PCA(n_components=n, svd_solver="randomized", random_state=29).fit(x)
-        return self
+
+    def _parts(self, data: ProcessedData, window: str, hosts: list[str]) -> dict:
+        """Нормированные части окна; запоминаются, чтобы перебор весов не пересчитывал признаки."""
+        key = (window, tuple(hosts))
+        if key not in self._parts_cache:
+            if window == "train":
+                z = self._train
+            else:
+                start, end = _span(data, window)
+                z = self._features(view(data.flows(window), self.hosts, end - start))
+            rows = pd.Index(self.hosts).get_indexer(hosts)
+            parts = {"behavioral": self.beh.embed(data, window, hosts).to_numpy(),
+                     "neural": self._neural(z["input"])[rows]}
+            parts.update({k: z[k][rows] for k in ("peers", "services", "context", "diffusion")})
+            self._parts_cache = {k: v for k, v in self._parts_cache.items() if k[0] in ("train", "validation")}
+            self._parts_cache[key] = {k: _block(v) for k, v in parts.items()}
+        return self._parts_cache[key]
 
     def _concat(self, data: ProcessedData, window: str, hosts: list[str]) -> np.ndarray:
-        if window == "train":
-            z = self._train
-        else:
-            start, end = _span(data, window)
-            z = self._features(view(data.flows(window), self.hosts, end - start))
-        rows = pd.Index(self.hosts).get_indexer(hosts)
-        parts = {"behavioral": self.beh.embed(data, window, hosts).to_numpy(),
-                 "neural": self._neural(z["input"])[rows]}
-        parts.update({k: z[k][rows] for k in ("peers", "services", "context", "diffusion")})
-        return np.hstack([_block(parts[k]) * w for k, w in self.recipe.items()])
+        parts = self._parts(data, window, hosts)
+        return np.hstack([parts[k] * w for k, w in self.recipe.items() if w])
 
     def embed(self, data: ProcessedData, window: str, hosts: list[str] | None = None) -> pd.DataFrame:
         hosts = list(hosts) if hosts is not None else list(data.cohort)
@@ -239,23 +266,69 @@ def _write(model: TemporalEncoder, data: ProcessedData, out: Path) -> None:
         model.embed(data, window, hosts).to_csv(out / fname, float_format="%.5g")
 
 
+def _recipes(grid: dict):
+    for wb in grid["behavioral"]:
+        for wn in grid["neural"]:
+            for wd in grid["diffusion"]:
+                yield {**RECIPE, "behavioral": wb, "neural": wn, "diffusion": wd}
+
+
+def tune(data: ProcessedData, grid: dict | None = None, pca_dim: int | None = PCA_DIM) -> tuple[TemporalEncoder, list]:
+    """Перебор GRID на validation (test не используется); возвращает обученную лучшую модель и таблицу."""
+    import tempfile
+
+    grid = grid or GRID
+    rows, best = [], None
+    with tempfile.TemporaryDirectory() as tmp:
+        for splits in grid["splits"]:
+            model = TemporalEncoder(pca_dim=pca_dim, splits=splits).fit(data)   # сеть не зависит от весов
+            for recipe in _recipes(grid):
+                model.recipe = recipe
+                model.fit_pca(data)
+                d = Path(tmp) / "c"
+                for window, hosts, fname in (("train", data.cohort, "embeddings.csv"),
+                                             ("validation", data.evaluable("validation"), "validation.csv")):
+                    d.mkdir(exist_ok=True)
+                    model.embed(data, window, hosts).to_csv(d / fname, float_format="%.5g")
+                score, tasks = submit.validation_score(d / "embeddings.csv", d / "validation.csv")
+                row = {"splits": splits, **{k: recipe[k] for k in ("behavioral", "neural", "diffusion")},
+                       "score": round(score, 2), **{k: round(v, 1) for k, v in tasks.items()}}
+                rows.append(row)
+                print("  " + ", ".join(f"{k} {v:g}" for k, v in row.items()), flush=True)
+                if best is None or score > best[0]:
+                    best = (score, splits, recipe)
+    score, splits, recipe = best
+    print(f"лучшее на validation: куски {splits}, {recipe} ({score:.1f})", flush=True)
+    model = TemporalEncoder(recipe=recipe, pca_dim=pca_dim, splits=splits).fit(data)
+    return model, rows
+
+
 def main() -> None:
     import argparse
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--no-pca", action="store_true", help="без сжатия (v5, 825 чисел)")
+    ap.add_argument("--tune", action="store_true", help="подобрать куски train и веса на validation")
     a = ap.parse_args()
     data = ProcessedData(os.environ.get("PT_DATA", ROOT / "scoreboard" / "data" / "processed"))
-    model = TemporalEncoder(pca_dim=None if a.no_pca else PCA_DIM).fit(data)
-    out = ROOT / "scoreboard" / "submissions" / NAME
+    pca_dim = None if a.no_pca else PCA_DIM
+    if a.tune:
+        name = f"{NAME}_tuned"
+        model, rows = tune(data, pca_dim=pca_dim)
+    else:
+        name, rows = NAME, None
+        model = TemporalEncoder(pca_dim=pca_dim).fit(data)
+    out = ROOT / "scoreboard" / "submissions" / name
     _write(model, data, out)
     (out / "SHARED_COORDINATES").touch()
     (out / "AUTHOR").write_text("physcorgi\n", encoding="utf-8")
-    (out / "params.json").write_text(json.dumps({"recipe": model.recipe, "epochs": model.epochs, "pca_dim": model.pca_dim,
-                                                 "tuned_on": "validation, день 02"}, ensure_ascii=False) + "\n",
-                                     encoding="utf-8")
+    params = {"recipe": model.recipe, "splits": model.splits, "epochs": model.epochs, "pca_dim": model.pca_dim,
+              "tuned_on": "validation этого прогона" if a.tune else "validation, день 02"}
+    (out / "params.json").write_text(json.dumps(params, ensure_ascii=False) + "\n", encoding="utf-8")
+    if rows:
+        (out / "tuning.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     r = submit.score(out)
     submit.render()
-    print(f"\n{NAME}: " + ", ".join(f"{s['title']} = {s['value']:.3f}" for s in r["summary"] if s["value"] is not None))
+    print(f"\n{name}: " + ", ".join(f"{s['title']} = {s['value']:.3f}" for s in r["summary"] if s["value"] is not None))
 
 
 if __name__ == "__main__":

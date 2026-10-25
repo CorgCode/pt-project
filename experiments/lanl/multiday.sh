@@ -34,6 +34,7 @@ run "$PY" -m evaluation.submit --builtin all
 run "$PY" scoreboard/hybrid_tfidf.py --tune          # DIM и веса — на validation, с узнаваемостью
 if "$PY" -c "import torch" 2>/dev/null; then
   run "$PY" scoreboard/temporal_encoder.py           # рецепт выбран на validation дня 02, здесь не перенастраивается
+  run "$PY" scoreboard/temporal_encoder.py --tune    # те же части, веса и куски train — на validation этого прогона
 else
   echo "temporal_encoder пропущен: нет torch (pip install torch)"
 fi
