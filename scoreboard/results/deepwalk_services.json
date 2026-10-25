@@ -66,6 +66,20 @@
         "recall@1": 0.29343435567057596,
         "recall@3": 0.5286265232025036,
         "recall@5": 0.6622403874805406,
+        "tikhon_history_mrr": 0.9796376057031293,
+        "tikhon_history_recall@10": 0.632254581394512,
+        "tikhon_lp_direct_mrr": 0.1491123682026995,
+        "tikhon_lp_direct_recall@10": 0.0632959040778911,
+        "tikhon_lp_inverted_mrr": 0.0031341754627704234,
+        "tikhon_lp_inverted_recall@10": 0.0002767021535740697,
+        "tikhon_popularity_mrr": 0.8108487126268232,
+        "tikhon_popularity_recall@10": 0.23131033037029544,
+        "tikhon_random_mrr": 0.022072797427086354,
+        "tikhon_random_recall@10": 0.0018058858383799374,
+        "tikhon_transfer_direct_mrr": 0.894484995143837,
+        "tikhon_transfer_direct_recall@10": 0.46077577714924634,
+        "tikhon_transfer_soft_mrr": 0.7774539880373784,
+        "tikhon_transfer_soft_recall@10": 0.2765887653475691,
         "triplet_accuracy": 0.9479818265621913
       },
       "metrics_ci": {
@@ -160,6 +174,18 @@
         "recall@5": [
           0.6522993713854692,
           0.6734833209588891
+        ],
+        "tikhon_lp_direct_mrr": [
+          0.1425000503973962,
+          0.15678504265481727
+        ],
+        "tikhon_transfer_direct_mrr": [
+          0.8868394426128803,
+          0.9008383368199361
+        ],
+        "tikhon_transfer_soft_mrr": [
+          0.7692921085812693,
+          0.7869261091996441
         ],
         "triplet_accuracy": [
           0.9345917553494827,
@@ -289,6 +315,20 @@
         "recall@1": 0.3078308015381062,
         "recall@3": 0.5320823777685271,
         "recall@5": 0.6649163974275988,
+        "tikhon_history_mrr": 0.9717847596262678,
+        "tikhon_history_recall@10": 0.5937251223125526,
+        "tikhon_lp_direct_mrr": 0.14530257188476456,
+        "tikhon_lp_direct_recall@10": 0.06101727928316555,
+        "tikhon_lp_inverted_mrr": 0.00353345904294568,
+        "tikhon_lp_inverted_recall@10": 0.0003090093167663132,
+        "tikhon_popularity_mrr": 0.804587948098434,
+        "tikhon_popularity_recall@10": 0.23056586023285192,
+        "tikhon_random_mrr": 0.022079009256068177,
+        "tikhon_random_recall@10": 0.0018628715465458653,
+        "tikhon_transfer_direct_mrr": 0.8918675790707242,
+        "tikhon_transfer_direct_recall@10": 0.4539936803487934,
+        "tikhon_transfer_soft_mrr": 0.7721381962041121,
+        "tikhon_transfer_soft_recall@10": 0.2819315086861763,
         "triplet_accuracy": 0.955053167724064
       },
       "metrics_ci": {
@@ -383,6 +423,18 @@
         "recall@5": [
           0.6517030683392796,
           0.6777979316622582
+        ],
+        "tikhon_lp_direct_mrr": [
+          0.13754465760652526,
+          0.15197675374078976
+        ],
+        "tikhon_transfer_direct_mrr": [
+          0.8846514529500951,
+          0.8985900374286686
+        ],
+        "tikhon_transfer_soft_mrr": [
+          0.7607459080889033,
+          0.7822971455962514
         ],
         "triplet_accuracy": [
           0.9395893502462555,
@@ -512,6 +564,20 @@
         "recall@1": 0.25006109479786326,
         "recall@3": 0.48303623638928517,
         "recall@5": 0.6240615828764947,
+        "tikhon_history_mrr": 0.9692405131804226,
+        "tikhon_history_recall@10": 0.6003432156132101,
+        "tikhon_lp_direct_mrr": 0.14060901431563919,
+        "tikhon_lp_direct_recall@10": 0.05797355714534421,
+        "tikhon_lp_inverted_mrr": 0.003786100723618352,
+        "tikhon_lp_inverted_recall@10": 0.000374923208228776,
+        "tikhon_popularity_mrr": 0.8165521143742072,
+        "tikhon_popularity_recall@10": 0.23930624656178598,
+        "tikhon_random_mrr": 0.020114609674478992,
+        "tikhon_random_recall@10": 0.0017172170517400932,
+        "tikhon_transfer_direct_mrr": 0.8915451468926724,
+        "tikhon_transfer_direct_recall@10": 0.46577786562872525,
+        "tikhon_transfer_soft_mrr": 0.7800062261843915,
+        "tikhon_transfer_soft_recall@10": 0.2894332493688918,
         "triplet_accuracy": 0.9433892222978407
       },
       "metrics_ci": {
@@ -607,6 +673,18 @@
           0.6136413644746599,
           0.6348313692283063
         ],
+        "tikhon_lp_direct_mrr": [
+          0.13373022092703693,
+          0.14842579409796294
+        ],
+        "tikhon_transfer_direct_mrr": [
+          0.8845774232691506,
+          0.8981144879188871
+        ],
+        "tikhon_transfer_soft_mrr": [
+          0.7708020077417379,
+          0.7887262835527191
+        ],
         "triplet_accuracy": [
           0.9282341028914198,
           0.9535519943392121
@@ -695,10 +773,13 @@
     "recall@1": "item bootstrap (hosts / anchors resampled)",
     "recall@3": "item bootstrap (hosts / anchors resampled)",
     "recall@5": "item bootstrap (hosts / anchors resampled)",
+    "tikhon_lp_direct_mrr": "item bootstrap (hosts / anchors resampled)",
+    "tikhon_transfer_direct_mrr": "item bootstrap (hosts / anchors resampled)",
+    "tikhon_transfer_soft_mrr": "item bootstrap (hosts / anchors resampled)",
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
   "dim": 32,
-  "inputs_sha256": "a69534ae4c853b52a5d0689e8fe177d60886afd26e1309bfa7825014107becbb",
+  "inputs_sha256": "7bba5e7c1b20023004f813b08792857e8161230a0606fcfbc131b0a349c799e3",
   "method": "deepwalk_services",
   "metric_details": {
     "future_link_prediction": {
@@ -893,6 +974,59 @@
       ],
       "split": "test"
     },
+    "tikhon": {
+      "history": {
+        "mrr": 0.9796376057031293,
+        "n_hosts": 5443,
+        "recall_at_n": 0.632254581394512
+      },
+      "k_neighbors": 10,
+      "lp_direct": {
+        "mrr": 0.1491123682026995,
+        "mrr_ci": [
+          0.1425000503973962,
+          0.15678504265481727
+        ],
+        "n_hosts": 5443,
+        "recall_at_n": 0.0632959040778911
+      },
+      "lp_inverted": {
+        "mrr": 0.0031341754627704234,
+        "n_hosts": 5443,
+        "recall_at_n": 0.0002767021535740697
+      },
+      "n_candidates": 5442,
+      "popularity": {
+        "mrr": 0.8108487126268232,
+        "n_hosts": 5443,
+        "recall_at_n": 0.23131033037029544
+      },
+      "random": {
+        "mrr": 0.022072797427086354,
+        "n_hosts": 5443,
+        "recall_at_n": 0.0018058858383799374
+      },
+      "target_coverage": 0.6304821914280656,
+      "top_n": 10,
+      "transfer_direct": {
+        "mrr": 0.894484995143837,
+        "mrr_ci": [
+          0.8868394426128803,
+          0.9008383368199361
+        ],
+        "n_hosts": 5443,
+        "recall_at_n": 0.46077577714924634
+      },
+      "transfer_soft": {
+        "mrr": 0.7774539880373784,
+        "mrr_ci": [
+          0.7692921085812693,
+          0.7869261091996441
+        ],
+        "n_hosts": 5443,
+        "recall_at_n": 0.2765887653475691
+      }
+    },
     "triplet_accuracy": {
       "chance": 0.5,
       "n_ties": 0,
@@ -911,6 +1045,7 @@
     "partner_ranking": "ok",
     "precision_at_k": "ok",
     "recall_at_k": "ok",
+    "tikhon": "ok",
     "triplet_accuracy": "ok"
   },
   "metrics": {
@@ -977,6 +1112,20 @@
     "recall@1": 0.28377541733551515,
     "recall@3": 0.5145817124534386,
     "recall@5": 0.6504061225948781,
+    "tikhon_history_mrr": 0.9735542928366065,
+    "tikhon_history_recall@10": 0.6087743064400916,
+    "tikhon_lp_direct_mrr": 0.1450079848010344,
+    "tikhon_lp_direct_recall@10": 0.06076224683546696,
+    "tikhon_lp_inverted_mrr": 0.0034845784097781523,
+    "tikhon_lp_inverted_recall@10": 0.000320211559523053,
+    "tikhon_popularity_mrr": 0.8106629250331547,
+    "tikhon_popularity_recall@10": 0.2337274790549778,
+    "tikhon_random_mrr": 0.021422138785877842,
+    "tikhon_random_recall@10": 0.0017953248122219653,
+    "tikhon_transfer_direct_mrr": 0.8926325737024112,
+    "tikhon_transfer_direct_recall@10": 0.460182441042255,
+    "tikhon_transfer_soft_mrr": 0.776532803475294,
+    "tikhon_transfer_soft_recall@10": 0.28265117446754573,
     "triplet_accuracy": 0.9488080721946988
   },
   "metrics_ci": {
@@ -1231,6 +1380,62 @@
     "recall@5": [
       0.6240615828764947,
       0.6649163974275988
+    ],
+    "tikhon_history_mrr": [
+      0.9692405131804226,
+      0.9796376057031293
+    ],
+    "tikhon_history_recall@10": [
+      0.5937251223125526,
+      0.632254581394512
+    ],
+    "tikhon_lp_direct_mrr": [
+      0.14060901431563919,
+      0.1491123682026995
+    ],
+    "tikhon_lp_direct_recall@10": [
+      0.05797355714534421,
+      0.0632959040778911
+    ],
+    "tikhon_lp_inverted_mrr": [
+      0.0031341754627704234,
+      0.003786100723618352
+    ],
+    "tikhon_lp_inverted_recall@10": [
+      0.0002767021535740697,
+      0.000374923208228776
+    ],
+    "tikhon_popularity_mrr": [
+      0.804587948098434,
+      0.8165521143742072
+    ],
+    "tikhon_popularity_recall@10": [
+      0.23056586023285192,
+      0.23930624656178598
+    ],
+    "tikhon_random_mrr": [
+      0.020114609674478992,
+      0.022079009256068177
+    ],
+    "tikhon_random_recall@10": [
+      0.0017172170517400932,
+      0.0018628715465458653
+    ],
+    "tikhon_transfer_direct_mrr": [
+      0.8915451468926724,
+      0.894484995143837
+    ],
+    "tikhon_transfer_direct_recall@10": [
+      0.4539936803487934,
+      0.46577786562872525
+    ],
+    "tikhon_transfer_soft_mrr": [
+      0.7721381962041121,
+      0.7800062261843915
+    ],
+    "tikhon_transfer_soft_recall@10": [
+      0.2765887653475691,
+      0.2894332493688918
     ],
     "triplet_accuracy": [
       0.9433892222978407,

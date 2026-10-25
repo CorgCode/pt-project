@@ -30,6 +30,7 @@ import re
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from evaluation import scoreboard
@@ -86,7 +87,15 @@ def _train_file(sub: Path, w: str) -> Path:
 def _inputs(d: Path) -> list[Path]:
     ws = test_windows()
     return ([d / "embeddings.csv"] + [d / window_file(w) for w in ws] + [d / f"embeddings_{w}.csv" for w in ws]
-            + [d / "SHARED_COORDINATES", d / "AUTHOR"] + [DATA / "reference" / w / "manifest.json" for w in ws])
+            + [d / "SHARED_COORDINATES", d / "AUTHOR"] + [DATA / "reference" / w / "manifest.json" for w in ws]
+            + _evaluation_code())
+
+
+def _evaluation_code() -> list[Path]:
+    """Код оценки: поменялся (например, добавилась метрика) — результаты пересчитываются.
+    Без submit.py и scoreboard.py: они только собирают таблицу и текст страницы."""
+    return sorted(f for f in (ROOT / "evaluation").glob("*.py")
+                  if not f.name.startswith("test_") and f.name not in ("submit.py", "scoreboard.py"))
 
 
 def check_card(sub: Path) -> None:
@@ -241,6 +250,9 @@ def render() -> None:
     multi = len(labels) > 1
     ci_text = ("В скобках — от худшего до лучшего значения по test-окнам (дням)." if multi
                else "В скобках — диапазон, в котором значение лежит с вероятностью 95%.")
+    hist = [r["metrics"]["tikhon_history_mrr"] for r in results if r["metrics"].get("tikhon_history_mrr") is not None]
+    tikhon_base = (f" Без эмбеддинга «с кем общался раньше» даёт {np.mean(hist):.3f} — у Тихона это бейзлайн history."
+                   if hist else "")
     by_day = (f"""
 ## По дням
 
@@ -268,7 +280,7 @@ Score на каждом test-окне отдельно. Хороший мето�
 | Tikhon soft transfer, MRR* | то же, но угадываются компьютеры, похожие на собеседников похожих (идея 3, мягкий вариант) |
 
 \\* Метрики Тихона (#40, PR #65, [`evaluation/tikhon.py`](../evaluation/tikhon.py)): показаны для сравнения, в score не входят.
-Chance level для них — случайный порядок кандидатов.
+Chance level для них — случайный порядок кандидатов.{tikhon_base}
 
 Жирным — лучшее в колонке. {ci_text}
 dim — длина вектора. Chance level — значение при случайном угадывании.
