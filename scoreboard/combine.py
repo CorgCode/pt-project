@@ -44,28 +44,28 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
         x = np.hstack([b.loc[hosts].to_numpy() for b in blocks])
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.7g")
     (out / "SHARED_COORDINATES").unlink(missing_ok=True)       # части могут быть в разных координатах
-    if not (out / "README.md").exists():
-        (out / "README.md").write_text(_card(parts, name, weights), encoding="utf-8")
+    (out / "README.md").write_text(_card(parts, name, weights), encoding="utf-8")
     return out
 
 
 def _card(parts: list[str], name: str, weights: list[float] | None) -> str:
-    """Карточка гибрида по рецепту; при желании её можно дописать руками."""
+    """Карточка гибрида по рецепту; пишется заново при каждой сборке, чтобы веса в ней были актуальны."""
     w = weights or [1.0] * len(parts)
     tuning = ("Вес первой части подобран по баллу на validation (`scoreboard/combine.py --tune-weights`), "
-              "test при этом не используется." if weights else "Веса равные, не подбирались.")
+              "остальные — ×1. Test при подборе не используется." if weights else "Веса равные, не подбирались.")
     recipe = " + ".join(f"`{p}` ×{wi:g}" for p, wi in zip(parts, w))
     links = ", ".join(f"[`{p}`](../{p}/README.md)" for p in parts)
     return f"""# {name}
 
 ## Кратко
 
-Гибрид: {recipe}. Части ловят разное, вместе — лучше, чем по отдельности.
+Склейка готовых методов: {recipe}. Каждый метод замечает своё, вместе они описывают хост полнее.
 
 ## Архитектура
 
-Векторы частей ({links}) склеиваются (конкатенация). Перед склейкой каждая часть нормируется:
-среднее 0, средняя длина вектора 1 — чтобы ни одна не перевешивала из-за масштаба. Затем умножается на свой вес.
+Векторы частей ({links}) ставятся друг за другом в один длинный вектор. Перед этим каждая часть приводится
+к одному масштабу (среднее 0, средняя длина 1), чтобы ни одна не перевешивала только из-за величины чисел,
+и умножается на свой вес: чем больше вес, тем сильнее часть влияет на сходство хостов.
 
 ## Данные
 
@@ -77,8 +77,7 @@ def _card(parts: list[str], name: str, weights: list[float] | None) -> str:
 
 ## Ограничения
 
-Наследует ограничения частей. Размерность — сумма размерностей частей, поэтому сравнение с одиночными методами
-не при равной размерности.
+Наследует слабые места частей. Вектор длиннее, чем у одиночных методов, поэтому сравнение с ними — не при равной длине.
 """
 
 
