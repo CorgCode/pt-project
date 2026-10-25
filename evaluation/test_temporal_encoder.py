@@ -80,3 +80,4 @@ def test_more_slices_and_tuning_pick_from_grid(te, processed, reference, tmp_pat
     grid = {"splits": (2,), "behavioral": (2.0,), "neural": (0.5, 1.0), "diffusion": (0.0,)}
     best, rows = te.tune(data, grid, pca_dim=8)
     assert len(rows) == 2 and best.recipe["neural"] in (0.5, 1.0) and best.recipe["diffusion"] == 0.0
+
