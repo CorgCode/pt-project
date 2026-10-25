@@ -33,6 +33,7 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
     subs = Path(submit.SUBMISSIONS)                       # части берём из таблицы
     out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
+    submit.keep_vectors_local(out)
     for old in out.glob("*.csv"):                         # векторы прошлой сборки не должны пережить новую
         old.unlink()
     tests = sorted({f.name for p in parts for f in (subs / p).glob("test*.csv")})   # test.csv, test_day03.csv, ...

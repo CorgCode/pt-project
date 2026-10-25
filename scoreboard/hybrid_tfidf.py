@@ -112,6 +112,7 @@ class HybridTfidf:
 
 def _write(model: HybridTfidf, data: ProcessedData, out: Path, validation: bool = True) -> None:
     out.mkdir(parents=True, exist_ok=True)
+    submit.keep_vectors_local(out)
     jobs = [("train", data.cohort, "embeddings.csv")] + [(w, data.evaluable(w), submit.window_file(w))
                                                           for w in data.test_windows]
     if validation and "validation" in data.windows:          # только для подбора; в git не кладётся

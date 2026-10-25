@@ -148,8 +148,9 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     return pd.Series(out)
 
 
-def headline_table(results: list[dict], card_url=None) -> str:
-    """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок."""
+def headline_table(results: list[dict], card_url=None, stale: set | None = None) -> str:
+    """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок.
+    stale — методы, оценённые прежней версией оценки (помечаются †)."""
     cols, values, order = ranking(results)
     if not cols:
         return "Нет главных метрик (результаты без поля summary).\n"
@@ -182,6 +183,7 @@ def headline_table(results: list[dict], card_url=None) -> str:
             cells.append(c)
         name = f"[`{m}`]({card_url(m)})" if card_url else f"`{m}`"
         name = f"*{name}*" if m in SERVICE else name
+        name = f"{name} †" if stale and m in stale else name
         sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"

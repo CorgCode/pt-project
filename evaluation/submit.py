@@ -91,6 +91,21 @@ def _inputs(d: Path) -> list[Path]:
             + _evaluation_code())
 
 
+LOCAL_VECTORS = "*.csv\n"        # .gitignore методов, которые пересобираются из кода и данных LANL
+
+
+def keep_vectors_local(d: Path) -> None:
+    """Векторы метода не идут в git: их можно пересобрать (experiments/lanl/multiday.sh), а каждая пересборка
+    добавляла бы в историю сотни мегабайт. В git остаются карточка, параметры и результат. Отправки команды
+    (без этого файла) хранят векторы в git как раньше — по ним CI и считает результат."""
+    Path(d, ".gitignore").write_text(LOCAL_VECTORS, encoding="utf-8")
+
+
+def _code_sha256() -> str:
+    """Версия оценки: код и эталоны. Не совпала у результата, векторов которого нет, — результат помечается."""
+    return _sha(*_evaluation_code(), *[DATA / "reference" / w / "manifest.json" for w in test_windows()])
+
+
 def _evaluation_code() -> list[Path]:
     """Код оценки: поменялся (например, добавилась метрика) — результаты пересчитываются.
     Без submit.py и scoreboard.py: они только собирают таблицу и текст страницы."""
@@ -217,6 +232,7 @@ def score(sub: Path) -> dict:
     r["author"] = author.read_text(encoding="utf-8").strip().lstrip("@") if author.exists() else None
     r["submission"] = str(emb_file.relative_to(ROOT)) if emb_file.is_relative_to(ROOT) else str(emb_file)
     r["inputs_sha256"] = _sha(*_inputs(sub))
+    r["code_sha256"] = _code_sha256()
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{method}.json").write_text(json.dumps(r, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
                                             encoding="utf-8")
@@ -243,6 +259,10 @@ def render() -> None:
     scoreboard.check_compatible(results)
     scoreboard.full_table(results).to_csv(BOARD / "scoreboard.csv", index=False)
     cols, values, order = scoreboard.ranking(results)
+    code = _code_sha256()
+    stale = {r["method"] for r in results if r.get("code_sha256") != code}    # векторов нет — пересчитать нечем
+    stale_text = (f"\n† — оценено прежней версией оценки: векторов метода нет в git, пересчёт — "
+                  f"`experiments/lanl/multiday.sh` ({', '.join(f'`{m}`' for m in sorted(stale))}).\n" if stale else "")
     info = results[0].get("reference_info") or {}
     data = ("Данные — LANL, корпоративная сеть" if info.get("data_kind") == "lanl_declared"
             else "Данные — синтетика (проверка кода, не реальная сеть)")
@@ -268,7 +288,7 @@ Score на каждом test-окне отдельно. Хороший мето�
 Если нет хотя бы одной из четырёх задач, вместо score — incomplete и места нет.
 Название метода — ссылка на его карточку: устройство, какие данные берёт, как обучается.
 
-{scoreboard.headline_table(results, card_url=CARD_URL.format)}
+{scoreboard.headline_table(results, card_url=CARD_URL.format, stale=stale)}{stale_text}
 | колонка | что проверяет (больше — лучше) |
 |---|---|
 | Neighbors@10 | у компьютеров с похожими векторами похожее поведение в сети |
@@ -367,6 +387,7 @@ def _build_one(job: tuple) -> str:
     d = Path(out_dir) / name
     d.mkdir(parents=True, exist_ok=True)
     _copy_card(name, d)
+    keep_vectors_local(d)
     m.embed(data, "train").to_csv(d / "embeddings.csv", index_label="host_id")
     for w in data.test_windows:
         m.embed(data, w, data.evaluable(w)).to_csv(d / window_file(w), index_label="host_id")
@@ -416,6 +437,7 @@ def builtin(names: list[str], dim: int = 16, jobs: int = 1, force: bool = False)
         d = SUBMISSIONS / "reference_ceiling"
         d.mkdir(parents=True, exist_ok=True)
         _copy_card("reference_ceiling", d)
+        keep_vectors_local(d)
         for w in test_windows():                         # у каждого окна свой потолок — его же признаки
             f = load_embeddings(DATA / "reference" / w / "features.csv", "host_id", "ref_")
             f.columns = [c.replace("ref_", "emb_") for c in f.columns]
