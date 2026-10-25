@@ -11,6 +11,8 @@
   neural ×1 — нейросеть 512→256→128, обученная узнавать один хост в двух половинах train.
 Итог 825 чисел сжимается PCA до 384 (v6). Всё обучается только на train.
 Рецепт и число эпох выбраны на validation дня 02 (results/fast_temporal_day02/).
+--encoder cca: вместо нейросети — линейная проекция (CCA): оси, по которым хост одинаков в разных
+кусках train. Без torch, обучается за секунды → temporal_cca.
 --tune: train делится на 2 или 4 куска (больше пар «тот же хост в другое время»), веса частей
 перебираются по сетке GRID; выбор — по баллу на validation со всеми четырьмя задачами, test не смотрим.
 """
@@ -41,6 +43,7 @@ RECIPE = {"behavioral": 2.0, "peers": 1.0, "services": 1.0, "diffusion": 0.5, "n
 SVD_DIM, CONTEXT_VOCAB, PCA_DIM = 128, 32768, 384
 EPOCHS, BATCH, TEMPERATURE, MIN_FLOWS = 20, 256, 0.15, 20
 SEED = 17
+CCA_DIM, CCA_REG = 128, 0.1
 GRID = {"splits": (2, 4), "behavioral": (2.0, 3.0, 4.0), "neural": (0.5, 1.0, 2.0), "diffusion": (0.0, 0.5)}
 STATS = ("bytes", "packets", "resp_bytes", "resp_packets", "duration")
 KINDS = ("peers", "services", "context")
@@ -135,8 +138,11 @@ class TemporalEncoder:
     shared_coordinate_system = True
 
     def __init__(self, recipe: dict | None = None, epochs: int = EPOCHS, pca_dim: int | None = PCA_DIM,
-                 splits: int = 2):
+                 splits: int = 2, encoder: str = "mlp"):
+        if encoder not in ("mlp", "cca"):
+            raise ValueError(f"encoder: mlp или cca, а не {encoder!r}")
         self.recipe, self.epochs, self.pca_dim, self.splits = dict(recipe or RECIPE), epochs, pca_dim, splits
+        self.encoder = encoder
         self._parts_cache: dict = {}
 
     def _features(self, v: dict) -> dict:
@@ -154,15 +160,14 @@ class TemporalEncoder:
         return z
 
     def _neural(self, x: np.ndarray) -> np.ndarray:
+        if self.encoder == "cca":
+            return normalize((x @ self.proj) * self.corr)
         import torch
         self.net.eval()
         with torch.no_grad():
             return np.concatenate([self.net(torch.from_numpy(x[i:i + 512])).numpy() for i in range(0, len(x), 512)])
 
     def fit(self, data: ProcessedData) -> "TemporalEncoder":
-        import torch
-        from torch.nn import functional as F
-        torch.set_num_threads(2)                         # как в исходном эксперименте: числа воспроизводятся
         self.hosts = list(data.cohort)
         self.beh = BehavioralBaseline().fit(data)
         flows = data.training_flows()
@@ -184,9 +189,43 @@ class TemporalEncoder:
         self._train = self._features(full)
         self.scaler = StandardScaler().fit(self._train["raw"])
         self._train["input"] = np.clip(self.scaler.transform(self._train["raw"]), -8, 8).astype(np.float32)
-        xs = [torch.from_numpy(self._features(v)["input"]) for v in slices]
+        xs = [self._features(v)["input"] for v in slices]
         ok = np.stack([v["flows"] >= MIN_FLOWS * 2 / self.splits for v in slices])   # хост активен в куске
         active = np.flatnonzero(ok.all(0) if self.splits == 2 else ok.sum(0) >= 2)
+        if self.encoder == "cca":
+            self._fit_cca(xs, ok)
+        else:
+            self._fit_mlp(data, xs, ok, active)
+        self._parts_cache = {}
+        self.fit_pca(data)
+        return self
+
+    def _fit_cca(self, xs: list[np.ndarray], ok: np.ndarray) -> None:
+        """Линейная замена нейросети: направления, в которых хост одинаков в разных кусках train (CCA).
+        Пары кусков берутся в обе стороны, поэтому проекция одна; канонические корреляции — веса осей."""
+        a, b = [], []
+        for i in range(self.splits):
+            for j in range(i + 1, self.splits):
+                both = ok[i] & ok[j]
+                a += [xs[i][both], xs[j][both]]
+                b += [xs[j][both], xs[i][both]]
+        A, B = np.vstack(a).astype(float), np.vstack(b).astype(float)
+        mu = A.mean(0)
+        A, B = A - mu, B - mu
+        n = len(A)
+        caa = A.T @ A / n + CCA_REG * np.eye(A.shape[1])
+        evals, evecs = np.linalg.eigh(caa)
+        w = evecs @ np.diag(evals ** -0.5) @ evecs.T     # обеление: caa^(-1/2)
+        m = w @ (A.T @ B / n) @ w
+        corr, v = np.linalg.eigh((m + m.T) / 2)
+        top = np.argsort(corr)[::-1][:CCA_DIM]
+        self.proj, self.corr = w @ v[:, top], np.clip(corr[top], 0, None)
+
+    def _fit_mlp(self, data: ProcessedData, xs: list[np.ndarray], ok: np.ndarray, active: np.ndarray) -> None:
+        import torch
+        from torch.nn import functional as F
+        torch.set_num_threads(2)                         # как в исходном эксперименте: числа воспроизводятся
+        xs = [torch.from_numpy(x) for x in xs]
         pair_rng = np.random.default_rng(SEED + 1)    # отдельный поток: при splits=2 числа как в исследовании
 
         self.net = _encoder(xs[0].shape[1])
@@ -214,10 +253,6 @@ class TemporalEncoder:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 5.0)
                 opt.step()
-
-        self._parts_cache = {}
-        self.fit_pca(data)
-        return self
 
     def fit_pca(self, data: ProcessedData) -> None:
         """PCA по train для текущего рецепта (после смены весов вызвать заново)."""
@@ -273,7 +308,8 @@ def _recipes(grid: dict):
                 yield {**RECIPE, "behavioral": wb, "neural": wn, "diffusion": wd}
 
 
-def tune(data: ProcessedData, grid: dict | None = None, pca_dim: int | None = PCA_DIM) -> tuple[TemporalEncoder, list]:
+def tune(data: ProcessedData, grid: dict | None = None, pca_dim: int | None = PCA_DIM,
+         encoder: str = "mlp") -> tuple[TemporalEncoder, list]:
     """Перебор GRID на validation (test не используется); возвращает обученную лучшую модель и таблицу."""
     import tempfile
 
@@ -281,7 +317,7 @@ def tune(data: ProcessedData, grid: dict | None = None, pca_dim: int | None = PC
     rows, best = [], None
     with tempfile.TemporaryDirectory() as tmp:
         for splits in grid["splits"]:
-            model = TemporalEncoder(pca_dim=pca_dim, splits=splits).fit(data)   # сеть не зависит от весов
+            model = TemporalEncoder(pca_dim=pca_dim, splits=splits, encoder=encoder).fit(data)   # не зависит от весов
             for recipe in _recipes(grid):
                 model.recipe = recipe
                 model.fit_pca(data)
@@ -299,7 +335,7 @@ def tune(data: ProcessedData, grid: dict | None = None, pca_dim: int | None = PC
                     best = (score, splits, recipe)
     score, splits, recipe = best
     print(f"лучшее на validation: куски {splits}, {recipe} ({score:.1f})", flush=True)
-    model = TemporalEncoder(recipe=recipe, pca_dim=pca_dim, splits=splits).fit(data)
+    model = TemporalEncoder(recipe=recipe, pca_dim=pca_dim, splits=splits, encoder=encoder).fit(data)
     return model, rows
 
 
@@ -308,20 +344,24 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--no-pca", action="store_true", help="без сжатия (v5, 825 чисел)")
     ap.add_argument("--tune", action="store_true", help="подобрать куски train и веса на validation")
+    ap.add_argument("--encoder", choices=("mlp", "cca"), default="mlp",
+                    help="mlp — нейросеть (нужен torch); cca — линейная проекция, без torch, секунды")
     a = ap.parse_args()
     data = ProcessedData(os.environ.get("PT_DATA", ROOT / "scoreboard" / "data" / "processed"))
     pca_dim = None if a.no_pca else PCA_DIM
+    name = NAME if a.encoder == "mlp" else "temporal_cca"
     if a.tune:
-        name = f"{NAME}_tuned"
-        model, rows = tune(data, pca_dim=pca_dim)
+        name += "_tuned"
+        model, rows = tune(data, pca_dim=pca_dim, encoder=a.encoder)
     else:
-        name, rows = NAME, None
-        model = TemporalEncoder(pca_dim=pca_dim).fit(data)
+        rows = None
+        model = TemporalEncoder(pca_dim=pca_dim, encoder=a.encoder).fit(data)
     out = ROOT / "scoreboard" / "submissions" / name
     _write(model, data, out)
     (out / "SHARED_COORDINATES").touch()
     (out / "AUTHOR").write_text("physcorgi\n", encoding="utf-8")
-    params = {"recipe": model.recipe, "splits": model.splits, "epochs": model.epochs, "pca_dim": model.pca_dim,
+    params = {"recipe": model.recipe, "encoder": model.encoder, "splits": model.splits, "epochs": model.epochs,
+              "pca_dim": model.pca_dim,
               "tuned_on": "validation этого прогона" if a.tune else "validation, день 02"}
     (out / "params.json").write_text(json.dumps(params, ensure_ascii=False) + "\n", encoding="utf-8")
     if rows:
