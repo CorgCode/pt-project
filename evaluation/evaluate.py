@@ -98,11 +98,13 @@ def _links(c: Context) -> None:
         m["link_pr_auc_at_natural_prevalence"] = r["pr_auc_at_natural_prevalence"]
     if "new_links" in r:
         m["link_new_roc_auc"], m["link_new_pr_auc"] = r["new_links"]["roc_auc"], r["new_links"]["pr_auc"]
+    if r.get("by_history", {}).get("seen_roc_auc") is not None:
+        m["link_seen_roc_auc"] = r["by_history"]["seen_roc_auc"]
     c.ci("link_roc_auc", r["roc_auc_ci"], r["ci_method"])
     c.ci("link_pr_auc", r["pr_auc_ci"], r["ci_method"])
     details = {k: r[k] for k in ("n_examples", "n_positive", "positive_rate", "natural_prevalence",
                                  "share_positives_seen_in_source", "source_window", "target_window", "split",
-                                 "interpretation", "new_links") if k in r}
+                                 "interpretation", "new_links", "by_history") if k in r}
     pers = persistence_baseline(edges, c.split)
     if pers is not None:
         details["persistence_baseline"] = pers
@@ -111,14 +113,32 @@ def _links(c: Context) -> None:
     if fit_edges is not None and fit_edges.exists():
         fit_split = json.loads((c.fit_ref / "manifest.json").read_text()).get("split", "validation")
         lr = score_learned(c.emb_full, load_candidate_edges(fit_edges), edges,
-                           fit_split=fit_split, eval_split=c.split, seed=c.seed, n_boot=c.n_boot)
+                           fit_split=fit_split, eval_split=c.split, seed=c.seed, n_boot=c.n_boot,
+                           degree=_source_degree(c.ref))
         m["link_learned_roc_auc"], m["link_learned_pr_auc"] = lr["roc_auc"], lr["pr_auc"]
         m["link_learned_random_roc_auc"] = lr["random_roc_auc"]
         m["link_learned_pr_auc_lift"] = lr["pr_auc_lift"]
+        for part in ("seen", "new"):                     # повторные и новые связи — отдельно, с бейзлайнами
+            bh = lr.get("by_history", {})
+            for name, d in (("", bh), ("_random", bh.get("random", {})), ("_popularity", bh.get("popularity", {}))):
+                if d.get(f"{part}_roc_auc") is not None:
+                    m[f"link_learned_{part}{name}_roc_auc"] = d[f"{part}_roc_auc"]
+        for k in ("history_roc_auc", "popularity_roc_auc"):
+            if lr.get(k) is not None:
+                m[f"link_learned_{k}"] = lr[k]
         c.ci("link_learned_roc_auc", lr["roc_auc_ci"], lr["ci_method"])
         c.result["metric_details"]["link_learned"] = {k: v for k, v in lr.items() if not k.endswith("_ci")}
         c.result["reference_info"]["fit_reference_files_sha256"] = {
             f: _sha(c.fit_ref / f) for f in REFERENCE_FILES if (c.fit_ref / f).exists()}
+
+
+def _source_degree(ref: Path) -> pd.Series | None:
+    """Степень хоста в source-окне (число разных собеседников) — из partners.csv, для бейзлайна popularity."""
+    f = ref / "partners.csv"
+    if not f.exists():
+        return None
+    p = load_partners(f)
+    return p[p.window == "source"].groupby("host_id").partner.nunique()
 
 
 def _links_learned(c: Context) -> None:

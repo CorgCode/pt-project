@@ -169,16 +169,29 @@ def test_walk_statistics_stay_probability_and_layer_moves():
     stay = structural_walks(ml, 50, 8, stay_prob=1.0, seed=1)
     steps = {(int(a), int(b)) for a, b in zip(stay[:, :-1].ravel(), stay[:, 1:].ravel())}
     assert steps <= allowed
-    move = structural_walks(ml, 50, 8, stay_prob=0.0, seed=1)
-    assert (move[:, 1:] == move[:, :-1]).all()                                                    # смена слоя не меняет вершину
+    with pytest.raises(ValueError):
+        structural_walks(ml, 50, 8, stay_prob=0.0, seed=1)                                        # только смены слоя
 
 
-def test_stay_probability_is_respected():
+def test_layer_change_is_not_written_into_the_walk():
     pairs, f = ring_pairs()
     ml = Multilayer(6, pairs, f)
-    w = structural_walks(ml, 3000, 2, stay_prob=0.3, seed=2)
-    moved_layer = (w[:, 1] == w[:, 0])                  # смена слоя сохраняет вершину, шаг в слое — меняет (петель нет)
-    assert abs(moved_layer.mean() - 0.7) < 0.03
+    w = structural_walks(ml, 500, 6, stay_prob=0.3, seed=2)          # смен слоя много, но в корпус идут только шаги
+    allowed = {(int(a), int(b)) for a, b in pairs} | {(int(b), int(a)) for a, b in pairs}
+    assert {(int(a), int(b)) for a, b in zip(w[:, :-1].ravel(), w[:, 1:].ravel())} <= allowed
+    assert (w[:, 1:] != w[:, :-1]).all()                              # петель нет — повторов вершины нет
+
+
+def test_neighbor_choice_survives_tiny_weights():
+    # слой 1 с огромными расстояниями: exp(-f) ~ 1e-300 на фоне весов слоя 0 — выбор соседа всё равно по весам
+    pairs = np.array([[0, 1], [0, 2], [0, 3]])
+    f = np.array([[0.0, 0.0, 0.0], [690.0, 690.0 + np.log(3), 700.0]])
+    ml = Multilayer(4, pairs, f)
+    from methods.graph.walks import _draw_neighbor_index
+    picks = ml.indices[_draw_neighbor_index(ml, np.full(20000, 4), np.random.default_rng(0))] % 4
+    share = np.bincount(picks, minlength=4)[1:] / len(picks)
+    expect = np.exp(-np.array([0.0, np.log(3), 10.0])); expect /= expect.sum()
+    assert np.allclose(share, expect, atol=0.02)
 
 
 def test_walks_are_deterministic():
