@@ -152,3 +152,19 @@ def test_result_goes_stale_when_evaluation_code_changes(board, monkeypatch, tmp_
     extra.write_text("x = 1\n")
     monkeypatch.setattr(submit, "_evaluation_code", lambda: [extra])
     assert not submit.is_fresh(d)
+
+
+def test_builtin_vectors_stay_out_of_git_and_old_results_are_marked(board, monkeypatch, tmp_path):
+    submit.builtin(["random", "behavioral"])
+    for m in ("random", "behavioral"):
+        assert (board / "submissions" / m / ".gitignore").read_text() == "*.csv\n"   # векторы — локально
+    _scores(board)
+    assert "†" not in (board / "README.md").read_text(encoding="utf-8")
+    for f in (board / "submissions" / "behavioral").glob("*.csv"):                    # как после git clone
+        f.unlink()
+    extra = tmp_path / "metric.py"
+    extra.write_text("x = 1\n")
+    monkeypatch.setattr(submit, "_evaluation_code", lambda: [extra])                  # оценка поменялась
+    submit.render()
+    md = (board / "README.md").read_text(encoding="utf-8")
+    assert "`behavioral`](" in md and "† — оценено прежней версией оценки" in md     # результат виден, но помечен

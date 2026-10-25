@@ -47,12 +47,17 @@ python scoreboard/my_method.py                             # обучит, со�
 Уже есть эмбеддинг из своего кода? Папка `scoreboard/submissions/<метод>/`:
 
 - `embeddings.csv` — `host_id, emb_0, emb_1, …` по train-окну (обязательно);
-- `test.csv` — те же хосты по test-окну, добавит колонку Identity;
+- `test.csv`, `test_day03.csv`, `test_day04.csv` — те же хосты по каждому test-окну (обязательно: без них нет
+  Identity, и вместо score будет incomplete);
 - `SHARED_COORDINATES` — пустой файл, если у окон одна система координат;
 - `AUTHOR` — ваш логин на GitHub, для колонки submitted by;
 - `README.md` — **карточка метода (обязательно)** по [`scoreboard/CARD_TEMPLATE.md`](scoreboard/CARD_TEMPLATE.md):
   кратко, архитектура, какие данные и как используются, обучение и подбор, ограничения. Без неё или с TODO CI
   отправку не примет. На карточку ведёт ссылка из таблицы.
+
+Ваши векторы хранятся в git — по ним CI считает результат. Векторы встроенных методов (`submit --builtin`,
+`combine.py`, `hybrid_tfidf.py`, `temporal_encoder.py`) в git не кладутся (`.gitignore` в их папке):
+их пересобирает `experiments/lanl/multiday.sh`, в git остаются карточка и результат.
 
 Подбирать параметры по таблице нельзя — для этого `experiments.tune_methods` (validation).
 

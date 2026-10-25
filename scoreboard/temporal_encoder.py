@@ -303,6 +303,7 @@ class TemporalEncoder:
 
 def _write(model: TemporalEncoder, data: ProcessedData, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
+    submit.keep_vectors_local(out)
     jobs = [("train", data.cohort, "embeddings.csv")] + [(w, data.evaluable(w), submit.window_file(w))
                                                           for w in data.test_windows]
     if "validation" in data.windows:                  # для подбора гибридов; в git не кладётся
