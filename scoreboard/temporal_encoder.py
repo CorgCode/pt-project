@@ -59,6 +59,13 @@ def _span(data: ProcessedData, window: str) -> tuple[float, float]:
     return float(w["start"]), float(w["end"])
 
 
+def _positions(col: pd.Series, index: pd.Index) -> np.ndarray:
+    """Номер хоста в index для каждой строки; категории (PT_COMPACT=1) — без перевода всех строк в str."""
+    if isinstance(col.dtype, pd.CategoricalDtype):
+        return index.get_indexer(col.cat.categories.astype(str))[col.cat.codes.to_numpy()]
+    return index.get_indexer(col.astype(str))
+
+
 def view(flows: pd.DataFrame, hosts: list[str], seconds: float) -> dict:
     """Счётчики токенов (хост, токен, n) трёх видов и 12 агрегатов активности за секунду окна."""
     tokens = {k: [] for k in KINDS}
@@ -72,7 +79,7 @@ def view(flows: pd.DataFrame, hosts: list[str], seconds: float) -> dict:
         svc = g["proto"].astype(str) + "/" + g["dst_port"].astype(str)
         for kind, t in (("peers", p), ("services", ("u:" if side == "o" else "s:") + svc), ("context", p + "|" + svc)):
             tokens[kind].append(pd.DataFrame({"h": h, "t": t, "n": g["n"]}))
-        rows = index.get_indexer(f[end].astype(str))
+        rows = _positions(f[end], index)
         off = j * (1 + len(STATS))
         stats[:, off] = np.bincount(rows, minlength=len(hosts))
         for k, col in enumerate(STATS, 1):
@@ -191,6 +198,9 @@ class TemporalEncoder:
         self._train["input"] = np.clip(self.scaler.transform(self._train["raw"]), -8, 8).astype(np.float32)
         xs = [self._features(v)["input"] for v in slices]
         ok = np.stack([v["flows"] >= MIN_FLOWS * 2 / self.splits for v in slices])   # хост активен в куске
+        empty = [i for i, o in enumerate(ok) if not o.any()]
+        if empty:                                     # например, окно в манифесте шире, чем данные в нём
+            raise ValueError(f"{NAME}: в кусках train {empty} нет активных хостов — проверьте окно train в манифесте")
         active = np.flatnonzero(ok.all(0) if self.splits == 2 else ok.sum(0) >= 2)
         if self.encoder == "cca":
             self._fit_cca(xs, ok)

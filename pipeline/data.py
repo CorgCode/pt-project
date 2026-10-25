@@ -11,6 +11,14 @@ from pipeline.windows import is_test, ordered_windows
 
 FLOW_DTYPES = {"src": "string", "dst": "string", "dst_port": "string", "proto": "string",
                "src_port": "string"}
+# PT_COMPACT=1: строки — категории, числа — 32 бита. Память в ~4 раза меньше: 6 ч train влезает в 8 ГБ
+COMPACT_DTYPES = {"src": "category", "dst": "category", "dst_port": "category", "proto": "category",
+                  "src_port": "category", "ts": "int32", "packets": "int32", "resp_packets": "int32",
+                  "duration": "int32", "bytes": "int64", "resp_bytes": "int64"}
+
+
+def compact() -> bool:
+    return os.environ.get("PT_COMPACT") == "1"
 
 
 def _read_cached(path: Path) -> pd.DataFrame:
@@ -18,7 +26,7 @@ def _read_cached(path: Path) -> pd.DataFrame:
 
     Копия пересоздаётся, если CSV изменился (размер или время). Нет прав на запись — читаем CSV.
     """
-    cache = path.parent / ".cache" / (path.stem + ".pkl")
+    cache = path.parent / ".cache" / (path.stem + (".compact.pkl" if compact() else ".pkl"))
     stamp = f"{path.stat().st_size}:{path.stat().st_mtime_ns}"
     tag = cache.with_suffix(".stamp")
     try:
@@ -26,7 +34,14 @@ def _read_cached(path: Path) -> pd.DataFrame:
             return pd.read_pickle(cache)
     except Exception:                                    # битая копия — просто читаем CSV
         pass
-    flows = pd.read_csv(path, dtype=FLOW_DTYPES)
+    if compact():
+        head = pd.read_csv(path, nrows=0).columns
+        flows = pd.read_csv(path, dtype={k: v for k, v in COMPACT_DTYPES.items() if k in head})
+        hosts = flows["src"].cat.categories.union(flows["dst"].cat.categories)   # общий словарь хостов:
+        for col in ("src", "dst"):                                                # склейка src и dst останется категорией
+            flows[col] = flows[col].cat.set_categories(hosts)
+    else:
+        flows = pd.read_csv(path, dtype=FLOW_DTYPES)
     try:
         cache.parent.mkdir(exist_ok=True)
         tmp = cache.with_suffix(f".tmp{os.getpid()}")
