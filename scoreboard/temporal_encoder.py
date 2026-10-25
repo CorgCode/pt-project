@@ -198,6 +198,9 @@ class TemporalEncoder:
         self._train["input"] = np.clip(self.scaler.transform(self._train["raw"]), -8, 8).astype(np.float32)
         xs = [self._features(v)["input"] for v in slices]
         ok = np.stack([v["flows"] >= MIN_FLOWS * 2 / self.splits for v in slices])   # хост активен в куске
+        empty = [i for i, o in enumerate(ok) if not o.any()]
+        if empty:                                     # например, окно в манифесте шире, чем данные в нём
+            raise ValueError(f"{NAME}: в кусках train {empty} нет активных хостов — проверьте окно train в манифесте")
         active = np.flatnonzero(ok.all(0) if self.splits == 2 else ok.sum(0) >= 2)
         if self.encoder == "cca":
             self._fit_cca(xs, ok)
