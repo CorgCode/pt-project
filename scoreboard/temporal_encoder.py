@@ -59,6 +59,13 @@ def _span(data: ProcessedData, window: str) -> tuple[float, float]:
     return float(w["start"]), float(w["end"])
 
 
+def _positions(col: pd.Series, index: pd.Index) -> np.ndarray:
+    """Номер хоста в index для каждой строки; категории (PT_COMPACT=1) — без перевода всех строк в str."""
+    if isinstance(col.dtype, pd.CategoricalDtype):
+        return index.get_indexer(col.cat.categories.astype(str))[col.cat.codes.to_numpy()]
+    return index.get_indexer(col.astype(str))
+
+
 def view(flows: pd.DataFrame, hosts: list[str], seconds: float) -> dict:
     """Счётчики токенов (хост, токен, n) трёх видов и 12 агрегатов активности за секунду окна."""
     tokens = {k: [] for k in KINDS}
@@ -72,7 +79,7 @@ def view(flows: pd.DataFrame, hosts: list[str], seconds: float) -> dict:
         svc = g["proto"].astype(str) + "/" + g["dst_port"].astype(str)
         for kind, t in (("peers", p), ("services", ("u:" if side == "o" else "s:") + svc), ("context", p + "|" + svc)):
             tokens[kind].append(pd.DataFrame({"h": h, "t": t, "n": g["n"]}))
-        rows = index.get_indexer(f[end].astype(str))
+        rows = _positions(f[end], index)
         off = j * (1 + len(STATS))
         stats[:, off] = np.bincount(rows, minlength=len(hosts))
         for k, col in enumerate(STATS, 1):
