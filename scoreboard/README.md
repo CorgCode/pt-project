@@ -4,6 +4,7 @@
 Данные — LANL, корпоративная сеть, компьютеров: 5445. Вектор строится по 1 ч трафика (день 02, 11:00–12:00) и проверяется на 3 отрезках: день 02, 12:30–13:30; день 03, 12:30–13:30; день 04, 12:30–13:30. Итог — среднее по ним.
 
 **Score** — итог от 0 до 100: 0 — как у случайных векторов, 100 — идеал. Места — по нему.
+Если нет хотя бы одной из четырёх задач, вместо score — incomplete и места нет.
 Название метода — ссылка на его карточку: устройство, какие данные берёт, как обучается.
 
 | # | method | submitted by | **score** | dim | Neighbors@10 | Links, AUC | New partners, MRR | Pairs, AUC | Identity, Top-1 | Tikhon LP, MRR* | Tikhon transfer, MRR* | Tikhon soft transfer, MRR* |
@@ -27,7 +28,7 @@
 | 17 | [`graph_spectral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/graph_spectral/README.md) | @physcorgi | 13.5 | 16 | 0.046 [0.04–0.05] | 0.986 [0.99–0.99] | 0.252 [0.23–0.26] | **0.999 [1.00–1.00]** | 0.018 [0.01–0.03] | 0.008 [0.01–0.01] | 0.896 [0.89–0.90] | 0.370 [0.36–0.38] |
 | 18 | [`graphsage`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/graphsage/README.md) | @physcorgi | 11.7 | 16 | 0.075 [0.07–0.08] | 0.916 [0.91–0.92] | 0.232 [0.23–0.24] | 0.866 [0.84–0.89] | 0.005 [0.00–0.01] | 0.021 [0.02–0.02] | 0.899 [0.90–0.90] | 0.842 [0.84–0.85] |
 | 19 | [`rolx`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/rolx/README.md) | @physcorgi | 11.6 | 16 | 0.041 [0.04–0.04] | 0.981 [0.98–0.98] | 0.208 [0.19–0.22] | 0.907 [0.90–0.92] | 0.016 [0.01–0.02] | 0.008 [0.01–0.01] | 0.839 [0.83–0.84] | 0.714 [0.71–0.72] |
-| 20 | [`struc2vec`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/struc2vec/README.md) | @physcorgi | 4.2 | 16 | 0.018 [0.02–0.02] | 0.844 [0.84–0.85] | 0.170 [0.17–0.17] | 0.539 [0.54–0.54] | 0.001 [0.00–0.00] | 0.010 [0.01–0.01] | 0.779 [0.77–0.78] | 0.602 [0.60–0.61] |
+| 20 | [`struc2vec`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/struc2vec/README.md) | @physcorgi | 5.2 | 16 | 0.020 [0.02–0.02] | 0.859 [0.85–0.87] | 0.164 [0.16–0.16] | 0.587 [0.58–0.60] | 0.003 [0.00–0.00] | 0.007 [0.01–0.01] | 0.784 [0.78–0.79] | 0.625 [0.62–0.63] |
 | — | *[`random`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/random/README.md)* | — | 1.1 | 16 | 0.002 [0.00–0.00] | 0.575 [0.57–0.58] | 0.099 [0.10–0.10] | 0.501 [0.50–0.51] | 0.001 [0.00–0.00] | 0.021 [0.02–0.02] | 0.645 [0.63–0.65] | 0.429 [0.42–0.44] |
 | — | *[`reference_ceiling`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/reference_ceiling/README.md)* | — | 56.4 | 57 | 1.000 [1.00–1.00] | — | 0.252 [0.24–0.26] | 0.989 [0.99–0.99] | — | 0.008 [0.01–0.01] | 0.850 [0.84–0.86] | 0.761 [0.75–0.77] |
 | | *chance level* | | 0 | | 0.002 | 0.61–0.84 | 0.085 | 0.500 | 0.000 | 0.021 | 0.021 | 0.021 |
@@ -82,6 +83,6 @@ Score на каждом test-окне отдельно. Хороший мето�
 | `graph_spectral` | 11.6 | 15.1 | 13.8 | 13.5 |
 | `graphsage` | 11.9 | 12.1 | 11.3 | 11.7 |
 | `rolx` | 11.8 | 11.2 | 11.7 | 11.6 |
-| `struc2vec` | 4.2 | 4.3 | 4.0 | 4.2 |
+| `struc2vec` | 5.2 | 5.4 | 5.2 | 5.2 |
 | `random` | 1.0 | 1.1 | 1.1 | 1.1 |
 | `reference_ceiling` | 57.1 | 56.8 | 55.1 | 56.4 |

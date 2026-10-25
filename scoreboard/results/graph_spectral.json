@@ -24,16 +24,25 @@
         "jaccard@5_mean": 0.02637631728540819,
         "jaccard@5_median": 0.0,
         "jaccard@5_std": 0.0911146367204604,
+        "link_learned_history_roc_auc": 0.9276369530811253,
+        "link_learned_new_popularity_roc_auc": 0.9558359454952732,
+        "link_learned_new_random_roc_auc": 0.5308601477395672,
+        "link_learned_new_roc_auc": 0.9512736837299226,
+        "link_learned_popularity_roc_auc": 0.980089846582503,
         "link_learned_pr_auc": 0.9870375672050115,
         "link_learned_pr_auc_lift": 1.974075134410023,
         "link_learned_random_roc_auc": 0.6071873635094232,
         "link_learned_roc_auc": 0.9854396295545439,
+        "link_learned_seen_popularity_roc_auc": 0.7445441156104656,
+        "link_learned_seen_random_roc_auc": 0.5958629895486797,
+        "link_learned_seen_roc_auc": 0.833964365030988,
         "link_new_pr_auc": 0.07841661670096649,
         "link_new_roc_auc": 0.20805946511692586,
         "link_pr_auc": 0.33820570656544924,
         "link_pr_auc_at_natural_prevalence": 0.003022596192370268,
         "link_pr_auc_lift": 0.6764114131308985,
         "link_roc_auc": 0.164632251268732,
+        "link_seen_roc_auc": 0.2926910507221105,
         "ndcg@10_mean": 0.05488945846332389,
         "ndcg@10_median": 0.0,
         "ndcg@10_std": 0.14265003029112056,
@@ -273,16 +282,25 @@
         "jaccard@5_mean": 0.025783759831616265,
         "jaccard@5_median": 0.0,
         "jaccard@5_std": 0.09203500894884309,
+        "link_learned_history_roc_auc": 0.9081207384228578,
+        "link_learned_new_popularity_roc_auc": 0.9546800553541699,
+        "link_learned_new_random_roc_auc": 0.5423233183023426,
+        "link_learned_new_roc_auc": 0.9637877104121213,
+        "link_learned_popularity_roc_auc": 0.9784636385319782,
         "link_learned_pr_auc": 0.9867481773118393,
         "link_learned_pr_auc_lift": 1.9734963546236786,
         "link_learned_random_roc_auc": 0.617567622917763,
         "link_learned_roc_auc": 0.9859603382168802,
+        "link_learned_seen_popularity_roc_auc": 0.6719477797511891,
+        "link_learned_seen_random_roc_auc": 0.5870465713870225,
+        "link_learned_seen_roc_auc": 0.7278691146276235,
         "link_new_pr_auc": 0.0968875114490122,
         "link_new_roc_auc": 0.20586895555340606,
         "link_pr_auc": 0.33893318130850675,
         "link_pr_auc_at_natural_prevalence": 0.0033324380420694084,
         "link_pr_auc_lift": 0.6778663626170135,
         "link_roc_auc": 0.16803985768354604,
+        "link_seen_roc_auc": 0.3645666956837346,
         "ndcg@10_mean": 0.05434697297186351,
         "ndcg@10_median": 0.0,
         "ndcg@10_std": 0.14123153270622021,
@@ -522,16 +540,25 @@
         "jaccard@5_mean": 0.022358259330964046,
         "jaccard@5_median": 0.0,
         "jaccard@5_std": 0.08060550856572364,
+        "link_learned_history_roc_auc": 0.910583424430139,
+        "link_learned_new_popularity_roc_auc": 0.9623324032399891,
+        "link_learned_new_random_roc_auc": 0.545970233714768,
+        "link_learned_new_roc_auc": 0.9610916876536759,
+        "link_learned_popularity_roc_auc": 0.9807759586771795,
         "link_learned_pr_auc": 0.9874465220565101,
         "link_learned_pr_auc_lift": 1.9748930441130201,
         "link_learned_random_roc_auc": 0.6164714256453235,
         "link_learned_roc_auc": 0.9861926658149686,
+        "link_learned_seen_popularity_roc_auc": 0.6964439211222758,
+        "link_learned_seen_random_roc_auc": 0.6083756956615856,
+        "link_learned_seen_roc_auc": 0.7200886466632684,
         "link_new_pr_auc": 0.09494246735263646,
         "link_new_roc_auc": 0.2055042691702409,
         "link_pr_auc": 0.33847837885779747,
         "link_pr_auc_at_natural_prevalence": 0.00309138648913448,
         "link_pr_auc_lift": 0.6769567577155949,
         "link_roc_auc": 0.164801103496097,
+        "link_seen_roc_auc": 0.39927274123833,
         "ndcg@10_mean": 0.04977744492510722,
         "ndcg@10_median": 0.0,
         "ndcg@10_std": 0.13720598053005745,
@@ -779,10 +806,18 @@
     "triplet_accuracy": "host-cluster bootstrap (hosts resampled; triplets weighted by endpoint multiplicity)"
   },
   "dim": 16,
-  "inputs_sha256": "9e2630380969e395671b0c99bdbaa0af56c33bf65ad06b9024a0f01f66aae592",
+  "inputs_sha256": "b34c59948cd319dabc293cd2526ecb6e7b2f74cdc558ef0a0f66ed1caa437a2c",
   "method": "graph_spectral",
   "metric_details": {
     "future_link_prediction": {
+      "by_history": {
+        "n_new": 89569,
+        "n_new_positive": 11280,
+        "n_seen": 67127,
+        "n_seen_positive": 67068,
+        "new_roc_auc": 0.20805946511692586,
+        "seen_roc_auc": 0.2926910507221105
+      },
       "interpretation": "PR-AUC depends on the frozen sampled candidate distribution; this is NOT full-population deployment average precision.",
       "n_examples": 156696,
       "n_positive": 78348,
@@ -840,13 +875,39 @@
       ]
     },
     "link_learned": {
+      "by_history": {
+        "n_new": 89569,
+        "n_new_positive": 11280,
+        "n_seen": 67127,
+        "n_seen_positive": 67068,
+        "new_roc_auc": 0.9512736837299226,
+        "popularity": {
+          "n_new": 89569,
+          "n_new_positive": 11280,
+          "n_seen": 67127,
+          "n_seen_positive": 67068,
+          "new_roc_auc": 0.9558359454952732,
+          "seen_roc_auc": 0.7445441156104656
+        },
+        "random": {
+          "n_new": 89569,
+          "n_new_positive": 11280,
+          "n_seen": 67127,
+          "n_seen_positive": 67068,
+          "new_roc_auc": 0.5308601477395672,
+          "seen_roc_auc": 0.5958629895486797
+        },
+        "seen_roc_auc": 0.833964365030988
+      },
       "ci_method": "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)",
       "eval_split": "test",
       "eval_target_window": "1970-01-02T12:30:00Z/1970-01-02T13:29:59Z",
       "fit_split": "validation",
       "fit_target_window": "1970-01-02T12:00:00Z/1970-01-02T12:29:59Z",
+      "history_roc_auc": 0.9276369530811253,
       "n_eval": 156696,
       "n_fit": 57796,
+      "popularity_roc_auc": 0.980089846582503,
       "pr_auc": 0.9870375672050115,
       "pr_auc_lift": 1.974075134410023,
       "random_roc_auc": 0.6071873635094232,
@@ -1070,16 +1131,25 @@
     "jaccard@5_mean": 0.02483944548266283,
     "jaccard@5_median": 0.0,
     "jaccard@5_std": 0.08791838474500906,
+    "link_learned_history_roc_auc": 0.9154470386447073,
+    "link_learned_new_popularity_roc_auc": 0.9576161346964774,
+    "link_learned_new_random_roc_auc": 0.5397178999188926,
+    "link_learned_new_roc_auc": 0.9587176939319066,
+    "link_learned_popularity_roc_auc": 0.9797764812638868,
     "link_learned_pr_auc": 0.9870774221911202,
     "link_learned_pr_auc_lift": 1.9741548443822403,
     "link_learned_random_roc_auc": 0.6137421373575033,
     "link_learned_roc_auc": 0.9858642111954642,
+    "link_learned_seen_popularity_roc_auc": 0.7043119388279768,
+    "link_learned_seen_random_roc_auc": 0.5970950855324292,
+    "link_learned_seen_roc_auc": 0.76064070877396,
     "link_new_pr_auc": 0.09008219850087172,
     "link_new_roc_auc": 0.20647756328019096,
     "link_pr_auc": 0.33853908891058443,
     "link_pr_auc_at_natural_prevalence": 0.003148806907858052,
     "link_pr_auc_lift": 0.6770781778211689,
     "link_roc_auc": 0.16582440414945834,
+    "link_seen_roc_auc": 0.3521768292147251,
     "ndcg@10_mean": 0.05300462545343154,
     "ndcg@10_median": 0.0,
     "ndcg@10_std": 0.14036251450913273,
@@ -1213,6 +1283,26 @@
       0.08060550856572364,
       0.09203500894884309
     ],
+    "link_learned_history_roc_auc": [
+      0.9081207384228578,
+      0.9276369530811253
+    ],
+    "link_learned_new_popularity_roc_auc": [
+      0.9546800553541699,
+      0.9623324032399891
+    ],
+    "link_learned_new_random_roc_auc": [
+      0.5308601477395672,
+      0.545970233714768
+    ],
+    "link_learned_new_roc_auc": [
+      0.9512736837299226,
+      0.9637877104121213
+    ],
+    "link_learned_popularity_roc_auc": [
+      0.9784636385319782,
+      0.9807759586771795
+    ],
     "link_learned_pr_auc": [
       0.9867481773118393,
       0.9874465220565101
@@ -1228,6 +1318,18 @@
     "link_learned_roc_auc": [
       0.9854396295545439,
       0.9861926658149686
+    ],
+    "link_learned_seen_popularity_roc_auc": [
+      0.6719477797511891,
+      0.7445441156104656
+    ],
+    "link_learned_seen_random_roc_auc": [
+      0.5870465713870225,
+      0.6083756956615856
+    ],
+    "link_learned_seen_roc_auc": [
+      0.7200886466632684,
+      0.833964365030988
     ],
     "link_new_pr_auc": [
       0.07841661670096649,
@@ -1252,6 +1354,10 @@
     "link_roc_auc": [
       0.164632251268732,
       0.16803985768354604
+    ],
+    "link_seen_roc_auc": [
+      0.2926910507221105,
+      0.39927274123833
     ],
     "ndcg@10_mean": [
       0.04977744492510722,
