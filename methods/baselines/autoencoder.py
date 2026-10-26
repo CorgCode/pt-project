@@ -113,7 +113,7 @@ class BehavioralDAE(Baseline):
                 self._net.parameters(), lr=self.lr, weight_decay=self.weight_decay
             )
             loss_fn = nn.MSELoss()
-            x = torch.from_numpy(x_np)
+            x = torch.tensor(x_np.tolist(), dtype=torch.float32, device="cpu")
             generator = torch.Generator(device="cpu").manual_seed(self.seed + 1)
             self.loss_history_ = []
 
@@ -170,7 +170,10 @@ class BehavioralDAE(Baseline):
             raise ValueError(f"behavioral_dae: признаки окна {window!r} содержат NaN или бесконечность")
         self._net.eval()
         with torch.no_grad():
-            z = self._net.encoder(torch.from_numpy(x_np)).cpu().numpy().astype(float, copy=False)
+            z_tensor = self._net.encoder(torch.tensor(x_np.tolist(), dtype=torch.float32, device="cpu"))
+            # Используем .tolist(), а не Tensor.numpy(): это обход несовместимого NumPy bridge
+            # в некоторых сборках PyTorch/NumPy на Windows.
+            z = np.asarray(z_tensor.cpu().tolist(), dtype=float)
         if not np.isfinite(z).all():
             raise ValueError(f"behavioral_dae: сеть вернула нечисловой эмбеддинг для окна {window!r}")
         return _frame(z, hosts)
