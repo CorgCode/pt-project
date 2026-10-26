@@ -27,6 +27,7 @@ from evaluation.io import load_embeddings
 from evaluation.knn_consistency import evaluate_embedding
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.partners import load_partners, partner_ranking
+from evaluation.tikhon import tikhon_metrics
 from evaluation.retrieval import load_pairs, pair_auc, precision_recall_at_k
 from evaluation.triplet_accuracy import load_triplets, triplet_accuracy
 from evaluation.uncertainty import bootstrap_ci
@@ -97,11 +98,13 @@ def _links(c: Context) -> None:
         m["link_pr_auc_at_natural_prevalence"] = r["pr_auc_at_natural_prevalence"]
     if "new_links" in r:
         m["link_new_roc_auc"], m["link_new_pr_auc"] = r["new_links"]["roc_auc"], r["new_links"]["pr_auc"]
+    if r.get("by_history", {}).get("seen_roc_auc") is not None:
+        m["link_seen_roc_auc"] = r["by_history"]["seen_roc_auc"]
     c.ci("link_roc_auc", r["roc_auc_ci"], r["ci_method"])
     c.ci("link_pr_auc", r["pr_auc_ci"], r["ci_method"])
     details = {k: r[k] for k in ("n_examples", "n_positive", "positive_rate", "natural_prevalence",
                                  "share_positives_seen_in_source", "source_window", "target_window", "split",
-                                 "interpretation", "new_links") if k in r}
+                                 "interpretation", "new_links", "by_history") if k in r}
     pers = persistence_baseline(edges, c.split)
     if pers is not None:
         details["persistence_baseline"] = pers
@@ -110,14 +113,32 @@ def _links(c: Context) -> None:
     if fit_edges is not None and fit_edges.exists():
         fit_split = json.loads((c.fit_ref / "manifest.json").read_text()).get("split", "validation")
         lr = score_learned(c.emb_full, load_candidate_edges(fit_edges), edges,
-                           fit_split=fit_split, eval_split=c.split, seed=c.seed, n_boot=c.n_boot)
+                           fit_split=fit_split, eval_split=c.split, seed=c.seed, n_boot=c.n_boot,
+                           degree=_source_degree(c.ref))
         m["link_learned_roc_auc"], m["link_learned_pr_auc"] = lr["roc_auc"], lr["pr_auc"]
         m["link_learned_random_roc_auc"] = lr["random_roc_auc"]
         m["link_learned_pr_auc_lift"] = lr["pr_auc_lift"]
+        for part in ("seen", "new"):                     # повторные и новые связи — отдельно, с бейзлайнами
+            bh = lr.get("by_history", {})
+            for name, d in (("", bh), ("_random", bh.get("random", {})), ("_popularity", bh.get("popularity", {}))):
+                if d.get(f"{part}_roc_auc") is not None:
+                    m[f"link_learned_{part}{name}_roc_auc"] = d[f"{part}_roc_auc"]
+        for k in ("history_roc_auc", "popularity_roc_auc"):
+            if lr.get(k) is not None:
+                m[f"link_learned_{k}"] = lr[k]
         c.ci("link_learned_roc_auc", lr["roc_auc_ci"], lr["ci_method"])
         c.result["metric_details"]["link_learned"] = {k: v for k, v in lr.items() if not k.endswith("_ci")}
         c.result["reference_info"]["fit_reference_files_sha256"] = {
             f: _sha(c.fit_ref / f) for f in REFERENCE_FILES if (c.fit_ref / f).exists()}
+
+
+def _source_degree(ref: Path) -> pd.Series | None:
+    """Степень хоста в source-окне (число разных собеседников) — из partners.csv, для бейзлайна popularity."""
+    f = ref / "partners.csv"
+    if not f.exists():
+        return None
+    p = load_partners(f)
+    return p[p.window == "source"].groupby("host_id").partner.nunique()
 
 
 def _links_learned(c: Context) -> None:
@@ -137,6 +158,17 @@ def _partners(c: Context) -> None:
     c.ci("partner_mrr", r["all"]["embedding"].get("mrr_ci"))
     c.ci("partner_new_mrr", r["new"]["embedding"].get("mrr_ci"))
     c.result["metric_details"]["partner_ranking"] = r
+
+
+def _tikhon(c: Context) -> None:
+    r = tikhon_metrics(c.emb, load_partners(c.ref / "partners.csv"), n_boot=c.n_boot, seed=c.seed)
+    m = c.result["metrics"]
+    for name in ("lp_direct", "lp_inverted", "transfer_direct", "transfer_soft", "history", "popularity", "random"):
+        m[f"tikhon_{name}_mrr"] = r[name]["mrr"]
+        m[f"tikhon_{name}_recall@{r['top_n']}"] = r[name]["recall_at_n"]
+    for name in ("lp_direct", "transfer_direct", "transfer_soft"):
+        c.ci(f"tikhon_{name}_mrr", r[name].get("mrr_ci"))
+    c.result["metric_details"]["tikhon"] = r
 
 
 def _pairs(c: Context) -> None:
@@ -213,6 +245,8 @@ METRICS: list[Metric] = [
            _pairs, "pair_roc_auc", lambda r: 0.5, also=("pairwise_pr_auc", "precision_at_k", "recall_at_k")),
     Metric("triplet_accuracy", "Общие собеседники", "Тройки", ("triplets.csv",),
            _triplets, "triplet_accuracy", lambda r: 0.5, show=False),
+    Metric("tikhon", "Будущие связи", "Метрики Тихона", ("partners.csv",),
+           _tikhon, "tikhon_lp_direct_mrr", lambda r: r["metrics"].get("tikhon_random_mrr"), show=False),
     Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
 ]

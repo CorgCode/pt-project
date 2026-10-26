@@ -215,7 +215,7 @@ def prepare(inputs: list[Path], config: PipelineConfig, out_dir: Path, *, chunks
         "leakage_checks": {
             "windows_strictly_ordered": True,
             "max_time_train_lt_min_time_test":
-                bool(t_range["train"][1] < t_range["test"][0]),
+                bool(all(t_range["train"][1] < t_range[w][0] for w in names if w != "train")),
             "boundary_straddling_flows_dropped": config.drop_straddling,
         },
     }

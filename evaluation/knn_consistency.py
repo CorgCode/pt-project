@@ -74,9 +74,9 @@ def build_reference_features(
         hosts = sorted(set(f["src"]) | set(f["dst"]))
     idx = pd.Index(hosts)
 
-    out = f.groupby("src").agg(out_flows=("dst", "size"), out_bytes=("bytes", "sum"),
+    out = f.groupby("src", observed=True).agg(out_flows=("dst", "size"), out_bytes=("bytes", "sum"),
                                out_pkts=("packets", "sum"), out_peers=("dst", "nunique"))
-    inn = f.groupby("dst").agg(in_flows=("src", "size"), in_bytes=("bytes", "sum"),
+    inn = f.groupby("dst", observed=True).agg(in_flows=("src", "size"), in_bytes=("bytes", "sum"),
                                in_pkts=("packets", "sum"), in_peers=("src", "nunique"))
     base = out.join(inn, how="outer").reindex(idx).fillna(0.0)
 
@@ -93,7 +93,7 @@ def build_reference_features(
                           f[["dst", col]].rename(columns={"dst": "h"})])
         if keep is not None:
             both = both[both[col].isin(keep)]
-        return _row_normalize(both.groupby(["h", col]).size().unstack(fill_value=0)
+        return _row_normalize(both.groupby(["h", col], observed=True).size().unstack(fill_value=0)
                               .reindex(idx).fillna(0.0))
 
     ports = proto = hourly = None
@@ -111,7 +111,7 @@ def build_reference_features(
     if "hourly" not in exclude:
         hourly = _row_normalize(pd.concat([
             f[["src", "hour"]].rename(columns={"src": "h"}),
-            f[["dst", "hour"]].rename(columns={"dst": "h"})]).groupby(["h", "hour"]).size()
+            f[["dst", "hour"]].rename(columns={"dst": "h"})]).groupby(["h", "hour"], observed=True).size()
             .unstack(fill_value=0).reindex(index=idx, columns=range(24)).fillna(0.0))
 
     w = {"volume": 1.0, "peers": 1.0, "ratio": 1.0, "ports": 1.0, "proto": 0.5, "hourly": 1.0}

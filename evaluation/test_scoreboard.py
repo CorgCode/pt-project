@@ -145,7 +145,7 @@ def test_markdown_has_headlines_and_chance_row(tmp_path):
     build(f, tmp_path / "board")
     md = (tmp_path / "board.md").read_text(encoding="utf-8")
     assert md.index("`a`") < md.index("`b`")                 # лучший метод выше
-    assert "случайный уровень" in md and "0.500" in md and "[0.60–0.80]" in md
+    assert "chance level" in md and "0.500" in md and "[0.60–0.80]" in md
 
 
 def test_overall_score_maps_chance_to_0_and_perfect_to_100():
@@ -170,3 +170,18 @@ def test_overall_score_weighs_tasks_equally_and_punishes_a_failed_task():
     s = overall_score([r, balanced, lopsided], cols)
     assert s["m"] == pytest.approx(40.0) and s["bal"] == pytest.approx(40.0)
     assert s["lop"] < s["bal"]                         # среднее было бы 63 против 40, здесь — 9.5 против 40
+
+
+def test_dropping_a_task_makes_the_score_unavailable_not_higher():
+    from evaluation.scoreboard import headline_table, overall_score
+    summary = [{"metric": "a", "group": "Связи", "title": "A", "chance": 0.0},
+               {"metric": "c", "group": "Узнаваемость", "title": "C", "chance": 0.0}]
+    cols = {"a": "A", "c": "C"}
+    full = {"method": "full", "metrics": {"a": 0.8, "c": 0.05}, "summary": summary}
+    cut = {"method": "cut", "metrics": {"a": 0.8, "c": None}, "summary": summary}     # плохую задачу не прислали
+    ceiling = {"method": "reference_ceiling", "metrics": {"a": 0.9, "c": None}, "summary": summary}
+    s = overall_score([full, cut, ceiling], cols)
+    assert s["full"] == pytest.approx(20.0) and pd.isna(s["cut"])
+    assert s["reference_ceiling"] == pytest.approx(90.0)          # ориентир — по тому, что у него есть
+    md = headline_table([full, cut, ceiling])
+    assert "| 1 | `full` |" in md and "| — | `cut` | — | incomplete |" in md

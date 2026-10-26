@@ -90,3 +90,38 @@ def test_refuses_mixed_window_pair():
     emb=pd.DataFrame(np.arange(12*3).reshape(12,3)+1.,index=hosts)
     with pytest.raises(ValueError,match="нельзя смешивать"):
         score_embeddings(emb,pairs)
+
+
+def _cands(pairs, labels, seen, split, target):
+    a, b = zip(*pairs)
+    return pd.DataFrame({"host_a": a, "host_b": b, "source_window": "2026-10-01T09:00:00Z/2026-10-01T09:59:00Z",
+                         "target_window": target, "label": [str(x) for x in labels], "split": split,
+                         "seen_in_source": seen})
+
+
+def test_learned_links_are_also_scored_separately_on_repeated_and_new_pairs():
+    from itertools import combinations
+    from evaluation.future_links import score_learned
+    hosts = [f"h{i:02}" for i in range(16)]
+    pairs = list(combinations(hosts, 2))
+    rng = np.random.default_rng(0)
+    seen = rng.random(len(pairs)) < 0.3
+    labels = np.where(seen, rng.random(len(pairs)) < 0.9, rng.random(len(pairs)) < 0.2).astype(int)
+    fit = _cands(pairs, labels, seen, "validation", "2026-10-01T10:00:00Z/2026-10-01T10:29:00Z")
+    ev = _cands(pairs, labels, seen, "test", "2026-10-01T10:30:00Z/2026-10-01T10:59:00Z")
+    emb = pd.DataFrame(rng.normal(size=(len(hosts), 4)), index=hosts)
+    degree = pd.Series(np.arange(len(hosts)), index=hosts)
+    r = score_learned(emb, fit, ev, degree=degree)
+    bh = r["by_history"]
+    assert bh["n_seen"] == seen.sum() and bh["n_new"] == (~seen).sum()
+    assert bh["n_seen_positive"] + bh["n_new_positive"] == labels.sum()
+    assert r["history_roc_auc"] > 0.7                  # «пара уже общалась» — сильный бейзлайн для общего AUC
+    for part in ("seen", "new"):                       # но внутри каждой части история постоянна и не помогает
+        assert 0 <= bh[f"{part}_roc_auc"] <= 1 and 0 <= bh["popularity"][f"{part}_roc_auc"] <= 1
+    assert "popularity_roc_auc" in r and "random" in bh
+
+
+def test_popularity_is_the_product_of_source_degrees():
+    from evaluation.future_links import popularity_score
+    e = pd.DataFrame({"host_a": ["a", "a"], "host_b": ["b", "z"]})
+    assert popularity_score(e, pd.Series({"a": 2, "b": 3})).tolist() == [6.0, 0.0]     # нет в source — степень 0

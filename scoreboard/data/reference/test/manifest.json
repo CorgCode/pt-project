@@ -1,31 +1,35 @@
 {
   "chance_consistency_at_k": {
-    "10": 0.004462293618920125,
-    "20": 0.00892458723784025,
-    "5": 0.0022311468094600626
+    "10": 0.0018368846436443791,
+    "20": 0.0036737692872887582,
+    "5": 0.0009184423218221896
   },
   "cohort_policy": "train_only",
   "cohort_selection": {
     "coverage": {
-      "test": 0.3474353014101968,
+      "test": 0.8437935843793585,
+      "test_day03": 0.7771579110491245,
+      "test_day04": 0.8118704478537114,
       "validation": 0.4278630094529676
     },
-    "interpretation": "if the two medians differ, host survival is related to train-window activity and restricting to stable hosts changes the population being evaluated",
+    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
     "median_train_events": {
-      "active_in_every_window": 1176.0,
-      "not_active_in_every_window": 478.5
+      "active_in_every_window": 878.0,
+      "not_active_in_every_window": 455.0
     },
     "n_cohort": 6453,
     "n_evaluable": {
-      "test": 2242,
+      "test": 5445,
+      "test_day03": 5015,
+      "test_day04": 5239,
       "validation": 2761
     },
-    "n_hosts_active_in_every_window": 1535,
-    "note": "The cohort is defined from the TRAIN window only. Hosts that are inactive in a later window are not evaluable there; every reference is built on the evaluable hosts and the coverage is reported. Survivorship of hosts into later windows is therefore part of the measured outcome, not of the cohort definition.",
+    "n_hosts_active_in_every_window": 2142,
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
-  "cohort_sha256": "78c6ab46cd0066a0b0136c143280fb9c09e9b03b6bdb66b7aeef5255dc8139e8",
-  "coverage": 0.3474353014101968,
+  "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
+  "coverage": 0.8437935843793585,
   "data_kind": "lanl_declared",
   "files_sha256": {
     "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
@@ -35,29 +39,29 @@
     "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "edges.csv": "d67de21c6766feeed3cb2acaabca69f44858d04fea409c0a8d562051afb053e8",
-    "eval_hosts.csv": "63d6267ba9fdfd9198b94d90aed1c5b8679a38c26db08c01a442a28218e01957",
-    "features.csv": "e8e17743e80797bd68f81324a49b57dbbf076a918e7fd7d20f8f84f553c9bdba",
-    "neighbors.csv": "e5e21f84b5c462d272786e3129f30e4cb23d9924d6b0f9e202a2067047962901",
-    "pairs.csv": "6d408a475c5db3d2f26bf5a47060443a1120ee4fba9c7b7bf3c2baa3ed421581",
-    "partners.csv": "91aded4180218193349378d3196aaf326ece71cbde49f388326d923b9eb02beb",
-    "triplets.csv": "79ca8c52afd257fd326731d5353eab73a8038044944dc6811c3c0af67ae1c2e7"
+    "edges.csv": "98726c476f16c45a876975d4d3a4dc4811acc2a1d2b97d9727519bc1f86a6892",
+    "eval_hosts.csv": "16df41ecc9c9ea038ead3059d9be0a9418f8bb14f446f8751463899b5b8fbf72",
+    "features.csv": "f6a8a0223875382cca56c984decf6ac05eacb8dc216e9405a267a3f43a1efc8c",
+    "neighbors.csv": "dfdadd615ad136ebca559cddf551de1f1ff8a464db102da69a2dc1e5529564a1",
+    "pairs.csv": "923744a0b97d3c660a0dd6e12d3b108a5e943456a7a89e79722ad040bbc60c08",
+    "partners.csv": "d1b4796e1a39b71600f8523f2bbb6e05715fa15d67ad1597c1ce28209ae5edcf",
+    "triplets.csv": "e47f29ad2c118b30038816cc230b1eccd512ab586ae18a77ed54c3494aa370bb"
   },
   "ground_truth": false,
   "judgments": {
-    "n_anchors_without_judgments": 171,
-    "n_hosts": 2242,
-    "n_negative_pairs": 527119,
-    "n_pairs": 26930,
-    "n_positive_pairs": 25424,
-    "n_possible_pairs": 2512161,
-    "n_triplets": 12656,
-    "n_unjudged_pairs": 1959618,
+    "n_anchors_without_judgments": 455,
+    "n_hosts": 5445,
+    "n_negative_pairs": 4268326,
+    "n_pairs": 50375,
+    "n_positive_pairs": 151776,
+    "n_possible_pairs": 14821290,
+    "n_triplets": 21668,
+    "n_unjudged_pairs": 10401188,
     "pairs_per_anchor": 10,
     "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
     "rule_version": 1,
     "seed": 0,
-    "tau_pos": 0.6428571428571429,
+    "tau_pos": 0.7692307692307693,
     "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
   },
   "kind": "heldout_temporal_behavior_proxy",
@@ -69,10 +73,10 @@
   "labels": null,
   "labels_source": null,
   "n_cohort": 6453,
-  "n_evaluable": 2242,
-  "n_hosts": 2242,
+  "n_evaluable": 5445,
+  "n_hosts": 5445,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "8dfcf58e1e6a6add88a2d0e9ef8a815750d8b41828d321dc217641b1ce88891e",
+  "pipeline_manifest_sha256": "328b571bf69859e7fcec2542b41942462c01e7ca706e3130711a2b0073773067",
   "provenance": {
     "basis": "operator_declaration",
     "checks": {
@@ -84,13 +88,25 @@
           "share_devices_named_CompN": 0.984416571645762,
           "share_ports_numeric_or_PortN": 1.0,
           "share_protocol_numeric": 1.0
+        },
+        "netflow_day-03.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9864253393665159,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-04.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.8552317247969422,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
         }
       },
       "marker_file": false
     },
     "declared_kind": "lanl",
     "kind": "lanl_declared",
-    "source_note": "csr.lanl.gov/data/2017 form, 2026-10-17, physcorgi",
+    "source_note": "форма LANL, 2026-10-24, physcorgi",
     "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
     "verified": false
   },
@@ -100,15 +116,15 @@
   "real_lanl_declared": true,
   "reference_dimensions": 57,
   "reference_neighbor_stability": {
-    "consistency@10": 0.27604817127564674,
-    "consistency@20": 0.31398305084745765,
-    "consistency@5": 0.2358608385370205,
-    "jaccard@10": 0.2127901280564482,
-    "jaccard@20": 0.24474002401631886,
-    "jaccard@5": 0.18371316709853733,
-    "ndcg@10": 0.29454535289250533,
-    "ndcg@20": 0.33767364883872336,
-    "ndcg@5": 0.25301955896072365
+    "consistency@10": 0.15636363636363637,
+    "consistency@20": 0.18617079889807164,
+    "consistency@5": 0.1355739210284665,
+    "jaccard@10": 0.11429965369913686,
+    "jaccard@20": 0.1382669080828738,
+    "jaccard@5": 0.10157199702654249,
+    "ndcg@10": 0.16920581900778492,
+    "ndcg@20": 0.19989353600847407,
+    "ndcg@5": 0.14383417016355213
   },
   "reference_views": {
     "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
@@ -122,18 +138,34 @@
   "split": "test",
   "synthetic": false,
   "target_window": "test",
-  "test_events": 4970376,
+  "test_events": 10297984,
   "test_start_utc": "1970-01-02T12:30:00Z",
   "train_end_utc": "1970-01-02T11:59:59Z",
   "train_events": 9368480,
   "windows": {
     "test": {
-      "end": 133200.0,
-      "graph_edges": 69253,
-      "max_time": 133199.0,
+      "end": 135000.0,
+      "graph_edges": 87510,
+      "max_time": 134999.0,
       "min_time": 131400.0,
-      "n_flows": 4970376,
+      "n_flows": 10297984,
       "start": 131400.0
+    },
+    "test_day03": {
+      "end": 221400.0,
+      "graph_edges": 84385,
+      "max_time": 221399.0,
+      "min_time": 217800.0,
+      "n_flows": 9046675,
+      "start": 217800.0
+    },
+    "test_day04": {
+      "end": 307800.0,
+      "graph_edges": 82151,
+      "max_time": 307799.0,
+      "min_time": 304200.0,
+      "n_flows": 10187029,
+      "start": 304200.0
     },
     "train": {
       "end": 129600.0,

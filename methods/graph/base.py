@@ -73,7 +73,13 @@ class GraphEmbeddingMethod(Baseline):
         self._cache[window] = (g, emb, focus_set)
         return g, emb
 
+    def _reset(self) -> None:
+        """Забыть графы и эмбеддинги прошлого обучения: ключ кэша — только имя окна, и при повторном fit
+        (другие данные или параметры) старые векторы иначе вернулись бы как новые."""
+        self._graphs, self._cache, self.fit_seconds = {}, {}, {}
+
     def fit(self, data: ProcessedData) -> "GraphEmbeddingMethod":
+        self._reset()
         self._window(data, "train", data.cohort)
         return self
 
@@ -89,4 +95,4 @@ class GraphEmbeddingMethod(Baseline):
         return {"name": self.name, "description": self.description, "reference": self.reference,
                 "fit_windows": ["train"], "shared_coordinate_system": self.shared_coordinate_system, "overlap": self.overlap,
                 "dim": self.dim, "seed": self.seed, "params": self.params,
-                "fit_seconds": {k: round(v, 2) for k, v in self.fit_seconds.items()}}
+                "fit_seconds": {k: round(v, 3) for k, v in self.fit_seconds.items()}}

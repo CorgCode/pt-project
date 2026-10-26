@@ -67,6 +67,39 @@ def dyadic_bootstrap_ci(stat: Callable[[np.ndarray], float], host_cols: list[np.
     return float(lo), float(hi)
 
 
+class RankedScores:
+    """ROC-AUC и PR-AUC (AP) с весами без повторной сортировки: порядок считается один раз.
+
+    Совпадает с sklearn (roc_auc_score / average_precision_score с sample_weight, включая равные скоры),
+    но для бутстрепа в сотни раз быстрее. ValueError, если у одного из классов нулевой вес — как у sklearn.
+    """
+
+    def __init__(self, labels: np.ndarray, scores: np.ndarray):
+        scores = np.asarray(scores, dtype=float)
+        self.order = np.argsort(-scores, kind="mergesort")
+        self.y = np.asarray(labels).astype(float)[self.order]
+        s = scores[self.order]
+        self.ends = np.r_[np.flatnonzero(np.diff(s)), len(s) - 1]     # последний элемент каждой группы равных
+
+    def _curve(self, w):
+        w = np.ones(len(self.y)) if w is None else np.asarray(w, dtype=float)[self.order]
+        tps = np.cumsum(w * self.y)[self.ends]
+        fps = np.cumsum(w * (1.0 - self.y))[self.ends]
+        if tps[-1] <= 0 or fps[-1] <= 0:
+            raise ValueError("нужны оба класса с положительным весом")
+        return tps, fps
+
+    def roc_auc(self, w: np.ndarray | None = None) -> float:
+        tps, fps = self._curve(w)
+        tpr, fpr = np.r_[0.0, tps] / tps[-1], np.r_[0.0, fps] / fps[-1]
+        return float(np.sum(np.diff(fpr) * (tpr[1:] + tpr[:-1]) / 2))
+
+    def average_precision(self, w: np.ndarray | None = None) -> float:
+        tps, fps = self._curve(w)
+        precision = tps / np.maximum(tps + fps, 1e-300)
+        return float(np.sum(np.diff(np.r_[0.0, tps]) / tps[-1] * precision))
+
+
 def auc_with_ci(labels: np.ndarray, scores: np.ndarray, *, n_boot: int = 200, seed: int = 0,
                 hosts: tuple[list[np.ndarray], int] | None = None) -> dict:
     """ROC-AUC / PR-AUC с бутстреп-интервалами.
@@ -77,18 +110,18 @@ def auc_with_ci(labels: np.ndarray, scores: np.ndarray, *, n_boot: int = 200, se
     labels = np.asarray(labels).astype(int)
     out = {"roc_auc": float(roc_auc_score(labels, scores)),
            "pr_auc": float(average_precision_score(labels, scores))}
-    if hosts is None:
-        out["roc_auc_ci"] = bootstrap_ci(lambda i: roc_auc_score(labels[i], scores[i]), len(labels),
+    ranked = RankedScores(labels, scores)
+    if hosts is None:                            # повтор с индексами i = веса «сколько раз взят элемент»
+        n = len(labels)
+        out["roc_auc_ci"] = bootstrap_ci(lambda i: ranked.roc_auc(np.bincount(i, minlength=n)), n,
                                          n_boot=n_boot, seed=seed)
-        out["pr_auc_ci"] = bootstrap_ci(lambda i: average_precision_score(labels[i], scores[i]),
-                                        len(labels), n_boot=n_boot, seed=seed)
+        out["pr_auc_ci"] = bootstrap_ci(lambda i: ranked.average_precision(np.bincount(i, minlength=n)), n,
+                                        n_boot=n_boot, seed=seed)
         out["ci_method"] = "item bootstrap (items treated as independent)"
     else:
         cols, n = hosts
-        out["roc_auc_ci"] = dyadic_bootstrap_ci(lambda w: roc_auc_score(labels, scores, sample_weight=w),
-                                                cols, n, n_boot=n_boot, seed=seed)
-        out["pr_auc_ci"] = dyadic_bootstrap_ci(lambda w: average_precision_score(labels, scores, sample_weight=w),
-                                               cols, n, n_boot=n_boot, seed=seed)
+        out["roc_auc_ci"] = dyadic_bootstrap_ci(ranked.roc_auc, cols, n, n_boot=n_boot, seed=seed)
+        out["pr_auc_ci"] = dyadic_bootstrap_ci(ranked.average_precision, cols, n, n_boot=n_boot, seed=seed)
         out["ci_method"] = "host-cluster bootstrap (hosts resampled; pairs weighted by endpoint multiplicity)"
     return out
 

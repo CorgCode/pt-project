@@ -317,3 +317,11 @@ def test_cosine_pairs_matches_by_id_not_position():
     s = cosine_pairs(e, ["a", "a"], ["b", "c"])
     assert s[0] == pytest.approx(0) and s[1] == pytest.approx(1 / np.sqrt(2))
     assert cosine_pairs(e.iloc[::-1], ["a", "a"], ["b", "c"]).tolist() == s.tolist()
+
+
+def test_triplet_near_tie_is_half_not_one_and_a_half(monkeypatch):
+    import evaluation.triplet_accuracy as ta
+    sims = iter([np.array([0.5 + 1e-13, 0.9]), np.array([0.5, 0.1])])   # первая тройка — ничья, вторая — победа
+    monkeypatch.setattr(ta, "cosine_pairs", lambda *a: next(sims))
+    r = ta.triplet_accuracy(E, trip([("a", "p", "n"), ("a", "p", "q")]))
+    assert r["accuracy"] == pytest.approx(0.75) and r["n_ties"] == 1

@@ -100,3 +100,32 @@ def test_evaluator_records_the_ci_method_per_metric(reference, tmp_path):
     for k in ("link_roc_auc", "pair_roc_auc", "triplet_accuracy"):
         assert "host-cluster" in r["ci_methods"][k], k
     assert "bootstrap" in r["ci_methods"]["consistency@10_mean"]
+
+
+def test_ranked_scores_match_sklearn_with_weights_and_ties():
+    from sklearn.metrics import average_precision_score, roc_auc_score
+
+    from evaluation.uncertainty import RankedScores
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        n = int(rng.integers(20, 300))
+        y = rng.random(n) < 0.4
+        s = np.round(rng.normal(size=n), 1)                      # много равных скоров
+        w = rng.integers(0, 4, n).astype(float)
+        if y.sum() == 0 or (~y).sum() == 0 or w[y].sum() == 0 or w[~y].sum() == 0:
+            continue
+        r = RankedScores(y, s)
+        assert abs(r.roc_auc(w) - roc_auc_score(y, s, sample_weight=w)) < 1e-12
+        assert abs(r.average_precision(w) - average_precision_score(y, s, sample_weight=w)) < 1e-12
+        assert abs(r.roc_auc() - roc_auc_score(y, s)) < 1e-12
+
+
+def test_mid_ranks_sorted_path_matches_direct():
+    from evaluation.partners import _mid_ranks
+    rng = np.random.default_rng(1)
+    row = np.round(rng.normal(size=3000), 1)
+    row[:50] = -np.inf
+    items = rng.choice(3000, 100, replace=False)
+    s = row[items]
+    direct = 1 + (row[None] > s[:, None]).sum(1) + ((row[None] == s[:, None]).sum(1) - 1) / 2
+    assert np.allclose(_mid_ranks(row, items), direct)

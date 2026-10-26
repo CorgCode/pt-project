@@ -8,7 +8,8 @@
 
 Скрипт сам:
   1. берёт общие данные и отдаёт вашему методу ТОЛЬКО train-окно;
-  2. сохраняет эмбеддинги в scoreboard/submissions/<NAME>/ (train и test);
+  2. сохраняет эмбеддинги в scoreboard/submissions/<NAME>/ (train и test) и заготовку карточки README.md —
+     её нужно заполнить (устройство метода, данные, обучение), на неё ссылается таблица;
   3. считает метрики и печатает строку таблицы.
 Потом commit и push — CI добавит метод в scoreboard/README.md.
 
@@ -30,6 +31,7 @@ from evaluation import submit  # noqa: E402
 from pipeline.data import ProcessedData  # noqa: E402
 
 NAME = "template_ports_svd"     # имя метода: латиница, без пробелов
+AUTHOR = ""                     # ваш логин на GitHub — попадёт в колонку submitted by
 DIM = 16                        # размерность эмбеддинга
 SHARED_COORDINATES = True       # True, если fit один раз, а embed применяет ту же модель к любому окну
 
@@ -72,6 +74,13 @@ def main() -> None:
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname)
     flag = out / "SHARED_COORDINATES"
     flag.touch() if SHARED_COORDINATES else flag.unlink(missing_ok=True)
+    if AUTHOR:
+        (out / "AUTHOR").write_text(AUTHOR + "\n", encoding="utf-8")
+    card = out / "README.md"
+    if not card.exists():                                            # карточка метода — обязательна
+        text = (Path(__file__).parent / "CARD_TEMPLATE.md").read_text(encoding="utf-8")
+        card.write_text(text.replace("<название метода>", NAME, 1), encoding="utf-8")
+        raise SystemExit(f"Эмбеддинги сохранены. Заполни карточку {card} (убери TODO) и запусти ещё раз.")
     r = submit.score(out)
     submit.render()
     print(f"\n{NAME}: " + ", ".join(f"{s['title']} = {s['value']:.3f}" for s in r["summary"] if s["value"] is not None))

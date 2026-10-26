@@ -42,11 +42,12 @@ def triplet_accuracy(emb: pd.DataFrame, triplets: pd.DataFrame, split: str = "te
         raise ReferenceError("после исключения отсутствующих хостов троек не осталось")
     sp = cosine_pairs(emb, t.anchor.tolist(), t.positive.tolist())
     sn = cosine_pairs(emb, t.anchor.tolist(), t.negative.tolist())
-    score = (sp > sn).astype(float) + 0.5 * np.isclose(sp, sn, rtol=0, atol=1e-12)
+    tie = np.isclose(sp, sn, rtol=0, atol=1e-12)                 # сначала ничья, иначе победа или поражение:
+    score = np.where(tie, 0.5, (sp > sn).astype(float))         # почти равные не получают 1 + 0.5
     out = {
         "accuracy": float(score.mean()),
         "n_triplets": int(len(t)),
-        "n_ties": int(np.isclose(sp, sn, rtol=0, atol=1e-12).sum()),
+        "n_ties": int(tie.sum()),
         "n_excluded_missing_hosts": n_missing,
         "n_in_file_for_split": n_file,
         "split": split,

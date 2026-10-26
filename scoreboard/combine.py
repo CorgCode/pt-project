@@ -4,7 +4,7 @@
     python scoreboard/combine.py behavioral node2vec --name hybrid --tune-weights   # вес частей подобрать на validation
 
 Каждая часть нормируется (среднее 0, общая норма 1 на хост), чтобы ни одна не перевешивала из-за масштаба,
-затем векторы склеиваются. Берутся train (embeddings.csv) и, если есть у всех частей, test (test.csv).
+затем векторы склеиваются. Берутся train (embeddings.csv) и test-окна (test.csv, test_<метка>.csv), если они есть у всех частей.
 Результат — обычная отправка в scoreboard/submissions/<name>/, она сразу оценивается.
 """
 from __future__ import annotations
@@ -33,9 +33,17 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
     subs = Path(submit.SUBMISSIONS)                       # части берём из таблицы
     out = Path(out_root or subs) / name
     out.mkdir(parents=True, exist_ok=True)
-    for fname in ("embeddings.csv", "test.csv"):
+    submit.keep_vectors_local(out)
+    for old in out.glob("*.csv"):                         # векторы прошлой сборки не должны пережить новую
+        old.unlink()
+    tests = sorted({f.name for p in parts for f in (subs / p).glob("test*.csv")})   # test.csv, test_day03.csv, ...
+    for fname in ["embeddings.csv"] + tests + ["validation.csv"]:
         files = [subs / p / fname for p in parts]
-        if not all(f.exists() for f in files):
+        missing = [p for p, f in zip(parts, files) if not f.exists()]
+        if missing and fname == "embeddings.csv":
+            raise FileNotFoundError(f"нет embeddings.csv у {missing}")
+        if missing:                                       # без файла окна задача не оценится — балла не будет
+            print(f"{name}: {fname} нет у {missing} — это окно не собрано", file=sys.stderr)
             continue
         w = weights or [1.0] * len(files)
         blocks = [_block(load_embeddings(f)) * wi for f, wi in zip(files, w)]
@@ -43,27 +51,57 @@ def combine(parts: list[str], name: str, out_root: Path | None = None, weights: 
         x = np.hstack([b.loc[hosts].to_numpy() for b in blocks])
         pd.DataFrame(x, index=pd.Index(hosts, name="host_id")).add_prefix("emb_").to_csv(out / fname, float_format="%.7g")
     (out / "SHARED_COORDINATES").unlink(missing_ok=True)       # части могут быть в разных координатах
+    (out / "README.md").write_text(_card(parts, name, weights), encoding="utf-8")
     return out
 
 
+def _card(parts: list[str], name: str, weights: list[float] | None) -> str:
+    """Карточка гибрида по рецепту; пишется заново при каждой сборке, чтобы веса в ней были актуальны."""
+    w = weights or [1.0] * len(parts)
+    tuning = ("Вес первой части подобран по баллу на validation (`scoreboard/combine.py --tune-weights`), "
+              "остальные — ×1. Test при подборе не используется." if weights else "Веса равные, не подбирались.")
+    recipe = " + ".join(f"`{p}` ×{wi:g}" for p, wi in zip(parts, w))
+    links = ", ".join(f"[`{p}`](../{p}/README.md)" for p in parts)
+    return f"""# {name}
+
+## Кратко
+
+Склейка готовых методов: {recipe}. Каждый метод замечает своё, вместе они описывают хост полнее.
+
+## Архитектура
+
+Векторы частей ({links}) ставятся друг за другом в один длинный вектор. Перед этим каждая часть приводится
+к одному масштабу (среднее 0, средняя длина 1), чтобы ни одна не перевешивала только из-за величины чисел,
+и умножается на свой вес: чем больше вес, тем сильнее часть влияет на сходство хостов.
+
+## Данные
+
+Те же, что у частей: всё строится только по train-окну. Вектор test-окна — склейка test-векторов частей.
+
+## Обучение и подбор
+
+Своего обучения нет. {tuning}
+
+## Ограничения
+
+Наследует слабые места частей. Вектор длиннее, чем у одиночных методов, поэтому сравнение с ними — не при равной длине.
+"""
+
+
 def tune_weights(parts: list[str], grid=(1.0, 2.0, 3.0, 4.0, 6.0, 10.0)) -> tuple[list[float], list[dict]]:
-    """Вес первой части (остальные = 1) по общему баллу на validation. Test не используется."""
+    """Вес первой части (остальные = 1) по общему баллу на validation. Test не используется.
+    Узнаваемость тоже учитывается, если у всех частей есть validation.csv (эмбеддинг validation-окна)."""
     import tempfile
 
-    from evaluation import scoreboard
-    from evaluation.evaluate import run
-
-    ref_val = submit.DATA / "reference" / "validation"
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
         for w0 in grid:
             weights = [w0] + [1.0] * (len(parts) - 1)
             d = combine(parts, "w", Path(tmp), weights)
-            r = run(d / "embeddings.csv", ref_val, "w", n_boot=0)
-            cols = {s["metric"]: s["title"] for s in r["summary"]}
-            score = float(scoreboard.overall_score([r], cols)["w"])
-            rows.append({"weight": w0, "score": score})
-            print(f"  вес {parts[0]} = {w0}: балл на validation {score:.1f}")
+            score, tasks = submit.validation_score(d / "embeddings.csv", d / "validation.csv")
+            rows.append({"weight": w0, "score": score, "tasks": tasks})
+            print(f"  вес {parts[0]} = {w0}: балл на validation {score:.1f}  "
+                  + ", ".join(f"{k} {v:.0f}" for k, v in tasks.items()))
     best = max(rows, key=lambda x: x["score"])
     return [best["weight"]] + [1.0] * (len(parts) - 1), rows
 

@@ -7,7 +7,8 @@
 
 g — DTW с ценой d(a, b) = max(a, b) / min(a, b) - 1. Слой k многослойного графа: веса w_k(u, v) = exp(-f_k(u, v));
 переход вверх с весом log(Gamma_k(u) + e), вниз — с весом 1. Блуждание остаётся в слое с вероятностью stay_prob.
-Посещённые вершины (без номера слоя) — корпус для skip-gram.
+Посещённые вершины (без номера слоя) — корпус для skip-gram. В последовательность пишется только шаг по ребру
+внутри слоя: смена слоя меняет масштаб поиска, но вершину не повторяет (как в коде авторов).
 
 Оптимизации из статьи: сжатие последовательностей степеней в пары (степень, количество) с кэшем DTW (OPT1);
 расстояния только для близких по степени пар (OPT2); только K+1 слоёв (OPT3, по умолчанию 3).
@@ -20,6 +21,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
 
+from methods.graph import kernels
 from methods.graph.base import GraphEmbeddingMethod
 from methods.graph.graph_input import Graph
 from methods.graph.sgns import SkipGram
@@ -59,7 +61,8 @@ def ring_sequences(g: Graph, focus: np.ndarray, K: int) -> list[list[tuple[np.nd
 
 
 def dtw(a: np.ndarray, ca: np.ndarray, b: np.ndarray, cb: np.ndarray) -> float:
-    """DTW двух сжатых последовательностей, цена d(x, y) * max(count_x, count_y)."""
+    """DTW двух сжатых последовательностей, цена d(x, y) * max(count_x, count_y).
+    Эталон для тестов; в расчёте — то же самое, скомпилированное (kernels.dtw)."""
     if len(a) == 0 and len(b) == 0:
         return 0.0
     if len(a) == 0:
@@ -108,7 +111,7 @@ def structural_distances(seqs, pairs: np.ndarray) -> np.ndarray:
         for t, (i, j) in enumerate(pairs):
             key = (min(ids[i], ids[j]), max(ids[i], ids[j]))
             if key not in cache:
-                cache[key] = dtw(*seqs[k][i], *seqs[k][j])
+                cache[key] = kernels.dtw(*seqs[k][i], *seqs[k][j], EMPTY_DEGREE)
             gk[t] = cache[key]
         run = run + gk
         f[k] = run
@@ -135,13 +138,36 @@ class Multilayer:
         A.sort_indices()
         self.indptr, self.indices = A.indptr.astype(np.int64), A.indices.astype(np.int64)
         self.weights = A.data.astype(np.float64)
-        self.cum = np.concatenate([[0.0], np.cumsum(self.weights)])
+        # cum для выбора соседа: веса нормированы в каждой строке (сумма 1) и посчитаны от минимума f строки.
+        # Общая накопленная сумма по сырым exp(-f) теряет точность: у строки с весами ~1e-20 разность
+        # cum[end] - cum[start] обнулялась бы на фоне суммы всего графа, и выбирался бы всегда последний сосед.
+        F = sp.csr_matrix((np.concatenate([f[k] for k in range(K1) for _ in (0, 1)]),
+                           (np.concatenate(rows), np.concatenate(cols))), shape=(K1 * n,) * 2)
+        F.sort_indices()
+        fd, lens = F.data.astype(np.float64), np.diff(self.indptr)
+        assert len(fd) == len(self.weights) and np.array_equal(F.indices, self.indices)   # та же раскладка CSR
+        row = np.repeat(np.arange(K1 * n), lens)
+        if len(fd):
+            lo = np.full(K1 * n, np.inf)
+            np.minimum.at(lo, row, fd)
+            local = np.exp(-(fd - lo[row]))
+            total = np.bincount(row, local, minlength=K1 * n)
+            local = local / total[row]
+        else:
+            local = fd
+        self.cum = np.concatenate([[0.0], np.cumsum(local)])
         self.up_weight = np.log(gamma + np.e)                             # log(Gamma_k(u) + e); вес вниз — 1
         self.p_up = self.up_weight / (self.up_weight + 1.0)
         self.gamma = gamma
 
 
-def structural_walks(ml: Multilayer, num_walks: int, walk_length: int, stay_prob: float, seed: int) -> np.ndarray:
+def structural_walks(ml: Multilayer, num_walks: int, walk_length: int, stay_prob: float, seed: int,
+                     max_tries: int = 100) -> np.ndarray:
+    """Блуждания по многослойному графу. Каждое действие — шаг по ребру слоя (пишется в последовательность)
+    или смена слоя (не пишется). У вершины без рёбер во всех слоях после max_tries * walk_length попыток
+    остаток строки заполняется ею самой — иначе такое блуждание не закончилось бы."""
+    if not 0.0 < stay_prob <= 1.0:
+        raise ValueError("stay_prob должен быть в (0, 1]: при 0 блуждание только меняет слои и не двигается")
     rng = np.random.default_rng(seed)
     n, K1 = ml.n, ml.layers
     out = []
@@ -150,18 +176,27 @@ def structural_walks(ml: Multilayer, num_walks: int, walk_length: int, stay_prob
         k = np.zeros(n, dtype=np.int64)
         walk = np.empty((n, walk_length), dtype=np.int64)
         walk[:, 0] = u
-        for s in range(1, walk_length):
-            stay = rng.random(n) < stay_prob
-            state = k * n + u
+        pos = np.ones(n, dtype=np.int64)                              # сколько вершин уже записано
+        for _ in range(max_tries * walk_length):
+            act = np.flatnonzero(pos < walk_length)
+            if not len(act):
+                break
+            ua, ka = u[act], k[act]
+            state = ka * n + ua
             has = ml.indptr[state + 1] > ml.indptr[state]
-            stay &= has
-            nxt = np.where(stay, ml.indices[_draw_neighbor_index(ml, state, rng)] % n, u)
-            up = np.where(k == 0, True, np.where(k == K1 - 1, False, rng.random(n) < ml.p_up[k, u]))
-            if K1 == 1:
-                up = np.zeros(n, dtype=bool)
-            k = np.where(stay, k, np.where(up, np.minimum(k + 1, K1 - 1), np.maximum(k - 1, 0)))
-            u = nxt
-            walk[:, s] = u
+            stay = (rng.random(len(act)) < stay_prob) & has
+            mv = act[stay]                                            # шаг по ребру: новая вершина в последовательность
+            if len(mv):
+                u[mv] = ml.indices[_draw_neighbor_index(ml, state[stay], rng)] % n
+                walk[mv, pos[mv]] = u[mv]
+                pos[mv] += 1
+            ch = ~stay                                                # смена слоя: вершина та же, ничего не пишем
+            if K1 > 1 and ch.any():
+                kc, uc = ka[ch], ua[ch]
+                up = np.where(kc == 0, True, np.where(kc == K1 - 1, False, rng.random(len(kc)) < ml.p_up[kc, uc]))
+                k[act[ch]] = np.where(up, np.minimum(kc + 1, K1 - 1), np.maximum(kc - 1, 0))
+        for i in np.flatnonzero(pos < walk_length):                   # вершина без рёбер ни в одном слое
+            walk[i, pos[i]:] = u[i]
         out.append(walk)
     return np.concatenate(out)
 
@@ -181,8 +216,8 @@ class Struc2Vec(GraphEmbeddingMethod):
 
     def __init__(self, dim: int = 16, seed: int = 0, **params):
         super().__init__(dim, seed, **params)
-        if not 0.0 <= self.params["stay_prob"] <= 1.0 or self.params["layers"] < 0:
-            raise ValueError("struc2vec: stay_prob в [0, 1], layers >= 0")
+        if not 0.0 < self.params["stay_prob"] <= 1.0 or self.params["layers"] < 0:
+            raise ValueError("struc2vec: stay_prob в (0, 1], layers >= 0")
 
     # базовый класс передаёт нужные хосты — только они становятся вершинами многослойного графа
     def embed_graph(self, g: Graph, focus: np.ndarray | None = None) -> np.ndarray:
