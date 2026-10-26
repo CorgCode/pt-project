@@ -10,7 +10,9 @@ U="https://csr.lanl.gov/data-fence/$LANL_TOKEN/unified-host-network-dataset-2017
 F=netflow_day-$DAY.bz2
 TOTAL=$(curl -sI "$U" | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}')
 [ -z "$TOTAL" ] && { echo "сервер не отдал размер файла — проверьте токен"; exit 1; }
-size() { [ -f "$1" ] && (stat -f %z "$1" 2>/dev/null || stat -c %s "$1") || echo 0; }
+size() {
+    [ -f "$1" ] && stat -c %s -- "$1" || echo 0
+}
 HAVE=$(size $F)
 [ "$HAVE" -ge "$TOTAL" ] && { echo "$F уже скачан"; exit 0; }
 STEP=$(( (TOTAL-HAVE+N-1)/N ))
