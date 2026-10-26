@@ -1,0 +1,28 @@
+........................................................................ [ 15%]
+........................................................................ [ 30%]
+........................................................................ [ 45%]
+........................................................................ [ 61%]
+................................ssssss.................................. [ 76%]
+........................................................................ [ 91%]
+........................................                                 [100%]
+=============================== warnings summary ===============================
+evaluation/test_knn_consistency.py::test_self_excluded_even_with_duplicates
+  /opt/homebrew/lib/python3.14/site-packages/joblib/externals/loky/backend/context.py:134: UserWarning: Could not find the number of physical cores for the following reason:
+  invalid literal for int() with base 10: ''
+  Returning the number of logical cores instead. You can silence this warning by setting LOKY_MAX_CPU_COUNT to the number of cores you want to use.
+    warnings.warn(
+
+evaluation/test_temporal_reference.py::test_refuses_bad_input[ts-not-a-timestamp]
+  /Users/ghostmelon/Developer/PTPTPT/pt-project/evaluation/temporal_reference.py:58: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    ts = pd.to_datetime(raw, errors="coerce", utc=True)
+
+methods/graph/test_dc_sage.py::test_preprocessor_chunk_invariance_and_heldout_no_refit
+  /opt/homebrew/lib/python3.14/site-packages/sklearn/decomposition/_truncated_svd.py:273: RuntimeWarning: divide by zero encountered in divide
+    self.explained_variance_ratio_ = exp_var / full_var
+
+methods/graph/test_dc_sage.py::test_preprocessor_chunk_invariance_and_heldout_no_refit
+  /opt/homebrew/lib/python3.14/site-packages/sklearn/decomposition/_truncated_svd.py:273: RuntimeWarning: invalid value encountered in divide
+    self.explained_variance_ratio_ = exp_var / full_var
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+466 passed, 6 skipped, 4 warnings in 143.00s (0:02:22)

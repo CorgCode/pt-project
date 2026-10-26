@@ -1,0 +1,35 @@
+{
+  "method": "DC-SAGE",
+  "selection": "official validation score; no test access",
+  "pilot_link_weights": [
+    0.1,
+    0.3,
+    1.0
+  ],
+  "checkpoints": [
+    25,
+    50
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "primary_dimension": 64,
+  "ablation_dimensions": [
+    32,
+    64
+  ],
+  "available_test_windows": [
+    "test"
+  ],
+  "missing_test_windows": [
+    "test_day03",
+    "test_day04"
+  ],
+  "training_step": "one full-graph update per epoch; all contrastive batches contribute",
+  "torch": "2.14.1",
+  "python": "3.14.2"
+}

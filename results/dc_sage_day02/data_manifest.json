@@ -1,0 +1,50 @@
+{
+  "windows": {
+    "train": [
+      126000.0,
+      129600.0
+    ],
+    "validation": [
+      129600.0,
+      131400.0
+    ],
+    "test": [
+      131400.0,
+      135000.0
+    ],
+    "s1": [
+      126000.0,
+      127800.0
+    ],
+    "s2": [
+      127800.0,
+      129600.0
+    ]
+  },
+  "audit": {
+    "train": {
+      "flow_count": 9368480,
+      "all_cohort_events_match": true
+    },
+    "validation": {
+      "flow_count": 4526585,
+      "all_cohort_events_match": true
+    },
+    "test": {
+      "flow_count": 10297984,
+      "all_cohort_events_match": true
+    }
+  },
+  "source": "data/processed/flows/train.csv",
+  "source_sha256": "95231347be9f02a666a72e665d9b08e34f529c6dec90e4a546054be684148721",
+  "target_manifest_sha256": "328b571bf69859e7fcec2542b41942462c01e7ca706e3130711a2b0073773067",
+  "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
+  "excluded_hosts": [],
+  "available_test_windows": [
+    "test"
+  ],
+  "missing_test_windows": [
+    "test_day03",
+    "test_day04"
+  ]
+}
