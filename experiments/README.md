@@ -27,6 +27,7 @@ python -m experiments.end_to_end --netflow data/raw/netflow_day-02.bz2 \
 | `experiments.feature_ablation` | что дают порты (#43) |
 | `experiments.robustness` | устойчивость к удалению связей (#40) |
 | `experiments.dc_sage.run` | DC-SAGE: обучение, пять сидов, абляции; [запуск](DC-SAGE/README.md), [результаты](../results/dc_sage_day02/README.md) |
+| `experiments.leader_graph_hybrid.run` | лидер + линейный агрегат соседей, подбор веса на validation; [запуск](leader_graph_hybrid/README.md) |
 | `experiments.make_demo_bundle` | пересобрать демо для дашборда и сайта |
 
 Перед выводами по числам — [`docs/METHODOLOGY.md`](../docs/METHODOLOGY.md).
