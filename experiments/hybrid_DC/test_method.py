@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from experiments.leader_graph_hybrid.method import LeaderGraphHybrid, LinearNeighborhood
+from experiments.hybrid_DC.method import LeaderGraphHybrid, LinearNeighborhood
 
 
 def vectors(seed=0, hosts=20):
@@ -96,8 +96,8 @@ def test_empty_graph_profile_has_shared_fallback_without_host_id():
 
 
 def test_selection_uses_validation_only_and_is_frozen(tmp_path, monkeypatch):
-    from experiments.leader_graph_hybrid import run
-    from experiments.leader_graph_hybrid.data import sha
+    from experiments.hybrid_DC import run
+    from experiments.hybrid_DC.data import sha
     board = tmp_path / "board"
     (board / "processed").mkdir(parents=True)
     (board / "processed/manifest.json").write_text("{}")

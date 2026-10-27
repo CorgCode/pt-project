@@ -21,7 +21,7 @@
 ## Запуск
 
 ```bash
-.venv/bin/python -m experiments.leader_graph_hybrid.run all
+.venv/bin/python -m experiments.hybrid_DC.run all
 ```
 
 Стадии отдельно: `prepare`, `leader`, `tune`, `evaluate`.
@@ -39,7 +39,7 @@
 ## Применение к готовым векторам нового окна
 
 ```bash
-.venv/bin/python -m experiments.leader_graph_hybrid.predict \
+.venv/bin/python -m experiments.hybrid_DC.predict \
   --model runs/leader_graph_hybrid/export/fusion.joblib \
   --leader leader_window.csv --graph graph_window.csv \
   --output runs/hybrid_window.csv
@@ -51,7 +51,7 @@
 ## Проверки и результаты
 
 ```bash
-.venv/bin/python -m pytest -q experiments/leader_graph_hybrid
+.venv/bin/python -m pytest -q experiments/hybrid_DC
 ```
 
 Проверяются точное сохранение baseline при нулевом весе, соответствие host_id,

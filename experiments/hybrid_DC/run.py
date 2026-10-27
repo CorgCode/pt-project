@@ -1,4 +1,4 @@
-"""python -m experiments.leader_graph_hybrid.run {prepare,leader,tune,evaluate,all}"""
+"""python -m experiments.hybrid_DC.run {prepare,leader,tune,evaluate,all}"""
 from __future__ import annotations
 
 import argparse
@@ -17,8 +17,8 @@ from evaluation import scoreboard, submit
 from evaluation.evaluate import run as evaluate
 from evaluation.io import load_embeddings
 from evaluation.validate import validate_submission
-from experiments.leader_graph_hybrid.data import ROOT, BOARD, LocalData, dump, prepare, sha
-from experiments.leader_graph_hybrid.method import LeaderGraphHybrid, LinearNeighborhood
+from experiments.hybrid_DC.data import ROOT, BOARD, LocalData, dump, prepare, sha
+from experiments.hybrid_DC.method import LeaderGraphHybrid, LinearNeighborhood
 
 WEIGHTS = (0., .1, .25, .5, 1., 2.)
 PARAMS = ROOT / "scoreboard/submissions/temporal_encoder_tuned/params.json"
