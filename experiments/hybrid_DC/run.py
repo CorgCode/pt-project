@@ -230,7 +230,7 @@ def report(work):
               "Выбор веса и фиксация модели выполнены до оценки test. Дополнительный подбор после просмотра test не проводился. "
               "Это известный test дня 02, а не новая независимая проверка. Дни 03–04 локально отсутствуют.", "",
               "[Полные метрики](comparison.md), [протокол](protocol.json), [выбор веса](selection.json). "
-              "[Код и команды](../../experiments/leader_graph_hybrid/README.md). "
+              "[Код и команды](../../experiments/hybrid_DC/README.md). "
               "Готовые файлы: `runs/leader_graph_hybrid/export/`; состояния исходного лидера — `runs/leader_graph_hybrid/leader/`." ]
     if not selection["weight"]:
         lines += ["", "**Вывод:** добавка в проверенной сетке не улучшила validation, поэтому сохранён исходный лидер. "
