@@ -1,16 +1,17 @@
-"""Future-link prediction with ONE frozen candidate pool shared by all methods.
+"""Прогноз будущих связей на ОДНОМ замороженном наборе кандидатов для всех методов.
 
-This evaluates presence/absence of a communication edge in a *later* window.
-It is NOT a classification of host functional roles.
+Проверяем, будет ли связь между парой хостов в более позднем окне. Это не классификация ролей.
 
-Usage:
   python -m evaluation.future_links build --source-flows train.csv \
     --target-flows test.csv --hosts embeddings.csv --output reference/edges.csv
   python -m evaluation.future_links score --embeddings embeddings.csv \
     --edges reference/edges.csv --output results/link_prediction.json
 
-Required canonical flows: src,dst,dst_port,proto,bytes,packets,ts.
-Undirected edge = >=1 observed flow in either direction.
+Связь (неориентированная) — хотя бы один поток в любую сторону.
+Повторная связь — пара уже общалась в source-окне; новая — не общалась. Source-окно — вся история,
+которую протокол даёт методам (train), поэтому «новая» значит «не было во всей доступной предыстории».
+Высокий общий AUC может держаться на повторных связях, поэтому обе части считаются и отдельно,
+рядом с бейзлайнами без эмбеддинга: history (пара уже общалась) и popularity (произведение степеней в source).
 """
 from __future__ import annotations
 
@@ -53,38 +54,37 @@ def build_edges(
     negatives_per_positive: int = 1,
     split: str = "test",
 ) -> pd.DataFrame:
-    """Generate deterministic balanced-ish candidate pairs for an explicit cohort.
+    """Детерминированный набор кандидатов для заданной когорты: положительные + случайные отрицательные.
 
-    No per-method candidate generation. Uses rejection sampling among all
-    possible unordered host pairs to avoid O(n^2) candidate enumeration.
-    Sampling is conditional on this population; PR-AUC is NOT deployment AP.
+    Отрицательные выбираются случайно с отбраковкой, без перебора всех O(n^2) пар.
+    PR-AUC на такой выборке — не PR-AUC «в бою».
     """
     if not 0 < negatives_per_positive <= 100:
-        raise ValueError("negatives_per_positive must be from 1 to 100")
+        raise ValueError("negatives_per_positive должен быть от 1 до 100")
     if len(hosts) != len(set(hosts)) or len(hosts) < 3 or any(not h for h in hosts):
-        raise ValueError("At least 3 unique, nonblank hosts required")
+        raise ValueError("нужно хотя бы 3 уникальных непустых хоста")
     if target["ts"].min() <= source["ts"].max():
-        raise ValueError("Source/target windows overlap or touch")
+        raise ValueError("source and target windows overlap or touch")
     if split not in {"test", "validation"}:
-        raise ValueError("Use validation or test as split")
+        raise ValueError("split должен быть validation или test")
     hosts = sorted(hosts)
     population = set(hosts)
     positives = sorted(observed_edges(target, population))
     if not positives:
-        raise ValueError("No positive target edges for the cohort")
+        raise ValueError("в target-окне нет ни одной связи внутри когорты")
     all_pairs_count = len(hosts) * (len(hosts) - 1) // 2
     remaining = all_pairs_count - len(positives)
     requested = len(positives) * negatives_per_positive
     if remaining < requested:
         raise ValueError(
-            f"Insufficient negative pairs: requested={requested}, possible={remaining}; "
-            "reduce negatives_per_positive or adjust cohort"
+            f"Insufficient negative pairs: need {requested}, have {remaining}; "
+            "reduce negatives_per_positive or expand the cohort"
         )
     rng = np.random.default_rng(seed)
     negatives: set[tuple[str, str]] = set()
     pos_set = set(positives)
-    # Rejection sampling is fast when candidate negatives are not too dense.
-    # Sampling never relies on embedding scores.
+    # отбраковка быстрая, пока отрицательных не слишком много
+    # эмбеддинги в выборе не участвуют
     retries = 0
     max_retries = max(10000, requested * 100)
     while len(negatives) < requested:
@@ -94,12 +94,12 @@ def build_edges(
             negatives.add(pair)
         retries += 1
         if retries > max_retries:
-            # Near-exhausted space: an explicit enumeration is only acceptable
-            # for sufficiently small networks.
+            # пространство почти исчерпано: полный перебор допустим только
+            # для небольших сетей
             if all_pairs_count > 1_000_000:
                 raise RuntimeError(
-                    "Rejection sampling exhausted. Reduce negative ratio or "
-                    "use a sparse candidate-pool strategy."
+                    "не удалось набрать отрицательные пары: уменьшите negatives_per_positive "
+                    "или используйте разреженный набор кандидатов"
                 )
             for i, a in enumerate(hosts):
                 for b in hosts[i + 1:]:
@@ -128,8 +128,8 @@ def build_edges(
         for a, b in sorted(negatives)
     ]
     out = pd.DataFrame(rows, columns=FIELDS)
-    # Persisting links (already seen in the source window) are far easier to predict
-    # than genuinely new ones; keep the flag so both can be reported separately.
+    # связи, которые уже были в source-окне, предсказать гораздо проще, чем новые;
+    # сохраняем флаг, чтобы считать их отдельно
     seen = observed_edges(source, population)
     out["seen_in_source"] = [
         _pair(a, b) in seen for a, b in zip(out["host_a"], out["host_b"])
@@ -145,32 +145,55 @@ def load_candidate_edges(file: Path) -> pd.DataFrame:
     )
     missing = set(FIELDS) - set(df.columns)
     if missing:
-        raise ValueError(f"edges.csv missing columns {sorted(missing)}")
+        raise ValueError(f"в edges.csv нет колонок {sorted(missing)}")
     if df.empty or df[FIELDS].isna().any().any():
-        raise ValueError("edges.csv empty or has missing values")
+        raise ValueError("edges.csv пуст или в нём пропуски")
     if not df["label"].isin(["0", "1"]).all():
-        raise ValueError("Edge labels must be 0/1")
+        raise ValueError("метки связей должны быть 0/1")
     if not df["split"].isin(["test", "validation"]).all():
-        raise ValueError("Unexpected split")
+        raise ValueError("неизвестный split")
     if not (df.host_a < df.host_b).all():
-        raise ValueError("Pairs must be canonical, distinct and undirected")
+        raise ValueError("пары должны быть упорядочены (host_a < host_b) и из разных хостов")
     if df.duplicated(["host_a", "host_b", "source_window", "target_window", "split"]).any():
-        raise ValueError("Duplicate candidate edges")
+        raise ValueError("повторяющиеся пары-кандидаты")
     return df
+
+
+def _seen(edges: pd.DataFrame) -> np.ndarray | None:
+    if "seen_in_source" not in edges.columns:
+        return None
+    return edges["seen_in_source"].astype(str).str.lower().eq("true").to_numpy()
+
+
+def _auc(y: np.ndarray, s: np.ndarray) -> float | None:
+    return float(roc_auc_score(y, s)) if len(np.unique(y)) == 2 else None
+
+
+def split_by_history(labels: np.ndarray, score: np.ndarray, seen: np.ndarray) -> dict:
+    """ROC-AUC отдельно на повторных (seen) и новых (не seen) кандидатах."""
+    return {"seen_roc_auc": _auc(labels[seen], score[seen]), "new_roc_auc": _auc(labels[~seen], score[~seen]),
+            "n_seen": int(seen.sum()), "n_new": int((~seen).sum()),
+            "n_seen_positive": int(labels[seen].sum()), "n_new_positive": int(labels[~seen].sum())}
+
+
+def popularity_score(edges: pd.DataFrame, degree: pd.Series) -> np.ndarray:
+    """Бейзлайн popularity: произведение степеней хостов в source-окне (хабы связаны чаще)."""
+    d = degree.astype(float)
+    return d.reindex(edges.host_a).fillna(0).to_numpy() * d.reindex(edges.host_b).fillna(0).to_numpy()
 
 
 def score_embeddings(
     embedding: pd.DataFrame, edges: pd.DataFrame,
     *, split: str = "test", n_boot: int = 0, seed: int = 0,
 ) -> dict:
-    """Score EXACT saved candidates. Unknown hosts are an error, not filtered."""
+    """Оценить РОВНО сохранённых кандидатов. Неизвестный хост — ошибка, а не пропуск."""
     edges = edges[edges["split"] == split]
     if edges.empty:
-        raise ValueError(f"No candidate edges for split={split}")
+        raise ValueError(f"нет кандидатов для split={split}")
     if edges[["source_window", "target_window"]].drop_duplicates().shape[0] != 1:
-        raise ValueError("Do not mix source/target window pairs in an evaluation")
+        raise ValueError("Do not mix different source/target window pairs in one evaluation")
     if embedding.index.has_duplicates:
-        raise ValueError("Duplicate host IDs")
+        raise ValueError("повторяющиеся host_id")
     known = set(embedding.index)
     used = set(edges["host_a"]) | set(edges["host_b"])
     if not used.issubset(known):
@@ -180,13 +203,13 @@ def score_embeddings(
         raise ValueError("Need both positive and negative candidates")
     emb = embedding.to_numpy(dtype=float)
     if not np.isfinite(emb).all():
-        raise ValueError("Embedding contains nonfinite coordinates")
+        raise ValueError("в эмбеддинге есть бесконечные или пустые координаты")
     if (np.linalg.norm(emb, axis=1) == 0).any():
-        raise ValueError("Zero-norm host vectors make cosine undefined")
+        raise ValueError("Zero-norm host vector: cosine similarity is undefined")
     index = {host: j for j, host in enumerate(embedding.index)}
     a = np.array([index[x] for x in edges["host_a"]])
     b = np.array([index[x] for x in edges["host_b"]])
-    # Vectorized per-pair cosine: avoids constructing a full N*N similarity matrix.
+    # косинус по парам без полной матрицы N*N
     norms = np.linalg.norm(emb, axis=1)
     cosine = np.einsum("ij,ij->i", emb[a], emb[b]) / (norms[a] * norms[b])
     window = edges.iloc[0]
@@ -196,15 +219,16 @@ def score_embeddings(
     extra: dict = {
         "roc_auc_ci": auc["roc_auc_ci"], "pr_auc_ci": auc["pr_auc_ci"], "ci_method": auc["ci_method"],
         "pr_auc_lift": auc["pr_auc"] / float(labels.mean()),
-        # PR-AUC as if the pool had the natural positive rate (observed target edges over
-        # all cohort pairs); removes the class-prior effect of 1:1 sampling only.
+        # PR-AUC при настоящей доле положительных (связи в целевом окне / все пары когорты);
+        # убирает только эффект выборки 1:1
         "natural_prevalence": natural,
         "pr_auc_at_natural_prevalence": (reweighted_average_precision(labels, cosine, natural)
                                          if 0 < natural < 1 else None),
     }
-    if "seen_in_source" in edges.columns:
-        seen = edges["seen_in_source"].astype(str).str.lower().eq("true").to_numpy()
+    seen = _seen(edges)
+    if seen is not None:
         extra["share_positives_seen_in_source"] = float(seen[labels == 1].mean())
+        extra["by_history"] = split_by_history(labels, cosine, seen)
         new = ~seen
         if new.any() and len(np.unique(labels[new])) == 2:
             extra["new_links"] = {
@@ -241,15 +265,15 @@ def _window_bounds(window: str) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: pd.DataFrame, *,
                   fit_split: str = "validation", eval_split: str = "test", seed: int = 0,
-                  n_boot: int = 0) -> dict:
-    """Edge classifier on frozen embeddings: LogisticRegression on [|e_a - e_b|, e_a * e_b].
+                  n_boot: int = 0, degree: pd.Series | None = None) -> dict:
+    """Классификатор связей на замороженных эмбеддингах: LogisticRegression на [|e_a - e_b|, e_a * e_b].
 
-    Fit on the candidates of an EARLIER target window (validation), scored on the later one
-    (test); the embedding is the same source-window embedding in both cases. This is the
-    standard edge-classification protocol and does not use cosine, which is the wrong score for
-    heterophilous traffic (clients link to servers, not to look-alike clients). The fit window
-    must end before the evaluation window starts and use the same source window; otherwise it is
-    refused (no tuning on, or peeking at, the evaluation window). C=1 fixed, never tuned on test.
+    Учится на кандидатах БОЛЕЕ РАННЕГО целевого окна (validation), оценивается на позднем (test);
+    эмбеддинг в обоих случаях один — из source-окна. Косинус для трафика плох: клиенты связаны
+    с серверами, а не с похожими клиентами. Окно обучения должно закончиться до окна оценки и иметь
+    тот же source, иначе — отказ. C=1 фиксирован и на test не подбирается.
+    Если у кандидатов есть seen_in_source, AUC считается ещё отдельно на повторных и новых связях
+    (by_history); degree — степени хостов в source-окне для бейзлайна popularity.
     """
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
@@ -257,15 +281,15 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
     fit = fit_edges[fit_edges["split"] == fit_split]
     ev = eval_edges[eval_edges["split"] == eval_split]
     if fit.empty or ev.empty:
-        raise ValueError(f"need candidates for fit split {fit_split!r} and eval split {eval_split!r}")
+        raise ValueError(f"нужны кандидаты и для обучения ({fit_split!r}), и для оценки ({eval_split!r})")
     fw, ew = fit.iloc[0], ev.iloc[0]
     if fw["source_window"] != ew["source_window"]:
-        raise ValueError("fit and evaluation candidates use different source windows")
+        raise ValueError("у кандидатов обучения и оценки разные source-окна")
     if _window_bounds(fw["target_window"])[1] > _window_bounds(ew["target_window"])[0]:
-        raise ValueError("fit window must end before the evaluation window starts (temporal leakage)")
+        raise ValueError("окно обучения должно закончиться до начала окна оценки (утечка по времени)")
     used = set(fit.host_a) | set(fit.host_b) | set(ev.host_a) | set(ev.host_b)
     if not used <= set(embedding.index):
-        raise ValueError(f"embedding lacks candidate hosts: {sorted(used - set(embedding.index))[:5]}")
+        raise ValueError(f"Embedding lacks candidate hosts: {sorted(used - set(embedding.index))[:5]}")
     scaler = StandardScaler().fit(embedding.to_numpy(float))
     z = pd.DataFrame(scaler.transform(embedding.to_numpy(float)), index=embedding.index)
 
@@ -275,10 +299,25 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
 
     yf, ye = fit["label"].astype(int).to_numpy(), ev["label"].astype(int).to_numpy()
     if len(np.unique(yf)) < 2 or len(np.unique(ye)) < 2:
-        raise ValueError("both classes are required in the fit and evaluation candidates")
+        raise ValueError("и в обучении, и в оценке нужны оба класса")
     clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
     score = clf.predict_proba(feats(ev))[:, 1]
     out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed, hosts=host_index(ev.host_a, ev.host_b))
+    # случайный уровень: тот же классификатор на случайных векторах той же размерности (запоминает хабы)
+    z = pd.DataFrame(np.random.default_rng(seed).standard_normal(z.shape), index=z.index)
+    rnd = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
+    rnd_score = rnd.predict_proba(feats(ev))[:, 1]
+    out["random_roc_auc"] = float(roc_auc_score(ye, rnd_score))
+    seen = _seen(ev)
+    if seen is not None:
+        out["by_history"] = split_by_history(ye, score, seen)
+        out["by_history"]["random"] = split_by_history(ye, rnd_score, seen)
+        out["history_roc_auc"] = _auc(ye, seen.astype(float))
+    if degree is not None:
+        pop = popularity_score(ev, degree)
+        out["popularity_roc_auc"] = _auc(ye, pop)
+        if seen is not None:
+            out["by_history"]["popularity"] = split_by_history(ye, pop, seen)
     out.update(n_fit=int(len(fit)), n_eval=int(len(ev)), fit_split=fit_split, eval_split=eval_split,
                fit_target_window=fw["target_window"], eval_target_window=ew["target_window"],
                pr_auc_lift=out["pr_auc"] / float(ye.mean()))
@@ -286,7 +325,7 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
 
 
 def persistence_baseline(edges: pd.DataFrame, split: str = "test") -> dict | None:
-    """Embedding-free reference point: score = 1 if the pair already communicated in the source window."""
+    """Точка отсчёта без эмбеддинга: 1, если пара уже общалась в source-окне."""
     e = edges[edges["split"] == split]
     if "seen_in_source" not in e.columns:
         return None

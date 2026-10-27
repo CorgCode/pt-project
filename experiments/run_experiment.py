@@ -29,6 +29,7 @@ from benchmark import methods as graph_methods
 from benchmark.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
 from evaluation.identity_retrieval import identity_retrieval
+from evaluation.clustering_anomaly import evaluate_embedding_csv
 from evaluation.io import load_embeddings
 from experiments import audit as A
 from experiments import report as R
@@ -163,6 +164,46 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         subprocess.run([sys.executable, "-m", "benchmark.build_leaderboard", "--results-dir",
                         str(out_dir / "results" / t), "--output", str(out_dir / f"leaderboard_{t}.csv")],
                        check=True, capture_output=True)
+
+        # Clustering and outlier metrics use source-window embeddings for every method.
+        leaderboard_path = out_dir / f"leaderboard_{t}.csv"
+        leaderboard = pd.read_csv(leaderboard_path)
+        rows = []
+        for method_name in per_target:
+            embedding_path = out_dir / "embeddings" / method_name / "train.csv"
+            if not embedding_path.exists():
+                continue
+            result, _ = evaluate_embedding_csv(embedding_path)
+            row = result.iloc[0].to_dict()
+            row["method"] = method_name
+            rows.append(row)
+
+        if rows:
+            clustering = pd.DataFrame(rows).rename(columns={
+                "n_hosts": "clustering_n_hosts",
+                "n_dimensions": "clustering_n_dimensions",
+                "n_clusters_excluding_noise": "clustering_n_clusters_excluding_noise",
+                "n_detected_outliers": "clustering_n_detected_outliers",
+                "outlier_fraction": "clustering_outlier_fraction",
+                "silhouette": "clustering_silhouette",
+                "davies_bouldin": "clustering_davies_bouldin",
+                "dbscan_eps": "clustering_dbscan_eps",
+                "dbscan_min_samples": "clustering_dbscan_min_samples",
+                "anomaly_precision": "clustering_anomaly_precision",
+                "anomaly_recall": "clustering_anomaly_recall",
+                "anomaly_f1": "clustering_anomaly_f1",
+            })
+            clustering = clustering.drop(
+                columns=["evaluator", "input_file"], errors="ignore"
+            )
+            duplicate_cols = [
+                c for c in clustering.columns
+                if c != "method" and c in leaderboard.columns
+            ]
+            leaderboard = leaderboard.drop(columns=duplicate_cols).merge(
+                clustering, on="method", how="left", validate="one_to_one"
+            )
+            leaderboard.to_csv(leaderboard_path, index=False)
 
     # ---- audit
     audit = None
