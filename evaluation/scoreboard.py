@@ -90,15 +90,24 @@ def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
     return cols, values, order
 
 
-def column_scores(r: dict, cols) -> dict[str, float]:
-    """Балл метода в каждой колонке: 0 — случайный уровень, 100 — идеал (1.0)."""
+# Соседи@10: поведение хоста в test-окне во многом новое. Даже настоящие признаки за 30 минут до test
+# дают на общих хостах 0.21, поэтому 1.0 недостижима. Идеал — прогноз «как хост вёл себя в train»
+# (persistence, это `behavioral` на main): выше него — уже 100.
+NEIGHBORS = "consistency@10_mean"
+NEIGHBORS_IDEAL = {"test": 0.1556, "test_day03": 0.1470, "test_day04": 0.1331}
+NEIGHBORS_IDEAL_DEFAULT = sum(NEIGHBORS_IDEAL.values()) / len(NEIGHBORS_IDEAL)   # окно неизвестно (validation)
+
+
+def column_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
+    """Балл метода в каждой колонке: 0 — случайный уровень, 100 — идеал (1.0; для Соседей — NEIGHBORS_IDEAL)."""
     chance = {s["metric"]: s.get("chance") for s in r.get("summary", [])}
     out = {}
     for k in cols:
         v, c = r["metrics"].get(k), chance.get(k)
-        if v is None or c is None or c >= 1:
+        top = NEIGHBORS_IDEAL.get(window, NEIGHBORS_IDEAL_DEFAULT) if k == NEIGHBORS else 1.0
+        if v is None or c is None or c >= top:
             continue
-        out[k] = 100 * min(max((v - c) / (1 - c), 0.0), 1.0)
+        out[k] = 100 * min(max((v - c) / (top - c), 0.0), 1.0)
     return out
 
 
@@ -110,11 +119,11 @@ def _geo(xs) -> float:
     return float(math.exp(sum(math.log(x) for x in xs) / len(xs)))
 
 
-def task_scores(r: dict, cols) -> dict[str, float]:
+def task_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
     """Балл по задачам (группам колонок): среднее геометрическое баллов колонок задачи."""
     group = {s["metric"]: s.get("group") or s["metric"] for s in r.get("summary", [])}
     by: dict[str, list[float]] = {}
-    for k, v in column_scores(r, cols).items():
+    for k, v in column_scores(r, cols, window).items():
         by.setdefault(group.get(k, k), []).append(v)
     return {g: _geo(v) for g, v in by.items()}
 
@@ -124,11 +133,11 @@ def complete(r: dict, cols) -> bool:
     return all(r["metrics"].get(k) is not None for k in cols)
 
 
-def _one_score(r: dict, cols, required: bool = True) -> float:
+def _one_score(r: dict, cols, required: bool = True, window: str | None = None) -> float:
     """required=False — только для ориентиров (SERVICE): у reference_ceiling части задач нет по устройству."""
     if required and not complete(r, cols):
         return float("nan")             # пропуск сложной задачи не должен поднимать балл
-    ts = task_scores(r, cols)
+    ts = task_scores(r, cols, window)
     return _geo(ts.values()) if ts else float("nan")
 
 
@@ -140,8 +149,8 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     for r in results:
         req = r["method"] not in SERVICE
         if r.get("by_window"):
-            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req)
-                    for w in r["by_window"].values()]
+            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req, name)
+                    for name, w in r["by_window"].items()]
             out[r["method"]] = float(np.mean(days)) if not any(np.isnan(days)) else float("nan")
         else:
             out[r["method"]] = _one_score(r, cols, req)
@@ -218,7 +227,7 @@ def window_scores_table(results: list[dict], labels: dict[str, str]) -> str:
         return ""
     ws = multi[0]["test_windows"]
     cols, _, order = ranking(results)
-    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols, r["method"] not in SERVICE)
+    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols, r["method"] not in SERVICE, w)
                            for r in multi}) for w in ws}
     lines = ["| method | " + " | ".join(labels.get(w, w) for w in ws) + " | **mean** |",
              "|---|" + "---|" * (len(ws) + 1)]

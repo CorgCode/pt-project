@@ -185,3 +185,13 @@ def test_dropping_a_task_makes_the_score_unavailable_not_higher():
     assert s["reference_ceiling"] == pytest.approx(90.0)          # ориентир — по тому, что у него есть
     md = headline_table([full, cut, ceiling])
     assert "| 1 | `full` |" in md and "| — | `cut` | — | incomplete |" in md
+
+
+def test_neighbors_ideal_is_the_persistence_ceiling_not_one():
+    from evaluation.scoreboard import NEIGHBORS, NEIGHBORS_IDEAL, column_scores
+    summary = [{"metric": NEIGHBORS, "title": "N", "chance": 0.0}]
+    top = NEIGHBORS_IDEAL["test"]
+    r = {"method": "m", "metrics": {NEIGHBORS: top / 2}, "summary": summary}
+    assert column_scores(r, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == pytest.approx(50.0)
+    above = {"method": "a", "metrics": {NEIGHBORS: top * 2}, "summary": summary}       # выше потолка — 100
+    assert column_scores(above, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == 100.0
