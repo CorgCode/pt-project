@@ -195,3 +195,11 @@ def test_neighbors_ideal_is_the_persistence_ceiling_not_one():
     assert column_scores(r, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == pytest.approx(50.0)
     above = {"method": "a", "metrics": {NEIGHBORS: top * 2}, "summary": summary}       # выше потолка — 100
     assert column_scores(above, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == 100.0
+
+
+def test_validation_tuning_is_not_saturated_on_behavior():
+    from evaluation.scoreboard import NEIGHBORS, NEIGHBORS_IDEAL, column_scores
+    summary = [{"metric": NEIGHBORS, "title": "N", "chance": 0.0}]
+    r = {"method": "m", "metrics": {NEIGHBORS: 0.18}, "summary": summary}     # типичный метод на validation
+    assert column_scores(r, {NEIGHBORS: "N"})[NEIGHBORS] < 100.0                  # подбор видит разницу
+    assert NEIGHBORS_IDEAL["validation"] > max(v for k, v in NEIGHBORS_IDEAL.items() if k != "validation")
