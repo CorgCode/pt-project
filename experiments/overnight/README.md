@@ -21,6 +21,8 @@ SMOKE=1 PT_DATA=/путь/processed experiments/overnight/run.sh /путь/к/п
 
 Итог — `runs/overnight/REPORT.md` и отправка `scoreboard/submissions/overnight_best/` с карточкой.
 
+Запуск через агента на другой машине — `AGENT.md`.
+
 ## Что перебирается
 
 | что | варианты | обучение заново? |
