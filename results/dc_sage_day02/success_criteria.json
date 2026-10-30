@@ -1,0 +1,85 @@
+{
+  "tasks": {
+    "Поведение": {
+      "dc_mean": 10.015056984000001,
+      "skip_mean": 9.716620820579063,
+      "dc_ci": [
+        9.90652903345155,
+        10.123584934548452
+      ],
+      "skip_ci": [
+        9.645102431232472,
+        9.788139209925655
+      ],
+      "paired_difference_ci": [
+        0.2131478870982713,
+        0.3837244397436079
+      ],
+      "dc_detectably_worse": false,
+      "dc_detectably_better": true
+    },
+    "Будущие связи": {
+      "dc_mean": 40.25035958581976,
+      "skip_mean": 38.47388702525152,
+      "dc_ci": [
+        39.35861873037068,
+        41.14210044126884
+      ],
+      "skip_ci": [
+        36.6916432946753,
+        40.25613075582774
+      ],
+      "paired_difference_ci": [
+        -0.2599220315669437,
+        3.8128671527034297
+      ],
+      "dc_detectably_worse": false,
+      "dc_detectably_better": false
+    },
+    "Общие собеседники": {
+      "dc_mean": 88.05633503304861,
+      "skip_mean": 92.23297646765796,
+      "dc_ci": [
+        86.3918489586678,
+        89.72082110742943
+      ],
+      "skip_ci": [
+        91.10173911947163,
+        93.3642138158443
+      ],
+      "paired_difference_ci": [
+        -6.219795898138173,
+        -2.133486971080501
+      ],
+      "dc_detectably_worse": true,
+      "dc_detectably_better": false
+    },
+    "Узнаваемость": {
+      "dc_mean": 35.17089305402426,
+      "skip_mean": 33.31128261668505,
+      "dc_ci": [
+        34.70889783641194,
+        35.63288827163658
+      ],
+      "skip_ci": [
+        32.71490754685466,
+        33.907657686515435
+      ],
+      "paired_difference_ci": [
+        0.8287773939927916,
+        2.890443480685642
+      ],
+      "dc_detectably_worse": false,
+      "dc_detectably_better": true
+    }
+  },
+  "checks": {
+    "1_no_task_with_disjoint_adverse_seed_CI": false,
+    "2_future_or_shared_task_has_disjoint_favorable_seed_CI": false,
+    "3_neighbors_drop_at_most_0.02": true,
+    "4_score_at_least_linear": false
+  },
+  "all_passed": false,
+  "neighbors_delta": 0.002978879706152432,
+  "interpretation": "suggested instruction criteria; task CIs here measure 5-seed variation, not host sampling"
+}

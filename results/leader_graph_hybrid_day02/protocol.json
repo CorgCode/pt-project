@@ -1,0 +1,35 @@
+{
+  "weights": [
+    0.0,
+    0.1,
+    0.25,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "output_dimension": 384,
+  "selection": "official validation score",
+  "test_used_for_selection": false,
+  "normalization": "train RMS per block; graph centered with train mean",
+  "projection": "train-only full PCA for positive weight; exact baseline for zero",
+  "leader_params": {
+    "recipe": {
+      "behavioral": 3.0,
+      "peers": 1.0,
+      "services": 1.0,
+      "diffusion": 0.0,
+      "neural": 2.0
+    },
+    "encoder": "mlp",
+    "splits": 4,
+    "epochs": 20,
+    "pca_dim": 384,
+    "tuned_on": "validation этого прогона"
+  },
+  "input_sha256": {
+    "/Users/ghostmelon/Developer/PTPTPT/pt-project/runs/dc_sage/submissions/linear/embeddings.csv": "f6387c2db5a7149b767480618e8a92353fcf34ea3b749468986b55d096ab09ce",
+    "/Users/ghostmelon/Developer/PTPTPT/pt-project/runs/dc_sage/baselines_validation/linear/validation.csv": "c5b920c6892a652ef58048fd8a6838a5767c69c39f12b7fc7018097a119408e9",
+    "/Users/ghostmelon/Developer/PTPTPT/pt-project/runs/leader_graph_hybrid/leader/embeddings.csv": "6a6e9a4280da2563cce7fa50a4f7cba273bf3e4aa11012519932e81e582ec8f6",
+    "/Users/ghostmelon/Developer/PTPTPT/pt-project/runs/leader_graph_hybrid/leader/validation.csv": "967cb791d611d8e51c974dfdfa9b1e758bab268b00d01c550ac3696f8f97bc40"
+  }
+}
