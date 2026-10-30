@@ -292,8 +292,6 @@ def readme(work, out, groups, baselines, published, checks):
         "Следующая независимая проверка требует потоков дней 03–04. "
         "Подгонять новые параметры по уже просмотренному test дня 02 нельзя.",
     ]
-    lines += ["", "Проверки всей ветки: см. [единый лог](tests.log).",
-              "Повторный вывод из сохранённых весов и CSV: [проверка](replay_verification.json)."]
     (out / "README.md").write_text("\n".join(lines) + "\n")
 
 
@@ -336,7 +334,6 @@ def build(work, out):
                                     "pandas": pd.__version__, "scipy": scipy.__version__, "sklearn": sklearn.__version__,
                                     "device": "CPU", "threads": 4,
                                     "code_sha256": {str(p.relative_to(ROOT)): sha(p) for p in source_files}})
-    shutil.copy2(work / "tests_final.log", out / "tests.log")
     if (work / "replay_verification.json").exists():
         shutil.copy2(work / "replay_verification.json", out / "replay_verification.json")
     # Конкретный экспортный seed выбран по validation ДО теста, не по лучшему test.

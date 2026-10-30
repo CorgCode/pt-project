@@ -106,6 +106,6 @@ skip-only, без направления, без IDF, без InfoNCE, без lin
 ```
 
 Рядом с CSV сохраняются `.parts.npz` с собственным и графовым блоками.
-Проверки: `.venv/bin/python -m pytest -q methods/graph/test_dc_sage.py`.
+
 
 Основной отчёт хранит сводки. Подробные per-seed JSON и истории при пересборке отчёта пишутся в `runs/dc_sage/report_details/`, который исключён из git.
