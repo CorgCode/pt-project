@@ -172,7 +172,7 @@ def readme(work, out, groups, baselines, published, checks):
         "",
         "## Что реализовано",
         "",
-        "Собственная реализация спецификации `experiments/DC-SAGE/Instruction.md`: directed GraphSAGE, "
+        "Собственная реализация спецификации `experiments/dc_sage/Instruction.md`: directed GraphSAGE, "
         "два слоя по 128 скрытых координат, отдельные входящие/исходящие сообщения, IDF соседей, top64, "
         "остаточные связи, skip-MLP и нулевая инициализация графового выхода. "
         "95 входных признаков = 64 TF-IDF/SVD координаты сервисов с ролями + 31 поведенческий признак; выход 64.",
@@ -224,7 +224,7 @@ def readme(work, out, groups, baselines, published, checks):
         "числу хостов, типу данных и split. В общей таблице опубликованные средние за 02–04 здесь не используются.",
         "",
         "[Графики](summary.png), [все численные значения](comparison_day02.csv), "
-        "[метрики каждого сида](metrics/test), [средние и интервалы по сидам](means). "
+        "[сводка пяти сидов](five_seeds.md). Подробности сохраняются локально в runs/dc_sage/report_details/. "
         "В исходных JSON — 200 bootstrap-повторов по хостам; в `means/` интервалы Student-t по пяти сидам. "
         "Это разные источники неопределённости, они не объединены в один интервал.",
         "",
@@ -255,7 +255,7 @@ def readme(work, out, groups, baselines, published, checks):
         f"новые собеседники MRR: **{ms([r['new_partners']['embedding']['mrr'] for r in inductive])}**. "
         f"Профиль без нейросети, тоже обученный без этих хостов: **{baseline_new['neighbors@10']:.3f}** и "
         f"**{baseline_new['new_partners']['embedding']['mrr']:.3f}** соответственно. "
-        "[Результаты](new_hosts.json), [протокол исключения](new_hosts_protocol.json).",
+        "[Результаты](new_hosts.json), протокол исключения сохраняется локально в runs/dc_sage/report_details/.",
         "",
         "## Искусственные изменения",
         "",
@@ -284,7 +284,7 @@ def readme(work, out, groups, baselines, published, checks):
         "Векторы можно проверить `python -m evaluation.validate`. В scoreboard отправка пока не добавлена: "
         "без test_day03/test_day04 она не проходит текущий полный многодневный протокол.",
         "",
-        "Команды всех стадий и применения к новому CSV — в [инструкции запуска](../../experiments/DC-SAGE/README.md). "
+        "Команды всех стадий и применения к новому CSV — в [инструкции запуска](../../experiments/dc_sage/README.md). "
         "Версии, устройство CPU и хеши кода — [environment.json](environment.json). "
         "SVD/IDF/нормировки и веса не меняются при применении к новым окнам.",
         "",
@@ -292,12 +292,14 @@ def readme(work, out, groups, baselines, published, checks):
         "Следующая независимая проверка требует потоков дней 03–04. "
         "Подгонять новые параметры по уже просмотренному test дня 02 нельзя.",
     ]
-    lines += ["", "Проверки: **466 passed, 6 skipped** ([лог](tests.log)).",
+    lines += ["", "Проверки всей ветки: см. [единый лог](tests.log).",
               "Повторный вывод из сохранённых весов и CSV: [проверка](replay_verification.json)."]
     (out / "README.md").write_text("\n".join(lines) + "\n")
 
 
 def build(work, out):
+    details = work / "report_details"
+    details.mkdir(parents=True, exist_ok=True)
     groups = {name: [json.loads((work / "results/test" / f"{name}_seed{s}.json").read_text()) for s in range(5)] for name in variants(Config())}
     baselines = [json.loads((work / "results/test" / f"{name}.json").read_text()) for name in ("profile", "behavioral", "linear", "random")]
     for r in baselines:
@@ -311,25 +313,25 @@ def build(work, out):
     (out / "comparison_day02.md").write_text(scoreboard.headline_table([*mean, *baselines, *published]))
     scoreboard.full_table([*mean, *baselines, *published]).to_csv(out / "comparison_day02.csv", index=False)
     for r in mean:
-        dump(out / "means" / f"{r['method']}.json", r)
+        dump(details / "means" / f"{r['method']}.json", r)
     checks = criteria(groups, next(r for r in baselines if r["method"] == "linear"))
     dump(out / "success_criteria.json", checks)
-    shutil.copytree(work / "results", out / "metrics", dirs_exist_ok=True)
+    shutil.copytree(work / "results", details / "metrics", dirs_exist_ok=True)
     for filename in ("protocol.json", "frozen_config.json", "evaluation_freeze.json", "feature_manifest.json"):
         shutil.copy2(work / filename, out / filename)
     shutil.copy2(work / "cache/manifest.json", out / "data_manifest.json")
     for path, dest in (("inductive/results.json", "new_hosts.json"), ("inductive/holdout.json", "new_hosts_protocol.json"),
                        ("anomalies/results.json", "anomalies.json"), ("anomalies/manifest.json", "anomalies_protocol.json")):
-        shutil.copy2(work / path, out / dest)
+        shutil.copy2(work / path, (details if dest.endswith("_protocol.json") else out) / dest)
     shutil.copy2(work / "inductive/profile_baseline.json", out / "new_hosts_profile_baseline.json")
     for variant in groups:
         for s in range(5):
             folder = work / "models" / variant / f"seed{s}"
             for filename in ("selection.json", "history.json"):
-                dest = out / "training" / variant / f"seed{s}"
+                dest = details / "training" / variant / f"seed{s}"
                 dest.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(folder / filename, dest / filename)
-    source_files = [ROOT / "methods/graph/_dc_sage.py", *sorted((ROOT / "experiments/dc_sage").glob("*.py")), ROOT / "experiments/DC-SAGE/Instruction.md"]
+    source_files = [ROOT / "methods/graph/_dc_sage.py", *sorted((ROOT / "experiments/dc_sage").glob("*.py")), ROOT / "experiments/dc_sage/Instruction.md"]
     dump(out / "environment.json", {"python": platform.python_version(), "torch": torch.__version__, "numpy": np.__version__,
                                     "pandas": pd.__version__, "scipy": scipy.__version__, "sklearn": sklearn.__version__,
                                     "device": "CPU", "threads": 4,
@@ -348,8 +350,8 @@ def build(work, out):
     (export / "SHARED_COORDINATES").touch()
     dump(export / "provenance.json", {"trained_on_windows": ["train"], "seed": seed, "seed_selection": "validation",
                                        "test_windows": ["test"], "missing_windows": ["test_day03", "test_day04"]})
-    shutil.copy2(ROOT / "experiments/DC-SAGE/README.md", export / "README.md")
-    shutil.copy2(ROOT / "experiments/DC-SAGE/Instruction.md", export / "Instruction.md")
+    shutil.copy2(ROOT / "experiments/dc_sage/README.md", export / "README.md")
+    shutil.copy2(ROOT / "experiments/dc_sage/Instruction.md", export / "Instruction.md")
     readme(work, out, groups, baselines, published, checks)
     figures(work, out, groups, baselines)
     print(table(groups, baselines))

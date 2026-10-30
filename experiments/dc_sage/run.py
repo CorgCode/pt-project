@@ -25,7 +25,7 @@ from evaluation.uncertainty import auc_with_ci, host_index
 from experiments.dc_sage.data import Preprocessor, load_stats, universe, sha, prepare
 from methods.graph._dc_sage import Config, DCSAGE, Decoder, LinkSampler, infer, prepare_graph, train_epoch
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 BOARD = ROOT / "scoreboard/data"
 
 

@@ -1,4 +1,4 @@
-"""python -m experiments.hybrid_DC.run {prepare,leader,tune,evaluate,all}"""
+"""python -m experiments.hybrid_dc.run {prepare,leader,tune,evaluate,all}"""
 from __future__ import annotations
 
 import argparse
@@ -17,8 +17,8 @@ from evaluation import scoreboard, submit
 from evaluation.evaluate import run as evaluate
 from evaluation.io import load_embeddings
 from evaluation.validate import validate_submission
-from experiments.hybrid_DC.data import ROOT, BOARD, LocalData, dump, prepare, sha
-from experiments.hybrid_DC.method import LeaderGraphHybrid, LinearNeighborhood
+from experiments.hybrid_dc.data import ROOT, BOARD, LocalData, dump, prepare, sha
+from experiments.hybrid_dc.method import LeaderGraphHybrid, LinearNeighborhood
 
 WEIGHTS = (0., .1, .25, .5, 1., 2.)
 PARAMS = ROOT / "scoreboard/submissions/temporal_encoder_tuned/params.json"
@@ -230,7 +230,7 @@ def report(work):
               "Выбор веса и фиксация модели выполнены до оценки test. Дополнительный подбор после просмотра test не проводился. "
               "Это известный test дня 02, а не новая независимая проверка. Дни 03–04 локально отсутствуют.", "",
               "[Полные метрики](comparison.md), [протокол](protocol.json), [выбор веса](selection.json). "
-              "[Код и команды](../../experiments/hybrid_DC/README.md). "
+              "[Код и команды](../../experiments/hybrid_dc/README.md). "
               "Готовые файлы: `runs/leader_graph_hybrid/export/`; состояния исходного лидера — `runs/leader_graph_hybrid/leader/`." ]
     if not selection["weight"]:
         lines += ["", "**Вывод:** добавка в проверенной сетке не улучшила validation, поэтому сохранён исходный лидер. "

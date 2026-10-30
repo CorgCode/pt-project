@@ -74,7 +74,7 @@ skip-only, без направления, без IDF, без InfoNCE, без lin
 ## Повторить
 
 ```bash
-.venv/bin/python -m pip install -r experiments/DC-SAGE/requirements.txt
+.venv/bin/python -m pip install -r experiments/dc_sage/requirements.txt
 .venv/bin/python -m experiments.dc_sage.run prepare
 .venv/bin/python -m experiments.dc_sage.run features
 .venv/bin/python -m experiments.dc_sage.run baselines
@@ -107,3 +107,5 @@ skip-only, без направления, без IDF, без InfoNCE, без lin
 
 Рядом с CSV сохраняются `.parts.npz` с собственным и графовым блоками.
 Проверки: `.venv/bin/python -m pytest -q methods/graph/test_dc_sage.py`.
+
+Основной отчёт хранит сводки. Подробные per-seed JSON и истории при пересборке отчёта пишутся в `runs/dc_sage/report_details/`, который исключён из git.
