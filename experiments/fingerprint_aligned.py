@@ -195,7 +195,7 @@ def train(work,weight,epochs=400,checkpoints=(100,400)):
     write_json(out/'complete.json',{'epochs':list(checkpoints),'fusion_weight':weight})
 
 
-def selection(work):
+def selection(work, configurations=None, checkpoints=(100,400)):
     if (work/'selection_summary.json').exists(): return
     old=json.loads((PREVIOUS/'final/frozen_selection.json').read_text())['winner']
     source=Path(old['directory'])
@@ -210,8 +210,8 @@ def selection(work):
     write_json(initial/'best.json',initialrow)
     if not (initial/'best.pkl').exists():(initial/'best.pkl').symlink_to(INCUMBENT)
     eligible=[initial];records=[initialrow]
-    for label,weight in [('aligned05',0.5),('aligned10',1.0)]:
-        for epoch in [100,400]:
+    for label,weight in (configurations or [('aligned05',0.5),('aligned10',1.0)]):
+        for epoch in checkpoints:
             name=f'{label}_e{epoch}';out=work/'candidates'/name
             saved=out/'assessment.json'
             if saved.exists():
