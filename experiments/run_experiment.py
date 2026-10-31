@@ -28,12 +28,14 @@ from methods import graph as graph_methods
 from methods.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
 from evaluation.identity import identity_retrieval
+from evaluation.temporal_anomaly import temporal_anomaly
 from evaluation import scoreboard
 from evaluation.io import load_embeddings
 from experiments import audit as A
 from experiments import report as R
 from pipeline.data import ProcessedData
 from pipeline.provenance import BADGE
+
 
 TARGETS = ("validation", "test")
 SCOPE = {
@@ -154,6 +156,7 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     # ---- оценка на каждом целевом эталоне
     results: dict[str, dict[str, dict]] = {t: {} for t in targets}
     identity: dict[str, dict[str, dict]] = {t: {} for t in targets}
+    temporal_changes: dict[str, dict] = {}
     for t in targets:
         ref_t = reference_dir / t
         feats = load_embeddings(ref_t / "features.csv", "host_id", "ref_")
@@ -185,6 +188,29 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                     except ValueError as exc:
                         ident[mode] = {"unavailable": str(exc)}
                 identity[t][name] = ident
+                if t == "test":
+                    try:
+                        temporal = temporal_anomaly(
+                            windows["train"],
+                            windows[t],
+                            data.flows("train"),
+                            data.flows(t),
+                            hosts_t,
+                            shared_coordinate_system=shared,
+                            seed=seed,
+                        )
+                    except (ValueError, KeyError) as exc:
+                        temporal = {"unavailable": str(exc)}
+
+                    temporal_changes[name] = temporal
+                    temporal_dir = out_dir / "temporal_anomaly"
+                    temporal_dir.mkdir(parents=True, exist_ok=True)
+                    (temporal_dir / f"{name}.json").write_text(
+                        json.dumps(
+                            temporal, indent=2, sort_keys=True, ensure_ascii=False
+                        ) + "\n",
+                        encoding="utf-8",
+                    )
                 (out_dir / "identity" / t).mkdir(parents=True, exist_ok=True)
                 (out_dir / "identity" / t / f"{name}.json").write_text(
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -235,6 +261,13 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         "graph_methods": {m: meta[m] for m in implemented},
         "environment": {"python": platform.python_version(), "pandas": pd.__version__,
                         "numpy": np.__version__, "sklearn": sklearn.__version__, "git_sha": _git_sha()},
+        "temporal_anomaly": {
+            "methods": sorted(temporal_changes),
+            "description": (
+                "Согласованность изменений эмбеддингов и поведенческих признаков; "
+                "для несвязанных координат Procrustes обучается на отдельной части хостов."
+            ),
+        },
     }
     A.dump(out_dir / "manifest.json", manifest)
     fig_dir = out_dir / "figures"
@@ -246,11 +279,11 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} — узнаваемость хоста (train -> test)")
     if audit:
         R.weights_plot(audit["weight_sensitivity"], fig_dir / "weight_sensitivity.png")
-    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit), encoding="utf-8")
+    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit, temporal_changes),encoding="utf-8",)
     return manifest
 
 
-def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None) -> str:
+def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None, temporal_changes: dict | None = None) -> str:
     kind = manifest["data_kind"]
     L = ["# Отчёт о прогоне\n", f"> **{BADGE_RU[kind]}.**\n>\n> " + SCOPE[kind] + "\n"]
     prov = manifest.get("provenance") or {}
@@ -312,6 +345,39 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         L.append(R.md_table(pd.DataFrame(rows).T))
         L.append("\n![identity](figures/identity_test.png)\n")
         L.append("Сырые координаты осмысленны только для методов, заявивших общую систему координат.")
+
+    L.append("\n## Временные аномалии (train -> test)\n")
+
+    temporal_rows = {}
+    for method, value in (temporal_changes or {}).items():
+        if "unavailable" in value:
+            temporal_rows[method] = {
+                "статус": f"недоступно: {value['unavailable']}"
+            }
+            continue
+
+        temporal_rows[method] = {
+            "активны в обоих окнах": value.get("n_common_active_hosts"),
+            "оценено хостов": value.get("n_scored_hosts"),
+            "исключено": value.get("excluded_hosts", {}).get("not_active_both"),
+            "Spearman": value.get("rank_correlation"),
+            "p-value": value.get("rank_correlation_pvalue"),
+            "Top-K": value.get("top_k"),
+            "пересечение Top-K": value.get("top_k_overlap_fraction"),
+            "выравнивание": value.get("alignment"),
+        }
+
+    if temporal_rows:
+        L.append(R.md_table(pd.DataFrame(temporal_rows).T))
+        L.append(
+            "\nSpearman показывает согласованность ранжирования хостов "
+            "по изменению эмбеддингов и поведения. Пересечение Top-K "
+            "показывает, насколько совпадают наиболее изменившиеся хосты. "
+            "Для методов без общей системы координат используется Procrustes "
+            "выравнивание на отдельной части хостов.\n"
+        )
+    else:
+        L.append("Временной анализ не выполнен.\n")
     if audit:
         w, s = audit["weight_sensitivity"], audit["reference_stability"]
         L.append("\n## Аудит валидности\n")

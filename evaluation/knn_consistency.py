@@ -67,7 +67,7 @@ def build_reference_features(
         raise ValueError(f"fitted построен без блоков {tuple(fitted.get('excluded', ()))}, "
                          f"а не без {exclude}")
     f = flows.copy()
-    if not np.issubdtype(f["ts"].dtype, np.datetime64):
+    if not pd.api.types.is_datetime64_any_dtype(f["ts"]):
         f["ts"] = pd.to_datetime(f["ts"], unit="s")
     f["hour"] = f["ts"].dt.hour
     if hosts is None:
