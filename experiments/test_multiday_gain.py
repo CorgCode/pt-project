@@ -150,12 +150,33 @@ def test_multiday_role_encoder_fits_only_training_and_embeds_in_shared_coordinat
     assert list(embeddings.index) == hosts
     assert embeddings.shape[0] == 24
     assert np.isfinite(embeddings.to_numpy()).all()
+    class EvaluationDay:
+        def __init__(self, name):
+            self.root, self.calls = tmp_path / name, 0
+            self.manifest = {"windows": {"validation": {"start": 6 * 86400, "end": 6 * 86400 + 3600}}}
+
+        def flows(self, window):
+            self.calls += 1
+            frame = first.frame.copy()
+            frame.ts += 6 * 86400
+            return frame
+
+    observation = EvaluationDay("evaluation")
+    result = model.embed(observation, "validation", hosts)
+    assert observation.calls == 2
+    model.train_head(first, "cca", 0)
+    model.fit_pca(first)
+    np.testing.assert_allclose(model.embed(observation, "validation", hosts), result, atol=1e-6)
+    assert observation.calls == 2  # новая голова не перечитывает и не переобучает признаки validation
+    another = EvaluationDay("different_data")
+    model.embed(another, "validation", hosts)
+    assert another.calls == 2
     import cloudpickle
     from experiments.multiday_gain import restore_training_features
     checkpoint = tmp_path / "features.pkl"
     checkpoint.write_bytes(cloudpickle.dumps(model))
     restored = restore_training_features(checkpoint, first, days)
-    assert restored.pca is None and restored._parts_cache == {}
+    assert restored.pca is None and restored._parts_cache == {} and restored._evaluation_cache == {}
     assert not hasattr(restored, "proj")
     np.testing.assert_array_equal(restored._xs[0], model._xs[0])
     with pytest.raises(ValueError, match="число обучающих дней"):

@@ -94,6 +94,7 @@ class MultiDayEncoder(T.TemporalEncoder):
         return T.view(flows, hosts, seconds)
 
     def fit_days(self, training: list[ProcessedData]):
+        self._evaluation_cache, self._behavior_cache, self._parts_cache = {}, {}, {}
         cache_parent = Path(os.environ.get("PT_VIEW_CACHE_DIR", Path.cwd() / "runs"))
         cache_parent.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix="multiday-views-", dir=cache_parent) as tmp:
@@ -183,19 +184,32 @@ class MultiDayEncoder(T.TemporalEncoder):
         return self
 
     def _parts(self, data, window, hosts):
-        key = (window, tuple(hosts))
+        key = (window if window == "train" else (str(data.root), window), tuple(hosts))
         if key not in self._parts_cache:
             if window == "train":
                 features = self._train
+                behavior = self.beh.embed(data, window, hosts).to_numpy()
             else:
-                a, b = T._span(data, window)
-                features = self._features(self.view(data.flows(window), self.hosts, b - a))
+                features, behavior = self.evaluation_features(data, window, hosts)
             rows = pd.Index(self.hosts).get_indexer(hosts)
-            parts = {"behavioral": self.beh.embed(data, window, hosts).to_numpy(),
+            parts = {"behavioral": behavior,
                      "neural": self._neural(features["input"])[rows]}
             parts.update({k: features[k][rows] for k in ("peers", "services", "context", "diffusion")})
             self._parts_cache[key] = {k: T._block(v) for k, v in parts.items()}
         return self._parts_cache[key]
+
+    def evaluation_features(self, data, window, hosts):
+        # Здесь только входы для вывода. Обучение читает _xs/_train, не эти кэши.
+        if not hasattr(self, "_evaluation_cache"):
+            self._evaluation_cache, self._behavior_cache = {}, {}
+        key = (str(data.root), window)
+        if key not in self._evaluation_cache:
+            a, b = T._span(data, window)
+            self._evaluation_cache[key] = self._features(self.view(data.flows(window), self.hosts, b - a))
+        behavior_key = (key, tuple(hosts))
+        if behavior_key not in self._behavior_cache:
+            self._behavior_cache[behavior_key] = self.beh.embed(data, window, hosts).to_numpy()
+        return self._evaluation_cache[key], self._behavior_cache[behavior_key]
 
     def train_head(self, data, kind: str, epochs: int):
         self.posterior_mix = 0.0
@@ -271,7 +285,7 @@ RECIPES = [
 ]
 
 
-def restore_training_features(path, data, training):
+def restore_training_features(path, data, training, reuse_evaluation_features=False):
     """Повторно использовать только преобразования и наблюдения train, без PCA/выбранной головы."""
     with Path(path).open("rb") as source:
         model = pickle.load(source)
@@ -282,6 +296,8 @@ def restore_training_features(path, data, training):
         raise ValueError("Источники обучающих признаков не совпадают")
     model.recipe = dict(T.RECIPE)
     model.pca, model.posterior_mix, model._parts_cache = None, 0.0, {}
+    if not reuse_evaluation_features:
+        model._evaluation_cache, model._behavior_cache = {}, {}
     for name in ["net", "proj", "corr", "cca_mean", "classifier", "class_projection"]:
         model.__dict__.pop(name, None)
     return model

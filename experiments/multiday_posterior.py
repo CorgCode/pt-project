@@ -27,7 +27,7 @@ def main():
     data = ProcessedData(args.base)
     training = [data, *[ProcessedData(p) for p in args.extra]]
     check_chronology(training, T._span(data, args.validation_window)[0])
-    model = (restore_training_features(args.features_from, data, training) if args.features_from
+    model = (restore_training_features(args.features_from, data, training, reuse_evaluation_features=True) if args.features_from
              else MultiDayEncoder().fit_days(training))
     ref = args.reference_dir
     best = -np.inf

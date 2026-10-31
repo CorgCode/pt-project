@@ -69,17 +69,17 @@ class MultiDayDC(RoleMixin, MultiDayEncoder):
         return self
 
     def _parts(self, data, window, hosts):
-        key = (window, tuple(hosts))
+        key = (window if window == "train" else (str(data.root), window), tuple(hosts))
         if key not in self._parts_cache:
             if window == "train":
                 features = self._train
+                behavior = self.beh.embed(data, window, hosts).to_numpy()
             else:
-                a, b = T._span(data, window)
-                features = self._features(self.view(data.flows(window), self.hosts, b - a))
+                features, behavior = self.evaluation_features(data, window, hosts)
             weights = dc.prepare_graph(features["_counts"], self.idf, self.net.config)
             neural = dc.infer(self.net, features["input"], weights)[0]
             rows = pd.Index(self.hosts).get_indexer(hosts)
-            parts = {"behavioral": self.beh.embed(data, window, hosts).to_numpy(), "neural": neural[rows]}
+            parts = {"behavioral": behavior, "neural": neural[rows]}
             parts.update({k: features[k][rows] for k in ("peers", "services", "context", "diffusion")})
             self._parts_cache[key] = {k: T._block(v) for k, v in parts.items()}
         return self._parts_cache[key]
@@ -99,7 +99,7 @@ def main():
     training = [data, *[ProcessedData(p) for p in args.extra]]
     check_chronology(training, T._span(data, args.validation_window)[0])
     if args.features_from:
-        prepared = restore_training_features(args.features_from, data, training)
+        prepared = restore_training_features(args.features_from, data, training, reuse_evaluation_features=True)
         if not all(c is not None for c in prepared._training_counts):
             raise ValueError("Общий checkpoint не содержит обучающих графов")
         model = MultiDayDC()
