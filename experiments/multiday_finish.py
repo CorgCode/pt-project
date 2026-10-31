@@ -37,7 +37,8 @@ def freeze_selection(candidates: list[Path], out: Path):
               "winner": best, "all_validation_winners": rows,
               "checkpoint_sha256": file_hash(out / "model.pkl"), "target_score": 80, "target_gain": 10}
     root = Path(__file__).resolve().parents[1]
-    sources = [*Path(__file__).parent.glob("multiday*.py"), root / "scoreboard/temporal_encoder.py",
+    sources = [*Path(__file__).parent.glob("multiday*.py"),
+               *Path(__file__).parent.glob("fingerprint*.py"), root / "scoreboard/temporal_encoder.py",
                *[p for p in (root / "evaluation").glob("*.py") if not p.name.startswith("test_")]]
     record["source_hashes"] = {str(p): file_hash(p) for p in sources}
     frozen.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n")
@@ -50,6 +51,9 @@ def main():
     ap.add_argument("--data", type=Path, required=True)
     ap.add_argument("--reference", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--incumbent", type=Path)
+    ap.add_argument("--test-label", default="day09, 12:30–13:30")
+    ap.add_argument("--protocol-text", default="Train: дни 02–07, validation: 08, test: 09. Когорта задана по дню 02.")
     args = ap.parse_args()
     if (args.out / "REPORT.md").exists():
         print("Финальный отчёт уже существует; test повторно не оценивается", flush=True)
@@ -61,7 +65,7 @@ def main():
         raise ValueError("Код изменился после фиксации модели; автоматическая оценка остановлена")
     data = ProcessedData(args.data)
     scores, results = {}, {}
-    for name in ["baseline", "winner"]:
+    for name in ["baseline", *(["incumbent"] if args.incumbent else []), "winner"]:
         saved = args.out / name / "scored.json"
         if saved.exists():
             row = json.loads(saved.read_text())
@@ -70,7 +74,11 @@ def main():
         if name == "baseline":
             model = T.TemporalEncoder().fit(data)
         else:
-            with (args.out / "model.pkl").open("rb") as source:
+            checkpoint = args.incumbent if name == "incumbent" else args.out / "model.pkl"
+            if name == "winner" and args.incumbent and file_hash(checkpoint) == file_hash(args.incumbent):
+                scores[name], results[name] = scores["incumbent"], results["incumbent"]
+                continue
+            with checkpoint.open("rb") as source:
                 model = cloudpickle.load(source)
         score, result = evaluate(model, data, "test", args.reference, args.out / name, name, n_boot=200)
         scores[name], results[name] = score, result
@@ -80,13 +88,16 @@ def main():
     gain = scores["winner"] - scores["baseline"]
     summary = {"scores": scores, "gain": gain, "score_80_reached": scores["winner"] >= 80,
                "gain_10_reached": gain >= 10, "selected_on": "validation only",
-               "test": "day09, 12:30–13:30", "original_scoreboard_comparable": False}
+               "test": args.test_label, "original_scoreboard_comparable": False}
+    if "incumbent" in scores:
+        summary["gain_vs_incumbent"] = scores["winner"] - scores["incumbent"]
     (args.out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
     lines = ["# Многодневное обучение: финальная проверка", "",
-             "Train: дни 02–07, validation: 08, test: 09. Когорта задана по дню 02.",
+             args.protocol_text,
              "Это отдельный протокол: его числа не заменяют баллы исходной таблицы за дни 02–04.", "",
              f"Исходная модель: **{scores['baseline']:.3f}**. Выбранная: **{scores['winner']:.3f}**.",
              f"Прирост на общем test: **{gain:+.3f}**.",
+             *([f"Предыдущий победитель: **{scores['incumbent']:.3f}**, прирост к нему: **{summary['gain_vs_incumbent']:+.3f}**."] if "incumbent" in scores else []),
              f"80+ достигнуто: {summary['score_80_reached']}; +10 достигнуто: {summary['gain_10_reached']}.", "",
              f"Выбор по validation: {frozen['winner']['name']} ({frozen['winner']['score']:.3f}).", "",
              "Нормировка Neighbors задана persistence из замороженного эталона и одинакова у всех методов.",
