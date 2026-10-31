@@ -6,7 +6,7 @@ import torch
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import normalize
 
-from experiments.fingerprint_codebook import CodebookEncoder,TrafficAdapter,neighbor_loss,verify
+from experiments.fingerprint_codebook import CodebookEncoder,TrafficAdapter,neighbor_loss,verify,fit_adapter
 
 
 def test_neighbor_loss_preserves_teacher_and_updates_changed_codes():
@@ -46,3 +46,30 @@ def test_revision_guard_rejects_missing_sources(tmp_path):
     import json,pytest
     (tmp_path/'training_revision.json').write_text(json.dumps({'sources':{},'torch':str(torch.__version__)}))
     with pytest.raises(RuntimeError,match='изменился'):verify(tmp_path)
+
+
+def test_adapter_uses_chronological_holdout_and_then_all_history(monkeypatch):
+    import experiments.fingerprint_codebook as module
+    rng=np.random.default_rng(4);source=normalize(rng.normal(size=(30,8))).astype(np.float32)
+    history=[source+rng.normal(size=source.shape)*0.01 for _ in range(4)]
+    populations=[np.ones(30,dtype=bool) for _ in history]
+    real=module.Ridge;calls=[]
+    class RecordingRidge(real):
+        def fit(self,x,y,**kwargs):
+            calls.append((len(x),kwargs['sample_weight']))
+            return super().fit(x,y,**kwargs)
+    monkeypatch.setattr(module,'Ridge',RecordingRidge)
+    adapter,records=fit_adapter(history,populations,source,[3,4,10,12],half_life=3.)
+    assert [c[0] for c in calls]==[60,120]
+    assert all(r['historical_holdout_days']==[10,12] for r in records)
+    assert np.isclose(calls[-1][1].mean(),1.)
+    assert calls[-1][1][-1]>calls[-1][1][0]
+
+
+def test_training_rejects_changed_history_configuration(tmp_path,monkeypatch):
+    import json,pytest
+    import experiments.fingerprint_codebook as module
+    monkeypatch.setattr(module,'verify',lambda work:None)
+    (tmp_path/'training_configuration.json').write_text(json.dumps({'history_root':'wrong'}))
+    with pytest.raises(RuntimeError,match='Конфигурация'):
+        module.train(tmp_path,1.,history_root=tmp_path,target_days=(3,4,12),half_life=3.)

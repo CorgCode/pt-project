@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import psutil
+import scipy.sparse as sp
 import torch
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import normalize
@@ -23,6 +24,7 @@ from experiments.fingerprint_bigraph import contact_scores
 from experiments.fingerprint_donor_search import INCUMBENT,PREVIOUS,SOURCE,run
 from experiments.fingerprint_expanded_search import pool,slim
 from experiments.fingerprint_listwise import candidate_masks,listwise_loss
+from experiments.fingerprint_transfer import PartnerPair
 from experiments.fingerprint_search import ArrayEmbeddings,dump,load,state,write_json
 from experiments.multiday_finish import freeze_selection
 from experiments.multiday_gain import evaluate
@@ -37,7 +39,7 @@ CHECKPOINTS=(100,400)
 
 def revision():
     names=['fingerprint_codebook.py','fingerprint_listwise.py','fingerprint_aligned.py',
-           'fingerprint_bigraph.py','fingerprint_transfer.py']
+           'fingerprint_bigraph.py','fingerprint_transfer.py','fingerprint_codebook_recent.py']
     return {n:hashlib.sha256((Path(__file__).parent/n).read_bytes()).hexdigest() for n in names}
 
 
@@ -76,49 +78,78 @@ class CodebookEncoder:
         return pd.DataFrame(self.adapter.transform(values.to_numpy()),index=values.index).add_prefix('emb_')
 
 
-def fit_adapter(history,populations,source):
-    def fit(days):
-        xs=[normalize(history[i][populations[i]]) for i in days]
-        ys=[source[populations[i]] for i in days]
-        return Ridge(alpha=1.).fit(np.vstack(xs),np.vstack(ys))
+def fit_adapter(history,populations,source,target_days=None,half_life=None):
+    if len(history)<3:raise ValueError('Для адаптера нужны хотя бы три исторических окна')
+    target_days=list(target_days or range(3,3+len(history)))
+    def fit(indices):
+        indices=list(indices)
+        xs=[normalize(history[i][populations[i]]) for i in indices]
+        ys=[source[populations[i]] for i in indices]
+        weights=None
+        if half_life is not None:
+            weights=np.concatenate([np.full(len(x),2.**(-(max(target_days)-target_days[i])/half_life)) for i,x in zip(indices,xs)])
+            weights*=len(weights)/weights.sum()
+        return Ridge(alpha=1.).fit(np.vstack(xs),np.vstack(ys),sample_weight=weights)
     # Только обучающая история. Это диагностика, не независимый validation.
-    early=fit(range(5))
+    early=fit(range(len(history)-2))
     records=[]
     for blend in [0.,0.5,1.]:
         adapter=TrafficAdapter(early,blend);scores=[]
-        for i in [5,6]:
+        for i in [len(history)-2,len(history)-1]:
             pop=populations[i];later=adapter.transform(history[i][pop]);a=source[pop]
             sim=a@later.T
             scores.append(float((sim.argmax(1)==np.arange(len(a))).mean()))
-        records.append({'blend':blend,'history08_09_raw_identity':float(np.mean(scores))})
-    best=min(records,key=lambda r:(-r['history08_09_raw_identity'],r['blend']))
-    return TrafficAdapter(fit(range(7)),best['blend']),records
+        records.append({'blend':blend,'historical_holdout_days':target_days[-2:],
+            'historical_holdout_raw_identity':float(np.mean(scores))})
+    best=min(records,key=lambda r:(-r['historical_holdout_raw_identity'],r['blend']))
+    return TrafficAdapter(fit(range(len(history))),best['blend']),records
 
 
-def train(work,regularization,epochs=400):
+def training_pairs(history,hosts,vocabulary,target_days):
+    source=sp.load_npz(TRANSFER/'source0.npz')
+    source_active=np.diff(source.indptr)>0
+    pairs=[]
+    for day in target_days:
+        population=np.load(history/f'future_active{day:02d}.npy')
+        matrix=source.multiply(population[:,None]).tocsr();matrix.eliminate_zeros()
+        pairs.append(PartnerPair(matrix,sp.load_npz(history/f'future{day:02d}.npz'),hosts,vocabulary,source_active&population))
+    return pairs
+
+
+def train(work,regularization,epochs=400,history_root=None,target_days=tuple(range(3,10)),half_life=None):
     verify(work);torch.set_num_threads(4);torch.manual_seed(17)
+    root=Path(history_root or HISTORY)
+    configuration={'history_root':str(root.resolve()),'target_days':list(target_days),'half_life':half_life}
+    if (work/'training_configuration.json').exists():
+        if json.loads((work/'training_configuration.json').read_text())!=configuration:
+            raise RuntimeError('Конфигурация истории изменилась после фиксации')
     label=dict((v,k) for k,v in CONFIGS)[regularization]
     out=work/label;out.mkdir(parents=True,exist_ok=True)
     if (out/'complete.json').exists():return
-    hosts=json.loads((HISTORY/'hosts.json').read_text())
+    hosts=json.loads((root/'hosts.json').read_text())
     vocab=json.loads((TRANSFER/'vocabulary.json').read_text())
-    anchor=normalize(np.load(HISTORY/'anchor.npy')).astype(np.float32)
+    anchor=normalize(np.load(root/'anchor.npy')).astype(np.float32)
     teacher=torch.from_numpy(anchor)
     codes=torch.nn.Parameter(teacher.clone())
     optimizer=torch.optim.AdamW([codes],lr=3e-4,weight_decay=0.)
     schedule=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs)
-    pairs=aligned_pairs(HISTORY,hosts,vocab)
-    history=[np.load(HISTORY/f'historical{d:02d}.npy') for d in range(3,10)]
-    populations=[np.load(HISTORY/f'future_active{d:02d}.npy') for d in range(3,10)]
+    pairs=training_pairs(root,hosts,vocab,target_days)
+    history=[np.load(root/f'historical{d:02d}.npy') for d in target_days]
+    populations=[np.load(root/f'future_active{d:02d}.npy') for d in target_days]
     donors=[]
     for pair in pairs:
         m=pair.source.copy();m.data=np.log1p(m.data)
         m=m.multiply(1/np.maximum(np.asarray(m.sum(0)).ravel(),1e-12)[None,:]).tocsr()
         donors.append(m)
     rng=np.random.default_rng(17)
+    probability=None
+    if half_life is not None:
+        if half_life<=0:raise ValueError('Half-life должен быть положительным')
+        probability=2.**(-(max(target_days)-np.asarray(target_days))/half_life)
+        probability/=probability.sum()
     for epoch in range(1,epochs+1):
         if psutil.virtual_memory().available<1.5*1024**3:raise MemoryError('Свободная RAM меньше1.5 ГБ')
-        i=int(rng.integers(7));pair=pairs[i]
+        i=int(rng.integers(len(pairs)) if probability is None else rng.choice(len(pairs),p=probability));pair=pairs[i]
         queries=rng.choice(pair.active,min(64,len(pair.active)),replace=False)
         valid,positive=candidate_masks(pair,queries)
         keep=positive.any(1).numpy();queries=queries[keep];valid=valid[keep];positive=positive[keep]
@@ -144,7 +175,7 @@ def train(work,regularization,epochs=400):
                 'anchor_loss':float(anchor_loss.detach()),'neighbor_weight':regularization}),flush=True)
         if epoch in CHECKPOINTS:
             source=F.normalize(codes,dim=1).detach().numpy()
-            with threadpool_limits(4):adapter,records=fit_adapter(history,populations,source)
+            with threadpool_limits(4):adapter,records=fit_adapter(history,populations,source,target_days,half_life)
             dump({'source':source,'adapter':adapter,'hosts':hosts},out/f'epoch{epoch}.pkl')
             write_json(out/f'adapter{epoch}.json',records)
     write_json(out/'complete.json',{'epochs':list(CHECKPOINTS),'neighbor_weight':regularization,

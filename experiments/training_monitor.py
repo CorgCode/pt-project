@@ -21,7 +21,7 @@ def current_work():
                   DEFAULT_WORK.parent/'fingerprint_donors',DEFAULT_WORK.parent/'fingerprint_transfer',
                   DEFAULT_WORK.parent/'fingerprint_aligned',DEFAULT_WORK.parent/'fingerprint_bigraph',
                   DEFAULT_WORK.parent/'fingerprint_recent',DEFAULT_WORK.parent/'fingerprint_listwise',
-                  DEFAULT_WORK.parent/'fingerprint_codebook']
+                  DEFAULT_WORK.parent/'fingerprint_codebook',DEFAULT_WORK.parent/'fingerprint_codebook_recent']
     existing = [p for p in candidates if (p/'state.json').exists()]
     return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
 
