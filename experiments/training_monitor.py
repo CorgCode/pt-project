@@ -5,6 +5,7 @@ import argparse
 import curses
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -88,6 +89,14 @@ def last_record(path, field):
                 return value
         except ValueError:
             pass
+    return {}
+
+
+def preparation_progress(work,stage):
+    if not stage.startswith('prepare_day'):return {}
+    for line in reversed(tail(work/f'{stage}.log')):
+        match=re.search(r'day(\d+): прочитано ([\d,]+) строк',line)
+        if match:return {'day':int(match[1]),'raw_rows':int(match[2].replace(',',''))}
     return {}
 
 
@@ -202,6 +211,7 @@ def snapshot(work, sampler):
             'days':days,'heads':heads,'results':results,'logs':logs,'preferred':preferred,
             'final':read_json(work/'final/summary.json',{}),
             'inputs':read_json(work/'inputs_ready.json',{}) or read_json(work/'history/inputs_ready.json',{}),
+            'preparation':preparation_progress(work,state.get('stage','')),
             'input_record':last_record(work/'donor_inputs.log','prepared_peer_day')}
 
 
@@ -213,6 +223,8 @@ def overview(s):
              f"Стадия обновлена: {state.get('at','—')}",
              f"Цель: {protocol.get('target_score',80)}  |  validation: день {protocol.get('validation_day','—')}  |  test: день {protocol.get('test_day',protocol.get('final_test_day','—'))}", '']
     if state.get('error'): lines += [f"ОШИБКА: {state['error']}",'']
+    if s.get('preparation'):
+        p=s['preparation'];lines += [f"День {p['day']}: прочитано {p['raw_rows']:,} строк архива",'']
     done = sum(d['status']=='готово' for d in s['days'])
     if s['days'] and not protocol.get('head_labels'):
         lines += [f"Дни подготовлены: {bar(done,len(s['days']))}  {done}/{len(s['days'])}"]
