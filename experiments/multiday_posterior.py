@@ -8,7 +8,7 @@ from pathlib import Path
 import cloudpickle
 import numpy as np
 
-from experiments.multiday_gain import MultiDayEncoder, RECIPES, check_chronology, evaluate
+from experiments.multiday_gain import MultiDayEncoder, RECIPES, check_chronology, evaluate, restore_training_features
 from experiments.overnight.model import T
 from experiments.overnight.search import safe_to_continue
 from pipeline.data import ProcessedData
@@ -21,12 +21,14 @@ def main():
     ap.add_argument("--out", type=Path, default=Path("runs/multiday_posterior"))
     ap.add_argument("--validation-window", default="test_day04")
     ap.add_argument("--reference-dir", type=Path, default=Path("scoreboard/data/reference/test_day04"))
+    ap.add_argument("--features-from", type=Path)
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     data = ProcessedData(args.base)
     training = [data, *[ProcessedData(p) for p in args.extra]]
     check_chronology(training, T._span(data, args.validation_window)[0])
-    model = MultiDayEncoder().fit_days(training)
+    model = (restore_training_features(args.features_from, data, training) if args.features_from
+             else MultiDayEncoder().fit_days(training))
     ref = args.reference_dir
     best = -np.inf
     for epochs in [60, 160]:
@@ -41,7 +43,8 @@ def main():
                 name = f"posterior_{epochs}_{mix}_{i}"
                 score, result = evaluate(model, data, args.validation_window, ref, args.out / name, name)
                 row = {"name": name, "score": score, "identity": result["metrics"]["identity_top1"],
-                       "epochs": epochs, "mix": mix, "recipe": recipe}
+                       "epochs": epochs, "mix": mix, "recipe": recipe,
+                       "features_from": str(args.features_from) if args.features_from else None}
                 with (args.out / "trials.jsonl").open("a") as out:
                     out.write(json.dumps(row) + "\n")
                 print(json.dumps(row), flush=True)

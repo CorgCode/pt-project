@@ -150,6 +150,16 @@ def test_multiday_role_encoder_fits_only_training_and_embeds_in_shared_coordinat
     assert list(embeddings.index) == hosts
     assert embeddings.shape[0] == 24
     assert np.isfinite(embeddings.to_numpy()).all()
+    import cloudpickle
+    from experiments.multiday_gain import restore_training_features
+    checkpoint = tmp_path / "features.pkl"
+    checkpoint.write_bytes(cloudpickle.dumps(model))
+    restored = restore_training_features(checkpoint, first, days)
+    assert restored.pca is None and restored._parts_cache == {}
+    assert not hasattr(restored, "proj")
+    np.testing.assert_array_equal(restored._xs[0], model._xs[0])
+    with pytest.raises(ValueError, match="число обучающих дней"):
+        restore_training_features(checkpoint, first, days[:-1])
 
 
 def test_streaming_cca_matches_concatenated_covariances():
@@ -208,3 +218,27 @@ def test_pairing_new_validation_does_not_select_hosts_using_future_activity(tmp_
     assert list(cohort.index) == ["a", "b"]
     assert cohort.loc["b", "events_train"] == 600
     assert not cohort.loc["b", "evaluable_validation"]
+
+
+def test_parallel_admission_keeps_memory_headroom():
+    from experiments.multiday_parallel import admission, GIB
+    assert admission(8 * GIB, [3 * GIB], True)
+    assert not admission(4 * GIB, [3 * GIB], True)
+    assert not admission(6 * GIB, [2 * GIB], False)
+
+
+def test_shared_checkpoint_waits_for_completed_metadata(tmp_path):
+    import os
+    from experiments.multiday_parallel import snapshot_features
+    source = tmp_path / "source" / "best.pkl"
+    source.parent.mkdir()
+    metadata = source.parent / "best.json"
+    source.write_bytes(b"complete model")
+    metadata.write_text('{}')
+    os.utime(source, ns=(2_000_000_000, 2_000_000_000))
+    os.utime(metadata, ns=(1_000_000_000, 1_000_000_000))
+    target = tmp_path / "shared/model.pkl"
+    assert snapshot_features(source, target) is None
+    os.utime(metadata, ns=(3_000_000_000, 3_000_000_000))
+    assert snapshot_features(source, target) == target
+    assert target.read_bytes() == source.read_bytes()

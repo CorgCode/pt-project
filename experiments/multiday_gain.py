@@ -17,6 +17,7 @@ from tempfile import TemporaryDirectory
 import cloudpickle as pickle
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.preprocessing import StandardScaler, normalize
@@ -100,6 +101,7 @@ class MultiDayEncoder(T.TemporalEncoder):
 
     def _fit_days_cached(self, training, cache):
         first = training[0]
+        self.training_sources = [str(d.root.resolve()) for d in training]
         self.hosts = list(first.cohort)
         behavior = BehavioralBaseline().fit(first)
         aggregate, paths, profiles, masks = None, [], [], []
@@ -267,6 +269,33 @@ RECIPES = [
     dict(T.RECIPE, behavioral=1.0, neural=4.0, context=0.25),
     dict(T.RECIPE, behavioral=0.5, neural=8.0, context=0.25),
 ]
+
+
+def restore_training_features(path, data, training):
+    """Повторно использовать только преобразования и наблюдения train, без PCA/выбранной головы."""
+    with Path(path).open("rb") as source:
+        model = pickle.load(source)
+    if list(model.hosts) != list(data.cohort) or len(model._xs) != 3 * len(training):
+        raise ValueError("Когорта или число обучающих дней общего checkpoint не совпадает")
+    expected = [str(d.root.resolve()) for d in training]
+    if hasattr(model, "training_sources") and model.training_sources != expected:
+        raise ValueError("Источники обучающих признаков не совпадают")
+    model.recipe = dict(T.RECIPE)
+    model.pca, model.posterior_mix, model._parts_cache = None, 0.0, {}
+    for name in ["net", "proj", "corr", "cca_mean", "classifier", "class_projection"]:
+        model.__dict__.pop(name, None)
+    return model
+
+
+def counts_from_view(view, hosts, vocab):
+    x = T.matrix(view["counts"]["peers"], hosts, vocab, log=False)
+    targets = pd.Index(hosts).get_indexer([t[2:] if t.startswith("o:") else "" for t in vocab])
+    keep = targets >= 0
+    x = x[:, keep].tocoo()
+    counts = sp.csr_matrix((x.data, (x.row, targets[keep][x.col])), shape=(len(hosts), len(hosts)))
+    counts.setdiag(0)
+    counts.eliminate_zeros()
+    return counts
 
 
 def evaluate(model, data, window: str, ref: Path, out: Path, name: str, n_boot=0) -> tuple[float, dict]:

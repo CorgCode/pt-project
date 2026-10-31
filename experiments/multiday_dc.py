@@ -14,27 +14,16 @@ from pathlib import Path
 import cloudpickle
 import numpy as np
 import pandas as pd
-import scipy.sparse as sp
 import torch
 from sklearn.preprocessing import normalize
 
 from experiments import multiday_dc_core as dc
-from experiments.multiday_gain import MultiDayEncoder, RECIPES, check_chronology, evaluate
+from experiments.multiday_gain import (MultiDayEncoder, RECIPES, check_chronology, evaluate,
+                                       counts_from_view, restore_training_features)
 from experiments.multiday_roles import RoleMixin
 from experiments.overnight.model import T
 from experiments.overnight.search import safe_to_continue
 from pipeline.data import ProcessedData
-
-
-def counts_from_view(view, hosts, vocab):
-    x = T.matrix(view["counts"]["peers"], hosts, vocab, log=False)
-    targets = pd.Index(hosts).get_indexer([t[2:] if t.startswith("o:") else "" for t in vocab])
-    keep = targets >= 0
-    x = x[:, keep].tocoo()
-    counts = sp.csr_matrix((x.data, (x.row, targets[keep][x.col])), shape=(len(hosts), len(hosts)))
-    counts.setdiag(0)
-    counts.eliminate_zeros()
-    return counts
 
 
 class MultiDayDC(RoleMixin, MultiDayEncoder):
@@ -103,12 +92,22 @@ def main():
     ap.add_argument("--out", type=Path, default=Path("runs/multiday_dc"))
     ap.add_argument("--validation-window", default="test_day04")
     ap.add_argument("--reference-dir", type=Path, default=Path("scoreboard/data/reference/test_day04"))
+    ap.add_argument("--features-from", type=Path)
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     data = ProcessedData(args.base)
     training = [data, *[ProcessedData(p) for p in args.extra]]
     check_chronology(training, T._span(data, args.validation_window)[0])
-    model = MultiDayDC().fit_days(training)
+    if args.features_from:
+        prepared = restore_training_features(args.features_from, data, training)
+        if not all(c is not None for c in prepared._training_counts):
+            raise ValueError("Общий checkpoint не содержит обучающих графов")
+        model = MultiDayDC()
+        model.__dict__.update(prepared.__dict__)
+        model._parts_cache = {}
+        del prepared
+    else:
+        model = MultiDayDC().fit_days(training)
     ref = args.reference_dir
     best = -np.inf
     for epochs, link_weight in [(100, 0.3), (300, 0.3), (100, 0.0)]:
@@ -121,7 +120,8 @@ def main():
             name = f"dc_{epochs}_{link_weight}_{i}"
             score, result = evaluate(model, data, args.validation_window, ref, args.out / name, name)
             row = {"name": name, "score": score, "identity": result["metrics"]["identity_top1"],
-                   "epochs": epochs, "link_weight": link_weight, "recipe": recipe}
+                   "epochs": epochs, "link_weight": link_weight, "recipe": recipe,
+                   "features_from": str(args.features_from) if args.features_from else None}
             with (args.out / "trials.jsonl").open("a") as out:
                 out.write(json.dumps(row) + "\n")
             print(json.dumps(row), flush=True)

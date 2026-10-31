@@ -9,7 +9,7 @@ import cloudpickle
 import numpy as np
 import pandas as pd
 
-from experiments.multiday_gain import MultiDayEncoder, RECIPES, check_chronology, evaluate
+from experiments.multiday_gain import MultiDayEncoder, RECIPES, check_chronology, evaluate, counts_from_view
 from experiments.overnight.model import T
 from experiments.overnight.search import safe_to_continue
 from pipeline.data import ProcessedData
@@ -52,6 +52,11 @@ class RoleMixin:
 
 
 class RoleEncoder(RoleMixin, MultiDayEncoder):
+    def _features(self, view):
+        out = super()._features(view)
+        out["_counts"] = counts_from_view(view, self.hosts, self.vocab["peers"])
+        return out
+
     def train_head(self, data, kind, epochs):
         if kind != "contrastive":
             return super().train_head(data, kind, epochs)
@@ -95,7 +100,8 @@ def main():
                 name = f"roles_{kind}_{mix}_{i}"
                 score, result = evaluate(model, data, args.validation_window, ref, args.out / name, name)
                 row = {"name": name, "score": score, "identity": result["metrics"]["identity_top1"],
-                       "kind": kind, "epochs": epochs, "mix": mix, "recipe": recipe}
+                       "kind": kind, "epochs": epochs, "mix": mix, "recipe": recipe,
+                       "has_training_graphs": all(c is not None for c in model._training_counts)}
                 with (args.out / "trials.jsonl").open("a") as out:
                     out.write(json.dumps(row) + "\n")
                 print(json.dumps(row), flush=True)
