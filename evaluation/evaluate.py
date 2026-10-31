@@ -24,6 +24,7 @@ from evaluation.frozen_neighbors import evaluate_frozen_neighbors
 from evaluation.future_links import (load_candidate_edges, persistence_baseline, score_embeddings,
                                       score_learned)
 from evaluation.io import load_embeddings
+from evaluation.clustering import cluster_embeddings
 from evaluation.knn_consistency import evaluate_embedding
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.partners import load_partners, partner_ranking
@@ -221,6 +222,16 @@ def _probe(c: Context) -> None:
     c.result["metric_details"]["linear_probe"] = {k: v for k, v in pr.items() if k != "accuracy_ci"}
 
 
+def _clustering(c: Context) -> None:
+    details, assignments = cluster_embeddings(c.emb, metric="cosine")
+
+    details["assignments"] = {
+        str(host_id): int(cluster)
+        for host_id, cluster in assignments["cluster"].items()
+    }
+    c.result["metric_details"]["embedding_clustering"] = details
+
+
 class _Unavailable(Exception):
     pass
 
@@ -249,6 +260,8 @@ METRICS: list[Metric] = [
            _tikhon, "tikhon_lp_direct_mrr", lambda r: r["metrics"].get("tikhon_random_mrr"), show=False),
     Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
+    Metric("embedding_clustering", "Структура эмбеддингов", "Кластеризация",
+           (), _clustering, "clustering_silhouette", lambda r: None, show=False),
 ]
 REQUIRED = tuple(k for m in METRICS for k in (m.key, *m.also))
 UNAVAILABLE_REASON = {
@@ -314,7 +327,7 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
     for m in METRICS:
         keys = (m.key, *m.also)
         reason = None
-        if not any((reference_dir / f).exists() for f in m.needs):
+        if m.needs and not any((reference_dir / f).exists() for f in m.needs):
             reason = UNAVAILABLE_REASON.get(m.key, f"нет {' / '.join(m.needs)}")
         else:
             try:
