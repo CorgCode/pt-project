@@ -201,7 +201,7 @@ def snapshot(work, sampler):
     return {'work':work,'protocol':protocol,'state':state,'resources':resources,
             'days':days,'heads':heads,'results':results,'logs':logs,'preferred':preferred,
             'final':read_json(work/'final/summary.json',{}),
-            'inputs':read_json(work/'inputs_ready.json',{}),
+            'inputs':read_json(work/'inputs_ready.json',{}) or read_json(work/'history/inputs_ready.json',{}),
             'input_record':last_record(work/'donor_inputs.log','prepared_peer_day')}
 
 
@@ -218,7 +218,8 @@ def overview(s):
         lines += [f"Дни подготовлены: {bar(done,len(s['days']))}  {done}/{len(s['days'])}"]
     if protocol.get('head_labels'):
         if s['inputs']:
-            lines.append(f"Исторические переходы готовы: {len(s['inputs'].get('pairs',[]))}; хостов {s['inputs'].get('n_hosts','—')}")
+            count=len(s['inputs'].get('train_target_days',s['inputs'].get('pairs',[])))
+            lines.append(f"Исторические цели готовы: {count}; хостов {s['inputs'].get('n_hosts','—')}")
         elif s['input_record']:
             lines.append(f"Профили контактов подготовлены по день {s['input_record']['prepared_peer_day']:02d}")
     for day in s['days']:
@@ -261,6 +262,11 @@ def overview(s):
 def training(s):
     lines=['ПОДГОТОВКА ДАННЫХ', '']
     if s['protocol'].get('head_labels'):
+        if s['inputs'].get('train_target_days'):
+            days=s['inputs']['train_target_days']
+            lines.append(f"Контакты источника: день {s['inputs'].get('source_contacts_day','—')}; обучающие цели: {days[0]}–{days[-1]}")
+            for record in s['inputs'].get('new_days',[]):
+                lines.append(f"День {record['day']}: готово; {record['hosts']:,} активных хостов")
         for pair in s['inputs'].get('pairs',[]):
             lines.append(f"Дни {pair['source_day']:02d} → {pair['target_day']:02d}: {pair['active_queries']:,} запросов с полезными соседями")
         if not s['inputs']: lines.append('Готовятся исторические признаки и цели; подробности на вкладке4.')
