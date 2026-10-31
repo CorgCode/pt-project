@@ -14,7 +14,19 @@ import psutil
 
 
 DEFAULT_WORK = Path('/Volumes/KINGSTON/PT_PROJECT_ML/fingerprint_expanded')
+
+
+def current_work():
+    candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick']
+    existing = [p for p in candidates if (p/'state.json').exists()]
+    return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
+
+
 STAGES = {
+    'pca': 'Подготовка сжатых представлений без обучения нейросети',
+    'export_model': 'Сохранение выбранной модели',
+    'download13': 'Скачивание нового итогового дня 13',
+    'prepare_day13': 'Подготовка итогового дня 13',
     'extracting_32_hours': 'Извлечение 32 часов исторического трафика',
     'fit_bank': 'Подготовка признаков и TF-IDF',
     'training_inputs': 'Подготовка обучающих признаков',
@@ -186,7 +198,8 @@ def overview(s):
              f"Цель: {protocol.get('target_score',80)}  |  validation: день {protocol.get('validation_day','—')}  |  test: день {protocol.get('test_day',protocol.get('final_test_day','—'))}", '']
     if state.get('error'): lines += [f"ОШИБКА: {state['error']}",'']
     done = sum(d['status']=='готово' for d in s['days'])
-    lines += [f"Дни подготовлены: {bar(done,len(s['days']))}  {done}/{len(s['days'])}"]
+    if s['days']:
+        lines += [f"Дни подготовлены: {bar(done,len(s['days']))}  {done}/{len(s['days'])}"]
     for day in s['days']:
         if day['status']=='обрабатывается':
             lines.append(f"  Сейчас день {day['day']:02d}: прочитано {day.get('raw_rows',0):,} строк")
@@ -202,6 +215,9 @@ def overview(s):
         lines.append(f"Лучший validation: {best['score']:.3f}  {best['name']}")
     if s['final']:
         final=s['final']; lines += ['',f"ИТОГОВЫЙ TEST: {final['scores']['winner']:.3f}  |  прирост к исходной модели {final['gain']:+.3f}"]
+    if state.get('result')=='no_material_validation_gain':
+        lines += ['',f"Значимого для продолжения прироста на validation нет: {state.get('validation_gain',0):+.3f}.",
+                  'Новый test не открывался. Подробности: selection_summary.json.']
     job_cpu = (f"{r['job_cpu']/max(1,len(r['cores'])):.0f}% мощности CPU" if r['job_cpu'] is not None
                else ('первый замер…' if r['running'] else 'нет активных процессов'))
     lines += ['',f"CPU всего: {sum(r['cores'])/max(1,len(r['cores'])):.0f}%  |  процессы прогона: {job_cpu}",
@@ -294,7 +310,7 @@ def interactive(screen, work, interval):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--work',type=Path,default=DEFAULT_WORK,help='Каталог состояния и логов прогона')
+    ap.add_argument('--work',type=Path,default=current_work(),help='Каталог прогона (по умолчанию самый свежий)')
     ap.add_argument('--interval',type=float,default=2,help='Обновление, секунды (по умолчанию 2)')
     ap.add_argument('--once',action='store_true',help='Один текстовый снимок вместо интерактивного экрана')
     args=ap.parse_args()
