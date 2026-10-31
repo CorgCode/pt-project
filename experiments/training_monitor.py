@@ -19,12 +19,16 @@ DEFAULT_WORK = Path('/Volumes/KINGSTON/PT_PROJECT_ML/fingerprint_expanded')
 def current_work():
     candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick',
                   DEFAULT_WORK.parent/'fingerprint_donors',DEFAULT_WORK.parent/'fingerprint_transfer',
-                  DEFAULT_WORK.parent/'fingerprint_aligned',DEFAULT_WORK.parent/'fingerprint_bigraph']
+                  DEFAULT_WORK.parent/'fingerprint_aligned',DEFAULT_WORK.parent/'fingerprint_bigraph',
+                  DEFAULT_WORK.parent/'fingerprint_recent']
     existing = [p for p in candidates if (p/'state.json').exists()]
     return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
 
 
 STAGES = {
+    'history_updates': 'Обновление профилей наблюдениями дней10–12',
+    'waiting_for_download14': 'Ожидание скачивания нового дня14',
+    'prepare_day14': 'Подготовка закрытого итогового дня14',
     'graph_training': 'Полное обучение графового энкодера',
     'training_revision': 'Подготовка зафиксированной версии обучения',
     'donor_inputs': 'Подготовка исторических переходов и полезных соседей',
@@ -236,6 +240,8 @@ def overview(s):
                   'Новый test не открывался. Подробности: selection_summary.json.']
     if state.get('result')=='below_80_on_development':
         lines += ['', 'Порог80 на обоих днях development не пройден. Test13 не открывался.']
+    if state.get('result')=='below_80_on_validation':
+        lines += ['', 'Порог80 и прирост+1 на новом validation не пройдены; закрытый test14 не читался.']
     job_cpu = (f"{r['job_cpu']/max(1,len(r['cores'])):.0f}% мощности CPU" if r['job_cpu'] is not None
                else ('первый замер…' if r['running'] else 'нет активных процессов'))
     lines += ['',f"CPU всего: {sum(r['cores'])/max(1,len(r['cores'])):.0f}%  |  процессы прогона: {job_cpu}",
