@@ -17,12 +17,16 @@ DEFAULT_WORK = Path('/Volumes/KINGSTON/PT_PROJECT_ML/fingerprint_expanded')
 
 
 def current_work():
-    candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick']
+    candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick',
+                  DEFAULT_WORK.parent/'fingerprint_donors']
     existing = [p for p in candidates if (p/'state.json').exists()]
     return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
 
 
 STAGES = {
+    'donor_inputs': 'Подготовка исторических переходов и полезных соседей',
+    'donor_training': 'Обучение прогноза новых собеседников',
+    'waiting_for_download13': 'Ожидание скачивания итогового дня 13',
     'pca': 'Подготовка сжатых представлений без обучения нейросети',
     'export_model': 'Сохранение выбранной модели',
     'download13': 'Скачивание нового итогового дня 13',
@@ -152,13 +156,15 @@ def snapshot(work, sampler):
             status = 'прервано'
         days.append({'day':day, 'status':status, **(complete or record)})
     heads = []
-    for dim in protocol.get('dimensions', [128,256]):
-        record = last_record(work/f'bag{dim}.log', 'epoch')
-        complete = read_json(work/f'bag{dim}/complete.json', {})
+    labels = protocol.get('head_labels')
+    for dim in (labels if labels is not None else protocol.get('dimensions', [128,256])):
+        label = str(dim) if labels is not None else f'bag{dim}'
+        record = last_record(work/f'{label}.log', 'epoch')
+        complete = read_json(work/f'{label}/complete.json', {})
         checkpoints = complete.get('epochs') or protocol.get('checkpoints', [40,120])
         target = max(checkpoints)
         epoch = target if complete else record.get('epoch',0)
-        pid = state.get('workers',{}).get(f'bag{dim}',state.get('workers',{}).get(str(dim)))
+        pid = state.get('workers',{}).get(label,state.get('workers',{}).get(str(dim)))
         if not pid:
             # Поддержка координатора, который продолжает уже работающие головы.
             for candidate in state.get('adopted_workers',[]):
@@ -179,14 +185,16 @@ def snapshot(work, sampler):
     if not preferred.exists():
         preferred = work / ('search.log' if state.get('stage')=='validation' else 'coordinator.log')
     # Новые worker-логи полезнее редко обновляемого coordinator.log.
-    if state.get('stage') in {'extracting_32_hours','parallel_training'}:
+    if state.get('stage') in {'extracting_32_hours','parallel_training','donor_training'}:
         active_logs = [work/f'{name}.log' for name in state.get('workers',{})]
         active_logs = [p for p in active_logs if p.exists()]
         if active_logs:
             preferred = max(active_logs, key=lambda p:p.stat().st_mtime)
     return {'work':work,'protocol':protocol,'state':state,'resources':resources,
             'days':days,'heads':heads,'results':results,'logs':logs,'preferred':preferred,
-            'final':read_json(work/'final/summary.json',{})}
+            'final':read_json(work/'final/summary.json',{}),
+            'inputs':read_json(work/'inputs_ready.json',{}),
+            'input_record':last_record(work/'donor_inputs.log','prepared_peer_day')}
 
 
 def overview(s):
@@ -198,8 +206,13 @@ def overview(s):
              f"Цель: {protocol.get('target_score',80)}  |  validation: день {protocol.get('validation_day','—')}  |  test: день {protocol.get('test_day',protocol.get('final_test_day','—'))}", '']
     if state.get('error'): lines += [f"ОШИБКА: {state['error']}",'']
     done = sum(d['status']=='готово' for d in s['days'])
-    if s['days']:
+    if s['days'] and not protocol.get('head_labels'):
         lines += [f"Дни подготовлены: {bar(done,len(s['days']))}  {done}/{len(s['days'])}"]
+    if protocol.get('head_labels'):
+        if s['inputs']:
+            lines.append(f"Исторические переходы готовы: {len(s['inputs'].get('pairs',[]))}; хостов {s['inputs'].get('n_hosts','—')}")
+        elif s['input_record']:
+            lines.append(f"Профили контактов подготовлены по день {s['input_record']['prepared_peer_day']:02d}")
     for day in s['days']:
         if day['status']=='обрабатывается':
             lines.append(f"  Сейчас день {day['day']:02d}: прочитано {day.get('raw_rows',0):,} строк")
@@ -233,11 +246,16 @@ def overview(s):
 
 def training(s):
     lines=['ПОДГОТОВКА ДАННЫХ', '']
-    for day in s['days']:
-        lines.append(f"День {day['day']:02d}: {day['status']:<16}  прочитано {day.get('raw_rows',0):,} строк  |  в нужных часах {day.get('kept',0):,}")
+    if s['protocol'].get('head_labels'):
+        for pair in s['inputs'].get('pairs',[]):
+            lines.append(f"Дни {pair['source_day']:02d} → {pair['target_day']:02d}: {pair['active_queries']:,} запросов с полезными соседями")
+        if not s['inputs']: lines.append('Готовятся исторические признаки и цели; подробности на вкладке4.')
+    else:
+        for day in s['days']:
+            lines.append(f"День {day['day']:02d}: {day['status']:<16}  прочитано {day.get('raw_rows',0):,} строк  |  в нужных часах {day.get('kept',0):,}")
     lines += ['', 'ОБУЧЕНИЕ', '']
     for h in s['heads']:
-        lines.append(f"{h['dim']} признаков: {h['epoch']}/{h['target']} эпох; {h['status']}; loss: {h['loss'] if h['loss'] is not None else '—'}")
+        lines.append(f"Голова {h['dim']}: {h['epoch']}/{h['target']} эпох; {h['status']}; loss: {h['loss'] if h['loss'] is not None else '—'}")
     lines += ['', 'Эпоха и loss обновляются раз в 10 эпох.', 'Оценка оставшегося времени приблизительная; она не включает validation/test.']
     return lines
 
