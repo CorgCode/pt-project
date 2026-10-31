@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import os
 from pathlib import Path
 
 import cloudpickle
@@ -43,7 +44,7 @@ class MultiDayDC(RoleMixin, MultiDayEncoder):
         return out
 
     def train_graph(self, epochs, seed=17, link_weight=0.3):
-        torch.set_num_threads(2)
+        torch.set_num_threads(max(1, int(os.environ.get("PT_TORCH_THREADS", "2"))))
         torch.manual_seed(seed)
         config = dc.Config(dim=128, epochs=epochs, link_weight=link_weight)
         self.idf = np.log1p(len(self.hosts) / (1 + self._train["_counts"].getnnz(axis=0)))

@@ -211,7 +211,7 @@ class MultiDayEncoder(T.TemporalEncoder):
     def _fit_classifier(self):
         import torch
         from torch.nn import functional as F
-        torch.set_num_threads(2)
+        torch.set_num_threads(max(1, int(os.environ.get("PT_TORCH_THREADS", "2"))))
         self.net = T._encoder(self._xs[0].shape[1])
         classifier = torch.nn.Parameter(torch.randn(len(self.hosts), 128) * 0.02)
         optimizer = torch.optim.AdamW([*self.net.parameters(), classifier], lr=1e-3, weight_decay=1e-4)

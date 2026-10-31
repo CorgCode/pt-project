@@ -29,6 +29,7 @@ def main():
     lock = (work / "extended.lock").open("a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     child = None
+    preparations = {}
 
     def state(stage, **extra):
         row = {"stage": stage, "at": datetime.now().astimezone().isoformat(), **extra}
@@ -38,15 +39,23 @@ def main():
     def stop(signum, frame):
         if child is not None and child.poll() is None:
             os.killpg(child.pid, signum)
+        for process, log in preparations.values():
+            if process.poll() is None:
+                os.killpg(process.pid, signum)
         state("stopped", signal=signum)
         raise SystemExit(128 + signum)
 
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    env = dict(os.environ, PT_COMPACT="1", PYTHONUNBUFFERED="1", OMP_NUM_THREADS="4",
-               OPENBLAS_NUM_THREADS="4", MKL_NUM_THREADS="4", VECLIB_MAXIMUM_THREADS="4",
+    threads = str(min(6, psutil.cpu_count() or 1))
+    env = dict(os.environ, PT_COMPACT="1", PYTHONUNBUFFERED="1", OMP_NUM_THREADS=threads,
+               OPENBLAS_NUM_THREADS=threads, MKL_NUM_THREADS=threads, VECLIB_MAXIMUM_THREADS=threads,
+               PT_TORCH_THREADS="4",
                PT_VIEW_CACHE_DIR=str(work / "view_cache"))
+    resources = {"cpu_threads": int(threads), "torch_threads": 4, "preparation_workers": 2,
+                 "requested_by_user": True, "at": datetime.now().astimezone().isoformat()}
+    (work / "runtime_resources.json").write_text(json.dumps(resources, indent=2) + "\n")
 
     def run_stage(name, module, *flags):
         nonlocal child
@@ -54,7 +63,7 @@ def main():
             raise RuntimeError(f"Перед {name} свободно меньше 3 ГБ памяти")
         if psutil.disk_usage(work).free < 20 * 2**30:
             raise RuntimeError("На SSD осталось меньше 20 ГБ")
-        command = ["caffeinate", "-i", "nice", "-n", "15", sys.executable, "-m", module, *map(str, flags)]
+        command = ["caffeinate", "-i", "nice", "-n", "5", sys.executable, "-m", module, *map(str, flags)]
         with (work / f"extended_{name}.log").open("a") as log:
             child = subprocess.Popen(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT,
                                      stdin=subprocess.DEVNULL, start_new_session=True)
@@ -70,28 +79,94 @@ def main():
             state("stage_failed", failed_stage=name, exit_code=code)
             raise RuntimeError(f"Стадия {name}: exit code {code}")
 
-    state("waiting_for_pilot_queue")
-    while True:
+    def pilot_ready():
         previous = json.loads((work / "queue_state.json").read_text())
         if previous["stage"] == "ready_for_frozen_selection":
-            break
+            return True
         if previous["stage"] in ("pilot_failed", "stage_failed", "low_memory_before_stage"):
             raise RuntimeError("Предыдущая очередь остановилась: " + json.dumps(previous))
         pid = int((work / "queue.pid").read_text())
         if not psutil.pid_exists(pid):
             raise RuntimeError("Предыдущая очередь исчезла без итогового состояния")
-        time.sleep(30)
+        return False
     state("waiting_for_downloads")
     while not (work / "download_extended.exit_code").exists():
         if not psutil.pid_exists(int((work / "download_extended.pid").read_text())):
             raise RuntimeError("Загрузка новых дней остановилась")
         time.sleep(30)
-    for day in [4, 5, 6, 7, 8]:
-        destination = work / f"day{day:02d}"
-        if not (destination / "manifest.json").exists():
-            run_stage(f"prepare_day{day:02d}", "experiments.multiday_prepare", "--raw",
-                      source / f"multiday/raw/netflow_day-{day:02d}.bz2", "--base", base,
-                      "--out", destination, "--day", day)
+    # День05 готовит пилотная очередь; остальные можно обрабатывать уже сейчас.
+    pending = [day for day in [4, 6, 7, 8] if not (work / f"day{day:02d}/manifest.json").exists()]
+    last_active = None
+    parallel_disabled = False
+    try:
+        while pending or preparations:
+            if len(preparations) > 1 and psutil.virtual_memory().available < 1.5 * 2**30:
+                day = max(preparations)
+                process, log = preparations.pop(day)
+                if process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    process.wait()
+                log.close()
+                pending.insert(0, day)
+                parallel_disabled = True
+                state("prepare_days_memory_fallback", deferred_day=day)
+            worker_limit = 1 if parallel_disabled or not pilot_ready() else 2
+            while pending and len(preparations) < worker_limit:
+                reserve = 0
+                for process, _ in preparations.values():
+                    if process.poll() is None:
+                        try:
+                            reserve += max(0, 2.5 * 2**30 - psutil.Process(process.pid).memory_info().rss)
+                        except psutil.NoSuchProcess:
+                            pass
+                available = psutil.virtual_memory().available - reserve
+                minimum = (4.5 if preparations else 3) * 2**30
+                if available < minimum:
+                    if not preparations:
+                        raise RuntimeError("Для подготовки данных свободно меньше 3 ГБ памяти")
+                    break
+                day = pending.pop(0)
+                log = (work / f"extended_prepare_day{day:02d}.log").open("a")
+                worker_env = dict(env, OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1",
+                                  MKL_NUM_THREADS="1", VECLIB_MAXIMUM_THREADS="1")
+                process = subprocess.Popen([
+                    "caffeinate", "-i", "nice", "-n", "5", sys.executable, "-m", "experiments.multiday_prepare",
+                    "--raw", str(source / f"multiday/raw/netflow_day-{day:02d}.bz2"), "--base", str(base),
+                    "--out", str(work / f"day{day:02d}"), "--day", str(day),
+                ], cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
+                   stdin=subprocess.DEVNULL, start_new_session=True)
+                preparations[day] = (process, log)
+            active = sorted(preparations)
+            if active != last_active:
+                state("prepare_days", active_days=active, pending_days=pending,
+                      workers={str(d): p.pid for d, (p, _) in preparations.items()})
+                last_active = active
+            for day, (process, log) in list(preparations.items()):
+                code = process.poll()
+                if code is not None:
+                    log.close()
+                    del preparations[day]
+                    (work / f"extended_prepare_day{day:02d}.exit_code").write_text(str(code) + "\n")
+                    if code:
+                        raise RuntimeError(f"Подготовка дня {day}: exit code {code}")
+            time.sleep(2)
+    finally:
+        for process, log in preparations.values():
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+                process.wait()
+            log.close()
+    if not pilot_ready():
+        state("waiting_for_pilot_queue")
+        while not pilot_ready():
+            time.sleep(30)
+    if not (work / "day05/manifest.json").exists():
+        run_stage("prepare_day05", "experiments.multiday_prepare", "--raw",
+                  source / "multiday/raw/netflow_day-05.bz2", "--base", base,
+                  "--out", work / "day05", "--day", 5)
     paired_val, refs_val = work / "paired_validation", work / "reference_validation"
     run_stage("reference_validation", "experiments.multiday_reference", "--base", base,
               "--target", work / "day08", "--out", paired_val, "--reference", refs_val, "--window", "validation")
