@@ -3,7 +3,17 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 
-from experiments.fingerprint_quick import Projection
+from experiments.fingerprint_quick import Projection, candidate_directories
+
+
+def test_candidate_discovery_ignores_macos_metadata_and_non_directories(tmp_path):
+    root=tmp_path/'candidates'; root.mkdir()
+    for name in ['incumbent','pca128_power0.0']:
+        (root/name).mkdir()
+    (root/'._incumbent').write_bytes(b'AppleDouble')
+    (root/'notes.txt').write_text('notes')
+    (root/'.cache').mkdir()
+    assert [p.name for p in candidate_directories(tmp_path)]==['incumbent','pca128_power0.0']
 
 
 def test_projection_matches_frozen_pca_on_unseen_data():

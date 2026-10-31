@@ -28,6 +28,11 @@ VALIDATION = SOURCE/'fingerprint_memory'
 INCUMBENT = PREVIOUS/'final/model.pkl'
 
 
+def candidate_directories(work):
+    # На внешнем диске macOS создаёт AppleDouble-файлы ._имя рядом с каталогами.
+    return sorted(p for p in (work/'candidates').iterdir() if p.is_dir() and not p.name.startswith('.'))
+
+
 class Projection:
     def __init__(self, pca, dim, power):
         self.mean = pca.mean_.copy()
@@ -104,7 +109,7 @@ def select(work):
         state(work,'export_model',winner=winner)
         model=ProjectedEncoder(slim(load(INCUMBENT)),load(bestdir/'projection.pkl'))
         dump(model,bestdir/'best.pkl')
-    freeze_selection(sorted((work/'candidates').iterdir()),work/'final')
+    freeze_selection(candidate_directories(work),work/'final')
     write_json(work/'selection_summary.json',{'validation_gain':winner['score']-old['score'],
         'incumbent_score':old['score'],'winner':winner,'test_gate':1.0,
         'test_will_run':winner['score']-old['score']>=1.0})
@@ -140,7 +145,7 @@ def main():
             '--base',BASE,'--out',work/'day13','--day',13)
     run(work,'reference_test','experiments.multiday_reference','--base',BASE,'--target',work/'day13',
         '--out',work/'paired_test','--reference',work/'reference_test','--window','test')
-    run(work,'final_evaluation','experiments.multiday_finish','--candidates',*sorted((work/'candidates').iterdir()),
+    run(work,'final_evaluation','experiments.multiday_finish','--candidates',*candidate_directories(work),
         '--data',work/'paired_test','--reference',work/'reference_test/test','--out',work/'final',
         '--incumbent',INCUMBENT,'--test-label','day13, 12:30–13:30','--protocol-text',
         'Замороженная модель32ч + PCA по train-векторам. Выбор на validation10, test13 один раз после фиксации. Когорта дня02.')
