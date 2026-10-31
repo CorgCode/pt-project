@@ -320,7 +320,7 @@ def evaluate(model, data, window: str, ref: Path, out: Path, name: str, n_boot=0
     for w, hosts, filename in [("train", data.cohort, "embeddings.csv"),
                                (window, data.evaluable(window), "later.csv")]:
         path = out / filename
-        model.embed(data, w, hosts).to_csv(path, float_format="%.5g")
+        model.embed(data, w, hosts).to_csv(path, float_format="%.5g", index_label="host_id")
         files.append(path)
     result = run(files[0], ref, name, n_boot=n_boot,
                  fit_reference_dir=Path("scoreboard/data/reference/validation"))

@@ -11,6 +11,29 @@ def day(start, end):
     return SimpleNamespace(manifest={"windows": {"train": {"start": start, "end": end}}})
 
 
+def test_evaluation_exports_required_host_header_for_models_with_unnamed_index(tmp_path,monkeypatch):
+    import json
+    import numpy as np
+    import pandas as pd
+    from experiments import multiday_gain as module
+    from evaluation.io import load_embeddings
+    class Model:
+        def embed(self,data,window,hosts):
+            return pd.DataFrame([[0.6,0.8],[0.8,0.6]],index=hosts,columns=['emb_0','emb_1'])
+    def score(path,*args,**kwargs):
+        frame=load_embeddings(path,'host_id','emb_')
+        assert frame.index.tolist()==['a','b']
+        np.testing.assert_allclose(frame.to_numpy(),[[0.6,0.8],[0.8,0.6]])
+        return {'method':'test','summary':[{'metric':'m','title':'m','group':'g','chance':0}], 'metrics':{'m':0.8}}
+    monkeypatch.setattr(module,'run',score)
+    monkeypatch.setattr(module.submit,'add_identity',lambda *args,**kwargs:None)
+    ref=tmp_path/'ref';ref.mkdir();(ref/'manifest.json').write_text(json.dumps({}))
+    data=SimpleNamespace(cohort=['a','b'],evaluable=lambda window:['a','b'])
+    result,_=module.evaluate(Model(),data,'validation',ref,tmp_path/'out','test')
+    assert result==pytest.approx(80)
+    assert load_embeddings(tmp_path/'out/later.csv').index.tolist()==['a','b']
+
+
 def test_rejects_training_after_validation_or_overlapping_days():
     with pytest.raises(ValueError, match="предшествовать"):
         check_chronology([day(0, 20), day(30, 50)], 40)

@@ -19,12 +19,14 @@ DEFAULT_WORK = Path('/Volumes/KINGSTON/PT_PROJECT_ML/fingerprint_expanded')
 def current_work():
     candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick',
                   DEFAULT_WORK.parent/'fingerprint_donors',DEFAULT_WORK.parent/'fingerprint_transfer',
-                  DEFAULT_WORK.parent/'fingerprint_aligned']
+                  DEFAULT_WORK.parent/'fingerprint_aligned',DEFAULT_WORK.parent/'fingerprint_bigraph']
     existing = [p for p in candidates if (p/'state.json').exists()]
     return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
 
 
 STAGES = {
+    'graph_training': 'Полное обучение графового энкодера',
+    'training_revision': 'Подготовка зафиксированной версии обучения',
     'donor_inputs': 'Подготовка исторических переходов и полезных соседей',
     'donor_training': 'Обучение прогноза новых собеседников',
     'waiting_for_download13': 'Ожидание скачивания итогового дня 13',
@@ -186,7 +188,7 @@ def snapshot(work, sampler):
     if not preferred.exists():
         preferred = work / ('search.log' if state.get('stage')=='validation' else 'coordinator.log')
     # Новые worker-логи полезнее редко обновляемого coordinator.log.
-    if state.get('stage') in {'extracting_32_hours','parallel_training','donor_training'}:
+    if state.get('stage') in {'extracting_32_hours','parallel_training','donor_training','graph_training'}:
         active_logs = [work/f'{name}.log' for name in state.get('workers',{})]
         active_logs = [p for p in active_logs if p.exists()]
         if active_logs:
