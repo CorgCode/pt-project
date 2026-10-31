@@ -18,7 +18,8 @@ DEFAULT_WORK = Path('/Volumes/KINGSTON/PT_PROJECT_ML/fingerprint_expanded')
 
 def current_work():
     candidates = [DEFAULT_WORK, DEFAULT_WORK.parent/'fingerprint_memory', DEFAULT_WORK.parent/'fingerprint_quick',
-                  DEFAULT_WORK.parent/'fingerprint_donors',DEFAULT_WORK.parent/'fingerprint_transfer']
+                  DEFAULT_WORK.parent/'fingerprint_donors',DEFAULT_WORK.parent/'fingerprint_transfer',
+                  DEFAULT_WORK.parent/'fingerprint_aligned']
     existing = [p for p in candidates if (p/'state.json').exists()]
     return max(existing,key=lambda p:(p/'state.json').stat().st_mtime) if existing else DEFAULT_WORK
 
@@ -231,6 +232,8 @@ def overview(s):
     if state.get('result')=='no_material_validation_gain':
         lines += ['',f"Значимого для продолжения прироста на validation нет: {state.get('validation_gain',0):+.3f}.",
                   'Новый test не открывался. Подробности: selection_summary.json.']
+    if state.get('result')=='below_80_on_development':
+        lines += ['', 'Порог80 на обоих днях development не пройден. Test13 не открывался.']
     job_cpu = (f"{r['job_cpu']/max(1,len(r['cores'])):.0f}% мощности CPU" if r['job_cpu'] is not None
                else ('первый замер…' if r['running'] else 'нет активных процессов'))
     lines += ['',f"CPU всего: {sum(r['cores'])/max(1,len(r['cores'])):.0f}%  |  процессы прогона: {job_cpu}",
@@ -262,6 +265,8 @@ def training(s):
 
 def results(s):
     lines=['VALIDATION: подбор модели, не итоговый test', '', 'Балл      Identity    Модель', '-'*78]
+    if s['protocol'].get('development_days'):
+        lines[0]='DEVELOPMENT10/12: балл = меньший из двух; оба дня уже просмотрены'
     for row in sorted(s['results'],key=lambda x:-x['score']):
         identity=f"{row['identity']:.1%}" if row.get('identity') is not None else '—'
         lines.append(f"{row['score']:7.3f}   {identity:>7}    {row['name']}")
