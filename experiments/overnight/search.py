@@ -82,7 +82,7 @@ def overheated() -> bool:
 
 def safe_to_continue() -> bool:
     for _ in range(30):                                      # до 15 минут ожидания, потом стоп
-        disk = shutil.disk_usage(OUT).free / 2**30
+        disk = shutil.disk_usage(ROOT).free / 2**30          # тот же диск; OUT может ещё не существовать
         if disk < MIN_DISK_GB:
             log(f"мало места на диске: {disk:.1f} ГБ — останавливаюсь")
             return False

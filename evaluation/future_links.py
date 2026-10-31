@@ -263,6 +263,14 @@ def _window_bounds(window: str) -> tuple[pd.Timestamp, pd.Timestamp]:
     return pd.Timestamp(a.rstrip("Z")), pd.Timestamp(b.rstrip("Z"))
 
 
+def _predict_probability_batches(model, features, frame, batch=4096):
+    """Тот же predict_proba без большой временной матрицы всех проверочных пар."""
+    if not len(frame):
+        return np.empty(0)
+    return np.concatenate([model.predict_proba(features(frame.iloc[start:start + batch]))[:, 1]
+                           for start in range(0, len(frame), batch)])
+
+
 def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: pd.DataFrame, *,
                   fit_split: str = "validation", eval_split: str = "test", seed: int = 0,
                   n_boot: int = 0, degree: pd.Series | None = None) -> dict:
@@ -301,12 +309,12 @@ def score_learned(embedding: pd.DataFrame, fit_edges: pd.DataFrame, eval_edges: 
     if len(np.unique(yf)) < 2 or len(np.unique(ye)) < 2:
         raise ValueError("и в обучении, и в оценке нужны оба класса")
     clf = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
-    score = clf.predict_proba(feats(ev))[:, 1]
+    score = _predict_probability_batches(clf, feats, ev)
     out = auc_with_ci(ye, score, n_boot=n_boot, seed=seed, hosts=host_index(ev.host_a, ev.host_b))
     # случайный уровень: тот же классификатор на случайных векторах той же размерности (запоминает хабы)
     z = pd.DataFrame(np.random.default_rng(seed).standard_normal(z.shape), index=z.index)
     rnd = LogisticRegression(C=1.0, max_iter=2000, random_state=seed).fit(feats(fit), yf)
-    rnd_score = rnd.predict_proba(feats(ev))[:, 1]
+    rnd_score = _predict_probability_batches(rnd, feats, ev)
     out["random_roc_auc"] = float(roc_auc_score(ye, rnd_score))
     seen = _seen(ev)
     if seen is not None:

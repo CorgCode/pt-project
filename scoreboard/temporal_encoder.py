@@ -234,7 +234,7 @@ class TemporalEncoder:
     def _fit_mlp(self, data: ProcessedData, xs: list[np.ndarray], ok: np.ndarray, active: np.ndarray) -> None:
         import torch
         from torch.nn import functional as F
-        torch.set_num_threads(2)                         # как в исходном эксперименте: числа воспроизводятся
+        torch.set_num_threads(max(1, int(os.environ.get("PT_TORCH_THREADS", "2"))))
         xs = [torch.from_numpy(x) for x in xs]
         pair_rng = np.random.default_rng(SEED + 1)    # отдельный поток: при splits=2 числа как в исследовании
 
