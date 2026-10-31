@@ -227,7 +227,9 @@ def overview(s):
         loss = f"  loss {head['loss']:.4f}" if head['loss'] is not None else ''
         eta = f"  осталось ≈{duration(head['eta'])}" if head['eta'] is not None else ''
         lines.append(f"Голова {head['dim']}: {bar(head['epoch'],head['target'])}  {head['epoch']}/{head['target']}  {head['status']}{loss}{eta}")
-    count, total=len(s['results']), protocol.get('candidates',20)
+    inferred_total=(len(protocol['head_labels'])*len(protocol['checkpoints'])+1
+                    if protocol.get('head_labels') and protocol.get('checkpoints') else 20)
+    count, total=len(s['results']), protocol.get('candidates',inferred_total)
     lines += [f'Validation: {bar(count,total)}  {count}/{total}']
     if state.get('candidate'): lines.append(f"Сейчас проверяется: {state['candidate']}")
     if s['results']:
