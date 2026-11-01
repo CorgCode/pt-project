@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("torch")
 
-from methods.baselines.autoencoder import BehavioralDAE
+from methods.baselines.autoencoder import BehavioralDAE, BehavioralDAEConsistency
 from pipeline.data import ProcessedData
 
 
@@ -61,3 +61,43 @@ def test_denoising_loss_usually_decreases(guarded_data):
     assert len(model.loss_history_) == 8
     assert np.isfinite(model.loss_history_).all()
     assert model.loss_history_[-1] < model.loss_history_[0]
+
+def test_consistency_fit_reads_only_train(guarded_data):
+    guarded_data.fitting = True
+    try:
+        BehavioralDAEConsistency(
+            dim=6, hidden_dim=24, epochs=2, batch_size=128
+        ).fit(guarded_data)
+    finally:
+        guarded_data.fitting = False
+
+
+def test_consistency_embedding_contract_and_losses(guarded_data):
+    model = BehavioralDAEConsistency(
+        dim=6, hidden_dim=24, epochs=3, batch_size=128, seed=31
+    ).fit(guarded_data)
+    embedding = model.embed(guarded_data, "train")
+    assert embedding.shape == (len(guarded_data.cohort), 6)
+    assert embedding.index.name == "host_id"
+    assert np.isfinite(embedding.to_numpy()).all()
+    assert model.shared_coordinate_system
+    assert len(model.reconstruction_loss_history_) == 3
+    assert len(model.consistency_loss_history_) == 3
+    assert np.isfinite(model.reconstruction_loss_history_).all()
+    assert np.isfinite(model.consistency_loss_history_).all()
+    assert (np.asarray(model.consistency_loss_history_) >= 0).all()
+
+
+def test_consistency_fit_is_reproducible(guarded_data):
+    kwargs = dict(dim=6, hidden_dim=24, epochs=3, batch_size=128, seed=37)
+    a = BehavioralDAEConsistency(**kwargs).fit(guarded_data)
+    b = BehavioralDAEConsistency(**kwargs).fit(guarded_data)
+    za = a.embed(guarded_data, "train").to_numpy()
+    zb = b.embed(guarded_data, "train").to_numpy()
+    np.testing.assert_allclose(za, zb, rtol=1e-5, atol=1e-6)
+
+
+def test_consistency_weight_must_be_nonnegative():
+    with pytest.raises(ValueError, match="consistency_weight"):
+        BehavioralDAEConsistency(consistency_weight=-0.1)
+
