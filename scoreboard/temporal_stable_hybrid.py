@@ -20,6 +20,7 @@ from scipy.linalg import eigh
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.preprocessing import normalize
+from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -70,9 +71,70 @@ class TemporalStableHybrid:
     @classmethod
     def load(cls, path):
         """Загрузить сохранённое состояние модели без повторного обучения."""
+        if Path(path).suffix == '.npz':
+            return cls._load_portable(path)
         model = cls()
         model.__dict__.update(joblib.load(path))
         return model
+
+    def export(self, path):
+        """Сохранить веса и словари как массивы без Python pickle и кэша окон."""
+        fitted = self.beh._fitted
+        meta = {'format': 1, 'hosts': self.hosts,
+                'vocab': {k: list(v) for k, v in self.vocab.items()},
+                'ports': list(fitted['ports']), 'protos': list(fitted['protos']),
+                'excluded': list(fitted.get('excluded', ())), 'blocks': list(fitted['scalers']),
+                'parameters': {k: getattr(self, k) for k in ('dim', 'stable_dim', 'splits',
+                    'stable_weight', 'behavioral_weight', 'min_flows', 'regularization')},
+                'training_window': getattr(self, 'training_window', None)}
+        arrays = {'metadata': np.array(json.dumps(meta, ensure_ascii=False))}
+        for name in ('stable_mean', 'projection', 'stable_center', 'stable_scale'):
+            arrays[name] = np.asarray(getattr(self, name))
+        for kind, (tfidf, svd) in self.models.items():
+            arrays[kind + '_idf'] = tfidf.idf_
+            arrays[kind + '_svd'] = svd.components_
+        for name, scaler in fitted['scalers'].items():
+            arrays['scaler_' + name + '_mean'] = scaler.mean_
+            arrays['scaler_' + name + '_scale'] = scaler.scale_
+            arrays['scaler_' + name + '_var'] = scaler.var_
+        for name in self.means:
+            arrays['mean_' + name] = self.means[name]
+            arrays['scale_' + name] = np.asarray(self.scales[name])
+        np.savez_compressed(path, **arrays)
+
+    @classmethod
+    def _load_portable(cls, path):
+        with np.load(path, allow_pickle=False) as saved:
+            meta = json.loads(str(saved['metadata']))
+            if meta['format'] != 1:
+                raise ValueError('неподдерживаемая версия checkpoint')
+            model = cls(**meta['parameters'])
+            model.hosts = meta['hosts']
+            model.training_window = meta['training_window']
+            model.vocab = {k: pd.Index(v) for k, v in meta['vocab'].items()}
+            model.models = {}
+            for kind in model.vocab:
+                tfidf = TfidfTransformer()
+                tfidf.idf_ = saved[kind + '_idf'].copy()
+                svd = TruncatedSVD(saved[kind + '_svd'].shape[0])
+                svd.components_ = saved[kind + '_svd'].copy()
+                svd.n_features_in_ = svd.components_.shape[1]
+                model.models[kind] = tfidf, svd
+            scalers = {}
+            for name in meta['blocks']:
+                scaler = StandardScaler()
+                for key in ('mean', 'scale', 'var'):
+                    setattr(scaler, key + '_', saved['scaler_' + name + '_' + key].copy())
+                scaler.n_features_in_ = len(scaler.mean_)
+                scalers[name] = scaler
+            model.beh = BehavioralBaseline()
+            model.beh._fitted = {'ports': meta['ports'], 'protos': meta['protos'],
+                                'excluded': tuple(meta['excluded']), 'scalers': scalers}
+            for name in ('stable_mean', 'projection', 'stable_center', 'stable_scale'):
+                setattr(model, name, saved[name].copy())
+            model.means = {k: saved['mean_' + k].copy() for k in ('behavioral', 'peers', 'services')}
+            model.scales = {k: float(saved['scale_' + k]) for k in model.means}
+            return model
 
     def __init__(self, dim=128, stable_dim=128, splits=4, stable_weight=0.5, behavioral_weight=2.0,
                  min_flows=5, regularization=0.1):
@@ -103,6 +165,7 @@ class TemporalStableHybrid:
         self.beh = BehavioralBaseline().fit(data)
         window = data.manifest['windows']['train']
         start, end = float(window['start']), float(window['end'])
+        self.training_window = [start, end]
         print('Обучение TF-IDF и SVD...', flush=True)
         full = view(flows, self.hosts, end - start)
         self.vocab, self.models = {}, {}
@@ -184,7 +247,10 @@ def main():
     ap.add_argument('--output', type=Path, required=True, help='новая папка для локальных результатов')
     ap.add_argument('--tune', action='store_true', help='выбрать веса только на validation общей таблицы')
     ap.add_argument('--validation-only', action='store_true', help='обучить и сохранить только train и validation')
+    ap.add_argument('--checkpoint', type=Path, help='применить готовую модель без обучения и подбора')
     args = ap.parse_args()
+    if args.checkpoint and args.tune:
+        ap.error('--checkpoint и --tune несовместимы: test не используется для подбора')
     data = ProcessedData(os.environ.get('PT_DATA', ROOT / 'scoreboard/data/processed'))
     if args.tune:
         official = ROOT / 'scoreboard/data/processed'
@@ -195,7 +261,12 @@ def main():
             raise ValueError('--tune использует общие эталоны: нужны их когорта и манифест окон')
     if args.output.exists():
         raise FileExistsError(f'{args.output} уже существует; укажите новую папку')
-    model = TemporalStableHybrid().fit(data)
+    model = TemporalStableHybrid.load(args.checkpoint) if args.checkpoint else TemporalStableHybrid().fit(data)
+    if model.hosts != data.cohort:
+        raise ValueError('когорта checkpoint отличается от train-когорты данных')
+    train_window = data.manifest['windows']['train']
+    if getattr(model, 'training_window', None) not in (None, [float(train_window['start']), float(train_window['end'])]):
+        raise ValueError('train-окно checkpoint отличается от train-окна данных')
     rows = tune(model, data) if args.tune else []
     args.output.mkdir(parents=True)
     jobs = [('train', data.cohort, 'embeddings.csv')]

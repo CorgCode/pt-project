@@ -50,5 +50,10 @@ def test_fit_train_only_shared_coordinates_and_host_order(processed, monkeypatch
     loaded = TemporalStableHybrid.load(path)
     loaded.cache.clear()
     np.testing.assert_allclose(loaded.embed(data, 'validation', hosts).to_numpy(), result.to_numpy())
+    portable = tmp_path / 'model.npz'
+    model.export(portable)
+    restored = TemporalStableHybrid.load(portable)
+    np.testing.assert_allclose(restored.embed(data, 'train').to_numpy(), train, atol=1e-10)
+    np.testing.assert_allclose(restored.embed(data, 'validation', hosts).to_numpy(), result.to_numpy(), atol=1e-10)
     with pytest.raises(ValueError, match='когорте'):
         model.embed(data, 'validation', ['missing'])
