@@ -205,8 +205,8 @@ def test_validation_tuning_is_not_saturated_on_behavior():
     assert NEIGHBORS_IDEAL["validation"] > max(v for k, v in NEIGHBORS_IDEAL.items() if k != "validation")
 
 
-def test_score_interval_contains_score_and_marks_ties():
-    from evaluation.scoreboard import overall_score, score_interval, ties_with_leader
+def test_score_interval_contains_score():
+    from evaluation.scoreboard import overall_score, score_interval
     summary = [{"metric": "m", "title": "M", "chance": 0.0}]
 
     def r(name, v, ci):
@@ -216,4 +216,3 @@ def test_score_interval_contains_score_and_marks_ties():
     score = overall_score(res, cols)
     lo, hi = score_interval(res, cols)
     assert all(lo[m] <= score[m] <= hi[m] for m in score.index)
-    assert ties_with_leader(score.sort_values(ascending=False), lo, hi) == {"b"}     # c явно хуже

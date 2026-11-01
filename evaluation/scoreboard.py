@@ -177,15 +177,6 @@ def score_interval(results: list[dict], cols) -> tuple[pd.Series, pd.Series]:
             overall_score([_at_bound(r, 1) for r in results], cols))
 
 
-def ties_with_leader(order: pd.Series, lo: pd.Series, hi: pd.Series) -> set[str]:
-    """Методы, чей интервал пересекается с интервалом лидера: отличие от него не доказано."""
-    ranked = order.dropna()
-    if ranked.empty or pd.isna(lo.get(ranked.index[0])):
-        return set()
-    floor = lo[ranked.index[0]]
-    return {m for m in ranked.index[1:] if not pd.isna(hi.get(m)) and hi[m] >= floor}
-
-
 def headline_table(results: list[dict], card_url=None, stale: set | None = None) -> str:
     """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок.
     stale — методы, оценённые прежней версией оценки (помечаются †)."""
@@ -201,7 +192,6 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
                 chance.setdefault(s["metric"], []).append(s["chance"])
     score = overall_score(results, cols)
     lo, hi = score_interval(results, cols)
-    tied = ties_with_leader(order, lo, hi)
     extra = {k: t for k, t in EXTRA.items() if any(r["metrics"].get(k) is not None for r in results)}
     shown = list(cols) + list(extra)
     real = pd.DataFrame({m: {k: r["metrics"].get(k) for k in shown} for m, r in ((r["method"], r) for r in results)
@@ -235,7 +225,7 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
 
     ranked = order.dropna()                        # без всех задач — без места (неполная оценка)
     for i, m in enumerate(ranked.index, 1):
-        lines.append(row("≈1" if m in tied else str(i), m))     # ≈1 — от лидера не отличим
+        lines.append(row(str(i), m))
     for m in order.index.difference(ranked.index):
         lines.append(row("—", m))
     for m in sorted(SERVICE & set(by_name)):
