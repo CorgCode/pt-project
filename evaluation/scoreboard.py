@@ -159,6 +159,33 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     return pd.Series(out)
 
 
+def _at_bound(r: dict, side: int) -> dict:
+    """Копия результата, где каждая метрика заменена краем своего 95% интервала (0 — нижний, 1 — верхний)."""
+    out = dict(r, metrics=dict(r.get("metrics", {})))
+    for k, ci in (r.get("metrics_ci") or {}).items():
+        if ci and out["metrics"].get(k) is not None:
+            out["metrics"][k] = ci[side]
+    if r.get("by_window"):
+        out["by_window"] = {w: _at_bound(v, side) for w, v in r["by_window"].items()}
+    return out
+
+
+def score_interval(results: list[dict], cols) -> tuple[pd.Series, pd.Series]:
+    """95% интервал score: все метрики на нижнем / верхнем краю своих интервалов. Score растёт по каждой
+    метрике, поэтому интервал консервативный — шире совместного. У окон — бутстреп по хостам этого окна."""
+    return (overall_score([_at_bound(r, 0) for r in results], cols),
+            overall_score([_at_bound(r, 1) for r in results], cols))
+
+
+def ties_with_leader(order: pd.Series, lo: pd.Series, hi: pd.Series) -> set[str]:
+    """Методы, чей интервал пересекается с интервалом лидера: отличие от него не доказано."""
+    ranked = order.dropna()
+    if ranked.empty or pd.isna(lo.get(ranked.index[0])):
+        return set()
+    floor = lo[ranked.index[0]]
+    return {m for m in ranked.index[1:] if not pd.isna(hi.get(m)) and hi[m] >= floor}
+
+
 def headline_table(results: list[dict], card_url=None, stale: set | None = None) -> str:
     """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок.
     stale — методы, оценённые прежней версией оценки (помечаются †)."""
@@ -173,6 +200,8 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
             if s.get("chance") is not None:
                 chance.setdefault(s["metric"], []).append(s["chance"])
     score = overall_score(results, cols)
+    lo, hi = score_interval(results, cols)
+    tied = ties_with_leader(order, lo, hi)
     extra = {k: t for k, t in EXTRA.items() if any(r["metrics"].get(k) is not None for r in results)}
     shown = list(cols) + list(extra)
     real = pd.DataFrame({m: {k: r["metrics"].get(k) for k in shown} for m, r in ((r["method"], r) for r in results)
@@ -198,13 +227,15 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
         sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
+        if m not in SERVICE and not pd.isna(lo.get(m)) and not pd.isna(hi.get(m)):
+            sc = f"{sc} [{lo[m]:.1f}–{hi[m]:.1f}]"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
         return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + " |"
 
     ranked = order.dropna()                        # без всех задач — без места (неполная оценка)
     for i, m in enumerate(ranked.index, 1):
-        lines.append(row(str(i), m))
+        lines.append(row("≈1" if m in tied else str(i), m))     # ≈1 — от лидера не отличим
     for m in order.index.difference(ranked.index):
         lines.append(row("—", m))
     for m in sorted(SERVICE & set(by_name)):
