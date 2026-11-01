@@ -90,15 +90,26 @@ def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
     return cols, values, order
 
 
-def column_scores(r: dict, cols) -> dict[str, float]:
-    """Балл метода в каждой колонке: 0 — случайный уровень, 100 — идеал (1.0)."""
+# Соседи@10: поведение хоста в test-окне во многом новое. Даже настоящие признаки за 30 минут до test
+# дают на общих хостах 0.21, поэтому 1.0 недостижима. Идеал — прогноз «как хост вёл себя в train»
+# (persistence, это `behavioral` на main): выше него — уже 100.
+NEIGHBORS = "consistency@10_mean"
+# test — день 14, test_day15/16 — дни 15, 16 (12:30–13:30): уровень behavioral на каждом окне
+NEIGHBORS_IDEAL = {"test": 0.2929, "test_day15": 0.2519, "test_day16": 0.1255, "validation": 0.2078}
+# окно не передано — это подбор на validation (submit.validation_score): свой уровень, иначе подбор упирается в 100.
+NEIGHBORS_IDEAL_DEFAULT = NEIGHBORS_IDEAL["validation"]
+
+
+def column_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
+    """Балл метода в каждой колонке: 0 — случайный уровень, 100 — идеал (1.0; для Соседей — NEIGHBORS_IDEAL)."""
     chance = {s["metric"]: s.get("chance") for s in r.get("summary", [])}
     out = {}
     for k in cols:
         v, c = r["metrics"].get(k), chance.get(k)
-        if v is None or c is None or c >= 1:
+        top = NEIGHBORS_IDEAL.get(window, NEIGHBORS_IDEAL_DEFAULT) if k == NEIGHBORS else 1.0
+        if v is None or c is None or c >= top:
             continue
-        out[k] = 100 * min(max((v - c) / (1 - c), 0.0), 1.0)
+        out[k] = 100 * min(max((v - c) / (top - c), 0.0), 1.0)
     return out
 
 
@@ -110,11 +121,11 @@ def _geo(xs) -> float:
     return float(math.exp(sum(math.log(x) for x in xs) / len(xs)))
 
 
-def task_scores(r: dict, cols) -> dict[str, float]:
+def task_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
     """Балл по задачам (группам колонок): среднее геометрическое баллов колонок задачи."""
     group = {s["metric"]: s.get("group") or s["metric"] for s in r.get("summary", [])}
     by: dict[str, list[float]] = {}
-    for k, v in column_scores(r, cols).items():
+    for k, v in column_scores(r, cols, window).items():
         by.setdefault(group.get(k, k), []).append(v)
     return {g: _geo(v) for g, v in by.items()}
 
@@ -124,11 +135,11 @@ def complete(r: dict, cols) -> bool:
     return all(r["metrics"].get(k) is not None for k in cols)
 
 
-def _one_score(r: dict, cols, required: bool = True) -> float:
+def _one_score(r: dict, cols, required: bool = True, window: str | None = None) -> float:
     """required=False — только для ориентиров (SERVICE): у reference_ceiling части задач нет по устройству."""
     if required and not complete(r, cols):
         return float("nan")             # пропуск сложной задачи не должен поднимать балл
-    ts = task_scores(r, cols)
+    ts = task_scores(r, cols, window)
     return _geo(ts.values()) if ts else float("nan")
 
 
@@ -140,12 +151,30 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     for r in results:
         req = r["method"] not in SERVICE
         if r.get("by_window"):
-            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req)
-                    for w in r["by_window"].values()]
+            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req, name)
+                    for name, w in r["by_window"].items()]
             out[r["method"]] = float(np.mean(days)) if not any(np.isnan(days)) else float("nan")
         else:
             out[r["method"]] = _one_score(r, cols, req)
     return pd.Series(out)
+
+
+def _at_bound(r: dict, side: int) -> dict:
+    """Копия результата, где каждая метрика заменена краем своего 95% интервала (0 — нижний, 1 — верхний)."""
+    out = dict(r, metrics=dict(r.get("metrics", {})))
+    for k, ci in (r.get("metrics_ci") or {}).items():
+        if ci and out["metrics"].get(k) is not None:
+            out["metrics"][k] = ci[side]
+    if r.get("by_window"):
+        out["by_window"] = {w: _at_bound(v, side) for w, v in r["by_window"].items()}
+    return out
+
+
+def score_interval(results: list[dict], cols) -> tuple[pd.Series, pd.Series]:
+    """95% интервал score: все метрики на нижнем / верхнем краю своих интервалов. Score растёт по каждой
+    метрике, поэтому интервал консервативный — шире совместного. У окон — бутстреп по хостам этого окна."""
+    return (overall_score([_at_bound(r, 0) for r in results], cols),
+            overall_score([_at_bound(r, 1) for r in results], cols))
 
 
 def headline_table(results: list[dict], card_url=None, stale: set | None = None) -> str:
@@ -162,6 +191,7 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
             if s.get("chance") is not None:
                 chance.setdefault(s["metric"], []).append(s["chance"])
     score = overall_score(results, cols)
+    lo, hi = score_interval(results, cols)
     extra = {k: t for k, t in EXTRA.items() if any(r["metrics"].get(k) is not None for r in results)}
     shown = list(cols) + list(extra)
     real = pd.DataFrame({m: {k: r["metrics"].get(k) for k in shown} for m, r in ((r["method"], r) for r in results)
@@ -187,6 +217,8 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
         sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
+        if m not in SERVICE and not pd.isna(lo.get(m)) and not pd.isna(hi.get(m)):
+            sc = f"{sc} [{lo[m]:.1f}–{hi[m]:.1f}]"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
         return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + " |"
@@ -218,7 +250,7 @@ def window_scores_table(results: list[dict], labels: dict[str, str]) -> str:
         return ""
     ws = multi[0]["test_windows"]
     cols, _, order = ranking(results)
-    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols, r["method"] not in SERVICE)
+    per = {w: pd.Series({r["method"]: _one_score(r["by_window"][w], cols, r["method"] not in SERVICE, w)
                            for r in multi}) for w in ws}
     lines = ["| method | " + " | ".join(labels.get(w, w) for w in ws) + " | **mean** |",
              "|---|" + "---|" * (len(ws) + 1)]

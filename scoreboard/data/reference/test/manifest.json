@@ -1,35 +1,35 @@
 {
   "chance_consistency_at_k": {
-    "10": 0.0018368846436443791,
-    "20": 0.0036737692872887582,
-    "5": 0.0009184423218221896
+    "10": 0.006329113924050633,
+    "20": 0.012658227848101266,
+    "5": 0.0031645569620253164
   },
   "cohort_policy": "train_only",
   "cohort_selection": {
     "coverage": {
-      "test": 0.8437935843793585,
-      "test_day03": 0.7771579110491245,
-      "test_day04": 0.8118704478537114,
+      "test": 0.24500232450023246,
+      "test_day15": 0.27305129397179606,
+      "test_day16": 0.7277235394390206,
       "validation": 0.4278630094529676
     },
     "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
     "median_train_events": {
-      "active_in_every_window": 878.0,
-      "not_active_in_every_window": 455.0
+      "active_in_every_window": 2103.0,
+      "not_active_in_every_window": 514.5
     },
     "n_cohort": 6453,
     "n_evaluable": {
-      "test": 5445,
-      "test_day03": 5015,
-      "test_day04": 5239,
+      "test": 1581,
+      "test_day15": 1762,
+      "test_day16": 4696,
       "validation": 2761
     },
-    "n_hosts_active_in_every_window": 2142,
+    "n_hosts_active_in_every_window": 731,
     "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
-  "cohort_sha256": "270380b00958c8635f79c594bf5ba0995af0776d0ff06025f21f05d23362d9c1",
-  "coverage": 0.8437935843793585,
+  "cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+  "coverage": 0.24500232450023246,
   "data_kind": "lanl_declared",
   "files_sha256": {
     "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
@@ -39,29 +39,29 @@
     "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "edges.csv": "98726c476f16c45a876975d4d3a4dc4811acc2a1d2b97d9727519bc1f86a6892",
-    "eval_hosts.csv": "16df41ecc9c9ea038ead3059d9be0a9418f8bb14f446f8751463899b5b8fbf72",
-    "features.csv": "f6a8a0223875382cca56c984decf6ac05eacb8dc216e9405a267a3f43a1efc8c",
-    "neighbors.csv": "dfdadd615ad136ebca559cddf551de1f1ff8a464db102da69a2dc1e5529564a1",
-    "pairs.csv": "923744a0b97d3c660a0dd6e12d3b108a5e943456a7a89e79722ad040bbc60c08",
-    "partners.csv": "d1b4796e1a39b71600f8523f2bbb6e05715fa15d67ad1597c1ce28209ae5edcf",
-    "triplets.csv": "e47f29ad2c118b30038816cc230b1eccd512ab586ae18a77ed54c3494aa370bb"
+    "edges.csv": "8edd61cd9c8c426dcaa6f76754d06f1cd9fa49455842f7f47da91ab3a24e8566",
+    "eval_hosts.csv": "c4254270bae3a30aae8e58f8a5c2ff4d3a021b087befef754704851d0d5d865f",
+    "features.csv": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
+    "neighbors.csv": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
+    "pairs.csv": "fc184f444a36acacf121725d2a78457e7a2d50f2a75ffb33eee9d647c88df613",
+    "partners.csv": "7cb79e85efbedf7b994ecbed1bfb5e8334ef127c09264a1e263b132c2ddcc97f",
+    "triplets.csv": "a91f77d82bd70c09a0b35db1d573b9fec76fbd217491c5f85f5dffe5393195b5"
   },
   "ground_truth": false,
   "judgments": {
-    "n_anchors_without_judgments": 455,
-    "n_hosts": 5445,
-    "n_negative_pairs": 4268326,
-    "n_pairs": 50375,
-    "n_positive_pairs": 151776,
-    "n_possible_pairs": 14821290,
-    "n_triplets": 21668,
-    "n_unjudged_pairs": 10401188,
+    "n_anchors_without_judgments": 65,
+    "n_hosts": 1581,
+    "n_negative_pairs": 689836,
+    "n_pairs": 8530,
+    "n_positive_pairs": 14939,
+    "n_possible_pairs": 1248990,
+    "n_triplets": 3670,
+    "n_unjudged_pairs": 544215,
     "pairs_per_anchor": 10,
     "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
     "rule_version": 1,
     "seed": 0,
-    "tau_pos": 0.7692307692307693,
+    "tau_pos": 1.0,
     "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
   },
   "kind": "heldout_temporal_behavior_proxy",
@@ -73,10 +73,10 @@
   "labels": null,
   "labels_source": null,
   "n_cohort": 6453,
-  "n_evaluable": 5445,
-  "n_hosts": 5445,
+  "n_evaluable": 1581,
+  "n_hosts": 1581,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "328b571bf69859e7fcec2542b41942462c01e7ca706e3130711a2b0073773067",
+  "pipeline_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
   "provenance": {
     "basis": "operator_declaration",
     "checks": {
@@ -89,15 +89,21 @@
           "share_ports_numeric_or_PortN": 1.0,
           "share_protocol_numeric": 1.0
         },
-        "netflow_day-03.bz2": {
+        "netflow_day-14.bz2": {
           "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.9864253393665159,
+          "share_devices_named_CompN": 0.9745454545454545,
           "share_ports_numeric_or_PortN": 1.0,
           "share_protocol_numeric": 1.0
         },
-        "netflow_day-04.bz2": {
+        "netflow_day-15.bz2": {
           "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.8552317247969422,
+          "share_devices_named_CompN": 0.8372413793103448,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-16.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9651678277390754,
           "share_ports_numeric_or_PortN": 1.0,
           "share_protocol_numeric": 1.0
         }
@@ -116,15 +122,15 @@
   "real_lanl_declared": true,
   "reference_dimensions": 57,
   "reference_neighbor_stability": {
-    "consistency@10": 0.15636363636363637,
-    "consistency@20": 0.18617079889807164,
-    "consistency@5": 0.1355739210284665,
-    "jaccard@10": 0.11429965369913686,
-    "jaccard@20": 0.1382669080828738,
-    "jaccard@5": 0.10157199702654249,
-    "ndcg@10": 0.16920581900778492,
-    "ndcg@20": 0.19989353600847407,
-    "ndcg@5": 0.14383417016355213
+    "consistency@10": 0.29538266919671097,
+    "consistency@20": 0.3446236559139784,
+    "consistency@5": 0.2465528146742568,
+    "jaccard@10": 0.21260523717770471,
+    "jaccard@20": 0.24846949030812962,
+    "jaccard@5": 0.1775122235274038,
+    "ndcg@10": 0.31715818275753976,
+    "ndcg@20": 0.377618733714233,
+    "ndcg@5": 0.2653031344173672
   },
   "reference_views": {
     "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
@@ -138,34 +144,34 @@
   "split": "test",
   "synthetic": false,
   "target_window": "test",
-  "test_events": 10297984,
-  "test_start_utc": "1970-01-02T12:30:00Z",
+  "test_events": 6991341,
+  "test_start_utc": "1970-01-14T12:30:00Z",
   "train_end_utc": "1970-01-02T11:59:59Z",
   "train_events": 9368480,
   "windows": {
     "test": {
-      "end": 135000.0,
-      "graph_edges": 87510,
-      "max_time": 134999.0,
-      "min_time": 131400.0,
-      "n_flows": 10297984,
-      "start": 131400.0
+      "end": 1171800.0,
+      "graph_edges": 34385,
+      "max_time": 1171799.0,
+      "min_time": 1168200.0,
+      "n_flows": 6991341,
+      "start": 1168200.0
     },
-    "test_day03": {
-      "end": 221400.0,
-      "graph_edges": 84385,
-      "max_time": 221399.0,
-      "min_time": 217800.0,
-      "n_flows": 9046675,
-      "start": 217800.0
+    "test_day15": {
+      "end": 1258200.0,
+      "graph_edges": 34905,
+      "max_time": 1258199.0,
+      "min_time": 1254600.0,
+      "n_flows": 6248231,
+      "start": 1254600.0
     },
-    "test_day04": {
-      "end": 307800.0,
-      "graph_edges": 82151,
-      "max_time": 307799.0,
-      "min_time": 304200.0,
-      "n_flows": 10187029,
-      "start": 304200.0
+    "test_day16": {
+      "end": 1344600.0,
+      "graph_edges": 72804,
+      "max_time": 1344599.0,
+      "min_time": 1341000.0,
+      "n_flows": 9988801,
+      "start": 1341000.0
     },
     "train": {
       "end": 129600.0,
