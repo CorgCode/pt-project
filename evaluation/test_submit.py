@@ -9,6 +9,7 @@ from evaluation import submit
 
 @pytest.fixture
 def board(tmp_path, monkeypatch, processed, reference):
+    monkeypatch.delenv("PT_DATA", raising=False)
     root = tmp_path / "scoreboard"
     shutil.copytree(processed, root / "data" / "processed")
     shutil.copytree(reference, root / "data" / "reference")

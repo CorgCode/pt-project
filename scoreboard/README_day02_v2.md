@@ -9,8 +9,9 @@
 
 | # | method | submitted by | **score** | dim | Neighbors@10 | Links, AUC | New partners, MRR | Pairs, AUC | Identity, Top-1 | Tikhon LP, MRR* | Tikhon transfer, MRR* | Tikhon soft transfer, MRR* |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | [`behavioral_dae_consistency`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae_consistency/README.md) † | @kalivixZ | **24.1** | 16 | 0.136 [0.13–0.14] | 0.982 [0.98–0.98] | 0.255 [0.24–0.27] | **0.983 [0.98–0.98]** | **0.063 [0.06–0.07]** | 0.008 [0.01–0.01] | **0.893 [0.89–0.89]** | 0.808 [0.79–0.82] |
-| 2 | [`behavioral_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae/README.md) † | — | 22.7 | 16 | **0.137 [0.13–0.15]** | **0.982 [0.98–0.98]** | **0.256 [0.24–0.27]** | 0.967 [0.96–0.97] | 0.051 [0.04–0.06] | **0.008 [0.01–0.01]** | 0.891 [0.89–0.89] | **0.814 [0.80–0.82]** |
+| 1 | `temporal_dae` | @kalivixZ | **38.9** | 384 | 0.145 | 0.261 | 0.323 | 0.980 | 0.484 | 0.009 | 0.912 | 0.864 |
+| 2 | [`behavioral_dae_consistency`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae_consistency/README.md) † | @kalivixZ | 24.1 | 16 | 0.136 | 0.982 | 0.255 | **0.983** | **0.063** | 0.008 | **0.893** | 0.808 |
+| 3 | [`behavioral_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae/README.md) † | — | 22.7 | 16 | **0.137** | **0.982** | **0.256** | 0.967 | 0.051 | **0.008** | 0.891 | **0.814** |
 | | *chance level* | | 0 | | 0.002 | 0.614 | 0.085 | 0.500 | 0.000 | 0.021 | 0.021 | 0.021 |
 
 † — оценено прежней версией оценки: векторов метода нет в git, пересчёт — `experiments/lanl/multiday.sh` (`behavioral_dae`, `behavioral_dae_consistency`).

@@ -187,10 +187,10 @@ def main() -> None:
     out = ROOT / "scoreboard" / "submissions" / NAME
     write_embeddings(model, data, out)
     (out / "SHARED_COORDINATES").touch()
-    (out / "AUTHOR").write_text("kalivixZ\\n", encoding="utf-8")
-    (out / "params.json").write_text(json.dumps(params, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    (out / "AUTHOR").write_text("kalivixZ\n", encoding="utf-8")
+    (out / "params.json").write_text(json.dumps(params, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if rows:
-        (out / "tuning.json").write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        (out / "tuning.json").write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     result = submit.score(out)
     submit.render()
     print(
