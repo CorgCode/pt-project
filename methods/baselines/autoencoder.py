@@ -193,3 +193,124 @@ class BehavioralDAE(Baseline):
             "final_train_mse": self.loss_history_[-1] if self.loss_history_ else None,
         })
         return out
+
+class BehavioralDAEConsistency(BehavioralDAE):
+    """DAE с consistency loss между двумя независимо зашумлёнными видами профиля.
+
+    Для одного чистого профиля x строятся два представления x1 и x2. Энкодер
+    должен давать близкие эмбеддинги z1 и z2, одновременно декодер восстанавливает
+    исходный x из обоих представлений:
+
+        L = 0.5 * (MSE(x_hat1, x) + MSE(x_hat2, x))
+            + consistency_weight * MSE(z1, z2)
+
+    Обучение и преобразования признаков по-прежнему используют только train.
+    Исходный BehavioralDAE не изменяется.
+    """
+
+    name = "behavioral_dae_consistency"
+    description = (
+        "MLP denoising autoencoder with a consistency penalty between two "
+        "independently noised views of each host profile; train-only fit"
+    )
+
+    def __init__(self, *args, consistency_weight: float = 0.1, **kwargs):
+        if consistency_weight < 0:
+            raise ValueError("consistency_weight должен быть >= 0")
+        super().__init__(*args, **kwargs)
+        self.consistency_weight = float(consistency_weight)
+        self.reconstruction_loss_history_: list[float] = []
+        self.consistency_loss_history_: list[float] = []
+
+    def fit(self, data: ProcessedData) -> "BehavioralDAEConsistency":
+        import torch
+        from torch import nn
+
+        self._behavior = BehavioralBaseline().fit(data)
+        x_np = self._behavior._features(data, "train", list(data.cohort)).to_numpy(dtype=np.float32)
+        if x_np.ndim != 2 or x_np.shape[0] < 2 or x_np.shape[1] < 1:
+            raise ValueError(f"behavioral_dae_consistency: некорректная матрица train-признаков {x_np.shape}")
+        if not np.isfinite(x_np).all():
+            raise ValueError("behavioral_dae_consistency: train-признаки содержат NaN или бесконечность")
+
+        torch.manual_seed(self.seed)
+        previous_threads = torch.get_num_threads()
+        torch.set_num_threads(min(previous_threads, 2))
+        try:
+            self._net = _make_network(x_np.shape[1], self.hidden_dim, self.dim)
+            optimizer = torch.optim.AdamW(
+                self._net.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            )
+            loss_fn = nn.MSELoss()
+            x = torch.tensor(x_np.tolist(), dtype=torch.float32, device="cpu")
+            generator = torch.Generator(device="cpu").manual_seed(self.seed + 1)
+            validation_generator = torch.Generator(device="cpu").manual_seed(self.seed + 2)
+            validation_noise1 = self.noise_std * torch.randn(
+                x.shape, generator=validation_generator, dtype=x.dtype
+            )
+            validation_noise2 = self.noise_std * torch.randn(
+                x.shape, generator=validation_generator, dtype=x.dtype
+            )
+            self.loss_history_ = []
+            self.reconstruction_loss_history_ = []
+            self.consistency_loss_history_ = []
+
+            self._net.train()
+            for _epoch in range(self.epochs):
+                order = torch.randperm(len(x), generator=generator)
+                for start in range(0, len(order), self.batch_size):
+                    ids = order[start:start + self.batch_size]
+                    target = x[ids]
+                    noisy1 = target + self.noise_std * torch.randn(
+                        target.shape, generator=generator, dtype=target.dtype
+                    )
+                    noisy2 = target + self.noise_std * torch.randn(
+                        target.shape, generator=generator, dtype=target.dtype
+                    )
+
+                    z1 = self._net.encoder(noisy1)
+                    z2 = self._net.encoder(noisy2)
+                    prediction1 = self._net.decoder(z1)
+                    prediction2 = self._net.decoder(z2)
+
+                    reconstruction_loss = 0.5 * (
+                        loss_fn(prediction1, target) + loss_fn(prediction2, target)
+                    )
+                    consistency_loss = loss_fn(z1, z2)
+                    loss = reconstruction_loss + self.consistency_weight * consistency_loss
+
+                    optimizer.zero_grad(set_to_none=True)
+                    loss.backward()
+                    optimizer.step()
+
+                self._net.eval()
+                with torch.no_grad():
+                    clean_mse = float(loss_fn(self._net(x), x))
+                    z1 = self._net.encoder(x + validation_noise1)
+                    z2 = self._net.encoder(x + validation_noise2)
+                    consistency_mse = float(loss_fn(z1, z2))
+                self.loss_history_.append(clean_mse)
+                self.reconstruction_loss_history_.append(clean_mse)
+                self.consistency_loss_history_.append(consistency_mse)
+                self._net.train()
+        finally:
+            torch.set_num_threads(previous_threads)
+
+        self.n_features_in_ = int(x_np.shape[1])
+        self.n_hosts_fit_ = int(x_np.shape[0])
+        return self
+
+    def info(self) -> dict:
+        out = super().info()
+        out.update({
+            "name": self.name,
+            "consistency_weight": self.consistency_weight,
+            "final_reconstruction_mse": (
+                self.reconstruction_loss_history_[-1] if self.reconstruction_loss_history_ else None
+            ),
+            "final_consistency_mse": (
+                self.consistency_loss_history_[-1] if self.consistency_loss_history_ else None
+            ),
+        })
+        return out
+
