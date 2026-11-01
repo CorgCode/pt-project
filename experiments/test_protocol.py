@@ -114,23 +114,52 @@ def test_scored_embeddings_do_not_depend_on_future_windows(base_raw, tmp_path):
 
 # ---------------------------------------------------------------- воспроизводимость
 def _canon(path, root):
-    t = path.read_text(encoding="utf-8").replace(str(root), "<run>")
-    return json.loads(t) if path.suffix == ".json" else t
+    t = path.read_text(encoding="utf-8")
+
+    if path.suffix == ".json":
+        data = json.loads(t)
+
+        def normalize(value):
+            if isinstance(value, dict):
+                return {k: normalize(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [normalize(v) for v in value]
+            if isinstance(value, str):
+                return value.replace(str(root), "<run>")
+            return value
+
+        return normalize(data)
+
+    return t
 
 
 def test_same_seed_gives_identical_artifacts(processed, reference, tmp_path):
     outs = []
     for k in ("one", "two"):
         out = tmp_path / k
-        run_experiment(processed, reference, out, dim=6, seed=3, n_boot=15, audit_configs=2, null_draws=3)
+        run_experiment(
+            processed, reference, out,
+            dim=6, seed=3, n_boot=15,
+            audit_configs=2, null_draws=3
+        )
         outs.append(out)
-    names = [p.relative_to(outs[0]) for p in sorted(outs[0].rglob("*")) if p.suffix in (".json", ".csv", ".md")]
+
+    names = [
+        p.relative_to(outs[0])
+        for p in sorted(outs[0].rglob("*"))
+        if p.suffix in (".json", ".csv", ".md")
+    ]
+
     assert any(n.name == "report.md" for n in names) and len(names) > 20
+
     for n in names:
-        a, b = _canon(outs[0] / n, outs[0]), _canon(outs[1] / n, outs[1])
+        a = _canon(outs[0] / n, outs[0])
+        b = _canon(outs[1] / n, outs[1])
+
         if n.name == "manifest.json" and n.parent.name == "":
             for d in (a, b):
                 d["environment"].pop("git_sha", None)
+
         assert a == b, n
 
 
