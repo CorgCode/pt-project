@@ -94,9 +94,9 @@ def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
 # дают на общих хостах 0.21, поэтому 1.0 недостижима. Идеал — прогноз «как хост вёл себя в train»
 # (persistence, это `behavioral` на main): выше него — уже 100.
 NEIGHBORS = "consistency@10_mean"
-NEIGHBORS_IDEAL = {"test": 0.1556, "test_day03": 0.1470, "test_day04": 0.1331, "validation": 0.2078}
-# окно не передано — это подбор на validation (submit.validation_score). Среднее по test (0.145) здесь
-# ниже, чем behavioral на validation, и все методы упирались в 100: подбор не видел потерь в Behavior.
+# test — день 14, test_day15/16 — дни 15, 16 (12:30–13:30): уровень behavioral на каждом окне
+NEIGHBORS_IDEAL = {"test": 0.2929, "test_day15": 0.2519, "test_day16": 0.1255, "validation": 0.2078}
+# окно не передано — это подбор на validation (submit.validation_score): свой уровень, иначе подбор упирается в 100.
 NEIGHBORS_IDEAL_DEFAULT = NEIGHBORS_IDEAL["validation"]
 
 
