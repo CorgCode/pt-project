@@ -20,7 +20,7 @@ from methods.baselines.autoencoder import BehavioralDAE  # noqa: E402
 from pipeline.data import ProcessedData  # noqa: E402
 
 NAME = "behavioral_dae"
-AUTHOR = ""  # optionally set to your GitHub login; this is written into the submission folder
+AUTHOR = "kalivixZ"
 DIM = 16
 HIDDEN_DIM = 64
 EPOCHS = 30
