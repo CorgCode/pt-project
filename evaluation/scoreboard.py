@@ -94,8 +94,10 @@ def ranking(results: list[dict]) -> tuple[dict, pd.DataFrame, pd.Series]:
 # дают на общих хостах 0.21, поэтому 1.0 недостижима. Идеал — прогноз «как хост вёл себя в train»
 # (persistence, это `behavioral` на main): выше него — уже 100.
 NEIGHBORS = "consistency@10_mean"
-NEIGHBORS_IDEAL = {"test": 0.1556, "test_day03": 0.1470, "test_day04": 0.1331}
-NEIGHBORS_IDEAL_DEFAULT = sum(NEIGHBORS_IDEAL.values()) / len(NEIGHBORS_IDEAL)   # окно неизвестно (validation)
+# test — день 14, test_day15/16 — дни 15, 16 (12:30–13:30): уровень behavioral на каждом окне
+NEIGHBORS_IDEAL = {"test": 0.2929, "test_day15": 0.2519, "test_day16": 0.1255, "validation": 0.2078}
+# окно не передано — это подбор на validation (submit.validation_score): свой уровень, иначе подбор упирается в 100.
+NEIGHBORS_IDEAL_DEFAULT = NEIGHBORS_IDEAL["validation"]
 
 
 def column_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
@@ -157,6 +159,24 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     return pd.Series(out)
 
 
+def _at_bound(r: dict, side: int) -> dict:
+    """Копия результата, где каждая метрика заменена краем своего 95% интервала (0 — нижний, 1 — верхний)."""
+    out = dict(r, metrics=dict(r.get("metrics", {})))
+    for k, ci in (r.get("metrics_ci") or {}).items():
+        if ci and out["metrics"].get(k) is not None:
+            out["metrics"][k] = ci[side]
+    if r.get("by_window"):
+        out["by_window"] = {w: _at_bound(v, side) for w, v in r["by_window"].items()}
+    return out
+
+
+def score_interval(results: list[dict], cols) -> tuple[pd.Series, pd.Series]:
+    """95% интервал score: все метрики на нижнем / верхнем краю своих интервалов. Score растёт по каждой
+    метрике, поэтому интервал консервативный — шире совместного. У окон — бутстреп по хостам этого окна."""
+    return (overall_score([_at_bound(r, 0) for r in results], cols),
+            overall_score([_at_bound(r, 1) for r in results], cols))
+
+
 def headline_table(results: list[dict], card_url=None, stale: set | None = None) -> str:
     """card_url(метод) -> ссылка на карточку метода (для таблицы scoreboard); None — без ссылок.
     stale — методы, оценённые прежней версией оценки (помечаются †)."""
@@ -171,6 +191,7 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
             if s.get("chance") is not None:
                 chance.setdefault(s["metric"], []).append(s["chance"])
     score = overall_score(results, cols)
+    lo, hi = score_interval(results, cols)
     extra = {k: t for k, t in EXTRA.items() if any(r["metrics"].get(k) is not None for r in results)}
     shown = list(cols) + list(extra)
     real = pd.DataFrame({m: {k: r["metrics"].get(k) for k in shown} for m, r in ((r["method"], r) for r in results)
@@ -196,6 +217,8 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
         sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
+        if m not in SERVICE and not pd.isna(lo.get(m)) and not pd.isna(hi.get(m)):
+            sc = f"{sc} [{lo[m]:.1f}–{hi[m]:.1f}]"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
         return f"| {place} | {name} | {who} | {sc} | {dim} | " + " | ".join(cells) + " |"

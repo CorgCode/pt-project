@@ -195,3 +195,23 @@ def test_neighbors_ideal_is_the_persistence_ceiling_not_one():
     assert column_scores(r, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == pytest.approx(50.0)
     above = {"method": "a", "metrics": {NEIGHBORS: top * 2}, "summary": summary}       # выше потолка — 100
     assert column_scores(above, {NEIGHBORS: "N"}, "test")[NEIGHBORS] == 100.0
+
+
+def test_validation_tuning_is_not_saturated_on_behavior():
+    from evaluation.scoreboard import NEIGHBORS, column_scores
+    summary = [{"metric": NEIGHBORS, "title": "N", "chance": 0.0}]
+    r = {"method": "m", "metrics": {NEIGHBORS: 0.18}, "summary": summary}     # типичный метод на validation
+    assert column_scores(r, {NEIGHBORS: "N"})[NEIGHBORS] < 100.0                  # подбор видит разницу
+
+
+def test_score_interval_contains_score():
+    from evaluation.scoreboard import overall_score, score_interval
+    summary = [{"metric": "m", "title": "M", "chance": 0.0}]
+
+    def r(name, v, ci):
+        return {"method": name, "metrics": {"m": v}, "metrics_ci": {"m": ci}, "summary": summary}
+    res = [r("a", 0.60, [0.55, 0.65]), r("b", 0.58, [0.53, 0.63]), r("c", 0.30, [0.28, 0.32])]
+    cols = {"m": "M"}
+    score = overall_score(res, cols)
+    lo, hi = score_interval(res, cols)
+    assert all(lo[m] <= score[m] <= hi[m] for m in score.index)
