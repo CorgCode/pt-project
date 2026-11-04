@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: scoreboard-${{ github.head_ref || github.ref }}
+  group: scoreboard-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
