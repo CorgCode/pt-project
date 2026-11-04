@@ -11,10 +11,11 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | [`multiday_codebook`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multiday_codebook/README.md) | @physcorgi | **64.9** [59.8–68.5] | 896 | 0.222 [0.11–0.29] | 0.949 [0.94–0.97] | **0.250 [0.17–0.40]** | 0.980 [0.95–1.00] | **0.594 [0.55–0.64]** | **0.030 [0.02–0.04]** | 0.865 [0.83–0.92] | **0.845 [0.81–0.89]** |
 | 2 | [`temporal_encoder`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder/README.md) | @physcorgi | 56.5 [52.8–59.7] | 384 | 0.219 [0.12–0.28] | **0.970 [0.96–0.98]** | 0.200 [0.13–0.33] | 0.981 [0.97–0.99] | 0.373 [0.28–0.44] | 0.021 [0.01–0.03] | 0.865 [0.84–0.91] | 0.773 [0.71–0.86] |
-| 3 | [`temporal_encoder_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder_tuned/README.md) | @physcorgi | 55.9 [52.2–59.0] | 384 | 0.223 [0.12–0.29] | 0.968 [0.96–0.98] | 0.196 [0.12–0.33] | 0.978 [0.96–0.99] | 0.378 [0.27–0.45] | 0.020 [0.01–0.03] | **0.865 [0.84–0.91]** | 0.813 [0.77–0.87] |
+| 3 | [`temporal_encoder_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder_tuned/README.md) | @physcorgi | 55.9 [52.2–59.0] | 384 | 0.223 [0.12–0.29] | 0.968 [0.96–0.98] | 0.196 [0.12–0.33] | 0.978 [0.96–0.99] | 0.378 [0.27–0.45] | 0.020 [0.01–0.03] | 0.865 [0.84–0.91] | 0.813 [0.77–0.87] |
 | 4 | [`hybrid_tfidf`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/hybrid_tfidf/README.md) | @physcorgi | 55.4 [51.2–58.6] | 569 | 0.218 [0.12–0.28] | 0.955 [0.94–0.98] | 0.206 [0.13–0.34] | **0.983 [0.97–0.99]** | 0.356 [0.26–0.43] | 0.020 [0.01–0.03] | 0.861 [0.83–0.90] | 0.730 [0.67–0.85] |
 | 5 | [`temporal_cca_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_cca_tuned/README.md) | @physcorgi | 54.9 [51.3–57.8] | 384 | **0.226 [0.12–0.29]** | 0.963 [0.95–0.98] | 0.194 [0.12–0.33] | 0.979 [0.97–0.99] | 0.351 [0.26–0.41] | 0.020 [0.01–0.03] | 0.856 [0.83–0.90] | 0.724 [0.66–0.85] |
-| 6 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 48.2 [44.6–50.8] | 57 | 0.223 [0.13–0.29] | 0.956 [0.94–0.98] | 0.177 [0.12–0.29] | 0.981 [0.98–0.99] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.841 [0.81–0.89] | 0.674 [0.61–0.79] |
+| 6 | [`future_profile_predictor`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/future_profile_predictor/README.md) | @DrMogger | 52.0 [47.3–56.2] | 384 | 0.197 [0.10–0.26] | 0.929 [0.90–0.97] | 0.197 [0.12–0.33] | 0.950 [0.88–0.99] | 0.381 [0.28–0.45] | 0.024 [0.01–0.03] | **0.874 [0.85–0.91]** | 0.838 [0.81–0.87] |
+| 7 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 48.2 [44.6–50.8] | 57 | 0.223 [0.13–0.29] | 0.956 [0.94–0.98] | 0.177 [0.12–0.29] | 0.981 [0.98–0.99] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.841 [0.81–0.89] | 0.674 [0.61–0.79] |
 | — | *[`random`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/random/README.md)* | — | 1.0 | 16 | 0.004 [0.00–0.01] | 0.571 [0.55–0.60] | 0.067 [0.04–0.12] | 0.500 [0.50–0.50] | 0.001 [0.00–0.00] | 0.033 [0.02–0.04] | 0.462 [0.37–0.64] | 0.311 [0.24–0.44] |
 | | *chance level* | | 0 | | 0.005 | 0.65–0.85 | 0.082 | 0.500 | 0.001 | 0.030 | 0.030 | 0.030 |
 
@@ -56,5 +57,6 @@ Score на каждом test-окне отдельно. Хороший мето�
 | `temporal_encoder_tuned` | 53.2 | 55.7 | 58.6 | 55.9 |
 | `hybrid_tfidf` | 53.9 | 54.3 | 57.9 | 55.4 |
 | `temporal_cca_tuned` | 51.9 | 54.5 | 58.4 | 54.9 |
+| `future_profile_predictor` | 50.1 | 52.8 | 52.9 | 52.0 |
 | `behavioral` | 48.6 | 46.8 | 49.1 | 48.2 |
 | `random` | 1.0 | 1.0 | 1.1 | 1.0 |
