@@ -17,9 +17,10 @@
 | 6 | [`temporal_cca_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_cca_tuned/README.md) | @physcorgi | 54.9 [51.3–57.8] | 384 | 0.226 [0.12–0.29] | 0.963 [0.95–0.98] | 0.194 [0.12–0.33] | 0.979 [0.97–0.99] | 0.351 [0.26–0.41] | 0.020 [0.01–0.03] | 0.856 [0.83–0.90] | 0.724 [0.66–0.85] |
 | 7 | [`temporal_stable_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_stable_hybrid/README.md) | @DrMogger | 53.0 [49.4–56.4] | 441 | 0.186 [0.10–0.24] | 0.961 [0.95–0.98] | 0.215 [0.14–0.35] | 0.952 [0.89–0.99] | 0.353 [0.25–0.42] | 0.021 [0.01–0.03] | **0.875 [0.85–0.91]** | 0.832 [0.80–0.87] |
 | 8 | [`future_profile_predictor`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/future_profile_predictor/README.md) | @DrMogger | 52.0 [47.3–56.2] | 384 | 0.197 [0.10–0.26] | 0.929 [0.90–0.97] | 0.197 [0.12–0.33] | 0.950 [0.88–0.99] | 0.381 [0.28–0.45] | 0.024 [0.01–0.03] | 0.874 [0.85–0.91] | 0.838 [0.81–0.87] |
-| 9 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 48.2 [44.6–50.8] | 57 | 0.223 [0.13–0.29] | 0.956 [0.94–0.98] | 0.177 [0.12–0.29] | 0.981 [0.98–0.99] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.841 [0.81–0.89] | 0.674 [0.61–0.79] |
-| 10 | [`behavioral_dae_consistency`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae_consistency/README.md) | @kalivixZ | 38.4 [35.0–41.6] | 16 | 0.210 [0.12–0.28] | 0.955 [0.94–0.98] | 0.174 [0.12–0.28] | 0.978 [0.97–0.98] | 0.096 [0.06–0.12] | 0.016 [0.01–0.02] | 0.843 [0.81–0.90] | 0.683 [0.61–0.82] |
-| 11 | [`behavioral_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae/README.md) | @kalivixZ | 38.0 [34.5–41.2] | 16 | 0.211 [0.12–0.28] | 0.954 [0.94–0.98] | 0.173 [0.12–0.28] | 0.974 [0.96–0.99] | 0.092 [0.06–0.12] | 0.017 [0.01–0.02] | 0.837 [0.80–0.89] | 0.688 [0.62–0.83] |
+| 9 | [`relation_graph_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/relation_graph_hybrid/README.md) | @DrMogger | 51.2 [46.8–55.0] | 384 | 0.183 [0.09–0.24] | 0.934 [0.91–0.97] | 0.209 [0.14–0.34] | 0.973 [0.94–0.99] | 0.326 [0.24–0.38] | 0.020 [0.01–0.03] | 0.872 [0.84–0.91] | 0.828 [0.79–0.88] |
+| 10 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 48.2 [44.6–50.8] | 57 | 0.223 [0.13–0.29] | 0.956 [0.94–0.98] | 0.177 [0.12–0.29] | 0.981 [0.98–0.99] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.841 [0.81–0.89] | 0.674 [0.61–0.79] |
+| 11 | [`behavioral_dae_consistency`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae_consistency/README.md) | @kalivixZ | 38.4 [35.0–41.6] | 16 | 0.210 [0.12–0.28] | 0.955 [0.94–0.98] | 0.174 [0.12–0.28] | 0.978 [0.97–0.98] | 0.096 [0.06–0.12] | 0.016 [0.01–0.02] | 0.843 [0.81–0.90] | 0.683 [0.61–0.82] |
+| 12 | [`behavioral_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae/README.md) | @kalivixZ | 38.0 [34.5–41.2] | 16 | 0.211 [0.12–0.28] | 0.954 [0.94–0.98] | 0.173 [0.12–0.28] | 0.974 [0.96–0.99] | 0.092 [0.06–0.12] | 0.017 [0.01–0.02] | 0.837 [0.80–0.89] | 0.688 [0.62–0.83] |
 | — | *[`random`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/random/README.md)* | — | 1.0 | 16 | 0.004 [0.00–0.01] | 0.571 [0.55–0.60] | 0.067 [0.04–0.12] | 0.500 [0.50–0.50] | 0.001 [0.00–0.00] | 0.033 [0.02–0.04] | 0.462 [0.37–0.64] | 0.311 [0.24–0.44] |
 | | *chance level* | | 0 | | 0.005 | 0.59–0.85 | 0.082 | 0.500 | 0.001 | 0.030 | 0.030 | 0.030 |
 
@@ -64,6 +65,7 @@ Score на каждом test-окне отдельно. Хороший мето�
 | `temporal_cca_tuned` | 51.9 | 54.5 | 58.4 | 54.9 |
 | `temporal_stable_hybrid` | 52.2 | 54.7 | 52.1 | 53.0 |
 | `future_profile_predictor` | 50.1 | 52.8 | 52.9 | 52.0 |
+| `relation_graph_hybrid` | 49.6 | 51.4 | 52.5 | 51.2 |
 | `behavioral` | 48.6 | 46.8 | 49.1 | 48.2 |
 | `behavioral_dae_consistency` | 38.5 | 37.1 | 39.6 | 38.4 |
 | `behavioral_dae` | 38.1 | 36.7 | 39.1 | 38.0 |
