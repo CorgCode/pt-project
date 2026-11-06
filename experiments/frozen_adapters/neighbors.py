@@ -138,9 +138,9 @@ class ContactForecaster:
 
 
 def swap_teacher(source, matrix, vocabulary, source_rows, hosts, forecaster, max_queries=128,
-                 proposal_k=16, k=10):
+                 proposal_k=16, k=10, seed=17):
     """Исторический oracle при принудительных заменах. Не выдаётся за реализуемый embedding."""
-    rng=np.random.default_rng(17)
+    rng=np.random.default_rng(seed)
     vocabulary=np.asarray(vocabulary)
     own={h:i for i,h in enumerate(vocabulary)}
     triples=[];statistics=[]
