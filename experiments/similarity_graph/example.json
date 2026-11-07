@@ -1,0 +1,23 @@
+{
+  "cohort":"${PT_DATA_ROOT}/processed/cohort.csv",
+  "cache":"${PT_ARTIFACTS}/similarity_cache",
+  "source_window":{"name":"source02","day":2,"start":126000,"end":129600,"flows":"${PT_DATA_ROOT}/processed/flows/train.csv"},
+  "train":[
+    {"name":"train02","day":2,"start":126000,"end":129600,"flows":"${PT_DATA_ROOT}/processed/flows/train.csv"},
+    {"name":"train03","day":3,"start":212400,"end":216000,"flows":"${PT_DATA_ROOT}/processed_day03/flows/train.csv"},
+    {"name":"train04","day":4,"start":298800,"end":302400,"flows":"${PT_DATA_ROOT}/processed_day04/flows/train.csv"}
+  ],
+  "development":[{"name":"development04","day":4,"start":302400,"end":306000,"flows":"${PT_DATA_ROOT}/processed_day04/flows/validation.csv"}],
+  "test":[{"name":"diagnostic04","day":4,"start":306000,"end":309600,"flows":"${PT_DATA_ROOT}/processed_day04/flows/test.csv"}],
+  "probe_reference":"${PT_REPO_ROOT}/scoreboard/data/reference/validation",
+  "matrix_training":{"passes":1,"queries_per_pass":6453,"proposals":8,"objective":"score_proxy","min_behavior_retention":0.95},
+  "compact_dims":[384,512,1024],
+  "compact_loss":"top10",
+  "compact_steps":1500,
+  "initial_compact_loss":"soft",
+  "initial_compact_steps":80,
+  "graph_weights":[0.0,0.1,0.25],
+  "matching_iterations":5,
+  "rotation_steps":150,
+  "test_policy":"Local historical diagnostic: three train hours on days02/03/04, development/test later on day04. Not the current leaderboard and not a new blind holdout."
+}
