@@ -2481,124 +2481,156 @@ h2 {
   }
 }
 
-/* Quiet purple version: no background scene or scroll-linked transforms. */
+/* Scene presentation: large typography and projected labels share one composition. */
 #world {
-  display: none;
-}
-.hero h1 {
-  transform: none !important;
-  opacity: 1 !important;
-  color: var(--ink);
-}
-.hero,
-.product,
-.closing {
-  background: transparent;
-  color: var(--ink);
-}
-.model-experience {
-  height: auto;
-  min-height: 0;
-  padding: 110px 7vw;
-}
-.model-pin {
-  position: relative;
-  height: auto;
-  min-height: 0;
-  padding: 0;
   display: block;
 }
-.model-pin-copy {
+.hero h1 {
+  transform: translateY(-5%);
+  opacity: 1;
+}
+.scene-annotations {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.scene-annotations > div {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.scene-annotations i {
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--accent);
+}
+.scene-annotations span {
+  display: block;
+  background: var(--glass-bright);
+  border: 1px solid var(--glass-border);
+  padding: 8px 11px;
+  font-size: 9px;
+  backdrop-filter: blur(16px);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.model-experience {
+  height: 460svh;
   min-height: 0;
-  max-width: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 75px 60px;
+  padding: 0 7vw;
+}
+.model-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 650px;
+  padding: 110px 0 60px;
+  display: flex;
+  align-items: center;
+}
+.model-pin-copy {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  min-height: 520px;
+  display: flex;
+  align-items: center;
 }
 .scene-copy,
 .scene-copy.is-active {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  transition:
+    opacity 0.65s,
+    visibility 0.65s;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.scene-copy.is-active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transition: none;
 }
-.model-scene-progress,
-.pinned-annotation,
-.cutaway-caption {
-  display: none;
+.model-scene-progress {
+  display: flex;
 }
-.model-pin .step-count {
+.pinned-annotation {
   display: block;
 }
-.model-pin .step-foot {
-  display: block;
-}
-.glass,
-.product-map article,
-.action-button,
-.scene-copy,
-.diagram-lines {
+.model-pin .glass {
   animation: none !important;
-  translate: none !important;
-  transition: none !important;
 }
-.comparison i {
-  transform: none !important;
-  transition: none !important;
-}
-.product-map article:nth-child(2),
-.product-map article:nth-child(3) {
-  transform: none;
-}
-.cutaway {
-  min-height: 0;
-  padding-top: 90px;
-  padding-bottom: 90px;
-}
-.cutaway-copy {
-  max-width: 760px;
-}
-.cutaway-note,
-.layer-inspector {
-  max-width: 600px;
-}
-.ambient {
-  background:
-    radial-gradient(
-      ellipse at 70% 34%,
-      var(--scene-highlight),
-      transparent 58%
-    ),
-    radial-gradient(ellipse at 20% 80%, var(--scene-blue), transparent 65%),
-    var(--paper);
+.hero h1 {
+  will-change: transform, opacity;
 }
 @media (max-width: 768px) {
   .model-experience {
-    padding: 80px 24px;
+    padding: 0 24px;
+    height: 510svh;
+  }
+  .model-pin {
+    padding-top: 140px;
+    min-height: 760px;
+    align-items: start;
   }
   .model-pin-copy {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 65px;
+    max-width: 460px;
+    min-height: 550px;
+    display: block;
+  }
+  .scene-copy,
+  .scene-copy.is-active {
+    top: 0;
+    transform: none;
+  }
+  .model-scene-progress {
+    top: 105px;
+  }
+  .pinned-annotation {
+    bottom: 5%;
+    right: 0;
+  }
+  .scene-annotations {
+    display: none;
+  }
+}
+@media (max-width: 768px) and (max-height: 760px) {
+  .model-pin {
+    min-height: 0;
+    padding-top: 110px;
+  }
+  .model-pin-copy {
+    min-height: 430px;
   }
   .model-pin .model-step h2 {
-    font-size: clamp(43px, 8.4vw, 62px);
+    font-size: 38px;
   }
   .model-pin .model-step > p {
-    font-size: 13px;
-    line-height: 1.9;
+    font-size: 11px;
   }
   .model-pin .step-foot {
-    font-size: 10px !important;
+    display: none;
   }
-  .cutaway {
-    min-height: 0;
-    padding: 80px 24px;
+  .model-scene-progress {
+    top: 88px;
   }
-  .model-pin .example-flow small {
-    display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-copy {
+    transition: none;
+  }
+  .hero h1 {
+    will-change: auto;
   }
 }

@@ -2503,129 +2503,161 @@ h2 {
   }
 }
 
-/* Quiet purple version: no background scene or scroll-linked transforms. */
+/* Scene presentation: large typography and projected labels share one composition. */
 #world {
-  display: none;
-}
-.hero h1 {
-  transform: none !important;
-  opacity: 1 !important;
-  color: var(--ink);
-}
-.hero,
-.product,
-.closing {
-  background: transparent;
-  color: var(--ink);
-}
-.model-experience {
-  height: auto;
-  min-height: 0;
-  padding: 110px 7vw;
-}
-.model-pin {
-  position: relative;
-  height: auto;
-  min-height: 0;
-  padding: 0;
   display: block;
 }
-.model-pin-copy {
+.hero h1 {
+  transform: translateY(-5%);
+  opacity: 1;
+}
+.scene-annotations {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.scene-annotations > div {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.scene-annotations i {
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--accent);
+}
+.scene-annotations span {
+  display: block;
+  background: var(--glass-bright);
+  border: 1px solid var(--glass-border);
+  padding: 8px 11px;
+  font-size: 9px;
+  backdrop-filter: blur(16px);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.model-experience {
+  height: 460svh;
   min-height: 0;
-  max-width: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 75px 60px;
+  padding: 0 7vw;
+}
+.model-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 650px;
+  padding: 110px 0 60px;
+  display: flex;
+  align-items: center;
+}
+.model-pin-copy {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  min-height: 520px;
+  display: flex;
+  align-items: center;
 }
 .scene-copy,
 .scene-copy.is-active {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  transition:
+    opacity 0.65s,
+    visibility 0.65s;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.scene-copy.is-active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transition: none;
 }
-.model-scene-progress,
-.pinned-annotation,
-.cutaway-caption {
-  display: none;
+.model-scene-progress {
+  display: flex;
 }
-.model-pin .step-count {
+.pinned-annotation {
   display: block;
 }
-.model-pin .step-foot {
-  display: block;
-}
-.glass,
-.product-map article,
-.action-button,
-.scene-copy,
-.diagram-lines {
+.model-pin .glass {
   animation: none !important;
-  translate: none !important;
-  transition: none !important;
 }
-.comparison i {
-  transform: none !important;
-  transition: none !important;
-}
-.product-map article:nth-child(2),
-.product-map article:nth-child(3) {
-  transform: none;
-}
-.cutaway {
-  min-height: 0;
-  padding-top: 90px;
-  padding-bottom: 90px;
-}
-.cutaway-copy {
-  max-width: 760px;
-}
-.cutaway-note,
-.layer-inspector {
-  max-width: 600px;
-}
-.ambient {
-  background:
-    radial-gradient(
-      ellipse at 70% 34%,
-      var(--scene-highlight),
-      transparent 58%
-    ),
-    radial-gradient(ellipse at 20% 80%, var(--scene-blue), transparent 65%),
-    var(--paper);
+.hero h1 {
+  will-change: transform, opacity;
 }
 @media (max-width: 768px) {
   .model-experience {
-    padding: 80px 24px;
+    padding: 0 24px;
+    height: 510svh;
+  }
+  .model-pin {
+    padding-top: 140px;
+    min-height: 760px;
+    align-items: start;
   }
   .model-pin-copy {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 65px;
+    max-width: 460px;
+    min-height: 550px;
+    display: block;
+  }
+  .scene-copy,
+  .scene-copy.is-active {
+    top: 0;
+    transform: none;
+  }
+  .model-scene-progress {
+    top: 105px;
+  }
+  .pinned-annotation {
+    bottom: 5%;
+    right: 0;
+  }
+  .scene-annotations {
+    display: none;
+  }
+}
+@media (max-width: 768px) and (max-height: 760px) {
+  .model-pin {
+    min-height: 0;
+    padding-top: 110px;
+  }
+  .model-pin-copy {
+    min-height: 430px;
   }
   .model-pin .model-step h2 {
-    font-size: clamp(43px, 8.4vw, 62px);
+    font-size: 38px;
   }
   .model-pin .model-step > p {
-    font-size: 13px;
-    line-height: 1.9;
+    font-size: 11px;
   }
   .model-pin .step-foot {
-    font-size: 10px !important;
+    display: none;
   }
-  .cutaway {
-    min-height: 0;
-    padding: 80px 24px;
+  .model-scene-progress {
+    top: 88px;
   }
-  .model-pin .example-flow small {
-    display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-copy {
+    transition: none;
+  }
+  .hero h1 {
+    will-change: auto;
   }
 }
 </style></head><body>
-<div class="ambient" aria-hidden="true"></div><canvas id="world" aria-hidden="true"></canvas><div class="grain" aria-hidden="true"></div>
+<div class="ambient" aria-hidden="true"></div><canvas id="world" aria-hidden="true"></canvas><div class="grain" aria-hidden="true"></div><div id="scene-annotations" class="scene-annotations" aria-hidden="true"><div data-scene-label="0"><i></i><span>Профиль хоста</span></div><div data-scene-label="1"><i></i><span>Сетевое окружение</span></div><div data-scene-label="2"><i></i><span>История взаимодействий</span></div></div>
 <header class="site-header"><a href="#home" class="wordmark">PT<span>NETWORK<br>RESEARCH / 05</span></a><nav aria-label="Разделы"><a href="#problem">Задача</a><a href="#model">Модель</a><a href="#results">Результаты</a><a href="#demo">Попробовать ↗</a></nav><button id="sound" class="sound" aria-pressed="true" aria-label="Выключить музыку"><span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span><span id="sound-label">Звук: авто</span></button></header>
 <div class="scroll-rail" aria-hidden="true"><span id="chapter-number">01</span><div><i id="scroll-progress"></i></div><span>09</span></div>
 <main>
@@ -3173,11 +3205,40 @@ function updateScroll() {
     .classList.toggle("scrolled", scrollY > 60);
   const h = $("home").getBoundingClientRect();
   const heroP = clamp(-h.top / Math.max(1, h.height));
+  if (!motionPreference.matches) {
+    const title = document.querySelector(".hero h1");
+    title.style.transform = `translateY(${-5 - heroP * 14}%) scale(${1 + heroP * 0.075})`;
+    title.style.opacity = String(1 - clamp(heroP * 1.4));
+  }
 }
 function updateModelPin() {
+  const section = $("model-experience");
+  if (!section) return;
+  const rect = section.getBoundingClientRect(),
+    progress = clamp(
+      -rect.top / Math.max(1, section.offsetHeight - innerHeight),
+    ),
+    step = Math.min(3, Math.floor(progress * 4));
+  const phase = progress * 4 - step;
+  document.querySelectorAll("[data-model-step]").forEach((el) => {
+    const visible = Number(el.dataset.modelStep) === step;
+    el.classList.toggle("is-active", visible);
+    el.setAttribute("aria-hidden", String(!visible));
+    if (visible && !motionPreference.matches)
+      el.style.translate = `0 ${Math.sin(phase * Math.PI) * -8}px`;
+    else el.style.translate = "";
+  });
   document
-    .querySelectorAll("[data-model-step]")
-    .forEach((el) => el.setAttribute("aria-hidden", "false"));
+    .querySelectorAll(".model-scene-progress i")
+    .forEach((el, i) => el.classList.toggle("active", i <= step));
+  $("model-scene-count").textContent =
+    String(step + 1).padStart(2, "0") + " / 04";
+  $("model-scene-annotation").textContent = [
+    "Входные взаимодействия",
+    "Числовые признаки поведения",
+    "Профиль с историей",
+    "Соседи в пространстве профилей",
+  ][step];
 }
 addEventListener("scroll", updateScroll, { passive: true });
 addEventListener("resize", measure);
@@ -3766,6 +3827,49 @@ function initWorld() {
     core.add(band);
   }
   const organicTime = { value: 0 };
+  const interior = new THREE.Group();
+  core.add(interior);
+  const beadGeometry = new THREE.SphereGeometry(0.045, 16, 10);
+  const beadMaterial = new THREE.MeshPhysicalMaterial({
+    color: colors.core,
+    metalness: 0.2,
+    roughness: 0.12,
+    envMapIntensity: 2,
+    clearcoat: 1,
+  });
+  const internalNodes = [];
+  for (let i = 0; i < 38; i++) {
+    const phi = i * 2.399963,
+      y = 1 - (2 * (i + 0.5)) / 38,
+      r = Math.sqrt(1 - y * y);
+    const p = new THREE.Vector3(
+      Math.cos(phi) * r * 0.82,
+      y * 1.05,
+      Math.sin(phi) * r * 0.82,
+    );
+    const bead = new THREE.Mesh(beadGeometry, beadMaterial);
+    bead.position.copy(p);
+    interior.add(bead);
+    internalNodes.push(p);
+  }
+  const fiberMaterial = new THREE.MeshPhysicalMaterial({
+    color: colors.highlight,
+    metalness: 0.65,
+    roughness: 0.12,
+    envMapIntensity: 2,
+  });
+  for (let i = 0; i < internalNodes.length; i++) {
+    const start = internalNodes[i],
+      end = internalNodes[(i + 7) % internalNodes.length],
+      middle = start.clone().lerp(end, 0.5).multiplyScalar(0.72);
+    const path = new THREE.CatmullRomCurve3([start, middle, end]);
+    interior.add(
+      new THREE.Mesh(
+        new THREE.TubeGeometry(path, 22, 0.007, 5, false),
+        fiberMaterial,
+      ),
+    );
+  }
   core.name = "HostProfileShell";
   root.add(core);
   const inner = new THREE.Mesh(
@@ -3999,24 +4103,12 @@ function initWorld() {
     currentBackground.copy(paper).lerp(colors.dark, darkPhase);
     ambient.style.backgroundColor = "#" + currentBackground.getHexString();
     ambient.style.backgroundImage = darkPhase > 0.5 ? "none" : "";
-    const redField =
-      ["home", "product"].some((id) => {
-        const r = $(id).getBoundingClientRect();
-        return r.top < 80 && r.bottom > 80;
-      }) || document.querySelector(".closing").getBoundingClientRect().top < 80;
     document.body.style.setProperty(
       "--nav-glass",
-      redField
-        ? token("--nav-glass-red")
-        : darkPhase > 0.5
-          ? token("--nav-glass-dark")
-          : token("--nav-glass-light"),
+      darkPhase > 0.5 ? token("--nav-glass-dark") : token("--nav-glass-light"),
     );
-    document.querySelector(".site-header").style.color = redField
-      ? token("--white")
-      : darkPhase > 0.5
-        ? token("--dark-text")
-        : token("--ink");
+    document.querySelector(".site-header").style.color =
+      darkPhase > 0.5 ? token("--dark-text") : token("--ink");
     const poses = [
       { s: 0, x: 0, y: 0, k: 1.12, rx: 0, ry: -0.2 },
       { s: 1, x: 2.7, y: 0.1, k: 0.94, rx: 0.12, ry: 0.4 },
@@ -4101,13 +4193,16 @@ function initWorld() {
     core.scale.setScalar(
       lerp(core.scale.x, coreScale * (1 - cutAmount * 0.85), dt * 3),
     );
-    shardGroup.visible = sceneProgress < 3;
+    shardGroup.visible = false;
     shardGroup.rotation.y = auto * 0.25;
 
     inner.scale.setScalar(
       lerp(inner.scale.x, sceneProgress < 1 ? 1 : 0.55, dt * 3),
     );
-    lineMaterial.opacity = lerp(0.08, 0.35, clamp(sceneProgress));
+    lineMaterial.opacity =
+      sceneProgress < 0.8 ? 0 : lerp(0.12, 0.32, clamp(sceneProgress));
+    nodeGroup.visible = sceneProgress > 0.8;
+    shardGroup.visible = false;
     nodeGroup.rotation.y = 0;
     nodes.forEach((node, i) => {
       temp.copy(positions[stage][i]).lerp(positions[next][i], blend);
@@ -4136,6 +4231,24 @@ function initWorld() {
         dt * 3,
       );
     });
+    root.updateMatrixWorld(true);
+    const labelPositions = [
+      new THREE.Vector3(-1.25, 0.8, 0),
+      new THREE.Vector3(1.35, 0.15, 0),
+      new THREE.Vector3(0.4, -1.45, 0),
+    ];
+    document.querySelectorAll("[data-scene-label]").forEach((el, i) => {
+      const point = labelPositions[i].clone();
+      root.localToWorld(point);
+      point.project(camera);
+      el.style.transform = `translate(${(point.x * 0.5 + 0.5) * w}px,${(-point.y * 0.5 + 0.5) * h}px)`;
+      const show = w > 768 && sceneProgress > 0.55 && sceneProgress < 8.2;
+      el.style.opacity = show ? "1" : "0";
+      el.querySelector("span").textContent =
+        sceneProgress > 7.05
+          ? ["История · 896", "Новые контакты · 64", "Граф · 64"][i]
+          : ["Профиль хоста", "Сетевое окружение", "История взаимодействий"][i];
+    });
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
@@ -4145,7 +4258,7 @@ function initWorld() {
   });
 }
 measure();
-// 3D intentionally disabled pending a separate visual redesign.
+initWorld();
 
 // Browser-local analysis. Uploaded data never leaves this page.
 let labDataset = hosts.map((h) => ({ id: h.id, v: [...h.v], norm: h.norm }));

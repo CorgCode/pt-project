@@ -46,11 +46,40 @@ function updateScroll() {
     .classList.toggle("scrolled", scrollY > 60);
   const h = $("home").getBoundingClientRect();
   const heroP = clamp(-h.top / Math.max(1, h.height));
+  if (!motionPreference.matches) {
+    const title = document.querySelector(".hero h1");
+    title.style.transform = `translateY(${-5 - heroP * 14}%) scale(${1 + heroP * 0.075})`;
+    title.style.opacity = String(1 - clamp(heroP * 1.4));
+  }
 }
 function updateModelPin() {
+  const section = $("model-experience");
+  if (!section) return;
+  const rect = section.getBoundingClientRect(),
+    progress = clamp(
+      -rect.top / Math.max(1, section.offsetHeight - innerHeight),
+    ),
+    step = Math.min(3, Math.floor(progress * 4));
+  const phase = progress * 4 - step;
+  document.querySelectorAll("[data-model-step]").forEach((el) => {
+    const visible = Number(el.dataset.modelStep) === step;
+    el.classList.toggle("is-active", visible);
+    el.setAttribute("aria-hidden", String(!visible));
+    if (visible && !motionPreference.matches)
+      el.style.translate = `0 ${Math.sin(phase * Math.PI) * -8}px`;
+    else el.style.translate = "";
+  });
   document
-    .querySelectorAll("[data-model-step]")
-    .forEach((el) => el.setAttribute("aria-hidden", "false"));
+    .querySelectorAll(".model-scene-progress i")
+    .forEach((el, i) => el.classList.toggle("active", i <= step));
+  $("model-scene-count").textContent =
+    String(step + 1).padStart(2, "0") + " / 04";
+  $("model-scene-annotation").textContent = [
+    "Входные взаимодействия",
+    "Числовые признаки поведения",
+    "Профиль с историей",
+    "Соседи в пространстве профилей",
+  ][step];
 }
 addEventListener("scroll", updateScroll, { passive: true });
 addEventListener("resize", measure);
@@ -639,6 +668,49 @@ function initWorld() {
     core.add(band);
   }
   const organicTime = { value: 0 };
+  const interior = new THREE.Group();
+  core.add(interior);
+  const beadGeometry = new THREE.SphereGeometry(0.045, 16, 10);
+  const beadMaterial = new THREE.MeshPhysicalMaterial({
+    color: colors.core,
+    metalness: 0.2,
+    roughness: 0.12,
+    envMapIntensity: 2,
+    clearcoat: 1,
+  });
+  const internalNodes = [];
+  for (let i = 0; i < 38; i++) {
+    const phi = i * 2.399963,
+      y = 1 - (2 * (i + 0.5)) / 38,
+      r = Math.sqrt(1 - y * y);
+    const p = new THREE.Vector3(
+      Math.cos(phi) * r * 0.82,
+      y * 1.05,
+      Math.sin(phi) * r * 0.82,
+    );
+    const bead = new THREE.Mesh(beadGeometry, beadMaterial);
+    bead.position.copy(p);
+    interior.add(bead);
+    internalNodes.push(p);
+  }
+  const fiberMaterial = new THREE.MeshPhysicalMaterial({
+    color: colors.highlight,
+    metalness: 0.65,
+    roughness: 0.12,
+    envMapIntensity: 2,
+  });
+  for (let i = 0; i < internalNodes.length; i++) {
+    const start = internalNodes[i],
+      end = internalNodes[(i + 7) % internalNodes.length],
+      middle = start.clone().lerp(end, 0.5).multiplyScalar(0.72);
+    const path = new THREE.CatmullRomCurve3([start, middle, end]);
+    interior.add(
+      new THREE.Mesh(
+        new THREE.TubeGeometry(path, 22, 0.007, 5, false),
+        fiberMaterial,
+      ),
+    );
+  }
   core.name = "HostProfileShell";
   root.add(core);
   const inner = new THREE.Mesh(
@@ -872,24 +944,12 @@ function initWorld() {
     currentBackground.copy(paper).lerp(colors.dark, darkPhase);
     ambient.style.backgroundColor = "#" + currentBackground.getHexString();
     ambient.style.backgroundImage = darkPhase > 0.5 ? "none" : "";
-    const redField =
-      ["home", "product"].some((id) => {
-        const r = $(id).getBoundingClientRect();
-        return r.top < 80 && r.bottom > 80;
-      }) || document.querySelector(".closing").getBoundingClientRect().top < 80;
     document.body.style.setProperty(
       "--nav-glass",
-      redField
-        ? token("--nav-glass-red")
-        : darkPhase > 0.5
-          ? token("--nav-glass-dark")
-          : token("--nav-glass-light"),
+      darkPhase > 0.5 ? token("--nav-glass-dark") : token("--nav-glass-light"),
     );
-    document.querySelector(".site-header").style.color = redField
-      ? token("--white")
-      : darkPhase > 0.5
-        ? token("--dark-text")
-        : token("--ink");
+    document.querySelector(".site-header").style.color =
+      darkPhase > 0.5 ? token("--dark-text") : token("--ink");
     const poses = [
       { s: 0, x: 0, y: 0, k: 1.12, rx: 0, ry: -0.2 },
       { s: 1, x: 2.7, y: 0.1, k: 0.94, rx: 0.12, ry: 0.4 },
@@ -974,13 +1034,16 @@ function initWorld() {
     core.scale.setScalar(
       lerp(core.scale.x, coreScale * (1 - cutAmount * 0.85), dt * 3),
     );
-    shardGroup.visible = sceneProgress < 3;
+    shardGroup.visible = false;
     shardGroup.rotation.y = auto * 0.25;
 
     inner.scale.setScalar(
       lerp(inner.scale.x, sceneProgress < 1 ? 1 : 0.55, dt * 3),
     );
-    lineMaterial.opacity = lerp(0.08, 0.35, clamp(sceneProgress));
+    lineMaterial.opacity =
+      sceneProgress < 0.8 ? 0 : lerp(0.12, 0.32, clamp(sceneProgress));
+    nodeGroup.visible = sceneProgress > 0.8;
+    shardGroup.visible = false;
     nodeGroup.rotation.y = 0;
     nodes.forEach((node, i) => {
       temp.copy(positions[stage][i]).lerp(positions[next][i], blend);
@@ -1009,6 +1072,24 @@ function initWorld() {
         dt * 3,
       );
     });
+    root.updateMatrixWorld(true);
+    const labelPositions = [
+      new THREE.Vector3(-1.25, 0.8, 0),
+      new THREE.Vector3(1.35, 0.15, 0),
+      new THREE.Vector3(0.4, -1.45, 0),
+    ];
+    document.querySelectorAll("[data-scene-label]").forEach((el, i) => {
+      const point = labelPositions[i].clone();
+      root.localToWorld(point);
+      point.project(camera);
+      el.style.transform = `translate(${(point.x * 0.5 + 0.5) * w}px,${(-point.y * 0.5 + 0.5) * h}px)`;
+      const show = w > 768 && sceneProgress > 0.55 && sceneProgress < 8.2;
+      el.style.opacity = show ? "1" : "0";
+      el.querySelector("span").textContent =
+        sceneProgress > 7.05
+          ? ["История · 896", "Новые контакты · 64", "Граф · 64"][i]
+          : ["Профиль хоста", "Сетевое окружение", "История взаимодействий"][i];
+    });
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
@@ -1018,4 +1099,4 @@ function initWorld() {
   });
 }
 measure();
-// 3D intentionally disabled pending a separate visual redesign.
+initWorld();
