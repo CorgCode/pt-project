@@ -222,6 +222,7 @@ function chooseLabHost(id) {
   $("lab-host").value = labSelected.id;
   renderLab();
 }
+window.__ptSelectHost = chooseLabHost;
 function installLab(data, label) {
   labDataset = data.dataset;
   labStats = data.stats;
@@ -280,6 +281,8 @@ function renderLab() {
       return div;
     }),
   );
+  window.__ptLabState = {dataset:labDataset, selected:labSelected, projection:labProjection, near, stats, kind:labKind};
+  window.dispatchEvent(new CustomEvent("pt:lab-update", {detail:window.__ptLabState}));
   if (!window.Chart) return;
   Chart.defaults.font.family = labToken("--font-body").replaceAll("'", "");
   Chart.defaults.color = labToken("--muted");

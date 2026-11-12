@@ -2,11 +2,12 @@
   "name": "pt-network-scene-adaptation",
   "private": true,
   "scripts": {
-    "test": "node tools/check-story.cjs && python3 check-assets.py",
+    "test": "node --experimental-vm-modules tools/check-module-links.cjs && node tools/check-story.cjs && node tools/check-tour.cjs && python3 check-assets.py",
     "font": "node tools/generate-font.mjs"
   },
   "devDependencies": {
     "fontkit": "3.0.0",
-    "jsdom": "27.0.1"
+    "jsdom": "27.0.1",
+    "@napi-rs/canvas": "1.1.1"
   }
 }

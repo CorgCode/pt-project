@@ -1,11 +1,7 @@
 "use strict";
 function openProduct(hash = "#demo") {
   window.__ptMountContent?.();
-  const target = document.getElementById("pt-detail-" + hash.replace("#", ""));
-  if (target) {
-    if (window.__ptScrollDetails) window.__ptScrollDetails(target);
-    else target.scrollIntoView?.({behavior: "smooth", block: "start"});
-  }
+  window.__ptGoChapter?.(hash.replace("#", ""));
 }
 window.__ptOpenProduct = openProduct;
 document.addEventListener(

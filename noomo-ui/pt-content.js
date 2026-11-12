@@ -69,8 +69,11 @@
     if (!footer) return;
     const guide = document.createElement("main");
     guide.id = "pt-guide";
-    guide.className = "pt-guide";
+    guide.className = "pt-guide pt-scene-source";
+    guide.setAttribute("aria-label", "Полное текстовое описание продукта");
     guide.innerHTML = content;
+    guide.setAttribute("aria-hidden","true");
+    guide.querySelectorAll("a,button,input,select,summary").forEach(el=>el.tabIndex=-1);
     footer.before(guide);
     guide.addEventListener("click", (event) => {
       const link = event.target.closest('a[href^="#pt-detail-"]');
@@ -92,17 +95,6 @@
       document.getElementById("pt-model-part-title").textContent = part[0];
       document.getElementById("pt-model-part-copy").textContent = part[1];
     }));
-    if (window.IntersectionObserver && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const observer = new IntersectionObserver(entries => entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.remove("pt-reveal-pending");
-        observer.unobserve(entry.target);
-      }), {rootMargin: "0px 0px -40px 0px", threshold: 0.02});
-      guide.querySelectorAll(".pt-guide-section").forEach(section => {
-        section.classList.add("pt-reveal-pending");
-        observer.observe(section);
-      });
-    }
     window.__ptStartLab?.();
     window.__ptRefreshLayout?.();
   };

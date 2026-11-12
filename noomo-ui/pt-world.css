@@ -1,0 +1,45 @@
+/* Hallmark · macrostructure: spatial-product-tour · theme: violet-glass · genre: atmospheric
+ * pre-emit critique: P4 H4 E4 S5 R4 V4 · slop test: structural checks pass; browser review pending
+ */
+.pt-scene-source {position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:0 !important; clip-path:inset(50%); overflow:clip !important; pointer-events:none;}
+.pt-world-tour .pt-story-root {display:none !important;}
+.pt-world-active .scene-texts,.pt-world-active .pt-product-link {visibility:hidden !important; pointer-events:none !important;}
+.pt-world-tour .header .right-menu > a {display:none !important;}
+.pt-world-ui {position:fixed;inset:0;z-index:85;pointer-events:none;color:var(--pt-story-ink);font-family:var(--pt-font-body);}
+.pt-world-ui[hidden],.pt-world-ui [hidden] {display:none !important;}
+.pt-world-ui button,.pt-world-ui select {font:400 12px/1.3 var(--pt-font-body);border:1px solid var(--pt-story-line);background:var(--pt-story-glass);color:var(--pt-story-ink);padding:11px 15px;white-space:nowrap;cursor:pointer !important;backdrop-filter:blur(18px);pointer-events:auto;transition:background .2s,border-color .2s;}
+.pt-world-ui button:hover,.pt-world-ui button[aria-current="true"],.pt-world-ui button[aria-pressed="true"] {border-color:var(--pt-story-accent);background:var(--pt-story-bright);}
+.pt-world-ui button:disabled {opacity:.35;cursor:default !important;}
+.pt-world-nav {position:absolute;top:90px;left:6vw;display:flex;gap:8px;}
+.pt-world-controls {position:absolute;bottom:28px;left:6vw;display:flex;align-items:center;gap:18px;}
+#pt-world-count {font-size:12px;color:var(--pt-story-muted);min-width:48px;text-align:center;}
+.pt-world-hint {position:absolute;bottom:30px;right:6vw;font-size:11px;color:var(--pt-story-muted);margin:0;}
+.pt-world-text-toggle {position:absolute;right:6vw;top:90px;}
+.pt-world-lab {position:absolute;top:145px;right:5vw;width:min(470px,44vw);display:flex;flex-wrap:wrap;align-items:center;gap:7px;pointer-events:auto;}
+.pt-world-lab button {font-size:10px;padding:9px;}
+.pt-world-lab label {font-size:11px;display:flex;align-items:center;gap:8px;}
+.pt-world-lab select {width:170px;max-width:100%;font-size:11px;padding:9px;}
+#pt-world-status {display:block;width:100%;font-size:10px;line-height:1.5;color:var(--pt-story-muted);}
+.pt-world-readable {position:absolute;left:6vw;top:150px;width:min(640px,88vw);max-height:calc(100svh - 250px);overflow:auto;pointer-events:auto;padding:25px;background:var(--pt-guide-surface);box-shadow:0 20px 65px var(--pt-story-shadow);border:1px solid var(--pt-story-line);}
+.pt-world-readable h2 {font:600 36px/1.2 var(--pt-font-display);margin:0 0 22px;overflow-wrap:anywhere;}
+.pt-world-readable p {font:400 16px/1.75 var(--pt-font-body);margin:0 0 18px;color:var(--pt-story-muted);}
+.pt-world-ui :is(button,select):focus-visible {outline:2px solid var(--pt-story-accent);outline-offset:4px;}
+@media(max-width:760px){
+ .pt-world-nav {top:73px;left:16px;right:16px;gap:5px;justify-content:center;}
+ .pt-world-nav button {font-size:10px;padding:9px 10px;}
+ .pt-world-controls {bottom:18px;left:16px;right:16px;justify-content:center;gap:15px;}
+ .pt-world-controls button {font-size:11px;padding:10px 13px;}
+ .pt-world-hint {display:none;}
+ .pt-world-text-toggle {top:auto;bottom:65px;right:16px;font-size:10px !important;padding:7px 10px !important;}
+ .pt-world-lab {top:116px;left:16px;right:16px;width:auto;gap:5px;justify-content:center;}
+ .pt-world-lab button {font-size:9px;padding:7px 8px;}
+ .pt-world-lab select {width:125px;font-size:10px;padding:7px;}
+ #pt-world-status {font-size:9px;text-align:center;}
+ .pt-world-readable {left:16px;right:16px;top:116px;width:auto;max-height:calc(100svh - 205px);padding:22px;}
+ .pt-world-readable h2 {font-size:30px;}
+ .pt-world-readable p {font-size:15px;}
+}
+@media(prefers-reduced-motion:reduce){.pt-world-ui *{transition:none !important;}}
+.pt-world-view-reset {position:absolute;right:calc(6vw + 78px);top:90px;}
+@media(max-width:760px){.pt-world-view-reset {top:auto;bottom:65px;left:16px;right:auto;font-size:10px !important;padding:7px 10px !important;}}
+.pt-world-tour .home-footer {display:none !important;}

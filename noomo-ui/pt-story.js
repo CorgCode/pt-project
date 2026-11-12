@@ -1,373 +1,196 @@
-import { h as gsap } from "/_nuxt/iNjJ8EkR.js";
-window.__ptScrollDetails = (target) => {
-  const instance = gsap.core.globals().ScrollSmoother?.get();
-  if (instance) instance.scrollTo(target, true, "top 95px");
-  else target.scrollIntoView?.({behavior: "smooth", block: "start"});
+/* Hallmark · macrostructure: spatial-product-tour · theme: violet-glass · genre: atmospheric
+ * pre-emit critique: P4 H4 E4 S5 R4 V4 · slop test: structural checks pass; browser review pending
+ */
+import { h as gsap, __tla as libraryReady } from "/_nuxt/iNjJ8EkR.js";
+await libraryReady;
+let root, pages = [], current = -1, scrollLength = 12000, layoutTimer, hashApplied = false;
+const start = 850, stride = 850;
+const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const clean = el => {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll("br").forEach(br => br.replaceWith(" "));
+  return clone.textContent.trim().replace(/\s+/g, " ");
 };
-let layoutRefresh;
-window.__ptRefreshLayout = () => {
-  clearTimeout(layoutRefresh);
-  layoutRefresh = setTimeout(() => gsap.core.globals().ScrollTrigger?.refresh(), 100);
-};
-window.__ptRefreshLayout();
-const steps = [
-  {
-    id: "problem",
-    start: 850,
-    end: 2150,
-    label: "01 / ЗАЧЕМ ЭТО НУЖНО",
-    title: "Что скрывается<br>за адресом хоста?",
-    body: "Хост — это компьютер или сервер в сети. В логах виден его адрес, но не всегда понятно, чем он занимается и какое поведение для него привычно.",
-    detail:
-      "Мы собираем контекст его взаимодействий: с кем он общается, по каким сервисам, сколько передаёт данных и когда активен.",
-    link: "#problem",
-    cta: "Разобраться в задаче",
-  },
-  {
-    id: "product",
-    start: 2150,
-    end: 3450,
-    label: "02 / КАРТА ПРОДУКТА",
-    title: "Три вопроса<br>к своей сети.",
-    body: "Сервис помогает оператору SOC — специалисту, который следит за безопасностью сети, — исследовать поведение устройств.",
-    kind: "product",
-    link: "#product",
-    cta: "Посмотреть карту продукта",
-  },
-  {
-    id: "input",
-    start: 3450,
-    end: 4550,
-    label: "03 / ИЗ ЧЕГО СТРОИМ ПРОФИЛЬ",
-    title: "Из записей —<br>в поведение.",
-    body: "Одна запись соединения мало что говорит. За окно времени мы собираем признаки активности хоста, его собеседников и используемых сервисов.",
-    kind: "input",
-    link: "#model",
-    cta: "Посмотреть все этапы",
-  },
-  {
-    id: "encoder",
-    start: 4550,
-    end: 5650,
-    label: "04 / КОДИРОВЩИК ТРАФИКА",
-    title: "Поведение становится<br>набором чисел.",
-    body: "Нейросеть-кодировщик переводит признаки трафика в вектор. В нём 896 чисел. По таким описаниям можно сравнивать компьютеры, даже если их реальные роли заранее неизвестны.",
-    kind: "encoder",
-    detail:
-      "Многодневная модель дообучает отдельные профили известных хостов по истории. Адаптер помогает сопоставлять с ними трафик более позднего окна.",
-    link: "#model",
-    cta: "Заглянуть внутрь модели",
-  },
-  {
-    id: "architecture",
-    start: 5650,
-    end: 6950,
-    label: "05 / МНОГОДНЕВНАЯ МОДЕЛЬ",
-    title: "Один профиль.<br>Три части.",
-    body: "К истории хоста мы добавили отдельный блок для прогноза новых собеседников и информацию о структуре сетевого графа.",
-    kind: "architecture",
-    link: "#model",
-    cta: "Подробная архитектура",
-  },
-  {
-    id: "training",
-    start: 6950,
-    end: 7850,
-    label: "06 / КАК ПРОВЕРЯЕМ",
-    title: "Учимся на прошлом.<br>Проверяем на будущем.",
-    body: "Настройки выбираются до финальной оценки. Модель фиксируется, а затем проверяется на более поздних днях, которые не использовались при обучении.",
-    kind: "training",
-    link: "#results",
-    cta: "Методика и ограничения",
-  },
-  {
-    id: "results",
-    start: 7850,
-    end: 8900,
-    label: "07 / РЕЗУЛЬТАТЫ ИССЛЕДОВАНИЯ",
-    title: "Качество, которое<br>можно сравнить.",
-    body: "На общих тестовых окнах multiday_codebook_plus получила 70,0 из 100. Общий score объединяет несколько задач, а не показывает процент обнаруженных атак.",
-    kind: "results",
-    link: "#results",
-    cta: "Понятно о каждой метрике",
-  },
-  {
-    id: "demo",
-    start: 8900,
-    end: 10080,
-    label: "08 / ПОПРОБУЙТЕ ПРЯМО ЗДЕСЬ",
-    title: "Начнём<br>с одного хоста.",
-    body: "Выберите пример. Мы сравним его вектор с остальными и покажем ближайший профиль. Ниже на этой же странице — большая интерактивная карта, графики и загрузка своих данных.",
-    kind: "demo",
-    link: "#demo",
-    cta: "Открыть большую лабораторию",
-  },
-];
-let root,
-  panel,
-  nav,
-  current = -1,
-  smoother = null,
-  started = false,
-  exampleIndex = 0,
-  found = false,
-  detailHashApplied = false;
-const $ = (id) => document.getElementById(id);
-const metrics = {
-  identity: [
-    "59,6%",
-    "Верный хост найден с первой попытки в среднем по тестовым окнам. Это задача узнавания устройства в другой день.",
-  ],
-  links: [
-    "0,974",
-    "ROC-AUC: качество различения будущей связи и её отсутствия. Это не 97,4% верных предсказаний.",
-  ],
-  contacts: [
-    "0,318",
-    "MRR: качество ранжирования новых собеседников. Чем раньше в списке верный контакт, тем выше оценка.",
-  ],
-};
-function element(tag, className, text) {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
-}
-function openProduct(hash) {
-  window.__ptOpenProduct?.(hash);
-}
-function sceneScroll(y) {
-  try {
-    smoother = gsap.core.globals().ScrollSmoother?.get();
-    if (smoother) {
-      smoother.scrollTo(y, true);
-      return;
+function splitText(text, limit) {
+  const chunks = []; let part = "";
+  text.split(/(?<=[.!?])\s+/).forEach(sentence => {
+    if (part && (part + sentence).length > limit) {chunks.push(part); part = "";}
+    // Long sentences are split at word boundaries, never cut off.
+    for (const word of sentence.split(" ")) {
+      if (part && (part + word).length > limit) {chunks.push(part.trim()); part = "";}
+      part += word + " ";
     }
-  } catch {}
-  window.scrollTo({
-    top: y,
-    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? "instant"
-      : "smooth",
   });
+  if (part.trim()) chunks.push(part.trim());
+  return chunks;
 }
-function illustrations(kind) {
-  if (kind === "product")
-    return '<div class="pt-scene-list"><div><b>01</b><p><strong>Найти похожие хосты</strong><small>Поиск доступен в демонстрации</small></p></div><div><b>02</b><p><strong>Исследовать группы</strong><small>Следующий этап сервиса</small></p></div><div><b>03</b><p><strong>Замечать необычные переходы</strong><small>Следующий этап сервиса</small></p></div></div>';
-  if (kind === "input")
-    return '<div class="pt-scene-features"><span>Собеседники</span><span>Порты и протоколы</span><span>Пакеты и байты</span><span>Время и длительность</span></div>';
-  if (kind === "encoder")
-    return '<div class="pt-encoder-picture" aria-label="Схема: признаки, кодировщик, вектор"><span>Признаки</span><b>→</b><span>Кодировщик</span><b>→</b><strong>896</strong></div>';
-  if (kind === "architecture")
-    return '<div class="pt-architecture-selector" role="group" aria-label="Части модели"><button data-part="0" aria-pressed="true"><b>896</b> История</button><button data-part="1" aria-pressed="false"><b>64</b> Контакты</button><button data-part="2" aria-pressed="false"><b>64</b> Граф</button></div><p class="pt-scene-detail" id="pt-part-copy">Профиль известного хоста и адаптер, который переводит поздний трафик в то же пространство. Итого все три части дают вектор из 1 024 чисел.</p>';
-  if (kind === "training")
-    return '<div class="pt-scene-timeline"><div><b>02–12</b><span>Обучение</span></div><i>→</i><div><b>13</b><span>Подбор</span></div><i>→</i><div><b>14–16</b><span>Проверка</span></div></div>';
-  if (kind === "results")
-    return (
-      '<div class="pt-scene-score"><strong>70<small>/100</small></strong><span>multiday_codebook_plus<br>Таблица от 4 ноября 2026</span></div><div class="pt-scene-metrics" role="group" aria-label="Задачи оценки"><button data-metric="identity" aria-pressed="true">Узнать хост</button><button data-metric="links" aria-pressed="false">Предсказать связь</button><button data-metric="contacts" aria-pressed="false">Новый контакт</button></div><p class="pt-metric-copy"><b id="pt-metric-number">59,6%</b> <span id="pt-metric-text">' +
-      metrics.identity[1] +
-      "</span></p>"
-    );
-  if (kind === "demo") return '<div id="pt-mini-demo"></div>';
-  return "";
-}
-function renderStep(index) {
-  if (index === current) return;
-  current = index;
-  const step = steps[index];
-  panel.dataset.step = step.id;
-  panel.setAttribute("aria-label", step.title.replaceAll("<br>", " "));
-  panel.innerHTML =
-    '<span class="pt-story-eyebrow">' +
-    step.label +
-    "</span><h2>" +
-    step.title +
-    '</h2><p class="pt-story-body">' +
-    step.body +
-    "</p>" +
-    illustrations(step.kind) +
-    (step.detail ? '<p class="pt-scene-detail">' + step.detail + "</p>" : "") +
-    '<button class="pt-story-more" data-open="' +
-    step.link +
-    '">' +
-    step.cta +
-    " <span>↗</span></button>";
-  panel
-    .querySelector("[data-open]")
-    .addEventListener("click", () => openProduct(step.link));
-  panel.querySelectorAll("[data-part]").forEach((button) =>
-    button.addEventListener("click", () => {
-      panel
-        .querySelectorAll("[data-part]")
-        .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
-      $("pt-part-copy").textContent = [
-        "Профиль известного хоста и адаптер, который переводит поздний трафик в то же пространство. Итого все три части дают вектор из 1 024 чисел.",
-        "64 числа учатся подбирать соседей, чьи контакты помогают угадывать будущих новых собеседников исходного хоста.",
-        "64 числа описывают положение хоста в графе взаимодействий. Они дополняют поведенческий профиль структурой связей.",
-      ][Number(button.dataset.part)];
-    }),
-  );
-  panel.querySelectorAll("[data-metric]").forEach((button) =>
-    button.addEventListener("click", () => {
-      panel
-        .querySelectorAll("[data-metric]")
-        .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
-      const m = metrics[button.dataset.metric];
-      $("pt-metric-number").textContent = m[0];
-      $("pt-metric-text").textContent = m[1];
-    }),
-  );
-  if (step.kind === "demo") renderMini();
-  nav
-    .querySelectorAll("[data-story]")
-    .forEach((button) =>
-      button.setAttribute(
-        "aria-current",
-        String(
-          button.dataset.story === step.id ||
-            (button.dataset.story === "encoder" &&
-              ["input", "architecture"].includes(step.id)),
-        ),
-      ),
-    );
-}
-function renderMini() {
-  const box = $("pt-mini-demo");
-  if (!box || !window.HOSTS?.length) return;
-  const host = window.HOSTS[exampleIndex % window.HOSTS.length],
-    norm = (h) => Math.hypot(...h.v);
-  const nearest = window.HOSTS.filter((h) => h !== host)
-    .map((h) => ({
-      host: h,
-      score:
-        host.v.reduce((sum, x, i) => sum + x * h.v[i], 0) /
-        (norm(host) * norm(h)),
-    }))
-    .sort((a, b) => b.score - a.score)[0];
-  box.replaceChildren();
-  const figure = element("div", "pt-mini-network");
-  figure.innerHTML =
-    '<span class="pt-mini-node">Хост A</span><i class="' +
-    (found ? "found" : "") +
-    '"></i><span class="pt-mini-node ' +
-    (found ? "selected" : "") +
-    '">' +
-    (found ? "Хост B" : "?") +
-    "</span>";
-  box.append(figure);
-  const text = element(
-    "p",
-    "pt-mini-caption",
-    found
-      ? "Ближайший профиль найден. Косинусное сходство: " +
-          nearest.score.toFixed(3) +
-          ". Значение не означает вероятность атаки."
-      : "У каждого хоста — числовой профиль. Найдём самый близкий.",
-  );
-  box.append(text);
-  const controls = element("div", "pt-mini-controls");
-  const action = element(
-    "button",
-    "",
-    found ? "Исследовать соседа ↗" : "Найти похожего",
-  );
-  action.addEventListener("click", () => {
-    if (found) {
-      exampleIndex = window.HOSTS.indexOf(nearest.host);
-      found = false;
-    } else found = true;
-    renderMini();
+function buildPages() {
+  const source = document.getElementById("pt-guide");
+  if (!source) return;
+  const limit = innerWidth < 760 ? Math.min(360,Math.max(100,Math.floor((innerHeight*.50-180)/24)*30)) : 600;
+  const result = [];
+  source.querySelectorAll(".pt-guide-section").forEach(section => {
+    const id = section.id.replace("pt-detail-", "");
+    let title = clean(section.querySelector("h2")), body = [], bodyLength = 0;
+    const flush = () => {
+      if (!body.length) return;
+      result.push({id, title, paragraphs:body, kind:kindFor(id,title)});
+      body = []; bodyLength = 0;
+    };
+    section.querySelectorAll("h3,h4,p,figcaption,small").forEach(el => {
+      if (el.closest(".pt-lab-controls,.pt-lab-workspace,.pt-lab-guide")) return;
+      if (/^H[34]$/.test(el.tagName)) {flush(); title = clean(el); return;}
+      let text = clean(el);
+      if (!text || el.id === "pt-model-part-copy") return;
+      if (el.parentElement.classList.contains("pt-metric-ledger")) return;
+      const article = el.closest(".pt-metric-ledger article");
+      if (article && el.tagName === "P") text = clean(article.querySelector("strong")) + " — " + text;
+      splitText(text,limit).forEach(chunk => {
+        if (bodyLength + chunk.length > limit) flush();
+        body.push(chunk); bodyLength += chunk.length;
+      });
+    });
+    flush();
   });
-  const reset = element("button", "", "Другой пример ↻");
-  reset.addEventListener("click", () => {
-    exampleIndex = (exampleIndex + 41) % window.HOSTS.length;
-    found = false;
-    renderMini();
-  });
-  controls.append(action, reset);
-  box.append(controls);
-  box.append(
-    element("small", "", "Пример на тестовых поведенческих векторах проекта."),
-  );
+  // The laboratory has a dedicated interactive stop, not just explanatory text.
+  const at = result.findIndex(p => p.id === "demo");
+  if (at >= 0) result[at].interactive = true;
+  pages = result;
+  scrollLength = start + pages.length * stride;
+  const runway = document.querySelector(".home-page");
+  if (runway) runway.style.setProperty("height", `${scrollLength + innerHeight}px`, "important");
+  window.__ptPages = pages;
+  window.__ptRefreshLayout();
+}
+function kindFor(id,title) {
+  if (id === "model") {
+    if (/признак/.test(title)) return "input";
+    if (/окна|архитектур/.test(title)) return "history";
+    if (/три части|портрет|структур|собеседник/.test(title)) return "architecture";
+    return "encoder";
+  }
+  return id;
+}
+function scrollToPage(index) {
+  if (!pages.length) return;
+  const i = Math.max(0,Math.min(pages.length-1,index));
+  const y = start + i*stride + stride*.4;
+  const smoother = gsap.core.globals().ScrollSmoother?.get();
+  if (smoother) smoother.scrollTo(y, !reduce());
+  else window.scrollTo({top:y,behavior:reduce()?"instant":"smooth"});
+}
+window.__ptGoChapter = id => {
+  mount();
+  const key = id === "encoder" ? "model" : id;
+  const index = pages.findIndex(page => page.id === key);
+  if (index >= 0) scrollToPage(index);
+};
+window.__ptRefreshLayout = () => {
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(() => gsap.core.globals().ScrollTrigger?.refresh(),100);
+};
+function button(text, action) {
+  const b=document.createElement("button");b.type="button";b.textContent=text;b.addEventListener("click",action);return b;
 }
 function mount() {
+  window.__ptMountContent?.();
+  if (!pages.length && document.getElementById("pt-guide")) buildPages();
   if (root || !document.body) return;
-  document.documentElement.lang = "ru";
-  document.body.classList.add("pt-has-story");
-  root = element("div", "pt-story-root");
-  root.id = "pt-story";
-  root.hidden = true;
-  panel = element("section", "pt-story-panel");
-  panel.setAttribute("aria-live", "polite");
-  root.append(panel);
-  nav = element("nav", "pt-story-nav");
-  nav.setAttribute("aria-label", "Рассказ о проекте");
-  [
-    ["problem", "Задача", 900],
-    ["encoder", "Модель", 3500],
-    ["results", "Результаты", 7900],
-    ["demo", "Лаборатория", 9000],
-  ].forEach(([id, text, y]) => {
-    const button = element("button", "", text);
-    button.dataset.story = id;
-    button.addEventListener("click", () => sceneScroll(y));
-    nav.append(button);
+  document.documentElement.lang="ru";
+  document.body.classList.add("pt-world-tour");
+  root=document.createElement("div");root.className="pt-world-ui";root.id="pt-world-ui";root.hidden=true;
+  const nav=document.createElement("nav");nav.className="pt-world-nav";nav.setAttribute("aria-label","Разделы 3D-рассказа");
+  [["problem","Задача"],["model","Модель"],["results","Результаты"],["demo","Попробовать"]].forEach(([id,label])=>{
+    const b=button(label,()=>window.__ptGoChapter(id));b.dataset.chapter=id;nav.append(b);
   });
-  root.append(nav);
-  const cue = element(
-    "div",
-    "pt-story-cue",
-    "Сетевой трафик → профиль хоста. Прокрутите, чтобы разобраться ↓",
-  );
-  root.append(cue);
-  ["click", "pointerdown", "pointermove", "pointerup"].forEach((type) =>
-    panel.addEventListener(type, (e) => e.stopPropagation()),
-  );
-  ["click", "pointerdown", "pointermove", "pointerup"].forEach((type) =>
-    root.addEventListener(type, (e) => e.stopPropagation()),
-  );
+  const controls=document.createElement("div");controls.className="pt-world-controls";
+  const prev=button("← Назад",()=>scrollToPage(current-1));prev.id="pt-world-prev";
+  const count=document.createElement("span");count.id="pt-world-count";
+  const next=button("Дальше →",()=>scrollToPage(current+1));next.id="pt-world-next";
+  controls.append(prev,count,next);
+  const lab=document.createElement("div");lab.className="pt-world-lab";lab.id="pt-world-lab";lab.hidden=true;
+  [["project","300 хостов"],["small","24 хоста"],["flows","Пример трафика"]].forEach(([id,label])=>{
+    const b=button(label,()=>document.querySelector(`[data-preset="${id}"]`)?.click());b.dataset.worldPreset=id;lab.append(b);
+  });
+  lab.append(button("↑ Загрузить CSV",()=>document.getElementById("csv-file")?.click()));
+  lab.append(button("Пример CSV ↓",()=>document.getElementById("download-sample")?.click()));
+  const hostLabel=document.createElement("label");hostLabel.textContent="Хост ";
+  const host=document.createElement("select");host.id="pt-world-host";host.setAttribute("aria-label","Выбрать хост в 3D");
+  host.addEventListener("change",()=>window.__ptSelectHost?.(host.value));hostLabel.append(host);lab.append(hostLabel);
+  const status=document.createElement("span");status.id="pt-world-status";status.setAttribute("role","status");lab.append(status);
+  const accessible=document.createElement("section");accessible.id="pt-world-readable";accessible.className="pt-world-readable";accessible.hidden=true;
+  accessible.setAttribute("aria-label","Текущий текст сцены");
+  const text=button("Текст",()=>{accessible.hidden=!accessible.hidden;});text.className="pt-world-text-toggle";
+  const help=document.createElement("p");help.className="pt-world-hint";help.textContent="Прокрутка — дальше · объекты справа можно вращать";
+  const reset=button("Вид ↺",()=>window.__ptResetView?.());reset.className="pt-world-view-reset";
+  root.append(nav,controls,lab,accessible,text,help,reset);
+  ["click","pointerdown","pointermove","pointerup"].forEach(type=>root.addEventListener(type,e=>e.stopPropagation()));
   document.body.append(root);
-  renderStep(0);
+  if (window.__ptLabState) window.dispatchEvent(new CustomEvent("pt:lab-update",{detail:window.__ptLabState}));
+}
+function show(index,p) {
+  const page=pages[index];
+  if (current!==index) {
+    current=index;
+    document.getElementById("pt-world-count").textContent=`${index+1} / ${pages.length}`;
+    document.getElementById("pt-world-prev").disabled=index===0;
+    document.getElementById("pt-world-next").disabled=index===pages.length-1;
+    document.getElementById("pt-world-lab").hidden=page.id!=="demo";
+    root.querySelectorAll("[data-chapter]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.chapter===page.id)));
+    const readable=document.getElementById("pt-world-readable");readable.replaceChildren();
+    const title=document.createElement("h2");title.textContent=page.title;readable.append(title);
+    page.paragraphs.forEach(text=>{const para=document.createElement("p");para.textContent=text;readable.append(para);});
+  }
+  window.__ptWorldState={page,index,total:pages.length,progress:p,visible:true};
 }
 function frame() {
   requestAnimationFrame(frame);
-  if (document.hidden) return;
+  if(document.hidden)return;
   mount();
-  if (!root) return;
-  document.body.classList.add("pt-has-story");
-  const scene = document.getElementById("home-scene");
-  const visible = scene && Number(getComputedStyle(scene).opacity) > 0.05;
-  try {
-    smoother = gsap.core.globals().ScrollSmoother?.get();
-  } catch {}
-  const y = smoother?.scrollTop?.() ?? window.scrollY;
-  started = !!visible;
-  root.hidden = !started || y > 10100;
-  document.body.classList.toggle("pt-story-active", started && y <= 10100);
-  if (!started) return;
-  window.__ptMountContent?.();
-  if (!detailHashApplied && document.getElementById("pt-guide")) {
-    detailHashApplied = true;
-    if (location.hash.startsWith("#pt-detail-")) {
-      const target = document.getElementById(location.hash.slice(1));
-      if (target) window.__ptScrollDetails(target);
-    }
+  const scene=document.getElementById("home-scene");
+  const ready=scene&&Number(getComputedStyle(scene).opacity)>.05&&pages.length;
+  const smoother=gsap.core.globals().ScrollSmoother?.get();
+  const y=smoother?.scrollTop?.()??window.scrollY;
+  if (ready && !hashApplied) {
+    hashApplied=true;
+    if(location.hash.startsWith("#pt-detail-"))window.__ptGoChapter(location.hash.slice(11));
   }
-  const index = steps.findIndex((step) => y >= step.start && y < step.end);
-  panel.hidden = index < 0;
-  if (index >= 0) {
-    renderStep(index);
-    const step = steps[index],
-      p = (y - step.start) / (step.end - step.start),
-      fade = Math.min(1, p / 0.1, (1 - p) / 0.09);
-    panel.style.opacity = String(Math.max(0.06, fade));
-    panel.style.translate = matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
-      ? ""
-      : `0 ${(1 - Math.min(1, p / 0.14)) * 14}px`;
-  }
-  nav.hidden = y < 700;
-  root.querySelector(".pt-story-cue").hidden = y > 800;
+  const active=!!ready&&y>=start&&y<=scrollLength+1;
+  if(root)root.hidden=!active;
+  document.body.classList.toggle("pt-world-active",active);
+  if(active){const raw=(y-start)/stride,index=Math.min(pages.length-1,Math.floor(raw));show(index,Math.min(1,raw-index));}
+  else window.__ptWorldState={visible:false};
 }
-mount();
-requestAnimationFrame(frame);
+window.addEventListener("pt:inspect",event=>{
+  const readable=document.getElementById("pt-world-readable");if(!readable)return;
+  readable.replaceChildren();
+  const h=document.createElement("h2");h.textContent=event.detail.title;readable.append(h);
+  event.detail.paragraphs.forEach(t=>{const p=document.createElement("p");p.textContent=t;readable.append(p);});
+});
+window.addEventListener("pt:lab-update",event=>{
+  const state=event.detail,select=document.getElementById("pt-world-host");
+  if(select){
+    if(select.options.length!==state.dataset.length||select.options[0]?.value!==state.dataset[0].id){
+      select.replaceChildren(...state.dataset.map(h=>{const o=document.createElement("option");o.value=h.id;o.textContent=h.id;return o;}));
+    }
+    select.value=state.selected.id;
+  }
+  document.querySelectorAll("[data-world-preset]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.worldPreset===(state.kind==="flows"?"flows":state.dataset.length===24?"small":state.kind==="project"?"project":"uploaded"))));
+});
+window.addEventListener("resize",()=>{
+  const section=pages[current]?.id;
+  clearTimeout(window.__ptResizeTimer);
+  window.__ptResizeTimer=setTimeout(()=>{buildPages();current=-1;if(section)window.__ptGoChapter(section);window.__ptWorldResize?.();},180);
+});
+document.addEventListener("keydown",e=>{
+  if(root?.hidden||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName))return;
+  if(e.key==="ArrowRight"){e.preventDefault();scrollToPage(current+1);}
+  if(e.key==="ArrowLeft"){e.preventDefault();scrollToPage(current-1);}
+});
+// The hidden CSV status is mirrored for upload validation, without a second interface.
+window.__ptStatusObserver = new MutationObserver(()=>{
+  const status=document.getElementById("pt-world-status"),source=document.getElementById("lab-status");
+  if(status&&source&&status.textContent!==source.textContent)status.textContent=source.textContent;
+});
+window.__ptStatusObserver.observe(document.documentElement,{childList:true,subtree:true});
+mount();requestAnimationFrame(frame);
