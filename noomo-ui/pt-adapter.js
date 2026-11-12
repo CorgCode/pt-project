@@ -3,6 +3,8 @@ let productDialog = null,
   previousFocus = null,
   pausedMedia = [];
 const sections = {
+  "#problem": "Задача",
+  "#product": "Возможности",
   "#demo": "Лаборатория",
   "#model": "Как устроена модель",
   "#results": "Результаты",
@@ -146,7 +148,77 @@ function adapt() {
 if (document.readyState === "loading")
   document.addEventListener("DOMContentLoaded", adapt);
 else adapt();
+let adaptationScheduled = false;
 new MutationObserver(() => {
-  clearTimeout(window.__ptAdaptTimer);
-  window.__ptAdaptTimer = setTimeout(adapt, 120);
+  if (adaptationScheduled) return;
+  adaptationScheduled = true;
+  setTimeout(() => {
+    adaptationScheduled = false;
+    adapt();
+  }, 200);
 }).observe(document.documentElement, { childList: true, subtree: true });
+
+// Replace the words baked into the animated GLB without changing animation targets.
+window.__ptPrepareSceneText = function (scene, types) {
+  const labels = {
+    AND: "ДАННЫЕ",
+    "DELIGHTD.001": "ХОСТЫ",
+    INSPIREE: "МОДЕЛЬ",
+    TOO: "СВЯЗИ",
+    "Noomo_Logo_for_Footer.003": "PT NETWORK",
+    Work_1_text: "ПОИСК",
+    Work_2_text: "ПРОФИЛЬ",
+    Work_3_text: "МЕТРИКИ",
+    Work_4_text: "ЛАБОРАТОРИЯ",
+  };
+  const loader = new types.FontLoader();
+  loader.load(
+    "/fonts/PTDisplay_Regular.json",
+    (font) => {
+      scene.traverse((mesh) => {
+        const text = labels[mesh.name];
+        if (!text || !mesh.isMesh || !mesh.geometry) return;
+        const original = mesh.geometry;
+        original.computeBoundingBox();
+        const old = original.boundingBox;
+        if (!old) return;
+        const geometry = new types.ShapeGeometry(
+          font.generateShapes(text, 1000),
+        );
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        const oldW = old.max.x - old.min.x,
+          oldH = old.max.y - old.min.y,
+          newW = box.max.x - box.min.x,
+          newH = box.max.y - box.min.y;
+        if (!(oldW > 0 && oldH > 0 && newW > 0 && newH > 0)) {
+          geometry.dispose();
+          return;
+        }
+        const scale = Math.min(oldW / newW, oldH / newH);
+        const x =
+            (old.min.x + old.max.x) / 2 - ((box.min.x + box.max.x) / 2) * scale,
+          y =
+            (old.min.y + old.max.y) / 2 - ((box.min.y + box.max.y) / 2) * scale,
+          z = (old.min.z + old.max.z) / 2;
+        geometry.scale(scale, scale, scale);
+        geometry.translate(x, y, z);
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+        mesh.geometry = geometry;
+        mesh.userData.ptText = text;
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        materials.forEach((material) => {
+          if (material) {
+            material.side = types.DoubleSide;
+            material.needsUpdate = true;
+          }
+        });
+      });
+    },
+    undefined,
+    (error) => console.error("PT 3D text could not load", error),
+  );
+};

@@ -33,7 +33,7 @@ manifest_path = '/_nuxt/builds/meta/' + latest['id'] + '.json'
 references.add(manifest_path)
 manifest = json.loads((root / manifest_path.lstrip('/')).read_text())
 assert manifest['id'] == latest['id'], 'Nuxt build IDs differ'
-references.update(['/models/Scene14.glb', '/models/draco_decoder.wasm', '/models/draco_wasm_wrapper.js', '/fonts/Druk_Regular.json', '/hdri/photo_studio_01_1k.hdr'])
+references.update(['/models/Scene14.glb', '/models/draco_decoder.wasm', '/models/draco_wasm_wrapper.js', '/fonts/Druk_Regular.json', '/fonts/PTDisplay_Regular.json', '/hdri/photo_studio_01_1k.hdr'])
 missing = [p for p in sorted(references) if not (root / unquote(p.lstrip('/'))).is_file()]
 assert not missing, 'Missing assets: ' + ', '.join(missing)
 print('PASS:', len(references), 'assets, including Nuxt dynamic build manifest', latest['id'])
