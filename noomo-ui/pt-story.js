@@ -3,6 +3,19 @@
  */
 import { h as gsap, __tla as libraryReady } from "/_nuxt/iNjJ8EkR.js";
 await libraryReady;
+let mode="guided";
+const guidedPages = [
+  {id:"problem",kind:"device",title:"Это хост. Обычное устройство.",paragraphs:["Хост — компьютер или сервер в сети. Адрес мы видим. А вот его назначение и привычки по одному адресу не понять."]},
+  {id:"problem",kind:"traffic",title:"Посмотрим, с кем он общается.",paragraphs:["Пакеты идут от устройства к сервисам и обратно. Из этих взаимодействий складывается история его поведения."],note:"Условный пример трафика, не реальные записи выбранного хоста."},
+  {id:"model",kind:"features",title:"Собираем сетевые привычки.",paragraphs:["С кем общается? Какие сервисы использует? Сколько передаёт? Когда активен? Модель получает признаки этих взаимодействий."]},
+  {id:"model",kind:"encoder",title:"Привычки превращаются в числовой профиль.",paragraphs:["Кодировщик — нейросеть, которая превращает признаки трафика в 896 чисел. По таким профилям можно сравнить устройства."],note:"Наглядная схема, не точное число слоёв сети."},
+  {id:"model",kind:"architecture",title:"Добавляем историю и окружение.",paragraphs:["896 чисел описывают профиль хоста. Ещё 64 помогают предсказывать новые контакты, и 64 — учитывать структуру сети. Нажмите на часть модели."]},
+  {id:"training",kind:"training",title:"Проверяем на будущих днях.",paragraphs:["Учимся на днях 02–12, выбираем настройки на 13-м, проверяем на 14–16-м. Будущие тестовые записи не используются при обучении."]},
+  {id:"demo",kind:"search",title:"А теперь — найдём похожего.",paragraphs:["Выбрали один хост. Сравним его профиль со всеми остальными. Нажмите «Найти похожего» — расчёт выполняется здесь, в браузере."],note:"Тестовые векторы проекта. Обученная многодневная модель здесь не запускается."},
+  {id:"results",kind:"results",title:"Что получилось в исследовании.",paragraphs:["Общий балл вырос с 56,5 до 70,0 из 100. Это сравнение нескольких задач на тестовых окнах, а не процент обнаруженных атак."],note:"Таблица от 4 ноября 2026. Метрики и ограничения — в режиме «Подробно»."},
+  {id:"product",kind:"device",title:"Меньше ручного поиска. Больше контекста.",paragraphs:["Сейчас можно искать похожие профили. Дальше — объединять хосты в группы, объяснять соседство и замечать необычные изменения поведения."]},
+  {id:"demo",kind:"graph-final",title:"Ваша сеть. Исследуйте её.",paragraphs:["Выберите узел — увидите ближайшие профили. Тяните узел, чтобы раздвинуть граф. Тяните свободное место, чтобы повернуть всю сцену."],note:"Линии показывают близость профилей, а не реальные сетевые соединения."}
+];
 let root, pages = [], current = -1, scrollLength = 12000, layoutTimer, hashApplied = false;
 const start = 850, stride = 850;
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -55,13 +68,21 @@ function buildPages() {
   // The laboratory has a dedicated interactive stop, not just explanatory text.
   const at = result.findIndex(p => p.id === "demo");
   if (at >= 0) result[at].interactive = true;
-  pages = result;
+  pages = mode==="guided" ? guidedPages.map(p=>({...p,guided:true})) : result;
+  document.body.classList.toggle("pt-guided-mode",mode==="guided");
   scrollLength = start + pages.length * stride;
   const runway = document.querySelector(".home-page");
   if (runway) runway.style.setProperty("height", `${scrollLength + innerHeight}px`, "important");
   window.__ptPages = pages;
   window.__ptRefreshLayout();
 }
+window.__ptSetTourMode = value => {
+  const section=pages[current]?.id;
+  mode=value==="details"?"details":"guided";current=-1;buildPages();
+  document.querySelectorAll("[data-tour-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tourMode===mode)));
+  window.__ptWorldResize?.();
+  if(section)window.__ptGoChapter(section);
+};
 function kindFor(id,title) {
   if (id === "model") {
     if (/признак/.test(title)) return "input";
@@ -79,6 +100,7 @@ function scrollToPage(index) {
   if (smoother) smoother.scrollTo(y, !reduce());
   else window.scrollTo({top:y,behavior:reduce()?"instant":"smooth"});
 }
+window.__ptGoGraph = () => {const index=pages.findIndex(p=>p.kind==="graph-final");if(index>=0)scrollToPage(index);};
 window.__ptGoChapter = id => {
   mount();
   const key = id === "encoder" ? "model" : id;
@@ -123,7 +145,13 @@ function mount() {
   const text=button("Текст",()=>{accessible.hidden=!accessible.hidden;});text.className="pt-world-text-toggle";
   const help=document.createElement("p");help.className="pt-world-hint";help.textContent="Прокрутка — дальше · объекты справа можно вращать";
   const reset=button("Вид ↺",()=>window.__ptResetView?.());reset.className="pt-world-view-reset";
-  root.append(nav,controls,lab,accessible,text,help,reset);
+  const modes=document.createElement("div");modes.className="pt-tour-modes";
+  [["guided","Понятный обзор"],["details","Подробно"]].forEach(([id,label])=>{const b=button(label,()=>window.__ptSetTourMode(id));b.dataset.tourMode=id;b.setAttribute("aria-pressed",String(id===mode));modes.append(b);});
+  const action=button("Найти похожего",()=>window.__ptFindSimilar?.());action.id="pt-find-similar";action.hidden=true;
+  const dataButton=button("Данные и загрузка ▾",()=>lab.classList.toggle("pt-data-open"));dataButton.id="pt-data-toggle";lab.prepend(dataButton);
+  const zoom=document.createElement("div");zoom.className="pt-world-zoom";
+  zoom.append(button("−",()=>window.__ptZoomView?.(.85)),button("+",()=>window.__ptZoomView?.(1.15)));
+  root.append(nav,controls,lab,accessible,text,help,reset,modes,action,zoom);
   ["click","pointerdown","pointermove","pointerup"].forEach(type=>root.addEventListener(type,e=>e.stopPropagation()));
   document.body.append(root);
   if (window.__ptLabState) window.dispatchEvent(new CustomEvent("pt:lab-update",{detail:window.__ptLabState}));
@@ -136,6 +164,9 @@ function show(index,p) {
     document.getElementById("pt-world-prev").disabled=index===0;
     document.getElementById("pt-world-next").disabled=index===pages.length-1;
     document.getElementById("pt-world-lab").hidden=page.id!=="demo";
+    document.getElementById("pt-find-similar").hidden=page.kind!=="search";
+    if(page.kind==="search"){window.__ptSearchFound=false;document.getElementById("pt-find-similar").textContent="Найти похожего";}
+    document.body.classList.toggle("pt-final-graph",page.kind==="graph-final");
     root.querySelectorAll("[data-chapter]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.chapter===page.id)));
     const readable=document.getElementById("pt-world-readable");readable.replaceChildren();
     const title=document.createElement("h2");title.textContent=page.title;readable.append(title);
@@ -155,7 +186,7 @@ function frame() {
     hashApplied=true;
     if(location.hash.startsWith("#pt-detail-"))window.__ptGoChapter(location.hash.slice(11));
   }
-  const active=!!ready&&y>=start&&y<=scrollLength+1;
+  const active=!!ready&&y>=start;
   if(root)root.hidden=!active;
   document.body.classList.toggle("pt-world-active",active);
   if(active){const raw=(y-start)/stride,index=Math.min(pages.length-1,Math.floor(raw));show(index,Math.min(1,raw-index));}

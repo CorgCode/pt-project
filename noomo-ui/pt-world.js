@@ -3,17 +3,19 @@
  */
 import {k as Group, i as Mesh, p as MeshBasicMaterial, M as MeshStandardMaterial, ptPhysical as MeshPhysicalMaterial, t as SphereGeometry, B as BoxGeometry, m as PlaneGeometry, a6 as BufferGeometry, a7 as Float32BufferAttribute, ak as Texture, q as Vector3, aa as Raycaster, J as DoubleSide, __tla as libraryReady} from "/_nuxt/iNjJ8EkR.js";
 await libraryReady;
-const colors = {ink:0x20182f,accent:0x8c65b3,bright:0xf7f0ff,glass:0xd7b8ec,dark:0x563575,line:0xb999d5};
+const colors = {ink:0x20182f,accent:0x8c65b3,bright:0xf7f0ff,glass:0xd7b8ec,dark:0x563575,line:0xb999d5,metal:0xded5e9,signal:0x9571c8};
 const drawColors = {ink:"#20182f",accent:"#755298",muted:"#665b74",line:"#c8b5db",white:"#faf5ff",backgroundStart:"#f9f3ff",backgroundMiddle:"#eae0f4",backgroundEnd:"#d5bce8"};
 let world, camera, renderer, root, model, textMesh, textTexture, backdrop, plaque, pageKey = "", phase=0, yaw=0, pitch=0, targetYaw=0, targetPitch=0, drag=null, transition=1;
 let view={w:1,h:1,textW:1,textH:1}, lastLab=null, labDirty=false, selectedPart=-1,inspection=null;
-const hitTargets=[], animated=[], particlePaths=[];
+const hitTargets=[], animated=[], particlePaths=[], graphEdges=[];
+const graphNodes=new Map(), nodePositions=new Map();
+let zoom=1, composition=null;
 const ray = new Raycaster(), pointer={x:0,y:0};
 const sphereGeometry=new SphereGeometry(1,24,16), boxGeometry=new BoxGeometry(1,1,1);
 const assets = new Set();
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 function material(kind="solid",color=colors.accent) {
-  const m=kind==="glass"?new MeshPhysicalMaterial({color,roughness:.13,metalness:.04,transmission:.78,thickness:.28,ior:1.42,clearcoat:1,clearcoatRoughness:.12,transparent:true,opacity:.93,depthTest:false,depthWrite:false}):new MeshStandardMaterial({color,roughness:.24,metalness:.2,emissive:color,emissiveIntensity:.15,depthTest:false,depthWrite:false});
+  const m=kind==="glass"?new MeshPhysicalMaterial({color,roughness:.13,metalness:.04,transmission:.78,thickness:.28,ior:1.42,clearcoat:1,clearcoatRoughness:.12,transparent:true,opacity:.93,depthTest:true,depthWrite:false}):new MeshStandardMaterial({color,roughness:.24,metalness:.2,emissive:color,emissiveIntensity:.07,depthTest:true,depthWrite:true});
   assets.add(m); return m;
 }
 function basic(color,opacity=1) {const m=new MeshBasicMaterial({color,opacity,transparent:opacity<1,depthTest:false,depthWrite:false,toneMapped:false,side:DoubleSide});assets.add(m);return m;}
@@ -48,17 +50,19 @@ function wrap(ctx,text,width) {
   if(line)lines.push(line);return lines;
 }
 function paintPage(page,index,total) {
+  const guided=!!page.guided;
   const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=Math.round(1200*view.textH/view.textW);
   const ctx=canvas.getContext("2d");if(!ctx)return;
-  const mobile=innerWidth<760,screenW=mobile?innerWidth-36:innerWidth*.43,scale=1200/screenW;
+  const mobile=innerWidth<760,screenW=mobile?innerWidth-36:innerWidth*(guided?.36:.43),scale=1200/screenW;
   const pad=25*scale,width=1200-pad*2;
-  let heading=(mobile?26:39)*scale,body=(mobile?15:17)*scale;
+  let heading=(mobile?26:guided?42:39)*scale,body=(mobile?15:guided?19:17)*scale;
   const topSpace=(mobile?42:55)*scale,gap=(mobile?14:25)*scale,footerSpace=(mobile?12:28)*scale;
-  let titleLines,paragraphLines,totalHeight;
+  let titleLines,paragraphLines,totalHeight,noteLines=[];
   for(let pass=0;pass<12;pass++){
     ctx.font=`600 ${heading}px PTDisplay, sans-serif`;titleLines=wrap(ctx,page.title,width);
     ctx.font=`400 ${body}px PTOnest, sans-serif`;paragraphLines=page.paragraphs.map(p=>wrap(ctx,p,width));
-    totalHeight=topSpace+titleLines.length*heading*1.13+gap+paragraphLines.reduce((s,ls)=>s+ls.length*body*1.65+14*scale,0)+footerSpace;
+    ctx.font=`400 ${11*scale}px PTOnest, sans-serif`;noteLines=page.note?wrap(ctx,page.note,width):[];
+    totalHeight=noteLines.length*16*scale+topSpace+titleLines.length*heading*1.13+gap+paragraphLines.reduce((s,ls)=>s+ls.length*body*1.65+14*scale,0)+footerSpace;
     if(totalHeight<canvas.height-pad||body<=13*scale)break;
     body*=.96;heading*=.96;
   }
@@ -69,14 +73,113 @@ function paintPage(page,index,total) {
   titleLines.forEach(line=>{ctx.fillText(line,pad,y);y+=heading*1.13;});y+=gap;
   ctx.font=`400 ${body}px PTOnest, sans-serif`;ctx.fillStyle=drawColors.muted;
   paragraphLines.forEach(lines=>{lines.forEach(line=>{ctx.fillText(line,pad,y);y+=body*1.65;});y+=14*scale;});
+  if(noteLines.length){ctx.font=`400 ${11*scale}px PTOnest, sans-serif`;ctx.fillStyle=drawColors.accent;noteLines.forEach(line=>{ctx.fillText(line,pad,y);y+=16*scale;});}
   if(textTexture){textTexture.dispose();assets.delete(textTexture);}
   textTexture=textureFrom(canvas);textMesh.material.map=textTexture;textMesh.material.needsUpdate=true;
   world.userData.ptTextLayout={height:y,maxHeight:canvas.height,font:body/scale,lines:paragraphLines.flat().length};
 }
 function disposeModel() {
   for(const a of assets){if(a===textTexture||a===textMesh.material||a===plaque.material||a===backdrop.material||a===backdrop.material.map)continue;a.dispose?.();assets.delete(a);}
-  model.clear();hitTargets.length=0;animated.length=0;particlePaths.length=0;
+  model.clear();hitTargets.length=0;animated.length=0;particlePaths.length=0;graphEdges.length=0;graphNodes.clear();
 }
+// Rounded geometry is generated in-place; these are actual meshes, not device images.
+function roundedPart(parent,x,y,z,w,h,d,r,mat) {
+  r=Math.min(r,w/2,h/2,d/2)*.99;
+  const geometry=new BufferGeometry(),vertices=[],normals=[],indices=[],steps=5;
+  const faces=[[0,1,2,1],[0,1,2,-1],[1,2,0,1],[1,2,0,-1],[2,0,1,1],[2,0,1,-1]],half=[w/2,h/2,d/2];
+  for(const [axis,u,v,sign] of faces){const start=vertices.length/3;
+    for(let iy=0;iy<=steps;iy++)for(let ix=0;ix<=steps;ix++){
+      const p=[0,0,0];p[axis]=half[axis]*sign;p[u]=(ix/steps*2-1)*half[u];p[v]=(iy/steps*2-1)*half[v];
+      const inner=p.map((n,i)=>clamp(n,-half[i]+r,half[i]-r)),n=p.map((a,i)=>a-inner[i]),length=Math.hypot(...n)||1;
+      for(let i=0;i<3;i++){n[i]/=length;vertices.push(inner[i]+n[i]*r);normals.push(n[i]);}
+    }
+    for(let iy=0;iy<steps;iy++)for(let ix=0;ix<steps;ix++){const a=start+iy*(steps+1)+ix,b=a+steps+1;const tri=sign>0?[a,a+1,b,b,a+1,b+1]:[a,b,a+1,b,b+1,a+1];indices.push(...tri);}
+  }
+  geometry.setAttribute("position",new Float32BufferAttribute(vertices,3));geometry.setAttribute("normal",new Float32BufferAttribute(normals,3));geometry.setIndex(indices);geometry.computeBoundingSphere();assets.add(geometry);
+  const mesh=new Mesh(geometry,mat);mesh.position.set(x,y,z);mesh.renderOrder=410;parent.add(mesh);return mesh;
+}
+function laptop(parent,x,y,z,scale=1) {
+  const group=new Group();group.name="PT_Device_Laptop";group.position.set(x,y,z);group.scale.setScalar(scale);parent.add(group);
+  const metal=material("solid",colors.metal),dark=material("solid",colors.dark),light=material("solid",colors.glass);
+  roundedPart(group,0,-.34,.15,1.05,.065,.68,.025,metal);
+  roundedPart(group,0,-.297,.22,.26,.008,.18,.003,dark);
+  // Keyboard is a recessed surface with rows, not a fake application window.
+  for(let row=0;row<4;row++)for(let col=0;col<10;col++)roundedPart(group,(col-4.5)*.082,-.297,-.02+row*.06,.064,.012,.043,.005,dark);
+  const lid=new Group();lid.position.set(0,-.3,-.17);lid.rotation.x=-.12;group.add(lid);
+  roundedPart(lid,0,.35,0,1.05,.7,.045,.025,metal);
+  roundedPart(lid,0,.35,.027,.94,.58,.012,.006,dark);
+  const screen=roundedPart(lid,0,.35,.038,.84,.46,.008,.003,light);
+  const pulse=basic(colors.accent,.75);
+  for(let i=0;i<7;i++)box(lid,(i-3)*.09,.30,.046,.025,.05+(i%3)*.06,.005,pulse);
+  sphere(lid,0,.66,.027,.008,metal);
+  for(let i=0;i<2;i++)roundedPart(group,-.527,-.337,.03+i*.14,.009,.022,.09,.004,dark);
+  group.rotation.y=-.27;return group;
+}
+function serverDevice(parent,x,y,z,scale=1) {
+  const group=new Group();group.name="PT_Device_Server";group.position.set(x,y,z);group.scale.setScalar(scale);parent.add(group);
+  const metal=material("solid",colors.metal),dark=material("solid",colors.dark),glass=material("glass");
+  roundedPart(group,0,0,0,.55,1.02,.48,.045,metal);
+  for(let i=0;i<3;i++){
+    roundedPart(group,0,.29-i*.29,.254,.47,.24,.025,.012,dark);
+    roundedPart(group,-.055,.29-i*.29,.272,.29,.11,.018,.005,glass);
+    sphere(group,.165,.29-i*.29,.283,.015,basic(colors.signal));
+  }
+  for(let i=0;i<6;i++)box(group,-.03,.47-i*.025,.25,.29,.008,.008,dark);
+  group.rotation.y=-.25;return group;
+}
+function routerDevice(parent,x,y,z,scale=1) {
+  const group=new Group();group.name="PT_Device_Network_Node";group.position.set(x,y,z);group.scale.setScalar(scale);parent.add(group);
+  const metal=material("solid",colors.metal),dark=material("solid",colors.dark);
+  roundedPart(group,0,0,0,.7,.16,.4,.045,metal);
+  for(let i=0;i<5;i++){roundedPart(group,(i-2)*.105,0,.205,.075,.055,.018,.006,dark);sphere(group,(i-2)*.105,.056,.217,.009,basic(colors.signal));}
+  for(const x of [-.27,.27]){const antenna=roundedPart(group,x,.22,-.1,.025,.43,.025,.009,dark);antenna.rotation.z=x>0?-.15:.15;}
+  group.rotation.y=-.18;return group;
+}
+function buildDeviceStory(kind) {
+  const host=laptop(model,-.05,-.1,.18,kind==="device"?1.9:1.35);
+  host.userData.ptAction=()=>{
+    inspection={...window.__ptWorldState.page,title:"Хост — устройство в сети",paragraphs:["Здесь выбран один компьютер. Рядом — условные сервисы, с которыми он обменивается данными. Назначение реального хоста мы не определяем по этой иллюстрации."]};
+    window.dispatchEvent(new CustomEvent("pt:inspect",{detail:inspection}));labDirty=true;
+  };hitTargets.push(host.children[0]);host.children[0].userData.ptAction=host.userData.ptAction;
+  label(model,"Выбранный хост",-.05,-1,.3,1.65);
+  if(kind==="device")return;
+  serverDevice(model,1.02,.39,-.35,.75);routerDevice(model,-1.05,.54,-.22,.85);
+  label(model,"Сервис",1.03,.98,.2,.8);label(model,"Сеть",-1.05,1,.2,.8);
+  const a=new Vector3(0,.08,.3),ends=[new Vector3(.99,.35,-.12),new Vector3(-1.02,.47,-.04)],wire=basic(colors.line,.55),signal=basic(colors.signal);
+  ends.forEach((end,j)=>{
+    line(model,a,end,.012,wire);
+    for(let i=0;i<4;i++){const packet=box(model,0,0,0,.035,.035,.07,signal);particlePaths.push({mesh:packet,from:j?a:end,to:j?end:a,offset:i/4});}
+  });
+  if(kind==="features"){
+    [["С кем",-.95,-.69],["Сервисы",-.32,-.9],["Объём",.38,-.91],["Время",1,-.7]].forEach(([text,x,y])=>{
+      const tile=roundedPart(model,x,y,.4,.5,.19,.06,.035,material("glass"));label(model,text,x,y,.46,.55);
+      animated.push({mesh:tile,type:"float",base:y,offset:x});
+    });
+  }
+}
+function buildSearch() {
+  const state=window.__ptLabState;if(!state)return;
+  const found=window.__ptSearchFound;
+  laptop(model,-.72,-.2,.1,1.3);label(model,"Хост A",-.72,-.9,.3,1);
+  const right=new Group();right.position.set(.8,.08,-.08);model.add(right);
+  if(found){
+    laptop(right,0,0,0,1.1);label(model,"Ближайший профиль",.8,-.72,.3,1.65);
+    label(model,state.near[0].host.id,.8,-.91,.3,1.2);
+    const edge=line(model,new Vector3(-.15,.05,.3),new Vector3(.35,.05,.3),.025,basic(colors.signal));
+    label(model,"Сходство "+state.near[0].score.toFixed(3),0,.64,.4,1.8);
+    const halo=ring(right,.65,.015,material("solid",colors.signal));halo.rotation.x=.5;
+    const click=sphere(right,0,.1,.2,.48,basic(colors.accent,0));click.userData.ptAction=()=>window.__ptSelectHost?.(state.near[0].host.id);hitTargets.push(click);
+  }else{
+    state.near.forEach((n,i)=>{
+      const x=(i%2)*.55-.3,y=.55-Math.floor(i/2)*.4;
+      const m=roundedPart(right,x,y,0,.28,.25,.14,.04,material("glass"));m.userData.ptAction=()=>window.__ptFindSimilar?.();hitTargets.push(m);
+    });
+    label(model,"Кандидаты",.8,-.9,.3,1.2);
+  }
+  label(model,"Одинаковая иконка не означает одинаковую роль",0,-1.2,.4,2.7);
+  lastLab=state;
+}
+
 function buildNetwork(kind) {
   const glass=material("glass"),solid=material("solid"),dark=material("solid",colors.dark),wire=basic(colors.line,.65);
   const center=sphere(model,0,0,0,.28,glass);animated.push({mesh:center,type:"float",base:0});
@@ -161,13 +264,13 @@ function buildLab() {
   const posFor=(p,i)=>new Vector3(((p.x-minX)/(maxX-minX||1)-.5)*1.85,((p.y-minY)/(maxY-minY||1)-.5)*1.35,Math.sin(i*2.4)*.25);
   const origin=posFor(points[0],0);
   pool.forEach((host,i)=>{
-    const p=posFor(points[i],i),isNear=nearIds.has(host.id),r=i===0?.11:isNear?.075:.035;
+    const p=nodePositions.get(host.id)?.clone()||posFor(points[i],i),isNear=nearIds.has(host.id),r=i===0?.11:isNear?.075:.035;
     const node=sphere(model,p.x,p.y,p.z,r,i===0?dark:isNear?glass:solid,()=>window.__ptSelectHost?.(host.id));
-    node.userData.hostId=host.id;
-    if(isNear)line(model,origin,p,.006,wire);
+    node.userData.hostId=host.id;graphNodes.set(host.id,node);
+    if(isNear){const edge=line(model,origin,p,.008,wire);graphEdges.push({mesh:edge,from:state.selected.id,to:host.id});}
   });
   label(model,`${state.selected.id} · ${state.dataset.length} хостов`,0,1.05,.4,2.8);
-  label(model,"Выберите точку · показано до 24 профилей",0,-1.03,.4,2.7);
+  label(model,"Тяните узлы · выбирайте профили",0,-1.03,.4,2.7);
   // Five nearest scores are real, computed in the full vector space.
   state.near.forEach((n,i)=>{
     const x=-.9+i*.43,h=(n.score+1)/2*.3;
@@ -179,14 +282,16 @@ function buildLab() {
 }
 function layout() {
   if(!camera||!root)return;
+  const guided=!!window.__ptWorldState?.page?.guided;
   const distance=6,h=2*Math.tan((camera.getEffectiveFOV?.()??camera.fov)*Math.PI/360)*distance,w=h*camera.aspect,mobile=innerWidth<760;
-  view={w,h,textW:mobile?w*.91:w*.43,textH:mobile?h*.50:h*.69};
-  backdrop.scale.set(w*1.12,h*1.12,1);backdrop.position.set(0,0,-6.4);
-  const x=mobile?0:-w*.255,y=mobile?-h*.145:0;
+  view={w,h,textW:mobile?w*.91:w*(guided?.36:.43),textH:mobile?h*(guided?.47:.50):h*.69};
+  backdrop.scale.set(w*2.5,h*2.5,1);backdrop.position.set(0,0,-14);
+  const x=mobile?0:-w*(guided?.31:.255),y=mobile?-h*(guided?.18:.145):0;
+  plaque.visible=!guided;
   plaque.position.set(x,y,-6.05);plaque.scale.set(view.textW,view.textH,.018);
   textMesh.position.set(x,y,-6);textMesh.scale.set(view.textW,view.textH,1);
-  const modelScale=mobile?h*.085:Math.min(w*.20,h*.27);
-  model.position.set(mobile?0:w*.24,mobile?h*.22:0,-5.9);model.scale.setScalar(modelScale);
+  const modelScale=mobile?(guided?Math.min(w*.32,h*.14):h*.085):Math.min(w*(guided?.24:.20),h*(guided?.32:.27));
+  model.position.set(mobile?0:w*(guided?.15:.24),mobile?h*(guided?.21:.22):0,-5.9);model.scale.setScalar(modelScale);model.userData.baseScale=modelScale;
   pageKey="";
 }
 function setup(scene,cam,rend) {
@@ -211,12 +316,13 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   root.visible=!!state?.visible;
   if(!root.visible)return;
   camera.updateMatrixWorld();root.position.copy(camera.getWorldPosition(new Vector3()));root.quaternion.copy(camera.getWorldQuaternion(root.quaternion));
-  const key=state.index+":"+innerWidth+":"+innerHeight;
+  if(composition!==!!state.page.guided){composition=!!state.page.guided;layout();}
+  const key=(state.page.guided?"guided:":"details:")+state.index+":"+innerWidth+":"+innerHeight;
   if(pageKey!==key||labDirty||(state.page.id==="demo"&&lastLab!==window.__ptLabState)){
     const changed=pageKey!==key;if(changed){inspection=null;selectedPart=-1;transition=0;}disposeModel();
     if(changed||inspection)paintPage(inspection||state.page,state.index,state.total);
     const kind=state.page.kind;
-    if(kind==="results")buildResults();else if(kind==="training")buildTraining();else if(kind==="demo")buildLab();else if(kind==="architecture"||kind==="history")buildArchitecture(kind);else if(kind==="encoder"||kind==="input")buildEncoder(kind);else buildNetwork(kind);
+    if(["device","traffic","features"].includes(kind))buildDeviceStory(kind);else if(kind==="search")buildSearch();else if(kind==="graph-final")buildLab();else if(kind==="results")buildResults();else if(kind==="training")buildTraining();else if(kind==="demo")buildLab();else if(kind==="architecture"||kind==="history")buildArchitecture(kind);else if(kind==="encoder"||kind==="input")buildEncoder(kind);else buildNetwork(kind);
     pageKey=key;labDirty=false;
   }
   const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -226,6 +332,7 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   transition=reduced?1:Math.min(1,transition+Math.min(delta||.016,.05)*2.4);
   const ease=1-Math.pow(1-transition,3);
   model.rotation.set(pitch,yaw+(1-ease)*.12,0);
+  model.scale.setScalar(model.userData.baseScale*zoom);
   textMesh.material.opacity=ease;
   animated.forEach((a,i)=>{
     if(a.type==="float")a.mesh.position.y=a.base+(reduced?0:Math.sin(phase*.7+(a.offset||i))*.025);
@@ -237,6 +344,11 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   particlePaths.forEach(p=>p.mesh.position.lerpVectors(p.from,p.to,reduced?.5:(phase*.18+p.offset)%1));
   const enter=reduced?1:clamp(state.progress/.12,0,1);
   textMesh.position.z=-6-(1-enter)*.12;
+  for(const edge of graphEdges){
+    const a=graphNodes.get(edge.from)?.position,b=graphNodes.get(edge.to)?.position;if(!a||!b)continue;
+    const direction=new Vector3().subVectors(b,a);edge.mesh.position.copy(a).add(b).multiplyScalar(.5);
+    edge.mesh.scale.y=direction.length();edge.mesh.quaternion.setFromUnitVectors(new Vector3(0,1,0),direction.normalize());
+  }
   world.userData.ptActivePage=state.index;
 };
 let failed=false;
@@ -261,14 +373,22 @@ function isUI(event){return event.target.closest?.(".pt-world-ui,.pt-scene-sourc
 window.addEventListener("pointerdown",event=>{
   if(!root?.visible||isUI(event))return;
   const mobile=innerWidth<760,inModel=mobile?event.clientY<innerHeight*.39:event.clientX>innerWidth*.50;
-  if(!inModel)return;
-  drag={x:event.clientX,y:event.clientY,yaw:targetYaw,pitch:targetPitch,moved:false,hit:hits(event)[0]?.object};
+  if(!inModel&&!hits(event)[0]?.object?.userData.hostId)return;
+  const hit=hits(event)[0]?.object;
+  drag={x:event.clientX,y:event.clientY,yaw:targetYaw,pitch:targetPitch,moved:false,hit,node:window.__ptWorldState?.page.kind==="graph-final"&&hit?.userData.hostId?hit:null};
+  if(drag.node){drag.planePoint=drag.node.getWorldPosition(new Vector3());drag.planeNormal=camera.getWorldDirection(new Vector3());}
   event.stopImmediatePropagation();
 },true);
 window.addEventListener("pointermove",event=>{
   if(!drag)return;
   const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
-  drag.moved||=Math.hypot(dx,dy)>6;targetYaw=drag.yaw+dx*.006;targetPitch=clamp(drag.pitch+dy*.004,-.55,.55);
+  drag.moved||=Math.hypot(dx,dy)>6;
+  if(drag.node&&drag.moved){
+    const bounds=renderer.domElement.getBoundingClientRect();ray.setFromCamera({x:(event.clientX-bounds.left)/bounds.width*2-1,y:-(event.clientY-bounds.top)/bounds.height*2+1},camera);
+    const distance=new Vector3().subVectors(drag.planePoint,ray.ray.origin).dot(drag.planeNormal)/ray.ray.direction.dot(drag.planeNormal);
+    const point=model.worldToLocal(ray.ray.at(distance,new Vector3()));point.x=clamp(point.x,-1.4,1.4);point.y=clamp(point.y,-1,1);
+    drag.node.position.copy(point);nodePositions.set(drag.node.userData.hostId,point.clone());
+  }else if(!drag.node){targetYaw=drag.yaw+dx*.006;targetPitch=clamp(drag.pitch+dy*.004,-.55,.55);}
   event.stopImmediatePropagation();
 },true);
 window.addEventListener("pointerup",event=>{
@@ -278,7 +398,14 @@ window.addEventListener("pointerup",event=>{
 },true);
 window.addEventListener("pointercancel",()=>{drag=null;});
 
-window.__ptResetView = () => {targetYaw=0;targetPitch=0;};
+window.__ptFindSimilar = () => {
+  if(window.__ptSearchFound){window.__ptGoGraph?.();return;}
+  window.__ptSelectHost?.(window.__ptLabState.selected.id);
+  window.__ptSearchFound=true;labDirty=true;
+  const button=document.getElementById("pt-find-similar");if(button)button.textContent=window.__ptSearchFound?"Исследовать граф →":"Найти похожего";
+};
+window.__ptResetView = () => {targetYaw=0;targetPitch=0;zoom=1;nodePositions.clear();labDirty=true;};
+window.__ptZoomView = delta => {zoom=clamp(zoom*delta,.7,1.5);};
 ["mousedown","mouseup","click"].forEach(type=>window.addEventListener(type,event=>{
   if(root?.visible&&!isUI(event))event.stopImmediatePropagation();
 },true));

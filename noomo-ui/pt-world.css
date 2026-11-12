@@ -43,3 +43,19 @@
 .pt-world-view-reset {position:absolute;right:calc(6vw + 78px);top:90px;}
 @media(max-width:760px){.pt-world-view-reset {top:auto;bottom:65px;left:16px;right:auto;font-size:10px !important;padding:7px 10px !important;}}
 .pt-world-tour .home-footer {display:none !important;}
+.pt-tour-modes {position:absolute;top:142px;left:6vw;display:flex;gap:6px;}
+.pt-tour-modes button {font-size:10px;padding:8px 11px;}
+#pt-find-similar {position:absolute;left:6vw;bottom:100px;border-color:var(--pt-story-accent);background:var(--pt-story-accent);color:var(--pt-guide-surface);font-size:15px;padding:15px 24px;}
+.pt-world-lab:not(.pt-data-open) > :not(#pt-data-toggle) {display:none;}
+.pt-world-lab.pt-data-open {padding:14px;background:var(--pt-story-glass);border:1px solid var(--pt-story-line);backdrop-filter:blur(20px);}
+.pt-world-zoom {position:absolute;right:6vw;bottom:80px;display:flex;gap:7px;}
+.pt-world-zoom button {width:38px;padding:8px;font-size:19px;}
+@media(max-width:760px){
+ .pt-tour-modes {top:113px;left:16px;gap:5px;}
+ .pt-tour-modes button {font-size:9px;padding:7px;}
+ .pt-world-lab {top:152px;left:auto;right:16px;width:min(260px,80vw);justify-content:end;}
+ .pt-world-lab.pt-data-open {width:calc(100vw - 32px);}
+ #pt-find-similar {left:16px;bottom:104px;padding:10px 16px;font-size:12px;}
+ .pt-world-zoom {right:16px;bottom:104px;gap:5px;}
+ .pt-world-zoom button {width:29px;font-size:15px;padding:6px;}
+}

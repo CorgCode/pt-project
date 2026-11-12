@@ -23,6 +23,8 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  w.__ptMountContent();
  const home=d.createElement("div");home.id="home-scene";home.style.opacity=1;d.body.append(home);
  execute("pt-story.js");
+ assert.equal(w.__ptPages.length,10);
+ w.__ptSetTourMode("details");
  assert(w.__ptPages.length>15);assert.equal(new Set(w.__ptPages.map(p=>p.id)).size,6);
  assert(!d.querySelector("iframe,dialog"));
  assert(d.getElementById("pt-guide").classList.contains("pt-scene-source"));
@@ -34,6 +36,30 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  execute("pt-world.js");
  const frame=()=>{callbacks.shift()();w.__ptWorldFrame({scene,camera,renderer:{domElement:canvas},delta:.016});scene.updateMatrixWorld(true);assert(!w.__ptWorldError,w.__ptWorldError);};
  const visit=index=>{scroll=850+index*850+400;frame();assert.equal(w.__ptWorldState.index,index);assert(w.__ptWorldDebug.root.visible);};
+ w.__ptSetTourMode("guided");
+ for(let i=0;i<10;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
+ visit(1);let devices=[];w.__ptWorldDebug.model.traverse(o=>{if(o.name.startsWith("PT_Device_"))devices.push(o.name);});
+ w.__ptWorldDebug.model.traverse(mesh=>{
+  if(!mesh.isMesh||!mesh.geometry.index)return;
+  const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal,idx=mesh.geometry.index;if(!n)return;
+  for(let t=0;t<idx.count;t+=3){
+   const ids=[idx.getX(t),idx.getX(t+1),idx.getX(t+2)],a=new THREE.Vector3().fromBufferAttribute(p,ids[0]),b=new THREE.Vector3().fromBufferAttribute(p,ids[1]),c=new THREE.Vector3().fromBufferAttribute(p,ids[2]);
+   const normal=new THREE.Vector3().subVectors(b,a).cross(new THREE.Vector3().subVectors(c,a));
+   const intended=ids.reduce((v,i)=>v.add(new THREE.Vector3().fromBufferAttribute(n,i)),new THREE.Vector3());
+   assert(normal.dot(intended)>=-1e-7,"device faces point outward");
+  }
+ });
+ require("./render-model.cjs")(w.__ptWorldDebug.model,camera,THREE,"/private/tmp/pt-ui-qa/devices-preview.png");
+ assert.deepEqual(new Set(devices),new Set(["PT_Device_Laptop","PT_Device_Server","PT_Device_Network_Node"]));
+ visit(6);assert(!w.__ptSearchFound);d.getElementById("pt-find-similar").click();frame();assert(w.__ptSearchFound);
+ visit(9);
+ const moving=w.__ptWorldDebug.hitTargets[1],before=moving.position.clone(),worldPoint=moving.getWorldPosition(new THREE.Vector3()).project(camera);
+ const point={clientX:(worldPoint.x+1)*w.innerWidth/2,clientY:(1-worldPoint.y)*w.innerHeight/2,bubbles:true};
+ canvas.dispatchEvent(new w.MouseEvent("pointerdown",point));
+ canvas.dispatchEvent(new w.MouseEvent("pointermove",{...point,clientX:point.clientX+35,clientY:point.clientY+25}));
+ canvas.dispatchEvent(new w.MouseEvent("pointerup",{...point,clientX:point.clientX+35,clientY:point.clientY+25}));frame();
+ assert(moving.position.distanceTo(before)>.01,"final graph nodes can be dragged independently");
+ w.__ptSetTourMode("details");
  const ids=new Set();
  for(let index=0;index<w.__ptPages.length;index++){
    visit(index);ids.add(w.__ptWorldState.page.kind);
@@ -75,6 +101,9 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
      assert(layout.height<=layout.maxHeight,`${width}px text clipped at ${i} / ${w.__ptWorldState.page.title}: ${JSON.stringify(layout)} ${JSON.stringify(w.__ptWorldState.page.paragraphs)}`);
      assert(Number.isFinite(w.__ptWorldDebug.model.scale.x));
    }
+   w.__ptSetTourMode("guided");
+   for(let i=0;i<10;i++){visit(i);const textLayout=scene.userData.ptTextLayout;assert(textLayout.height<=textLayout.maxHeight,`${width}px guided clipping at ${i}: ${JSON.stringify(textLayout)}`);}
+   w.__ptSetTourMode("details");
    visit(w.__ptPages.findIndex(p=>p.id==="model"));
    const text=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===500);
    fs.writeFileSync(`/private/tmp/pt-ui-qa/tour-text-${width}.png`,text.material.map.image.__cpu.toBuffer("image/png"));
