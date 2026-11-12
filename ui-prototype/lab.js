@@ -305,7 +305,7 @@ function renderLab() {
       backgroundColor: labToken("--ink"),
     },
   ];
-  const animation = motionPreference.matches ? false : { duration: 650 };
+  const animation = false;
   if (!labCharts.map) {
     labCharts.map = new Chart($("lab-map-chart"), {
       type: "scatter",

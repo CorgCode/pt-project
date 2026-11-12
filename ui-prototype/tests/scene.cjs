@@ -73,7 +73,7 @@ w.STUDIO_HDR = hdr.toString("base64");
 w.eval(fs.readFileSync(root + "data.js", "utf8"));
 w.eval(
   fs.readFileSync(root + "app.js", "utf8") +
-    "\nwindow.__setScene=(value)=>{targetScene=value;sceneProgress=value};",
+    "\nwindow.__setScene=(value)=>{targetScene=value;sceneProgress=value};initWorld();",
 );
 assert(frames.length > 0);
 frames.shift()(1000);

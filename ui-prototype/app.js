@@ -46,38 +46,12 @@ function updateScroll() {
     .classList.toggle("scrolled", scrollY > 60);
   const h = $("home").getBoundingClientRect();
   const heroP = clamp(-h.top / Math.max(1, h.height));
-  if (!motionPreference.matches) {
-    const title = document.querySelector(".hero h1");
-    title.style.transform = `translateY(${-5 - heroP * 12}%) scale(${1 + heroP * 0.06})`;
-    title.style.opacity = String(1 - heroP * 0.8);
-  }
 }
 function updateModelPin() {
-  const section = $("model-experience");
-  if (!section) return;
-  const rect = section.getBoundingClientRect();
-  const local = clamp(
-    -rect.top / Math.max(1, section.offsetHeight - innerHeight),
-  );
-  const step = Math.min(3, Math.floor(local * 4));
-  document.querySelectorAll("[data-model-step]").forEach((el) => {
-    const active = Number(el.dataset.modelStep) === step;
-    el.classList.toggle("is-active", active);
-    el.setAttribute("aria-hidden", String(!active));
-  });
   document
-    .querySelectorAll(".model-scene-progress i")
-    .forEach((el, i) => el.classList.toggle("active", i <= step));
-  $("model-scene-count").textContent =
-    String(step + 1).padStart(2, "0") + " / 04";
-  $("model-scene-annotation").textContent = [
-    "Входные взаимодействия",
-    "Числовые признаки поведения",
-    "Профиль с историей",
-    "Соседи в пространстве профилей",
-  ][step];
+    .querySelectorAll("[data-model-step]")
+    .forEach((el) => el.setAttribute("aria-hidden", "false"));
 }
-
 addEventListener("scroll", updateScroll, { passive: true });
 addEventListener("resize", measure);
 document.fonts?.ready.then(measure);
@@ -1044,4 +1018,4 @@ function initWorld() {
   });
 }
 measure();
-initWorld();
+// 3D intentionally disabled pending a separate visual redesign.
