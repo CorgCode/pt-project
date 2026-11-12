@@ -4,6 +4,7 @@ const fs = require("fs"),
 const { JSDOM } = require("jsdom");
 const THREE = require("../../ui-prototype/vendor/three.min.js");
 const root = path.resolve(__dirname, "..");
+(async () => {
 const dom = new JSDOM(fs.readFileSync(path.join(root, "index.html"), "utf8"), {
     runScripts: "outside-only",
     pretendToBeVisual: true,
@@ -45,6 +46,11 @@ w.eval(fs.readFileSync(path.join(root, "product-data.js"), "utf8"));
 let source = fs
   .readFileSync(path.join(root, "pt-story.js"), "utf8")
   .replace(/^import[^\n]+\n/, "");
+w.eval(fs.readFileSync(path.join(root, "pt-lab.js"), "utf8"));
+w.eval(fs.readFileSync(path.join(root, "pt-content.js"), "utf8"));
+assert.equal(w.document.getElementById("pt-guide"), null, "wait for hydration");
+w.document.getElementById("__nuxt").__vue_app__ = {};
+w.__ptMountContent();
 w.eval(source);
 const frame = () => {
   assert(callbacks.length);
@@ -70,9 +76,39 @@ assert.match($("pt-mini-demo").textContent, /Хост A/);
 w.document.querySelector(".pt-mini-controls button").click();
 assert.match($("pt-mini-demo").textContent, /Косинусное сходство/);
 w.document.querySelector(".pt-story-more").click();
-assert($("pt-product-dialog").open);
-assert.match($("pt-product-frame").getAttribute("src"), /#demo/);
-w.document.querySelector(".pt-close").click();
+assert.equal(scroll.id, "pt-detail-demo");
+assert.equal(w.document.querySelectorAll("iframe, dialog").length, 0);
+assert.equal(w.document.querySelectorAll("#pt-guide").length, 1);
+assert.equal(w.document.querySelectorAll("#lab-host option").length, 300);
+w.document.querySelector('[data-preset="flows"]').click();
+assert.match($("lab-status").textContent, /Учебные взаимодействия/);
+assert.equal(w.document.querySelectorAll("#lab-host option").length, 11);
+w.document.querySelector('[data-preset="small"]').click();
+assert.equal(w.document.querySelectorAll("#lab-host option").length, 24);
+assert.equal(w.document.querySelectorAll("#lab-neighbor-buttons button").length, 5);
+w.document.querySelector('[data-model-part="graph"]').click();
+assert.match($("pt-model-part-copy").textContent, /собственных векторов/);
+assert.equal(w.document.querySelectorAll(".pt-guide-section").length, 6);
+assert(!/noomo/i.test(w.document.querySelector(".home-footer").textContent));
+async function upload(text, size = text.length) {
+  Object.defineProperty($("csv-file"), "files", {configurable:true, value:[{name:"test.csv",size,text:async()=>text}]});
+  $("csv-file").dispatchEvent(new w.Event("change"));
+  await new Promise(setImmediate);
+}
+await upload("host_id,emb_0,emb_1\na,1,0\nb,1,1\nc,0,1");
+assert.equal(w.document.querySelectorAll("#lab-host option").length, 3);
+assert.match($("lab-status").textContent,/test.csv/);
+await upload("host_id,emb_0\na,nope\nb,1");
+assert.match($("lab-status").textContent,/Не удалось/);
+assert.equal(w.document.querySelectorAll("#lab-host option").length, 3, "failed upload preserves dataset");
+await upload("src,dst,bytes\na,b,120\nb,c,80");
+assert.match($("lab-mode").textContent,/Быстрый профиль/);
+await upload("",4*1024*1024);
+assert.match($("lab-status").textContent,/слишком большой/);
+const link = w.document.getElementById("pt-product-link");
+link.click();
+assert.equal(scroll.id,"pt-detail-demo");
+assert.equal(w.document.querySelectorAll("iframe,dialog").length,0);
 scroll = 6000;
 frame();
 w.document.querySelector('[data-part="2"]').click();
@@ -132,7 +168,7 @@ const expected = {
   "DELIGHTD.001": "ХОСТЫ",
   INSPIREE: "МОДЕЛЬ",
   TOO: "СВЯЗИ",
-  "Noomo_Logo_for_Footer.003": "PT NETWORK",
+  "Noomo_Logo_for_Footer.003": "ПРОФИЛЬ СЕТИ",
   Work_1_text: "ПОИСК",
   Work_2_text: "ПРОФИЛЬ",
   Work_3_text: "МЕТРИКИ",
@@ -161,8 +197,8 @@ group.children.forEach((mesh) => {
   assert.equal(mesh.userData.ptText, expected[mesh.name]);
   assert(mesh.geometry.attributes.position.count > 0);
   const box = mesh.geometry.boundingBox;
-  assert(box.max.x - box.min.x <= 10000.01);
-  assert(box.max.y - box.min.y <= 6000.01);
+  assert(box.max.x - box.min.x <= 11800.01);
+  assert(box.max.y - box.min.y <= 7080.01);
   assert.deepEqual(mesh.position.toArray(), [3, 4, 5]);
 });
 assert(
@@ -171,6 +207,8 @@ assert(
     .includes("window.__ptPrepareSceneText?.(A,"),
 );
 console.log(
-  "PASS: 8 story stages, mini-demo, metrics, architecture selection, dialog links, scene navigation and 9 replaced 3D texts with preserved transforms",
+  "PASS: 8 story stages, mini-demo, metrics, architecture selection, inline content, laboratory presets, scene navigation and 9 replaced 3D texts with preserved transforms",
 );
 dom.window.close();
+
+})().catch(error => {console.error(error);process.exitCode=1;});

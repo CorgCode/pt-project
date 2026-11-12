@@ -1,4 +1,15 @@
 import { h as gsap } from "/_nuxt/iNjJ8EkR.js";
+window.__ptScrollDetails = (target) => {
+  const instance = gsap.core.globals().ScrollSmoother?.get();
+  if (instance) instance.scrollTo(target, true, "top 95px");
+  else target.scrollIntoView?.({behavior: "smooth", block: "start"});
+};
+let layoutRefresh;
+window.__ptRefreshLayout = () => {
+  clearTimeout(layoutRefresh);
+  layoutRefresh = setTimeout(() => gsap.core.globals().ScrollTrigger?.refresh(), 100);
+};
+window.__ptRefreshLayout();
 const steps = [
   {
     id: "problem",
@@ -51,7 +62,7 @@ const steps = [
     id: "architecture",
     start: 5650,
     end: 6950,
-    label: "05 / MULTIDAY CODEBOOK PLUS",
+    label: "05 / МНОГОДНЕВНАЯ МОДЕЛЬ",
     title: "Один профиль.<br>Три части.",
     body: "К истории хоста мы добавили отдельный блок для прогноза новых собеседников и информацию о структуре сетевого графа.",
     kind: "architecture",
@@ -86,7 +97,7 @@ const steps = [
     end: 10080,
     label: "08 / ПОПРОБУЙТЕ ПРЯМО ЗДЕСЬ",
     title: "Начнём<br>с одного хоста.",
-    body: "Выберите пример. Мы сравним его вектор с остальными и покажем ближайший профиль. Затем можно перейти в лабораторию и загрузить свои данные.",
+    body: "Выберите пример. Мы сравним его вектор с остальными и покажем ближайший профиль. Ниже на этой же странице — большая интерактивная карта, графики и загрузка своих данных.",
     kind: "demo",
     link: "#demo",
     cta: "Открыть большую лабораторию",
@@ -99,7 +110,8 @@ let root,
   smoother = null,
   started = false,
   exampleIndex = 0,
-  found = false;
+  found = false,
+  detailHashApplied = false;
 const $ = (id) => document.getElementById(id);
 const metrics = {
   identity: [
@@ -275,7 +287,7 @@ function renderMini() {
   controls.append(action, reset);
   box.append(controls);
   box.append(
-    element("small", "", "Пример на тестовых behavioral-векторах проекта."),
+    element("small", "", "Пример на тестовых поведенческих векторах проекта."),
   );
 }
 function mount() {
@@ -333,6 +345,14 @@ function frame() {
   root.hidden = !started || y > 10100;
   document.body.classList.toggle("pt-story-active", started && y <= 10100);
   if (!started) return;
+  window.__ptMountContent?.();
+  if (!detailHashApplied && document.getElementById("pt-guide")) {
+    detailHashApplied = true;
+    if (location.hash.startsWith("#pt-detail-")) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) window.__ptScrollDetails(target);
+    }
+  }
   const index = steps.findIndex((step) => y >= step.start && y < step.end);
   panel.hidden = index < 0;
   if (index >= 0) {

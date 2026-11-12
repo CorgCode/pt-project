@@ -1,80 +1,11 @@
 "use strict";
-let productDialog = null,
-  previousFocus = null,
-  pausedMedia = [];
-const sections = {
-  "#problem": "Задача",
-  "#product": "Возможности",
-  "#demo": "Лаборатория",
-  "#model": "Как устроена модель",
-  "#results": "Результаты",
-};
-function closeProduct() {
-  if (productDialog?.open) productDialog.close();
-}
 function openProduct(hash = "#demo") {
-  if (!sections[hash]) hash = "#demo";
-  if (!productDialog) {
-    productDialog = document.createElement("dialog");
-    productDialog.id = "pt-product-dialog";
-    productDialog.className = "pt-product-dialog";
-    productDialog.setAttribute("aria-label", "Продукт PT Network");
-    const bar = document.createElement("div");
-    bar.className = "pt-product-bar";
-    const title = document.createElement("strong");
-    title.textContent = "PT NETWORK";
-    bar.append(title);
-    const nav = document.createElement("nav");
-    nav.setAttribute("aria-label", "Разделы продукта");
-    Object.entries(sections).forEach(([anchor, label]) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.dataset.section = anchor;
-      b.textContent = label;
-      b.addEventListener("click", () => openProduct(anchor));
-      nav.append(b);
-    });
-    bar.append(nav);
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "pt-close";
-    close.textContent = "Закрыть ×";
-    close.setAttribute("aria-label", "Закрыть продукт и вернуться к сцене");
-    close.addEventListener("click", closeProduct);
-    bar.append(close);
-    const frame = document.createElement("iframe");
-    frame.id = "pt-product-frame";
-    frame.title = "PT Network — модель и интерактивная лаборатория";
-    productDialog.append(bar, frame);
-    document.body.append(productDialog);
-    productDialog.addEventListener("close", () => {
-      frame.removeAttribute("src");
-      document.documentElement.style.overflow = "";
-      pausedMedia.forEach((media) => media.play().catch(() => {}));
-      pausedMedia = [];
-      previousFocus?.focus?.();
-    });
+  window.__ptMountContent?.();
+  const target = document.getElementById("pt-detail-" + hash.replace("#", ""));
+  if (target) {
+    if (window.__ptScrollDetails) window.__ptScrollDetails(target);
+    else target.scrollIntoView?.({behavior: "smooth", block: "start"});
   }
-  const frame = productDialog.querySelector("iframe");
-  const url = "/product/?embedded=1" + hash;
-  if (!productDialog.open) {
-    previousFocus = document.activeElement;
-    pausedMedia = [...document.querySelectorAll("audio,video")].filter(
-      (media) => !media.paused,
-    );
-    pausedMedia.forEach((media) => media.pause());
-    document.documentElement.style.overflow = "hidden";
-    productDialog.showModal();
-  }
-  if (frame.getAttribute("src") !== url) frame.setAttribute("src", url);
-  productDialog
-    .querySelectorAll("[data-section]")
-    .forEach((button) =>
-      button.setAttribute(
-        "aria-pressed",
-        String(button.dataset.section === hash),
-      ),
-    );
 }
 window.__ptOpenProduct = openProduct;
 document.addEventListener(
@@ -85,7 +16,8 @@ document.addEventListener(
     const raw = link.getAttribute("href") || "";
     let section = null,
       external = null;
-    if (raw.startsWith("/product/"))
+    if (raw.startsWith("#pt-detail-")) section = "#" + raw.slice(11);
+    else if (raw.startsWith("/product/"))
       section = raw.includes("#") ? raw.slice(raw.indexOf("#")) : "#demo";
     else if (raw === "/work" || raw === "/work/" || raw.startsWith("/cases/"))
       section = "#demo";
@@ -108,6 +40,25 @@ document.addEventListener(
   true,
 );
 function adapt() {
+  window.__ptMountContent?.();
+  document.querySelectorAll(".mobile-menu .bottom a").forEach((link, i) => {
+    const label = ["Код проекта", "О модели", "Демонстрация", "Результаты"][i % 4];
+    if (link.textContent !== label) link.textContent = label;
+    link.href = ["https://github.com/CorgCode/pt-project", "#pt-detail-model", "#pt-detail-demo", "#pt-detail-results"][i % 4];
+  });
+  document.querySelectorAll(".status p, .home-preloader .inner-circle p").forEach(p => {
+    const labels = {on:"Вкл", off:"Выкл", start:"Начать"};
+    const next = labels[p.textContent.trim()];
+    if (next) p.textContent = next;
+  });
+  const footer = document.querySelector(".home-footer");
+  if (footer) {
+    const heading = footer.querySelector("h4");
+    if (heading && heading.textContent !== "Поймите свою сеть") heading.textContent = "Поймите свою сеть";
+    const copy = footer.querySelector(".copy");
+    if (copy && copy.textContent !== "МФТИ × Positive Technologies · Исследовательский прототип") copy.textContent = "МФТИ × Positive Technologies · Исследовательский прототип";
+  }
+
   document
     .querySelectorAll(".right-menu a,.mobile-menu .top a")
     .forEach((link) => {
@@ -122,13 +73,13 @@ function adapt() {
     if (link.textContent !== label) link.textContent = label;
     link.href = [
       "https://github.com/CorgCode/pt-project",
-      "/product/#model",
-      "/product/#demo",
+      "#pt-detail-model",
+      "#pt-detail-demo",
     ][i % 3];
   });
   const send = document.querySelector(".home-footer .send");
   if (send) {
-    send.href = "/product/#demo";
+    send.href = "#pt-detail-demo";
     const p = send.querySelector(".inner-circle p");
     if (p && p.textContent.trim() !== "Открыть продукт")
       p.textContent = "Открыть продукт";
@@ -137,7 +88,7 @@ function adapt() {
     const link = document.createElement("a");
     link.id = "pt-product-link";
     link.className = "pt-product-link";
-    link.href = "/product/#demo";
+    link.href = "#pt-detail-demo";
     link.textContent = "Открыть лабораторию";
     const arrow = document.createElement("span");
     arrow.textContent = "↗";
@@ -165,7 +116,7 @@ window.__ptPrepareSceneText = function (scene, types) {
     "DELIGHTD.001": "ХОСТЫ",
     INSPIREE: "МОДЕЛЬ",
     TOO: "СВЯЗИ",
-    "Noomo_Logo_for_Footer.003": "PT NETWORK",
+    "Noomo_Logo_for_Footer.003": "ПРОФИЛЬ СЕТИ",
     Work_1_text: "ПОИСК",
     Work_2_text: "ПРОФИЛЬ",
     Work_3_text: "МЕТРИКИ",
@@ -195,7 +146,7 @@ window.__ptPrepareSceneText = function (scene, types) {
           geometry.dispose();
           return;
         }
-        const scale = Math.min(oldW / newW, oldH / newH);
+        const scale = Math.min(oldW / newW, oldH / newH) * 1.18;
         const x =
             (old.min.x + old.max.x) / 2 - ((box.min.x + box.max.x) / 2) * scale,
           y =
