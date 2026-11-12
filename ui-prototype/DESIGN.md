@@ -1,19 +1,17 @@
-# Durable preview block
+# Preview block
 
-Genre: atmospheric product presentation.
+Genre: atmospheric product lab. Macrostructure: guided scroll experience, persistent scene, detailed model cutaway, evidence, guided example, large data playground.
 
-Macrostructure: continuous scroll-driven scene → problem → product map → four explanatory model scenes → architecture → experiment and evidence → guided demonstration → service roadmap.
+Theme: PT-inspired red / white / black. Red is the primary field in the opening, capabilities and closing. The model and laboratory use neutral white surfaces and red selection states. Glass uses a real CC0 studio HDR and physical transmission.
 
-Theme: pearl glass. Pale lilac and silver, black condensed headlines, translucent surfaces, original pink/blue refractive network geometry. The result section uses a dark field for contrast.
+Type: Oswald 600 for condensed Cyrillic display, Onest 400/600 for explanations. Local embedded fonts. Hero widths measured against font advances at 320, 375, 414, 768, 1000, 1440 px.
 
-Typography: Oswald 600 display and Onest 400/600 body. Fonts are embedded locally; Cyrillic glyph support was verified. The hero heading was measured against the actual font advances at 320, 375, 414, 768, 1000 and 1440 px, including letter spacing.
+Reference study: https://labs.noomoagency.com. Inspected public HTML, CSS, image and shipped client code for mechanisms: Three.js, HDR environment, model loaders, GSAP/ScrollTrigger, physical glass, scene-linked typography. Original branded models, shaders, audio and fonts were not copied. The local scene is authored geometry for a host-profile capsule, explodable representation and profile layers.
 
-Study: URL https://labs.noomoagency.com. Reference HTML, CSS and OpenGraph image inspected. Observed type: DrukMedium and IBM Plex Mono. Observed visual DNA: pale lilac stage, black condensed display, translucent violet object overlapping text. This implementation uses original Three.js geometry and Cyrillic fonts, not the reference's models or source code.
+Choreography: no endless object rotation. Explicit scene poses coordinate focus, orientation and composition with narrative phases. The model explanation remains within one pinned viewport and changes inside that composition. Hero dragging and graph-node dragging are supported.
 
-Interactions: a persistent refractive WebGL scene morphs and moves with scroll; the hero responds to dragging; narrative remains readable HTML. Guided demo computes the nearest neighbor from project fixture vectors. Audio is an original Web Audio ambient pad and is off until explicitly enabled.
+Product: guided comparison, 3 datasets, local CSV upload, live PCA map and similarity chart, direct host selection. Data modes and model limits are explained.
 
-Validation: JS syntax, DOM interaction smoke checks, exact cosine result, demo steps and selection, empty search, audio toggles, no autoplay, no-WebGL fallback, internal anchors, unique IDs and offline resource embedding passed. Full browser-rendered review and mobile touch testing remain pending because native computer-use startup fails and the in-app browser is unavailable.
+Validation: interaction and asset/geometry tests pass. Browser rendering, visual matching to the reference, mobile touch and perceived frame rate are not verified. Do not label them passed.
 
-Slop test: no fabricated metrics, testimonials, role labels, customer counts or fake browser/phone chrome. Colors and font declarations use tokens except font-face definitions and document metadata. Responsive rules collapse section heads and grids; root uses overflow-x: clip. Visual checks are not marked passed.
-
-Self-critique: P4 H4 E3 S5 R4 V4. Execution requires actual browser review before it can be rated higher.
+Self-critique: P4 H4 E3 S5 R4 V4. Execution requires a real rendered review.

@@ -20,6 +20,7 @@ function measure() {
   updateScroll();
 }
 function updateScroll() {
+  updateModelPin();
   const y = scrollY + innerHeight * 0.12;
   let index = 0;
   chapterBounds.forEach((b, i) => {
@@ -51,6 +52,32 @@ function updateScroll() {
     title.style.opacity = String(1 - heroP * 0.8);
   }
 }
+function updateModelPin() {
+  const section = $("model-experience");
+  if (!section) return;
+  const rect = section.getBoundingClientRect();
+  const local = clamp(
+    -rect.top / Math.max(1, section.offsetHeight - innerHeight),
+  );
+  const step = Math.min(3, Math.floor(local * 4));
+  document.querySelectorAll("[data-model-step]").forEach((el) => {
+    const active = Number(el.dataset.modelStep) === step;
+    el.classList.toggle("is-active", active);
+    el.setAttribute("aria-hidden", String(!active));
+  });
+  document
+    .querySelectorAll(".model-scene-progress i")
+    .forEach((el, i) => el.classList.toggle("active", i <= step));
+  $("model-scene-count").textContent =
+    String(step + 1).padStart(2, "0") + " / 04";
+  $("model-scene-annotation").textContent = [
+    "Входные взаимодействия",
+    "Числовые признаки поведения",
+    "Профиль с историей",
+    "Соседи в пространстве профилей",
+  ][step];
+}
+
 addEventListener("scroll", updateScroll, { passive: true });
 addEventListener("resize", measure);
 document.fonts?.ready.then(measure);
@@ -67,7 +94,8 @@ const hosts = window.HOSTS.map((h) => ({ ...h, norm: Math.hypot(...h.v) }));
 let hostIndex = 0,
   selected = hosts[0],
   closest = [],
-  demoStep = 0;
+  demoStep = 0,
+  comparedNeighbor = 0;
 const cosine = (a, b) =>
   a.norm && b.norm
     ? a.v.reduce((sum, x, i) => sum + x * b.v[i], 0) / (a.norm * b.norm)
@@ -80,6 +108,7 @@ function chooseHost(host) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
   demoStep = 0;
+  comparedNeighbor = 0;
   renderDemo();
 }
 const svgNS = "http://www.w3.org/2000/svg";
@@ -96,36 +125,59 @@ const demoPoints = [
   { x: 110, y: 145, r: 14, label: "Хост E" },
   { x: 250, y: 55, r: 11, label: "Хост F" },
 ];
+let draggedNode = null,
+  dragMoved = false;
+function updateNetworkPositions() {
+  const center = demoPoints[0];
+  document.querySelectorAll("#demo-lines line").forEach((line, i) => {
+    const p = demoPoints[i + 1];
+    line.setAttribute("x1", center.x);
+    line.setAttribute("y1", center.y);
+    line.setAttribute("x2", p.x);
+    line.setAttribute("y2", p.y);
+  });
+  document.querySelectorAll("#demo-nodes .demo-node").forEach((g, i) => {
+    const p = demoPoints[i];
+    g.querySelector("circle").setAttribute("cx", p.x);
+    g.querySelector("circle").setAttribute("cy", p.y);
+    g.querySelector("text").setAttribute("x", p.x);
+    g.querySelector("text").setAttribute("y", p.y + p.r + 25);
+  });
+}
 function renderNetwork() {
   const lines = $("demo-lines"),
     nodes = $("demo-nodes");
   lines.replaceChildren();
   nodes.replaceChildren();
-  demoPoints.slice(1).forEach((p, i) => {
+  const center = demoPoints[0];
+  demoPoints.slice(1).forEach((p, i) =>
     lines.append(
       svgEl("line", {
-        x1: 280,
-        y1: 180,
+        x1: center.x,
+        y1: center.y,
         x2: p.x,
         y2: p.y,
-        class: "demo-line" + (demoStep > 0 && i === 0 ? " match" : ""),
+        class:
+          "demo-line" +
+          (demoStep > 0 && i === comparedNeighbor ? " match" : ""),
       }),
-    );
-  });
+    ),
+  );
   demoPoints.forEach((p, i) => {
     const g = svgEl("g", {
       class: "demo-node",
       tabindex: i === 0 ? -1 : 0,
       role: "button",
-      "aria-label": i === 0 ? "Выбранный хост" : `Исследовать ${p.label}`,
+      "aria-label": i === 0 ? "Выбранный хост" : `Сравнить с ${p.label}`,
     });
-    const circle = svgEl("circle", {
-      cx: p.x,
-      cy: p.y,
-      r: demoStep > 0 && i === 1 ? 28 : p.r,
-      opacity: demoStep === 0 && i > 0 ? 0.42 : 1,
-    });
-    g.append(circle);
+    g.append(
+      svgEl("circle", {
+        cx: p.x,
+        cy: p.y,
+        r: demoStep > 0 && i === comparedNeighbor + 1 ? 28 : p.r,
+        opacity: demoStep === 0 && i > 0 ? 0.42 : 1,
+      }),
+    );
     const text = svgEl("text", {
       x: p.x,
       y: p.y + p.r + 25,
@@ -133,19 +185,53 @@ function renderNetwork() {
     });
     text.textContent = p.label;
     g.append(text);
+    g.addEventListener("pointerdown", (e) => {
+      draggedNode = { index: i, x: e.clientX, y: e.clientY };
+      dragMoved = false;
+      try {
+        g.setPointerCapture(e.pointerId);
+      } catch {}
+    });
     if (i > 0) {
-      const select = () => chooseHost(closest[i - 1].host);
-      g.addEventListener("click", select);
+      const compare = () => {
+        if (dragMoved) return;
+        comparedNeighbor = i - 1;
+        demoStep = 1;
+        renderDemo();
+      };
+      g.addEventListener("click", compare);
       g.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          select();
+          dragMoved = false;
+          compare();
         }
       });
     }
     nodes.append(g);
   });
 }
+$("demo-network").addEventListener("pointermove", (e) => {
+  if (!draggedNode) return;
+  if (Math.hypot(e.clientX - draggedNode.x, e.clientY - draggedNode.y) > 5)
+    dragMoved = true;
+  if (!dragMoved) return;
+  const svg = $("demo-network"),
+    matrix = svg.getScreenCTM();
+  if (!matrix) return;
+  const point = svg.createSVGPoint();
+  point.x = e.clientX;
+  point.y = e.clientY;
+  const p = point.matrixTransform(matrix.inverse());
+  demoPoints[draggedNode.index].x = clamp(p.x, 40, 520);
+  demoPoints[draggedNode.index].y = clamp(p.y, 35, 315);
+  updateNetworkPositions();
+});
+["pointerup", "pointercancel", "lostpointercapture"].forEach((event) =>
+  $("demo-network").addEventListener(event, () => {
+    draggedNode = null;
+  }),
+);
 function renderDemo() {
   const descriptions = [
     [
@@ -172,8 +258,14 @@ function renderDemo() {
   ];
   const d = descriptions[demoStep];
   $("demo-step-label").textContent = d[0];
-  $("demo-heading").textContent = d[1];
-  $("demo-description").textContent = d[2];
+  $("demo-heading").textContent =
+    demoStep === 1
+      ? `${demoPoints[comparedNeighbor + 1].label} ${comparedNeighbor === 0 ? "— самый близкий." : "— выбран для сравнения."}`
+      : d[1];
+  $("demo-description").textContent =
+    demoStep === 1
+      ? "Сравниваем его профиль с профилем A. Ниже — настоящее косинусное сходство векторов. Можно выбрать другой узел, подвигать схему или сделать этот хост новой точкой отсчёта."
+      : d[2];
   $("demo-action").replaceChildren(document.createTextNode(d[3]));
   const arrow = document.createElement("span");
   arrow.textContent = "↗";
@@ -181,9 +273,12 @@ function renderDemo() {
   $("demo-caption").textContent = d[4];
   $("host-id").textContent = selected.id;
   $("demo-result").hidden = demoStep === 0;
-  $("demo-score").textContent = closest[0].score.toFixed(3);
+  $("demo-score").textContent = closest[comparedNeighbor].score.toFixed(3);
   renderNetwork();
 }
+$("reanchor").addEventListener("click", () =>
+  chooseHost(closest[comparedNeighbor].host),
+);
 $("demo-action").addEventListener("click", () => {
   demoStep = (demoStep + 1) % 3;
   renderDemo();
@@ -212,7 +307,7 @@ function renderHostSearch() {
 $("host-search").addEventListener("input", renderHostSearch);
 chooseHost(selected);
 renderHostSearch();
-// Quiet original ambient sound. Starts only after an explicit click.
+// Ambient music is requested by default; browser autoplay policy may defer it until interaction.
 let audio = null,
   audioEnabled = false;
 function createAudio() {
@@ -248,42 +343,142 @@ function createAudio() {
   });
   return { ctx, master, oscillators };
 }
-$("sound").addEventListener("click", async () => {
+let audioWanted = true;
+function reflectAudio() {
+  const playing = audioEnabled && audioWanted;
+  $("sound").setAttribute("aria-pressed", String(audioWanted));
+  $("sound").dataset.playing = String(playing);
+  $("sound").setAttribute(
+    "aria-label",
+    audioWanted ? "Выключить музыку" : "Включить музыку",
+  );
+  $("sound-label").textContent = playing
+    ? "Звук вкл."
+    : audioWanted
+      ? "Звук: авто"
+      : "Звук выкл.";
+}
+async function activateAudio() {
+  if (!audioWanted) return;
   try {
     if (!audio) audio = createAudio();
     if (!audio) {
-      $("audio-status").textContent = "Аудио не поддерживается этим браузером";
+      $("audio-status").textContent = "Аудио не поддерживается";
       return;
     }
     await audio.ctx.resume();
-    audioEnabled = !audioEnabled;
+    if (!audioWanted) return;
+    if (audio.ctx.state && audio.ctx.state !== "running") return;
+    audioEnabled = true;
     audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
-    audio.master.gain.setTargetAtTime(
-      audioEnabled ? 0.45 : 0,
-      audio.ctx.currentTime,
-      audioEnabled ? 1.2 : 0.08,
-    );
-    $("sound").setAttribute("aria-pressed", String(audioEnabled));
-    $("sound").setAttribute(
-      "aria-label",
-      audioEnabled ? "Выключить музыку" : "Включить спокойную музыку",
-    );
-    $("sound-label").textContent = audioEnabled ? "Звук вкл." : "Звук выкл.";
-    $("audio-status").textContent = audioEnabled
-      ? "Музыка включена"
-      : "Музыка выключена";
+    audio.master.gain.setTargetAtTime(0.45, audio.ctx.currentTime, 1.2);
+    reflectAudio();
+    $("audio-status").textContent = "Спокойная музыка включена";
   } catch {
-    $("audio-status").textContent = "Не удалось включить звук";
+    reflectAudio();
   }
+}
+$("sound").addEventListener("click", () => {
+  audioWanted = !audioWanted;
+  if (audioWanted) activateAudio();
+  else {
+    audioEnabled = false;
+    if (audio)
+      audio.master.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.08);
+    $("audio-status").textContent = "Музыка выключена";
+  }
+  reflectAudio();
 });
+function unlockAudio(e) {
+  if (e.target.closest("#sound")) return;
+  if (audioWanted && !audioEnabled) activateAudio();
+}
+document.addEventListener("pointerdown", unlockAudio, { passive: true });
+document.addEventListener("keydown", unlockAudio);
 document.addEventListener("visibilitychange", () => {
   if (audio)
     audio.master.gain.setTargetAtTime(
-      document.hidden ? 0 : audioEnabled ? 0.45 : 0,
+      document.hidden ? 0 : audioEnabled && audioWanted ? 0.45 : 0,
       audio.ctx.currentTime,
       0.5,
     );
 });
+reflectAudio();
+activateAudio();
+
+let cutawayLayer = 0;
+const layerData = [
+  [
+    "896 чисел",
+    "Профиль хоста",
+    "Основная часть хранит выученное представление известного компьютера. Адаптер позволяет сопоставить с ним трафик позднего окна.",
+  ],
+  [
+    "64 числа",
+    "Прогноз новых контактов",
+    "Эта часть учится подбирать соседей, чьи контакты помогают предсказывать будущих собеседников исходного хоста.",
+  ],
+  [
+    "64 числа",
+    "Структура графа",
+    "Эта часть описывает положение хоста в сети связей. Она добавляет информацию, которую отдельный поведенческий профиль может не сохранить.",
+  ],
+];
+document.querySelectorAll("[data-layer]").forEach((button) =>
+  button.addEventListener("click", () => {
+    cutawayLayer = Number(button.dataset.layer);
+    document
+      .querySelectorAll("[data-layer]")
+      .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+    const item = layerData[cutawayLayer];
+    $("layer-number").textContent = item[0];
+    $("layer-title").textContent = item[1];
+    $("layer-description").textContent = item[2];
+  }),
+);
+const metricData = [
+  [
+    "УЗНАВАНИЕ С ПЕРВОЙ ПОПЫТКИ",
+    "59,6%",
+    "Identity Top-1",
+    "Тот же компьютер, другой день.",
+    "Модель сравнивает профиль с более поздним трафиком и пытается узнать тот же хост. В среднем по тестовым окнам верный хост найден первым в 59,6% случаев.",
+    "Это узнавание хоста среди кандидатов, а не обнаружение атак.",
+  ],
+  [
+    "РАЗЛИЧЕНИЕ БУДУЩИХ СВЯЗЕЙ",
+    "0,974",
+    "ROC-AUC · больше — лучше",
+    "Будут ли два хоста общаться?",
+    "По двум профилям классификатор пытается отличить будущую связь от её отсутствия. ROC-AUC оценивает качество такого различения.",
+    "0,5 соответствует случайному ранжированию, 1 — идеальному. 0,974 нельзя читать как 97,4% верных предсказаний.",
+  ],
+  [
+    "КАЧЕСТВО ПОИСКА НОВОГО КОНТАКТА",
+    "0,318",
+    "MRR · больше — лучше",
+    "Насколько рано найдён верный контакт?",
+    "Модель ранжирует возможных новых собеседников. Чем выше в списке оказывается настоящий будущий контакт, тем выше оценка. MRR усредняет обратную позицию верного ответа.",
+    "1 означает, что верный контакт всегда первый. 0,318 — не процент угаданных контактов и не постоянное третье место.",
+  ],
+];
+document.querySelectorAll("[data-metric]").forEach((button) =>
+  button.addEventListener("click", () => {
+    document
+      .querySelectorAll("[data-metric]")
+      .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+    const item = metricData[Number(button.dataset.metric)];
+    [
+      "metric-name",
+      "metric-value",
+      "metric-unit",
+      "metric-title",
+      "metric-copy",
+      "metric-caution",
+    ].forEach((id, i) => ($(id).textContent = item[i]));
+  }),
+);
+
 // One persistent, scroll-driven 3D scene, rather than independent decorative canvases.
 function initWorld() {
   const canvas = $("world");
@@ -303,7 +498,9 @@ function initWorld() {
     document.body.classList.add("no-webgl");
     return;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.7));
+  renderer.setPixelRatio(
+    Math.min(devicePixelRatio || 1, innerWidth < 769 ? 1.3 : 1.7),
+  );
   renderer.setClearColor(
     new THREE.Color(
       getComputedStyle(document.documentElement)
@@ -363,6 +560,36 @@ function initWorld() {
   scene.environment = environment.texture;
   envTexture.dispose();
   pmrem.dispose();
+  if (window.RGBELoader && window.STUDIO_HDR) {
+    try {
+      const binary = atob(window.STUDIO_HDR),
+        bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      const decoded = new window.RGBELoader().parse(bytes.buffer);
+      const hdr = new THREE.DataTexture(
+        decoded.data,
+        decoded.width,
+        decoded.height,
+        THREE.RGBAFormat,
+        decoded.type,
+      );
+      hdr.mapping = THREE.EquirectangularReflectionMapping;
+      hdr.colorSpace = THREE.LinearSRGBColorSpace;
+      hdr.flipY = true;
+      hdr.minFilter = THREE.LinearFilter;
+      hdr.magFilter = THREE.LinearFilter;
+      hdr.generateMipmaps = false;
+      hdr.needsUpdate = true;
+      const generator = new THREE.PMREMGenerator(renderer);
+      const studio = generator.fromEquirectangular(hdr);
+      scene.environment = studio.texture;
+      environment.dispose();
+      hdr.dispose();
+      generator.dispose();
+    } catch (error) {
+      console.warn("Using procedural studio fallback", error);
+    }
+  }
+
   const root = new THREE.Group();
   scene.add(root);
   const glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -378,10 +605,67 @@ function initWorld() {
     transparent: true,
     opacity: 1,
   });
-  const core = new THREE.Mesh(
-    new THREE.TorusKnotGeometry(1.08, 0.35, 150, 20, 2, 3),
-    glassMaterial,
-  );
+
+  // An original glass host-profile sculpture: a closed, lobed data capsule.
+  function capsuleGeometry() {
+    const vertices = [],
+      indices = [],
+      uv = [],
+      radial = 112,
+      bands = 56;
+    for (let j = 0; j <= bands; j++) {
+      const v = j / bands,
+        theta = v * Math.PI;
+      for (let i = 0; i <= radial; i++) {
+        const u = i / radial,
+          phi = u * Math.PI * 2,
+          lobe = 1 + 0.07 * Math.sin(phi * 6) * Math.pow(Math.sin(theta), 3),
+          radius = Math.sin(theta) * 1.2 * lobe;
+        vertices.push(
+          Math.cos(phi) * radius,
+          Math.cos(theta) * 1.48,
+          Math.sin(phi) * radius,
+        );
+        uv.push(u, v);
+      }
+    }
+    for (let j = 0; j < bands; j++)
+      for (let i = 0; i < radial; i++) {
+        const a = j * (radial + 1) + i,
+          b = a + radial + 1;
+        indices.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(vertices, 3),
+    );
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+  glassMaterial.side = THREE.DoubleSide;
+  const core = new THREE.Mesh(capsuleGeometry(), glassMaterial);
+  const innerShell = new THREE.Mesh(capsuleGeometry(), glassMaterial.clone());
+  innerShell.scale.set(0.76, 0.8, 0.76);
+  core.add(innerShell);
+  const orbitalMaterial = new THREE.MeshPhysicalMaterial({
+    color: colors.highlight,
+    metalness: 0.7,
+    roughness: 0.11,
+    envMapIntensity: 2,
+  });
+  for (let i = 0; i < 3; i++) {
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(0.93 + i * 0.09, 0.016, 8, 180),
+      orbitalMaterial,
+    );
+    band.rotation.set(Math.PI / 2 + i * 0.45, i * 0.5, 0.25);
+    core.add(band);
+  }
+  const organicTime = { value: 0 };
+  core.name = "HostProfileShell";
   root.add(core);
   const inner = new THREE.Mesh(
     new THREE.SphereGeometry(0.44, 32, 20),
@@ -394,7 +678,7 @@ function initWorld() {
     }),
   );
   root.add(inner);
-  const satelliteGeo = new THREE.IcosahedronGeometry(0.11, 2);
+  const satelliteGeo = new THREE.SphereGeometry(0.11, 20, 12);
   const satelliteMat = new THREE.MeshPhysicalMaterial({
     color: colors.highlight,
     metalness: 0.16,
@@ -443,6 +727,60 @@ function initWorld() {
     root.add(ring);
     rings.push(ring);
   }
+
+  const dissected = new THREE.Group();
+  dissected.name = "ProfileCutaway";
+  root.add(dissected);
+  const shellMaterial = glassMaterial.clone();
+  shellMaterial.color = colors.highlight.clone();
+  shellMaterial.side = THREE.DoubleSide;
+  shellMaterial.transmission = 0.94;
+  const halfGeometry = new THREE.SphereGeometry(1.42, 56, 32, 0, Math.PI);
+  const shellFront = new THREE.Mesh(halfGeometry, shellMaterial),
+    shellBack = new THREE.Mesh(halfGeometry, shellMaterial);
+  shellBack.rotation.y = Math.PI;
+  dissected.add(shellFront, shellBack);
+  const sliceGroups = [];
+  const sliceMaterials = [colors.core, colors.pink, colors.blue].map(
+    (color) =>
+      new THREE.MeshPhysicalMaterial({
+        color,
+        metalness: 0.2,
+        roughness: 0.15,
+        clearcoat: 1,
+        envMapIntensity: 2,
+        transparent: true,
+        opacity: 0.9,
+      }),
+  );
+  const sliceGeometry = new THREE.BoxGeometry(0.19, 0.09, 0.19, 2, 2, 2);
+  for (let layer = 0; layer < 3; layer++) {
+    const group = new THREE.Group();
+    group.name = ["HistoryLayer", "ContactsLayer", "GraphLayer"][layer];
+    for (let i = 0; i < 20; i++) {
+      const cube = new THREE.Mesh(sliceGeometry, sliceMaterials[layer]);
+      cube.position.set(
+        ((i % 5) - 2) * 0.28,
+        0,
+        (Math.floor(i / 5) - 1.5) * 0.28,
+      );
+      group.add(cube);
+    }
+    dissected.add(group);
+    sliceGroups.push(group);
+  }
+  const shardGroup = new THREE.Group();
+  root.add(shardGroup);
+  const shardGeo = new THREE.OctahedronGeometry(0.13, 0);
+  for (let i = 0; i < 8; i++) {
+    const shard = new THREE.Mesh(shardGeo, shellMaterial);
+    const a = (i * Math.PI) / 4;
+    shard.position.set(Math.cos(a) * 3.2, Math.sin(a) * 2.5, Math.sin(i) * 1.2);
+    shard.scale.set(0.6, 1.8, 0.55);
+    shard.rotation.set(i * 0.7, i * 0.3, i * 0.9);
+    shardGroup.add(shard);
+  }
+
   const temp = new THREE.Vector3();
   const positions = [];
   for (let stage = 0; stage < 12; stage++) {
@@ -506,7 +844,7 @@ function initWorld() {
     mouseY = 0;
   document.addEventListener("pointerdown", (e) => {
     if (e.target.closest("a,button,input,summary,details,.glass")) return;
-    if (scrollY > innerHeight * 1.1) return;
+
     drag = true;
     lastX = e.clientX;
     lastY = e.clientY;
@@ -560,29 +898,71 @@ function initWorld() {
     currentBackground.copy(paper).lerp(colors.dark, darkPhase);
     ambient.style.backgroundColor = "#" + currentBackground.getHexString();
     ambient.style.backgroundImage = darkPhase > 0.5 ? "none" : "";
+    const redField =
+      ["home", "product"].some((id) => {
+        const r = $(id).getBoundingClientRect();
+        return r.top < 80 && r.bottom > 80;
+      }) || document.querySelector(".closing").getBoundingClientRect().top < 80;
     document.body.style.setProperty(
       "--nav-glass",
-      darkPhase > 0.5 ? token("--nav-glass-dark") : token("--nav-glass-light"),
+      redField
+        ? token("--nav-glass-red")
+        : darkPhase > 0.5
+          ? token("--nav-glass-dark")
+          : token("--nav-glass-light"),
     );
-    document.querySelector(".site-header").style.color =
-      darkPhase > 0.5 ? token("--dark-text") : token("--ink");
-    const rightStage = sceneProgress > 0.5 && sceneProgress < 7.8;
-    let targetX = rightStage ? (mobile ? 0.6 : 3.1) : 0;
-    let targetY = mobile ? (intro ? -0.1 : -1.9) : 0;
-    if (sceneProgress > 7.8) targetY = mobile ? -1.3 : -0.5;
-    root.position.x = lerp(root.position.x, targetX, dt * 3);
-    root.position.y = lerp(root.position.y, targetY, dt * 3);
-    const baseScale = mobile ? (intro ? 0.87 : 0.64) : intro ? 1.12 : 0.94;
-    root.scale.setScalar(lerp(root.scale.x, baseScale, dt * 3));
-    const auto = motionPreference.matches ? 0 : time * 0.00006;
-    root.rotation.y = lerp(root.rotation.y, dragX + mouseX + auto, dt * 2);
-    root.rotation.x = lerp(
-      root.rotation.x,
-      dragY + mouseY + Math.sin(sceneProgress * 0.4) * 0.12,
+    document.querySelector(".site-header").style.color = redField
+      ? token("--white")
+      : darkPhase > 0.5
+        ? token("--dark-text")
+        : token("--ink");
+    const poses = [
+      { s: 0, x: 0, y: 0, k: 1.12, rx: 0, ry: -0.2 },
+      { s: 1, x: 2.7, y: 0.1, k: 0.94, rx: 0.12, ry: 0.4 },
+      { s: 2, x: 0, y: 0.3, k: 0.9, rx: 0.1, ry: 0.8 },
+      { s: 3, x: 2.6, y: 0, k: 1.05, rx: -0.12, ry: 0.4 },
+      { s: 4, x: 2.75, y: 0.1, k: 0.9, rx: 0.05, ry: 0 },
+      { s: 5, x: 2.6, y: 0, k: 1, rx: 0.16, ry: 0.55 },
+      { s: 6, x: 2.65, y: 0, k: 1.05, rx: -0.1, ry: 0.9 },
+      { s: 7, x: 2.7, y: 0, k: 0.97, rx: 0.08, ry: 0.4 },
+      { s: 7.4, x: 2.65, y: 0, k: 1.15, rx: 0.1, ry: 0.9 },
+      { s: 7.7, x: 2.7, y: 0, k: 1, rx: 0.04, ry: 0.4 },
+      { s: 8, x: 0, y: 0, k: 0.75, rx: 0, ry: 0 },
+      { s: 9, x: 0, y: 0, k: 0.6, rx: 0, ry: 0 },
+      { s: 11, x: 2.6, y: 0, k: 0.9, rx: 0.1, ry: 0.4 },
+    ];
+    let poseIndex = 0;
+    poses.forEach((p, i) => {
+      if (sceneProgress >= p.s) poseIndex = i;
+    });
+    const poseA = poses[poseIndex],
+      poseB = poses[Math.min(poses.length - 1, poseIndex + 1)],
+      poseT = ease(
+        clamp((sceneProgress - poseA.s) / Math.max(0.001, poseB.s - poseA.s)),
+      );
+    const px = lerp(poseA.x, poseB.x, poseT),
+      py = lerp(poseA.y, poseB.y, poseT),
+      pk = lerp(poseA.k, poseB.k, poseT);
+    const targetX = mobile ? px * 0.18 : px,
+      targetY = mobile ? (intro ? 0 : -1.9) : py;
+    root.position.x = lerp(root.position.x, targetX, dt * 4);
+    root.position.y = lerp(root.position.y, targetY, dt * 4);
+    root.scale.setScalar(lerp(root.scale.x, pk * (mobile ? 0.78 : 1), dt * 4));
+    root.visible = sceneProgress < 8.95;
+    const auto = 0;
+    root.rotation.y = lerp(
+      root.rotation.y,
+      dragX + mouseX + lerp(poseA.ry, poseB.ry, poseT),
       dt * 2,
     );
-    core.rotation.y = motionPreference.matches ? 0 : time * 0.00013;
-    core.rotation.z = sceneProgress * 0.2;
+    root.rotation.x = lerp(
+      root.rotation.x,
+      dragY + mouseY + lerp(poseA.rx, poseB.rx, poseT),
+      dt * 2,
+    );
+    organicTime.value = motionPreference.matches ? 0 : time * 0.0005;
+    core.rotation.y = 0;
+    core.rotation.z = 0;
     const coreScale =
       sceneProgress < 1
         ? 1
@@ -595,7 +975,34 @@ function initWorld() {
               : sceneProgress < 9
                 ? 0.45
                 : 0.3;
-    core.scale.setScalar(lerp(core.scale.x, coreScale, dt * 3));
+    const cutAmount =
+      clamp((sceneProgress - 7.02) / 0.22) *
+      clamp((8.15 - sceneProgress) / 0.22);
+    dissected.visible = cutAmount > 0.01;
+    dissected.scale.setScalar(0.78 + cutAmount * 0.22);
+    shellFront.position.z = cutAmount * 0.95;
+    shellBack.position.z = -cutAmount * 0.95;
+    shellFront.position.x = cutAmount * 0.35;
+    shellBack.position.x = -cutAmount * 0.35;
+    sliceGroups.forEach((group, i) => {
+      group.position.y = (1 - i) * (0.22 + cutAmount * 0.43);
+      group.position.x = lerp(
+        group.position.x,
+        i === cutawayLayer ? cutAmount * 0.3 : 0,
+        dt * 5,
+      );
+      group.rotation.y = sceneProgress * 0.12;
+      const scale = i === cutawayLayer ? 1.13 : 1;
+      group.scale.setScalar(lerp(group.scale.x, scale, dt * 4));
+    });
+    core.visible = cutAmount < 0.95;
+    inner.visible = cutAmount < 0.95;
+    core.scale.setScalar(
+      lerp(core.scale.x, coreScale * (1 - cutAmount * 0.85), dt * 3),
+    );
+    shardGroup.visible = sceneProgress < 3;
+    shardGroup.rotation.y = auto * 0.25;
+
     inner.scale.setScalar(
       lerp(inner.scale.x, sceneProgress < 1 ? 1 : 0.55, dt * 3),
     );

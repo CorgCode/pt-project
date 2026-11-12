@@ -15,8 +15,12 @@ for marker, text in [
     ('__FONTS__', fonts),
     ('__CSS__', (root / 'style.css').read_text()),
     ('__THREE__', (root / 'vendor/three.min.js').read_text()),
+    ('__RGBE__', (root / 'vendor/rgbe.js').read_text()),
+    ('__CHART__', (root / 'vendor/chart.min.js').read_text()),
+    ('__HDR__', base64.b64encode((root / 'vendor/studio.hdr').read_bytes()).decode()),
     ('__DATA__', (root / 'data.js').read_text()),
     ('__APP__', (root / 'app.js').read_text()),
+    ('__LAB__', (root / 'lab.js').read_text()),
 ]:
     page = page.replace(marker, text)
 (root / 'index.html').write_text(page)
