@@ -80,17 +80,16 @@ function adapt() {
     if (p && p.textContent.trim() !== "Открыть продукт")
       p.textContent = "Открыть продукт";
   }
-  if (!document.getElementById("pt-product-link")) {
-    const link = document.createElement("a");
-    link.id = "pt-product-link";
-    link.className = "pt-product-link";
-    link.href = "#pt-detail-demo";
-    link.textContent = "Открыть лабораторию";
-    const arrow = document.createElement("span");
-    arrow.textContent = "↗";
-    link.append(arrow);
-    document.body.append(link);
-  }
+  document.getElementById("pt-product-link")?.remove();
+  const soundCopy = document.querySelector(".home-preloader .bottom > p");
+  if (soundCopy && soundCopy.textContent.trim() !== "Для этой сцены используется звук.") soundCopy.textContent = "Для этой сцены используется звук.";
+  const prompt = document.querySelectorAll(".click-and-hold .text span");
+  ["Что скрывает ваша сеть?", "Нажмите и удерживайте", "Нажмите и удерживайте"].forEach((text, i) => {
+    if (prompt[i] && prompt[i].textContent !== text) prompt[i].textContent = text;
+  });
+  const cursor = document.querySelector("#cursor .text p");
+  if (cursor && /click\s*and\s*hold/i.test(cursor.textContent)) cursor.innerHTML = "Нажмите<br>и удерживайте";
+
 }
 if (document.readyState === "loading")
   document.addEventListener("DOMContentLoaded", adapt);

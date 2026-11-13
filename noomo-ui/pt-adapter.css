@@ -201,5 +201,16 @@
 }
 /* Optical alignment of the Cyrillic heading with the central start control. */
 .home-preloader .center .done .text p {
-  transform: translateY(-0.08em);
+  line-height: 1;
+  transform: translateY(-0.04em);
 }
+
+.home-preloader .center .done .text {
+  display:flex;
+  align-items:center;
+  height:149px;
+}
+#pt-product-link {display:none !important;}
+@media(max-width:991px){.home-preloader .center .done .text {height:90px;}}
+@media(max-width:991px){.home-preloader .center .done .text {position:relative;top:-30px;}}
+@media(max-width:767px){.home-preloader .center .done .text {top:-22px;}}
