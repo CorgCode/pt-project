@@ -5,12 +5,12 @@ import { h as gsap, __tla as libraryReady } from "/_nuxt/iNjJ8EkR.js";
 await libraryReady;
 let mode="main";
 const mainPages = [
-  {id:"problem",kind:"device",title:"Зачем изучать сеть",paragraphs:["В сети компании работают компьютеры и серверы. Специалисту по безопасности нужно понимать, как они себя ведут."]},
-  {id:"problem",kind:"traffic",title:"Адреса недостаточно",paragraphs:["По адресу не видно назначение устройства. Но его взаимодействия показывают, с кем оно общается и какие сервисы использует."]},
-  {id:"model",kind:"features",title:"Сравниваем поведение",paragraphs:["Смотрим, с кем устройство общается, какими сервисами пользуется и когда активно. Это помогает найти похожие устройства."]},
-  {id:"product",kind:"search",title:"С чего начать проверку",paragraphs:["Выбираем компьютер. Сервис находит устройства с похожим поведением. Специалист получает короткий список для дальнейшей проверки."],note:"Пример на учебных данных."},
-  {id:"product",kind:"device",title:"Что хотим видеть дальше",paragraphs:["Группы похожих устройств и изменения в их поведении. Это цель продукта. Сейчас в прототипе работает поиск похожих устройств."]},
-  {id:"demo",kind:"graph-final",title:"Начните с одного устройства",paragraphs:["Каждая точка — устройство. Выберите одну и посмотрите на похожие. Так можно изучать окружение, не перебирая всю сеть вручную."],note:"Линии — сходство профилей, не сетевые соединения."}
+  {id:"problem",kind:"device",title:"Зачем изучать сеть",paragraphs:["В сети компании работают компьютеры, серверы и служебные системы. Они постоянно обмениваются данными.","Чтобы разобраться в работе сети, важно понимать, какие устройства ведут себя похоже и что их объединяет."]},
+  {id:"problem",kind:"traffic",title:"Адреса недостаточно",paragraphs:["По адресу компьютера не видно, чем он занят и какое место занимает в сети.","Взаимодействия дают больше контекста: с кем он общается, какие сервисы использует и когда активен. Из этого складывается картина его поведения."]},
+  {id:"model",kind:"features",title:"Что мы предлагаем?",paragraphs:["Наша ML-модель сама находит сходства в сетевом поведении устройств.","Вы выбираете компьютер — сервис показывает, на какие устройства он похож. Для этого не нужно заранее знать их назначение."]},
+  {id:"product",kind:"search",title:"Чем вам будет полезен наш продукт?",paragraphs:["Вместо поиска по всей сети вы получаете устройства с похожим поведением. Можно изучать их вместе и сравнивать окружение."],note:"Здесь — пример на учебных данных."},
+  {id:"product",kind:"device",title:"Видеть сеть целиком",paragraphs:["Наша цель — показывать группы похожих устройств и замечать изменения в их поведении."],note:"Сейчас в прототипе работает поиск похожих устройств."},
+  {id:"demo",kind:"graph-final",title:"Посмотрите на примере",paragraphs:["Точки — устройства. Выделенная точка показывает выбранное устройство, а связи ведут к похожим. Можно выбрать другую точку и изучить её окружение."],note:"Линии — сходство поведения, не реальные соединения."}
 ];
 const guidedPages = [
   {id:"problem",kind:"device",title:"Это хост. Обычное устройство.",paragraphs:["Хост — компьютер или сервер в сети. Адрес мы видим. А вот его назначение и привычки по одному адресу не понять."]},
@@ -25,7 +25,8 @@ const guidedPages = [
   {id:"demo",kind:"graph-final",title:"Ваша сеть. Исследуйте её.",paragraphs:["Выберите узел — увидите ближайшие профили. Тяните узел, чтобы раздвинуть граф. Тяните свободное место, чтобы повернуть всю сцену."],note:"Линии показывают близость профилей, а не реальные сетевые соединения."}
 ];
 let root, pages = [], current = -1, scrollLength = 12000, layoutTimer, hashApplied = false;
-const start = 850, stride = 850;
+const start = 850;
+const pageStride = () => mode==="main" ? 2000 : 850;
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clean = el => {
   const clone = el.cloneNode(true);
@@ -78,10 +79,11 @@ function buildPages() {
   if (at >= 0) result[at].interactive = true;
   pages = mode==="main" ? mainPages.map(p=>({...p,guided:true,simple:true})) : mode==="guided" ? guidedPages.map(p=>({...p,guided:true})) : result;
   document.body.classList.toggle("pt-guided-mode",mode!=="details");
-  scrollLength = start + pages.length * stride;
+  scrollLength = Math.max(11200, start + pages.length * pageStride());
   const runway = document.querySelector(".home-page");
   if (runway) runway.style.setProperty("height", `${scrollLength + innerHeight}px`, "important");
   window.__ptPages = pages;
+  window.__ptStoryLayout = {start,stride:pageStride(),scrollLength};
   window.__ptRefreshLayout();
 }
 window.__ptSetTourMode = value => {
@@ -103,7 +105,7 @@ function kindFor(id,title) {
 function scrollToPage(index) {
   if (!pages.length) return;
   const i = Math.max(0,Math.min(pages.length-1,index));
-  const y = start + i*stride + stride*.4;
+  const y = start + i*pageStride() + pageStride()*.4;
   const smoother = gsap.core.globals().ScrollSmoother?.get();
   if (smoother) smoother.scrollTo(y, !reduce());
   else window.scrollTo({top:y,behavior:reduce()?"instant":"smooth"});
@@ -178,6 +180,7 @@ function show(index,p) {
     document.getElementById("pt-find-similar").hidden=page.kind!=="search";
     if(page.kind==="search"){window.__ptSearchFound=false;document.getElementById("pt-find-similar").textContent="Найти похожего";}
     document.body.classList.toggle("pt-final-graph",page.kind==="graph-final");
+    document.body.classList.toggle("pt-original-scene",!!page.simple&&page.kind!=="graph-final");
     root.querySelectorAll("[data-chapter]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.chapter===page.id)));
     const readable=document.getElementById("pt-world-readable");readable.replaceChildren();
     const title=document.createElement("h2");title.textContent=page.title;readable.append(title);
@@ -201,7 +204,7 @@ function frame() {
   const active=!!ready&&y>=start;
   if(root)root.hidden=!active;
   document.body.classList.toggle("pt-world-active",active);
-  if(active){const raw=(y-start)/stride,index=Math.min(pages.length-1,Math.floor(raw));show(index,Math.min(1,raw-index));}
+  if(active){const raw=(y-start)/pageStride(),index=Math.min(pages.length-1,Math.floor(raw));show(index,Math.min(1,raw-index));}
   else window.__ptWorldState={visible:false};
 }
 window.addEventListener("pt:inspect",event=>{

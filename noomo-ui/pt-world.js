@@ -287,12 +287,14 @@ function buildLab() {
 }
 function layout() {
   if(!camera||!root)return;
-  const guided=!!window.__ptWorldState?.page?.guided;
+  const guided=!!window.__ptWorldState?.page?.guided, simple=!!window.__ptWorldState?.page?.simple, finalGraph=window.__ptWorldState?.page?.kind==="graph-final";
   const distance=6,h=2*Math.tan((camera.getEffectiveFOV?.()??camera.fov)*Math.PI/360)*distance,w=h*camera.aspect,mobile=innerWidth<760;
-  view={w,h,textW:mobile?w*.91:w*(guided?.36:.43),textH:mobile?h*(guided?.47:.50):h*.69};
+  view={w,h,textW:mobile?w*.91:w*(guided?.36:.43),textH:mobile?h*(simple&&!finalGraph?.68:guided?.47:.50):h*.69};
   backdrop.scale.set(w*2.5,h*2.5,1);backdrop.position.set(0,0,-14);
-  const x=mobile?0:-w*(guided?.31:.255),y=mobile?-h*(guided?.18:.145):0;
+  const x=mobile?0:-w*(guided?.31:.255),y=mobile?-h*(simple&&!finalGraph?.08:guided?.18:.145):0;
   plaque.visible=!guided;
+  backdrop.visible=!simple||finalGraph;
+  model.visible=!simple||finalGraph;
   plaque.position.set(x,y,-6.05);plaque.scale.set(view.textW,view.textH,.018);
   textBaseY=y;textMesh.position.set(x,y,-6);textMesh.scale.set(view.textW,view.textH,1);
   outgoingMesh.position.set(x,y,-6.01);outgoingMesh.scale.copy(textMesh.scale);
@@ -323,7 +325,8 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   root.visible=!!state?.visible;
   if(!root.visible)return;
   camera.updateMatrixWorld();root.position.copy(camera.getWorldPosition(new Vector3()));root.quaternion.copy(camera.getWorldQuaternion(root.quaternion));
-  if(composition!==!!state.page.guided){composition=!!state.page.guided;layout();}
+  const nextComposition=[!!state.page.guided,!!state.page.simple,state.page.kind==="graph-final"].join(":");
+  if(composition!==nextComposition){composition=nextComposition;layout();}
   const key=(state.page.guided?"guided:":"details:")+state.index+":"+innerWidth+":"+innerHeight;
   if(pageKey!==key||labDirty||(state.page.id==="demo"&&lastLab!==window.__ptLabState)){
     const changed=pageKey!==key;if(changed){inspection=null;selectedPart=-1;transition=0;}disposeModel();
@@ -338,11 +341,13 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   yaw+=(targetYaw-yaw)*smoothing;pitch+=(targetPitch-pitch)*smoothing;
   transition=reduced?1:Math.min(1,transition+Math.min(delta||.016,.05)*2.4);
   const ease=1-Math.pow(1-transition,3);
-  model.rotation.set(pitch,yaw+(1-ease)*.12,0);
+  const scrollTurn=reduced?0:(state.progress-.5)*.35;
+  model.rotation.set(pitch,yaw+(1-ease)*.12+scrollTurn,0);
   model.scale.setScalar(model.userData.baseScale*zoom);
-  textBlend=reduced?1:Math.min(1,textBlend+Math.min(delta||.016,.05)/.85);
+  textBlend=reduced?1:Math.min(1,textBlend+Math.min(delta||.016,.05)/1.6);
   const smooth=t=>t*t*(3-2*t),incoming=smooth(clamp((textBlend-.12)/.88,0,1));
-  textMesh.material.opacity=incoming;
+  const exit=state.index===state.total-1?1:1-smooth(clamp((state.progress-.83)/.17,0,1));
+  textMesh.material.opacity=incoming*(reduced?1:exit);
   textMesh.position.y=textBaseY-(1-incoming)*view.h*.035;
   outgoingMesh.material.opacity=outgoingTexture?outgoingAlpha*(1-smooth(clamp(textBlend/.65,0,1))):0;
   outgoingMesh.position.y=textBaseY+smooth(textBlend)*view.h*.018;
@@ -376,14 +381,14 @@ window.__ptWorldFrame = function (context) {
 };
 window.addEventListener("pt:lab-update",()=>{labDirty=true;});
 function hits(event) {
-  if(!root?.visible||!renderer)return [];
+  if(!root?.visible||!model?.visible||!renderer)return [];
   const bounds=renderer.domElement.getBoundingClientRect();
   pointer.x=(event.clientX-bounds.left)/bounds.width*2-1;pointer.y=-(event.clientY-bounds.top)/bounds.height*2+1;
   ray.setFromCamera(pointer,camera);return ray.intersectObjects(hitTargets,false);
 }
 function isUI(event){return event.target.closest?.(".pt-world-ui,.pt-scene-source,header,.pt-product-link,.social-links-global-parent,.ar-mode,input,button");}
 window.addEventListener("pointerdown",event=>{
-  if(!root?.visible||isUI(event))return;
+  if(!root?.visible||!model?.visible||isUI(event))return;
   const mobile=innerWidth<760,inModel=mobile?event.clientY<innerHeight*.39:event.clientX>innerWidth*.50;
   if(!inModel&&!hits(event)[0]?.object?.userData.hostId)return;
   const hit=hits(event)[0]?.object;
@@ -419,5 +424,5 @@ window.__ptFindSimilar = () => {
 window.__ptResetView = () => {targetYaw=0;targetPitch=0;zoom=1;nodePositions.clear();labDirty=true;};
 window.__ptZoomView = delta => {zoom=clamp(zoom*delta,.7,1.5);};
 ["mousedown","mouseup","click"].forEach(type=>window.addEventListener(type,event=>{
-  if(root?.visible&&!isUI(event))event.stopImmediatePropagation();
+  if(root?.visible&&model?.visible&&!isUI(event))event.stopImmediatePropagation();
 },true));

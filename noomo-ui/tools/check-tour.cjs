@@ -36,14 +36,17 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  for(const name of ["Group","Mesh","MeshBasicMaterial","MeshStandardMaterial","MeshPhysicalMaterial","SphereGeometry","BoxGeometry","PlaneGeometry","BufferGeometry","Float32BufferAttribute","Texture","Vector3","Raycaster","DoubleSide"])w[name]=THREE[name];
  execute("pt-world.js");
  const frame=()=>{callbacks.shift()();w.__ptWorldFrame({scene,camera,renderer:{domElement:canvas},delta:.016});scene.updateMatrixWorld(true);assert(!w.__ptWorldError,w.__ptWorldError);};
- const visit=index=>{scroll=850+index*850+400;frame();assert.equal(w.__ptWorldState.index,index);assert(w.__ptWorldDebug.root.visible);};
+ const visit=index=>{scroll=w.__ptStoryLayout.start+index*w.__ptStoryLayout.stride+w.__ptStoryLayout.stride*.4;frame();assert.equal(w.__ptWorldState.index,index);assert(w.__ptWorldDebug.root.visible);};
  w.__ptSetTourMode("main");
  for(let i=0;i<6;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
+ assert(w.__ptStoryLayout.scrollLength>=11200,"full original scene timeline remains scrollable");
+ visit(0);assert(!w.__ptWorldDebug.model.visible,"opening copy preserves the original rotating scene");
+ visit(5);assert(w.__ptWorldDebug.model.visible,"final graph remains available after the original animation");
  // A new surface blends with the old one rather than replacing visible text abruptly.
- visit(0);for(let i=0;i<70;i++)frame();visit(1);
+ visit(0);for(let i=0;i<130;i++)frame();visit(1);
  const incoming=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===500),outgoing=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===499);
  assert(outgoing.material.opacity>.8);assert(incoming.material.opacity<.2);
- for(let i=0;i<70;i++)frame();assert.equal(incoming.material.opacity,1);assert.equal(outgoing.material.opacity,0);
+ for(let i=0;i<130;i++)frame();assert.equal(incoming.material.opacity,1);assert.equal(outgoing.material.opacity,0);
  const settings=d.createElement("div");settings.className="social-links-global-parent";const settingButton=d.createElement("button");settings.append(settingButton);d.body.append(settings);let settingClicks=0;settingButton.addEventListener("click",()=>settingClicks++);settingButton.click();assert.equal(settingClicks,1,"3D gestures do not intercept the customization panel");
  w.__ptSetTourMode("guided");
  for(let i=0;i<10;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
