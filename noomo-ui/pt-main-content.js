@@ -12,8 +12,10 @@ window.__ptMainPages = [
 window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,right,bottom}) {
   document.body.classList.add("pt-native-story");
   const start=850,stride=2000,pages=window.__ptMainPages;
+  const end=start+(pages.length-1+.4)*stride;
   const runway=document.querySelector(".home-page");
-  if(runway)runway.style.setProperty("height",`${Math.max(13000,start+pages.length*stride)+innerHeight}px`,"important");
+  if(runway)runway.style.setProperty("height",`${Math.max(10500,end+innerHeight)}px`,"important");
+  document.querySelector(".home-footer")?.style.setProperty("display","none","important");
   bottom.forEach(el=>{el.hidden=true;});
   const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
   const blocks=[];
@@ -26,7 +28,7 @@ window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,righ
       block.setAttribute("aria-hidden",String(index!==active));
     });
   };
-  sequence=gsap.timeline({onUpdate:syncVisibility,scrollTrigger:{trigger:"body",start:`top+=${start} top`,end:`top+=${start+pages.length*stride} top`,scrub:reduced?true:1.2,invalidateOnRefresh:true}});
+  sequence=gsap.timeline({onUpdate:syncVisibility,scrollTrigger:{trigger:"body",start:`top+=${start} top`,end:`top+=${end} top`,scrub:reduced?true:1.2,invalidateOnRefresh:true}});
   pages.forEach((page,index)=>{
     const block=index===0?left:index===1?right:(index%2?right:left).cloneNode(false);
     if(index>1)left.parentElement.append(block);
@@ -41,10 +43,10 @@ window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,righ
     gsap.set(lines,{yPercent:reduced?0:110,opacity:0});
     sequence.fromTo(lines,{yPercent:reduced?0:110,opacity:0},{yPercent:0,opacity:1,stagger:.04,duration:.24,ease:"power2.out",immediateRender:false},index+.04);
     if(index<pages.length-1)sequence.to(lines,{yPercent:reduced?0:-25,opacity:0,stagger:.02,duration:.14,ease:"power1.in"},index+.78);
-    sequence.to({}, {duration:.02},index+.98);
+    sequence.to({}, {duration:.02},index+(index===pages.length-1?.38:.98));
   });
   syncVisibility();
-  window.__ptNativeCopy={blocks,start,stride,pages,sequence,syncVisibility};
+  window.__ptNativeCopy={blocks,start,stride,end,pages,sequence,syncVisibility};
   window.__ptGoChapter=id=>{
     const index=pages.findIndex(p=>p.id===id);if(index<0)return;
     const y=start+index*stride+stride*.4,smoother=gsap.core.globals().ScrollSmoother?.get();
