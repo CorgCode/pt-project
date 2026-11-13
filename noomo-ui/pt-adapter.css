@@ -215,3 +215,9 @@
 @media(max-width:991px){.home-preloader .center .done .text {height:90px;}}
 @media(max-width:991px){.home-preloader .center .done .text {position:relative;top:-30px;}}
 @media(max-width:767px){.home-preloader .center .done .text {top:-22px;}}
+
+/* The customization palette sits above the full-screen hold target. */
+.social-links-global-parent {z-index:95 !important;pointer-events:none;}
+.social-links-global-parent .volume,.social-links-global-parent .ar-mode {pointer-events:auto;}
+
+.pt-world-active .social-links-global-parent .ar-mode {display:none;}

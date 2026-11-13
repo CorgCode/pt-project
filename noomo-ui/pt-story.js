@@ -3,7 +3,15 @@
  */
 import { h as gsap, __tla as libraryReady } from "/_nuxt/iNjJ8EkR.js";
 await libraryReady;
-let mode="details";
+let mode="main";
+const mainPages = [
+  {id:"problem",kind:"device",title:"Зачем изучать сеть",paragraphs:["В сети компании работают компьютеры и серверы. Специалисту по безопасности нужно понимать, как они себя ведут."]},
+  {id:"problem",kind:"traffic",title:"Адреса недостаточно",paragraphs:["По адресу не видно назначение устройства. Но его взаимодействия показывают, с кем оно общается и какие сервисы использует."]},
+  {id:"model",kind:"features",title:"Сравниваем поведение",paragraphs:["Смотрим, с кем устройство общается, какими сервисами пользуется и когда активно. Это помогает найти похожие устройства."]},
+  {id:"product",kind:"search",title:"С чего начать проверку",paragraphs:["Выбираем компьютер. Сервис находит устройства с похожим поведением. Специалист получает короткий список для дальнейшей проверки."],note:"Пример на учебных данных."},
+  {id:"product",kind:"device",title:"Что хотим видеть дальше",paragraphs:["Группы похожих устройств и изменения в их поведении. Это цель продукта. Сейчас в прототипе работает поиск похожих устройств."]},
+  {id:"demo",kind:"graph-final",title:"Начните с одного устройства",paragraphs:["Каждая точка — устройство. Выберите одну и посмотрите на похожие. Так можно изучать окружение, не перебирая всю сеть вручную."],note:"Линии — сходство профилей, не сетевые соединения."}
+];
 const guidedPages = [
   {id:"problem",kind:"device",title:"Это хост. Обычное устройство.",paragraphs:["Хост — компьютер или сервер в сети. Адрес мы видим. А вот его назначение и привычки по одному адресу не понять."]},
   {id:"problem",kind:"traffic",title:"Посмотрим, с кем он общается.",paragraphs:["Пакеты идут от устройства к сервисам и обратно. Из этих взаимодействий складывается история его поведения."],note:"Условный пример трафика, не реальные записи выбранного хоста."},
@@ -68,8 +76,8 @@ function buildPages() {
   // The laboratory has a dedicated interactive stop, not just explanatory text.
   const at = result.findIndex(p => p.id === "demo");
   if (at >= 0) result[at].interactive = true;
-  pages = mode==="guided" ? guidedPages.map(p=>({...p,guided:true})) : result;
-  document.body.classList.toggle("pt-guided-mode",mode==="guided");
+  pages = mode==="main" ? mainPages.map(p=>({...p,guided:true,simple:true})) : mode==="guided" ? guidedPages.map(p=>({...p,guided:true})) : result;
+  document.body.classList.toggle("pt-guided-mode",mode!=="details");
   scrollLength = start + pages.length * stride;
   const runway = document.querySelector(".home-page");
   if (runway) runway.style.setProperty("height", `${scrollLength + innerHeight}px`, "important");
@@ -78,7 +86,7 @@ function buildPages() {
 }
 window.__ptSetTourMode = value => {
   const section=pages[current]?.id;
-  mode=value==="details"?"details":"guided";current=-1;buildPages();
+  mode=["main","details","guided"].includes(value)?value:"main";current=-1;buildPages();
   document.querySelectorAll("[data-tour-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tourMode===mode)));
   window.__ptWorldResize?.();
   if(section)window.__ptGoChapter(section);
@@ -151,7 +159,9 @@ function mount() {
   const dataButton=button("Данные и загрузка ▾",()=>lab.classList.toggle("pt-data-open"));dataButton.id="pt-data-toggle";lab.prepend(dataButton);
   const zoom=document.createElement("div");zoom.className="pt-world-zoom";
   zoom.append(button("−",()=>window.__ptZoomView?.(.85)),button("+",()=>window.__ptZoomView?.(1.15)));
-  root.append(nav,controls,lab,accessible,text,help,reset,modes,action,zoom);
+  const links=document.createElement("nav");links.className="pt-page-links";links.setAttribute("aria-label","Продолжить исследование");links.hidden=true;
+  for(const [href,label] of [["/model/","Как устроена модель →"],["/lab/","Лаборатория →"]]){const a=document.createElement("a");a.href=href;a.textContent=label;links.append(a);}
+  root.append(nav,controls,lab,accessible,text,help,reset,modes,action,zoom,links);
   ["click","pointerdown","pointermove","pointerup"].forEach(type=>root.addEventListener(type,e=>e.stopPropagation()));
   document.body.append(root);
   if (window.__ptLabState) window.dispatchEvent(new CustomEvent("pt:lab-update",{detail:window.__ptLabState}));
@@ -160,6 +170,7 @@ function show(index,p) {
   const page=pages[index];
   if (current!==index) {
     current=index;
+    root.querySelector(".pt-page-links").hidden=true;
     document.getElementById("pt-world-count").textContent=`${index+1} / ${pages.length}`;
     document.getElementById("pt-world-prev").disabled=index===0;
     document.getElementById("pt-world-next").disabled=index===pages.length-1;
@@ -173,6 +184,7 @@ function show(index,p) {
     page.paragraphs.forEach(text=>{const para=document.createElement("p");para.textContent=text;readable.append(para);});
   }
   window.__ptWorldState={page,index,total:pages.length,progress:p,visible:true};
+  if(mode==="main" && page.kind==="search" && p>.3 && !window.__ptSearchFound)window.__ptFindSimilar?.();
 }
 function frame() {
   requestAnimationFrame(frame);

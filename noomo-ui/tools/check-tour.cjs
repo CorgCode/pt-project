@@ -23,7 +23,8 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  w.__ptMountContent();
  const home=d.createElement("div");home.id="home-scene";home.style.opacity=1;d.body.append(home);
  execute("pt-story.js");
- assert(w.__ptPages.length>15,"detailed scroll narrative is the default");
+ assert.equal(w.__ptPages.length,6,"homepage contains only the short product narrative");
+ assert(!w.__ptPages.some(p=>p.id==="training"||p.id==="results"),"experiments stay off the homepage");
  w.__ptSetTourMode("details");
  assert(w.__ptPages.length>15);assert.equal(new Set(w.__ptPages.map(p=>p.id)).size,6);
  assert(!d.querySelector("iframe,dialog"));
@@ -36,6 +37,14 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  execute("pt-world.js");
  const frame=()=>{callbacks.shift()();w.__ptWorldFrame({scene,camera,renderer:{domElement:canvas},delta:.016});scene.updateMatrixWorld(true);assert(!w.__ptWorldError,w.__ptWorldError);};
  const visit=index=>{scroll=850+index*850+400;frame();assert.equal(w.__ptWorldState.index,index);assert(w.__ptWorldDebug.root.visible);};
+ w.__ptSetTourMode("main");
+ for(let i=0;i<6;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
+ // A new surface blends with the old one rather than replacing visible text abruptly.
+ visit(0);for(let i=0;i<70;i++)frame();visit(1);
+ const incoming=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===500),outgoing=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===499);
+ assert(outgoing.material.opacity>.8);assert(incoming.material.opacity<.2);
+ for(let i=0;i<70;i++)frame();assert.equal(incoming.material.opacity,1);assert.equal(outgoing.material.opacity,0);
+ const settings=d.createElement("div");settings.className="social-links-global-parent";const settingButton=d.createElement("button");settings.append(settingButton);d.body.append(settings);let settingClicks=0;settingButton.addEventListener("click",()=>settingClicks++);settingButton.click();assert.equal(settingClicks,1,"3D gestures do not intercept the customization panel");
  w.__ptSetTourMode("guided");
  for(let i=0;i<10;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
  visit(1);let devices=[];w.__ptWorldDebug.model.traverse(o=>{if(o.name.startsWith("PT_Device_"))devices.push(o.name);});
@@ -101,6 +110,8 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
      assert(layout.height<=layout.maxHeight,`${width}px text clipped at ${i} / ${w.__ptWorldState.page.title}: ${JSON.stringify(layout)} ${JSON.stringify(w.__ptWorldState.page.paragraphs)}`);
      assert(Number.isFinite(w.__ptWorldDebug.model.scale.x));
    }
+   w.__ptSetTourMode("main");
+   for(let i=0;i<6;i++){visit(i);const textLayout=scene.userData.ptTextLayout;assert(textLayout.height<=textLayout.maxHeight,`${width}px main story clipping at ${i}`);}
    w.__ptSetTourMode("guided");
    for(let i=0;i<10;i++){visit(i);const textLayout=scene.userData.ptTextLayout;assert(textLayout.height<=textLayout.maxHeight,`${width}px guided clipping at ${i}: ${JSON.stringify(textLayout)}`);}
    w.__ptSetTourMode("details");

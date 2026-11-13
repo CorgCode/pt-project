@@ -9,7 +9,7 @@ let world, camera, renderer, root, model, textMesh, textTexture, backdrop, plaqu
 let view={w:1,h:1,textW:1,textH:1}, lastLab=null, labDirty=false, selectedPart=-1,inspection=null;
 const hitTargets=[], animated=[], particlePaths=[], graphEdges=[];
 const graphNodes=new Map(), nodePositions=new Map();
-let zoom=1, composition=null;
+let zoom=1, composition=null, outgoingMesh, outgoingTexture=null, textBlend=1, textBaseY=0, outgoingAlpha=1;
 const ray = new Raycaster(), pointer={x:0,y:0};
 const sphereGeometry=new SphereGeometry(1,24,16), boxGeometry=new BoxGeometry(1,1,1);
 const assets = new Set();
@@ -68,18 +68,23 @@ function paintPage(page,index,total) {
   }
   ctx.fillStyle=drawColors.accent;ctx.font=`400 ${10*scale}px PTOnest, sans-serif`;
   const names={problem:"ЗАДАЧА",product:"ПРОДУКТ",model:"УСТРОЙСТВО МОДЕЛИ",training:"ОБУЧЕНИЕ",results:"РЕЗУЛЬТАТЫ",demo:"ДЕМОНСТРАЦИЯ"};
-  ctx.fillText(names[page.id] || "",pad,(mobile?22:32)*scale);
+  if(!page.simple)ctx.fillText(names[page.id] || "",pad,(mobile?22:32)*scale);
   let y=topSpace;ctx.fillStyle=drawColors.ink;ctx.font=`600 ${heading}px PTDisplay, sans-serif`;ctx.textBaseline="top";
   titleLines.forEach(line=>{ctx.fillText(line,pad,y);y+=heading*1.13;});y+=gap;
   ctx.font=`400 ${body}px PTOnest, sans-serif`;ctx.fillStyle=drawColors.muted;
   paragraphLines.forEach(lines=>{lines.forEach(line=>{ctx.fillText(line,pad,y);y+=body*1.65;});y+=14*scale;});
   if(noteLines.length){ctx.font=`400 ${11*scale}px PTOnest, sans-serif`;ctx.fillStyle=drawColors.accent;noteLines.forEach(line=>{ctx.fillText(line,pad,y);y+=16*scale;});}
-  if(textTexture){textTexture.dispose();assets.delete(textTexture);}
+  if(textTexture){
+    if(outgoingTexture){outgoingTexture.dispose();assets.delete(outgoingTexture);}
+    outgoingTexture=textTexture;outgoingMesh.material.map=outgoingTexture;outgoingMesh.material.needsUpdate=true;
+    outgoingAlpha=textMesh.material.opacity;
+  }
+  textBlend=0;
   textTexture=textureFrom(canvas);textMesh.material.map=textTexture;textMesh.material.needsUpdate=true;
   world.userData.ptTextLayout={height:y,maxHeight:canvas.height,font:body/scale,lines:paragraphLines.flat().length};
 }
 function disposeModel() {
-  for(const a of assets){if(a===textTexture||a===textMesh.material||a===plaque.material||a===backdrop.material||a===backdrop.material.map)continue;a.dispose?.();assets.delete(a);}
+  for(const a of assets){if(a===textTexture||a===outgoingTexture||a===outgoingMesh.material||a===textMesh.material||a===plaque.material||a===backdrop.material||a===backdrop.material.map)continue;a.dispose?.();assets.delete(a);}
   model.clear();hitTargets.length=0;animated.length=0;particlePaths.length=0;graphEdges.length=0;graphNodes.clear();
 }
 // Rounded geometry is generated in-place; these are actual meshes, not device images.
@@ -141,7 +146,7 @@ function buildDeviceStory(kind) {
     inspection={...window.__ptWorldState.page,title:"Хост — устройство в сети",paragraphs:["Здесь выбран один компьютер. Рядом — условные сервисы, с которыми он обменивается данными. Назначение реального хоста мы не определяем по этой иллюстрации."]};
     window.dispatchEvent(new CustomEvent("pt:inspect",{detail:inspection}));labDirty=true;
   };hitTargets.push(host.children[0]);host.children[0].userData.ptAction=host.userData.ptAction;
-  label(model,"Выбранный хост",-.05,-1,.3,1.65);
+  label(model,window.__ptWorldState.page.simple?"Устройство в сети":"Выбранный хост",-.05,-1,.3,1.65);
   if(kind==="device")return;
   serverDevice(model,1.02,.39,-.35,.75);routerDevice(model,-1.05,.54,-.22,.85);
   label(model,"Сервис",1.03,.98,.2,.8);label(model,"Сеть",-1.05,1,.2,.8);
@@ -160,13 +165,13 @@ function buildDeviceStory(kind) {
 function buildSearch() {
   const state=window.__ptLabState;if(!state)return;
   const found=window.__ptSearchFound;
-  laptop(model,-.72,-.2,.1,1.3);label(model,"Хост A",-.72,-.9,.3,1);
+  laptop(model,-.72,-.2,.1,1.3);label(model,window.__ptWorldState.page.simple?"Ваше устройство":"Хост A",-.72,-.9,.3,1.4);
   const right=new Group();right.position.set(.8,.08,-.08);model.add(right);
   if(found){
-    laptop(right,0,0,0,1.1);label(model,"Ближайший профиль",.8,-.72,.3,1.65);
+    laptop(right,0,0,0,1.1);label(model,window.__ptWorldState.page.simple?"Похожее устройство":"Ближайший профиль",.8,-.72,.3,1.65);
     label(model,state.near[0].host.id,.8,-.91,.3,1.2);
     const edge=line(model,new Vector3(-.15,.05,.3),new Vector3(.35,.05,.3),.025,basic(colors.signal));
-    label(model,"Сходство "+state.near[0].score.toFixed(3),0,.64,.4,1.8);
+    if(!window.__ptWorldState.page.simple)label(model,"Сходство "+state.near[0].score.toFixed(3),0,.64,.4,1.8);
     const halo=ring(right,.65,.015,material("solid",colors.signal));halo.rotation.x=.5;
     const click=sphere(right,0,.1,.2,.48,basic(colors.accent,0));click.userData.ptAction=()=>window.__ptSelectHost?.(state.near[0].host.id);hitTargets.push(click);
   }else{
@@ -176,7 +181,7 @@ function buildSearch() {
     });
     label(model,"Кандидаты",.8,-.9,.3,1.2);
   }
-  label(model,"Одинаковая иконка не означает одинаковую роль",0,-1.2,.4,2.7);
+  if(!window.__ptWorldState.page.simple)label(model,"Одинаковая иконка не означает одинаковую роль",0,-1.2,.4,2.7);
   lastLab=state;
 }
 
@@ -269,15 +274,15 @@ function buildLab() {
     node.userData.hostId=host.id;graphNodes.set(host.id,node);
     if(isNear){const edge=line(model,origin,p,.008,wire);graphEdges.push({mesh:edge,from:state.selected.id,to:host.id});}
   });
-  label(model,`${state.selected.id} · ${state.dataset.length} хостов`,0,1.05,.4,2.8);
+  label(model,`${state.selected.id} · ${state.dataset.length} ${window.__ptWorldState.page.simple?"устройств":"хостов"}`,0,1.05,.4,2.8);
   label(model,"Тяните узлы · выбирайте профили",0,-1.03,.4,2.7);
   // Five nearest scores are real, computed in the full vector space.
-  state.near.forEach((n,i)=>{
+  if(!window.__ptWorldState.page.simple)state.near.forEach((n,i)=>{
     const x=-.9+i*.43,h=(n.score+1)/2*.3;
     box(model,x,-1.4+h/2,.3,.24,h,.12,i===0?dark:solid);
     label(model,n.score.toFixed(3),x,-1.51,.5,.43);
   });
-  label(model,"Расположение условное; сходство по всем признакам",0,-1.76,.4,2.9);
+  if(!window.__ptWorldState.page.simple)label(model,"Расположение условное; сходство по всем признакам",0,-1.76,.4,2.9);
   lastLab=state;
 }
 function layout() {
@@ -289,7 +294,8 @@ function layout() {
   const x=mobile?0:-w*(guided?.31:.255),y=mobile?-h*(guided?.18:.145):0;
   plaque.visible=!guided;
   plaque.position.set(x,y,-6.05);plaque.scale.set(view.textW,view.textH,.018);
-  textMesh.position.set(x,y,-6);textMesh.scale.set(view.textW,view.textH,1);
+  textBaseY=y;textMesh.position.set(x,y,-6);textMesh.scale.set(view.textW,view.textH,1);
+  outgoingMesh.position.set(x,y,-6.01);outgoingMesh.scale.copy(textMesh.scale);
   const modelScale=mobile?(guided?Math.min(w*.32,h*.14):h*.085):Math.min(w*(guided?.24:.20),h*(guided?.32:.27));
   model.position.set(mobile?0:w*(guided?.15:.24),mobile?h*(guided?.21:.22):0,-5.9);model.scale.setScalar(modelScale);model.userData.baseScale=modelScale;
   pageKey="";
@@ -304,6 +310,7 @@ function setup(scene,cam,rend) {
   backdrop=new Mesh(new PlaneGeometry(1,1),backgroundMaterial);backdrop.renderOrder=390;root.add(backdrop);
   plaque=box(root,0,0,-6.05,1,1,.018,new MeshPhysicalMaterial({color:colors.bright,transmission:.2,roughness:.2,transparent:true,opacity:.8,depthTest:false,depthWrite:false,clearcoat:1}));assets.add(plaque.material);plaque.renderOrder=400;
   textMesh=new Mesh(new PlaneGeometry(1,1),new MeshBasicMaterial({transparent:true,depthTest:false,depthWrite:false,toneMapped:false,side:DoubleSide}));textMesh.renderOrder=500;assets.add(textMesh.material);root.add(textMesh);
+  outgoingMesh=new Mesh(new PlaneGeometry(1,1),new MeshBasicMaterial({transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false,side:DoubleSide}));outgoingMesh.renderOrder=499;assets.add(outgoingMesh.material);root.add(outgoingMesh);
   model=new Group();model.name="PT_Interactive_Diagram";root.add(model);
   layout();
   document.fonts?.ready.then(()=>{pageKey="";});
@@ -333,7 +340,13 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   const ease=1-Math.pow(1-transition,3);
   model.rotation.set(pitch,yaw+(1-ease)*.12,0);
   model.scale.setScalar(model.userData.baseScale*zoom);
-  textMesh.material.opacity=ease;
+  textBlend=reduced?1:Math.min(1,textBlend+Math.min(delta||.016,.05)/.85);
+  const smooth=t=>t*t*(3-2*t),incoming=smooth(clamp((textBlend-.12)/.88,0,1));
+  textMesh.material.opacity=incoming;
+  textMesh.position.y=textBaseY-(1-incoming)*view.h*.035;
+  outgoingMesh.material.opacity=outgoingTexture?outgoingAlpha*(1-smooth(clamp(textBlend/.65,0,1))):0;
+  outgoingMesh.position.y=textBaseY+smooth(textBlend)*view.h*.018;
+  if(textBlend===1&&outgoingTexture){outgoingMesh.material.map=null;outgoingMesh.material.needsUpdate=true;outgoingTexture.dispose();assets.delete(outgoingTexture);outgoingTexture=null;}
   animated.forEach((a,i)=>{
     if(a.type==="float")a.mesh.position.y=a.base+(reduced?0:Math.sin(phase*.7+(a.offset||i))*.025);
     if(a.type==="bar"){
@@ -342,8 +355,7 @@ function drawWorld({scene,camera:cam,renderer:rend,delta}) {
     }
   });
   particlePaths.forEach(p=>p.mesh.position.lerpVectors(p.from,p.to,reduced?.5:(phase*.18+p.offset)%1));
-  const enter=reduced?1:clamp(state.progress/.12,0,1);
-  textMesh.position.z=-6-(1-enter)*.12;
+  textMesh.position.z=-6-(1-incoming)*.05;
   for(const edge of graphEdges){
     const a=graphNodes.get(edge.from)?.position,b=graphNodes.get(edge.to)?.position;if(!a||!b)continue;
     const direction=new Vector3().subVectors(b,a);edge.mesh.position.copy(a).add(b).multiplyScalar(.5);
@@ -369,7 +381,7 @@ function hits(event) {
   pointer.x=(event.clientX-bounds.left)/bounds.width*2-1;pointer.y=-(event.clientY-bounds.top)/bounds.height*2+1;
   ray.setFromCamera(pointer,camera);return ray.intersectObjects(hitTargets,false);
 }
-function isUI(event){return event.target.closest?.(".pt-world-ui,.pt-scene-source,header,.pt-product-link");}
+function isUI(event){return event.target.closest?.(".pt-world-ui,.pt-scene-source,header,.pt-product-link,.social-links-global-parent,.ar-mode,input,button");}
 window.addEventListener("pointerdown",event=>{
   if(!root?.visible||isUI(event))return;
   const mobile=innerWidth<760,inModel=mobile?event.clientY<innerHeight*.39:event.clientX>innerWidth*.50;

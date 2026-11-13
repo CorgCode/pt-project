@@ -47,6 +47,10 @@ function adapt() {
     const next = labels[p.textContent.trim()];
     if (next) p.textContent = next;
   });
+  document.querySelectorAll(".social-links-global-parent").forEach(panel => {
+    if(panel.dataset.ptGestures)return;panel.dataset.ptGestures="ready";
+    ["pointerdown","pointermove","pointerup","mousedown","mouseup","touchstart","touchend"].forEach(type=>panel.addEventListener(type,event=>event.stopPropagation()));
+  });
   const footer = document.querySelector(".home-footer");
   if (footer) {
     const heading = footer.querySelector("h4");
@@ -108,7 +112,7 @@ new MutationObserver(() => {
 window.__ptPrepareSceneText = function (scene, types) {
   const labels = {
     AND: "ДАННЫЕ",
-    "DELIGHTD.001": "ХОСТЫ",
+    "DELIGHTD.001": "СЕТЬ",
     INSPIREE: "МОДЕЛЬ",
     TOO: "СВЯЗИ",
     "Noomo_Logo_for_Footer.003": "ПРОФИЛЬ СЕТИ",
@@ -117,12 +121,14 @@ window.__ptPrepareSceneText = function (scene, types) {
     Work_3_text: "МЕТРИКИ",
     Work_4_text: "ЛАБОРАТОРИЯ",
   };
+  // GLTFLoader removes punctuation from node names (DELIGHTD.001 -> DELIGHTD001).
+  const normalizedLabels = Object.fromEntries(Object.entries(labels).map(([name,text])=>[name.replace(/[.\[\]:/]/g,""),text]));
   const loader = new types.FontLoader();
   loader.load(
     "/fonts/PTDisplay_Regular.json",
     (font) => {
       scene.traverse((mesh) => {
-        const text = labels[mesh.name];
+        const text = labels[mesh.name] || normalizedLabels[mesh.name.replace(/[.\[\]:/]/g, "")];
         if (!text || !mesh.isMesh || !mesh.geometry) return;
         const original = mesh.geometry;
         original.computeBoundingBox();

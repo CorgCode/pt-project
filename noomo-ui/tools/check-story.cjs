@@ -49,7 +49,7 @@ const font = {
 const group = new THREE.Group();
 const expected = {
   AND: "ДАННЫЕ",
-  "DELIGHTD.001": "ХОСТЫ",
+  "DELIGHTD.001": "СЕТЬ",
   INSPIREE: "МОДЕЛЬ",
   TOO: "СВЯЗИ",
   "Noomo_Logo_for_Footer.003": "ПРОФИЛЬ СЕТИ",
@@ -63,7 +63,8 @@ for (const name of Object.keys(expected)) {
     new THREE.PlaneGeometry(10000, 6000),
     new THREE.MeshBasicMaterial(),
   );
-  mesh.name = name;
+  mesh.name = THREE.PropertyBinding.sanitizeNodeName(name);
+  mesh.userData.expectedText = expected[name];
   mesh.position.set(3, 4, 5);
   group.add(mesh);
 }
@@ -78,7 +79,7 @@ w.__ptPrepareSceneText(group, {
   DoubleSide: THREE.DoubleSide,
 });
 group.children.forEach((mesh) => {
-  assert.equal(mesh.userData.ptText, expected[mesh.name]);
+  assert.equal(mesh.userData.ptText, mesh.userData.expectedText);
   assert(mesh.geometry.attributes.position.count > 0);
   const box = mesh.geometry.boundingBox;
   assert(box.max.x - box.min.x <= 11800.01);

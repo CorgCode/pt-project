@@ -61,4 +61,8 @@
 }
 
 /* The product story advances only by scrolling. Keep the error text fallback available. */
-.pt-world-ui > :not(#pt-world-readable) {display:none !important;}
+.pt-world-ui > :not(#pt-world-readable):not(.pt-page-links) {display:none !important;}
+
+.pt-page-links {position:absolute;bottom:30px;left:6vw;display:flex;gap:26px;pointer-events:auto;}
+.pt-page-links a {font:12px var(--pt-font-body);color:var(--pt-story-ink);text-decoration:underline;text-underline-offset:5px;white-space:nowrap;cursor:pointer !important;}
+@media(max-width:760px){.pt-page-links {left:16px;right:16px;bottom:22px;justify-content:space-between;gap:10px;}.pt-page-links a {font-size:10px;}}
