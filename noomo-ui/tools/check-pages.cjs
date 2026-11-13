@@ -56,4 +56,4 @@ async function check(page){
  }
  dom.window.close();console.log(`PASS: /${page}/ navigation, native geometry, visible controls, interactive state${page==='lab'?', live charts, valid/invalid and 1024-dimensional CSV':', model blocks and semantic content'}`);
 }
-(async()=>{await check('model');await check('lab');})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{await require('./check-model.cjs')();await check('lab');})().catch(e=>{console.error(e);process.exitCode=1});

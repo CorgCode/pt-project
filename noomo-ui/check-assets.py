@@ -15,7 +15,9 @@ class Page(HTMLParser):
                 value = data.get(key, '')
                 if value.startswith('/') and not value.startswith('//'):
                     references.add(urlsplit(value).path)
-Page().feed((root / 'index.html').read_text())
+for page in ('index.html', 'model/index.html'):
+    Page().feed((root / page).read_text())
+references.add('/model/scene.js')
 for file in (root / '_nuxt').glob('*'):
     if file.suffix not in ('.js', '.css'):
         continue
