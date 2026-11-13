@@ -10,7 +10,7 @@ const mainPages = [
   {id:"model",kind:"features",title:"Что мы предлагаем?",paragraphs:["Наша ML-модель сама находит сходства в сетевом поведении устройств.","Вы выбираете компьютер — сервис показывает, на какие устройства он похож. Для этого не нужно заранее знать их назначение."]},
   {id:"product",kind:"search",title:"Чем вам будет полезен наш продукт?",paragraphs:["Вместо поиска по всей сети вы получаете устройства с похожим поведением. Можно изучать их вместе и сравнивать окружение."],note:"Здесь — пример на учебных данных."},
   {id:"product",kind:"device",title:"Видеть сеть целиком",paragraphs:["Наша цель — показывать группы похожих устройств и замечать изменения в их поведении."],note:"Сейчас в прототипе работает поиск похожих устройств."},
-  {id:"demo",kind:"graph-final",title:"Посмотрите на примере",paragraphs:["Точки — устройства. Выделенная точка показывает выбранное устройство, а связи ведут к похожим. Можно выбрать другую точку и изучить её окружение."],note:"Линии — сходство поведения, не реальные соединения."}
+  {id:"demo",kind:"device",title:"От устройства — к окружению",paragraphs:["Сначала изучаете одно устройство, затем — похожие на него. Так можно разбирать сеть по частям, а не просматривать все адреса подряд."]}
 ];
 const guidedPages = [
   {id:"problem",kind:"device",title:"Это хост. Обычное устройство.",paragraphs:["Хост — компьютер или сервер в сети. Адрес мы видим. А вот его назначение и привычки по одному адресу не понять."]},
@@ -163,15 +163,40 @@ function mount() {
   zoom.append(button("−",()=>window.__ptZoomView?.(.85)),button("+",()=>window.__ptZoomView?.(1.15)));
   const links=document.createElement("nav");links.className="pt-page-links";links.setAttribute("aria-label","Продолжить исследование");links.hidden=true;
   for(const [href,label] of [["/model/","Как устроена модель →"],["/lab/","Лаборатория →"]]){const a=document.createElement("a");a.href=href;a.textContent=label;links.append(a);}
-  root.append(nav,controls,lab,accessible,text,help,reset,modes,action,zoom,links);
+  const side=document.createElement("section");side.className="pt-main-copy";side.setAttribute("aria-label","О проекте");side.hidden=true;
+  root.append(nav,controls,lab,accessible,text,help,reset,modes,action,zoom,links,side);
   ["click","pointerdown","pointermove","pointerup"].forEach(type=>root.addEventListener(type,e=>e.stopPropagation()));
   document.body.append(root);
   if (window.__ptLabState) window.dispatchEvent(new CustomEvent("pt:lab-update",{detail:window.__ptLabState}));
+}
+let copyAnimations=[];
+function renderSideCopy(page) {
+  const side=root.querySelector(".pt-main-copy");
+  side.hidden=!page.simple;if(!page.simple)return;
+  copyAnimations.forEach(a=>{try{a.commitStyles?.();}catch{}a.cancel();});copyAnimations=[];
+  const previous=side.querySelector(".pt-copy-current");
+  side.querySelector(".pt-copy-outgoing")?.remove();
+  if(previous){
+    previous.className="pt-copy-outgoing";previous.setAttribute("aria-hidden","true");
+    if(!reduce()&&previous.animate){
+      const a=previous.animate([{opacity:1,transform:"translate3d(0,0,0)"},{opacity:0,transform:"translate3d(0,-24px,0)"}],{duration:700,easing:"cubic-bezier(.3,0,.3,1)",fill:"forwards"});a.onfinish=()=>previous.remove();copyAnimations.push(a);
+    }else previous.remove();
+  }
+  const content=document.createElement("div");content.className="pt-copy-current";
+  const heading=document.createElement("h2");heading.textContent=page.title;content.append(heading);
+  page.paragraphs.forEach(text=>{const paragraph=document.createElement("p");paragraph.textContent=text;content.append(paragraph);});
+  if(page.note){const note=document.createElement("small");note.textContent=page.note;content.append(note);}
+  side.append(content);
+  if(!reduce())Array.from(content.children).forEach((element,i)=>{
+    if(!element.animate)return;
+    const a=element.animate([{opacity:0,transform:"translate3d(0,32px,0)"},{opacity:1,transform:"translate3d(0,0,0)"}],{duration:1600,delay:180+i*140,easing:"cubic-bezier(.16,1,.3,1)",fill:"both"});copyAnimations.push(a);
+  });
 }
 function show(index,p) {
   const page=pages[index];
   if (current!==index) {
     current=index;
+    renderSideCopy(page);
     root.querySelector(".pt-page-links").hidden=true;
     document.getElementById("pt-world-count").textContent=`${index+1} / ${pages.length}`;
     document.getElementById("pt-world-prev").disabled=index===0;

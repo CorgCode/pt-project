@@ -9,6 +9,8 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  const dom=new JSDOM(fs.readFileSync(path.join(base,"index.html"),"utf8"),{runScripts:"outside-only",pretendToBeVisual:true,url:"http://127.0.0.1:8845/"});
  const w=dom.window,d=w.document,callbacks=[];
  let scroll=0,refreshes=0;
+ const copyAnimations=[];
+ w.Element.prototype.animate=function(frames,options){copyAnimations.push({element:this,frames,options});return {cancel(){},commitStyles(){}};};
  w.innerWidth=1440;w.innerHeight=900;
  w.requestAnimationFrame=fn=>callbacks.push(fn);w.matchMedia=()=>({matches:false});
  w.gsap={core:{globals:()=>({ScrollSmoother:{get:()=>({scrollTop:()=>scroll,scrollTo:y=>scroll=y})},ScrollTrigger:{refresh:()=>refreshes++}})}};
@@ -36,12 +38,15 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  for(const name of ["Group","Mesh","MeshBasicMaterial","MeshStandardMaterial","MeshPhysicalMaterial","SphereGeometry","BoxGeometry","PlaneGeometry","BufferGeometry","Float32BufferAttribute","Texture","Vector3","Raycaster","DoubleSide"])w[name]=THREE[name];
  execute("pt-world.js");
  const frame=()=>{callbacks.shift()();w.__ptWorldFrame({scene,camera,renderer:{domElement:canvas},delta:.016});scene.updateMatrixWorld(true);assert(!w.__ptWorldError,w.__ptWorldError);};
- const visit=index=>{scroll=w.__ptStoryLayout.start+index*w.__ptStoryLayout.stride+w.__ptStoryLayout.stride*.4;frame();assert.equal(w.__ptWorldState.index,index);assert(w.__ptWorldDebug.root.visible);};
+ const visit=index=>{scroll=w.__ptStoryLayout.start+index*w.__ptStoryLayout.stride+w.__ptStoryLayout.stride*.4;frame();assert.equal(w.__ptWorldState.index,index);assert.equal(w.__ptWorldDebug.root.visible,!w.__ptWorldState.page.simple);};
  w.__ptSetTourMode("main");
  for(let i=0;i<6;i++){visit(i);assert(scene.userData.ptTextLayout.height<=scene.userData.ptTextLayout.maxHeight);}
  assert(w.__ptStoryLayout.scrollLength>=11200,"full original scene timeline remains scrollable");
  visit(0);assert(!w.__ptWorldDebug.model.visible,"opening copy preserves the original rotating scene");
- visit(5);assert(w.__ptWorldDebug.model.visible,"final graph remains available after the original animation");
+ visit(5);assert(!w.__ptWorldDebug.root.visible,"nothing overlays the original finale");
+ assert(d.querySelector(".pt-main-copy h2"));assert(!d.querySelector(".pt-main-copy").hidden);
+ assert(copyAnimations.some(a=>a.element.closest(".pt-main-copy")&&a.options.duration===1600&&a.frames[0].opacity===0),"visible side paragraphs animate, rather than only hidden 3D surfaces");
+ assert(fs.readFileSync(path.join(base,"_nuxt/DkR7Kq9H.js"),"utf8").includes(";lo=40,co="),"40 original finale spheres restored");
  // A new surface blends with the old one rather than replacing visible text abruptly.
  visit(0);for(let i=0;i<130;i++)frame();visit(1);
  const incoming=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===500),outgoing=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===499);

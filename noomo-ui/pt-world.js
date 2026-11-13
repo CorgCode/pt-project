@@ -322,8 +322,8 @@ function setup(scene,cam,rend) {
 function drawWorld({scene,camera:cam,renderer:rend,delta}) {
   if(!root)setup(scene,cam,rend);
   const state=window.__ptWorldState;
-  root.visible=!!state?.visible;
-  if(!root.visible)return;
+  root.visible=!!state?.visible && !state.page.simple;
+  if(!state?.visible)return;
   camera.updateMatrixWorld();root.position.copy(camera.getWorldPosition(new Vector3()));root.quaternion.copy(camera.getWorldQuaternion(root.quaternion));
   const nextComposition=[!!state.page.guided,!!state.page.simple,state.page.kind==="graph-final"].join(":");
   if(composition!==nextComposition){composition=nextComposition;layout();}
