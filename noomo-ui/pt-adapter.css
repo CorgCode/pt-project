@@ -239,3 +239,20 @@
 
 /* Inactive chapters are removed from display, independent of scrub/opacity state. */
 .scene-texts .wrapper .pt-product-copy[hidden] {display:none !important;}
+/* Lower side captions, with contrast against both the light scene and dark 3D lettering. */
+:root {--pt-side-ink:#fff;}
+.scene-texts:has(.pt-product-copy) {mix-blend-mode:difference;}
+.scene-texts .wrapper .pt-product-copy[data-pt-copy] {
+ top:auto;bottom:clamp(90px,10vh,130px);height:auto;
+ align-items:flex-end;padding-top:0;padding-bottom:0;
+}
+.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {
+ color:var(--pt-side-ink);font-size:clamp(20px,1.7vw,26px);
+ line-height:1.22;letter-spacing:.01em;width:min(520px,35vw);
+}
+@media(max-width:991px){.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {width:min(440px,48vw);font-size:21px;}}
+@media(max-width:760px){
+ .scene-texts .wrapper .pt-product-copy[data-pt-copy] {bottom:90px;left:16px;right:16px;padding:0;}
+ .scene-texts .wrapper .pt-product-copy[data-pt-copy] p {width:calc(100vw - 32px);font-size:18px;line-height:1.24;}
+}
+@media(max-width:360px){.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {font-size:17px;}}
