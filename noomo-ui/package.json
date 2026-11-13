@@ -2,7 +2,7 @@
   "name": "pt-network-scene-adaptation",
   "private": true,
   "scripts": {
-    "test": "node --experimental-vm-modules tools/check-module-links.cjs && node tools/check-story.cjs && node tools/check-tour.cjs && python3 check-assets.py",
+    "test": "node --experimental-vm-modules tools/check-module-links.cjs && node tools/check-story.cjs && node tools/check-tour.cjs && node tools/check-native-story.cjs && python3 check-assets.py",
     "font": "node tools/generate-font.mjs"
   },
   "devDependencies": {
