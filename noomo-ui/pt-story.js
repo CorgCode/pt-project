@@ -3,7 +3,7 @@
  */
 import { h as gsap, __tla as libraryReady } from "/_nuxt/iNjJ8EkR.js";
 await libraryReady;
-let mode="guided";
+let mode="details";
 const guidedPages = [
   {id:"problem",kind:"device",title:"Это хост. Обычное устройство.",paragraphs:["Хост — компьютер или сервер в сети. Адрес мы видим. А вот его назначение и привычки по одному адресу не понять."]},
   {id:"problem",kind:"traffic",title:"Посмотрим, с кем он общается.",paragraphs:["Пакеты идут от устройства к сервисам и обратно. Из этих взаимодействий складывается история его поведения."],note:"Условный пример трафика, не реальные записи выбранного хоста."},

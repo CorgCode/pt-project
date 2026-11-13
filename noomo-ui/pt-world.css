@@ -59,3 +59,6 @@
  .pt-world-zoom {right:16px;bottom:104px;gap:5px;}
  .pt-world-zoom button {width:29px;font-size:15px;padding:6px;}
 }
+
+/* The product story advances only by scrolling. Keep the error text fallback available. */
+.pt-world-ui > :not(#pt-world-readable) {display:none !important;}

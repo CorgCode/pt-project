@@ -68,7 +68,7 @@ function paintPage(page,index,total) {
   }
   ctx.fillStyle=drawColors.accent;ctx.font=`400 ${10*scale}px PTOnest, sans-serif`;
   const names={problem:"ЗАДАЧА",product:"ПРОДУКТ",model:"УСТРОЙСТВО МОДЕЛИ",training:"ОБУЧЕНИЕ",results:"РЕЗУЛЬТАТЫ",demo:"ДЕМОНСТРАЦИЯ"};
-  ctx.fillText(`${names[page.id]} · ${index+1} / ${total}`,pad,(mobile?22:32)*scale);
+  ctx.fillText(names[page.id] || "",pad,(mobile?22:32)*scale);
   let y=topSpace;ctx.fillStyle=drawColors.ink;ctx.font=`600 ${heading}px PTDisplay, sans-serif`;ctx.textBaseline="top";
   titleLines.forEach(line=>{ctx.fillText(line,pad,y);y+=heading*1.13;});y+=gap;
   ctx.font=`400 ${body}px PTOnest, sans-serif`;ctx.fillStyle=drawColors.muted;

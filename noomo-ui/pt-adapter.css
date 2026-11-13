@@ -193,9 +193,10 @@
 }
 
 /* Start prompt: Cyrillic display type, preserving the hold interaction. */
-.click-and-hold .wrapper .text {font-family:var(--pt-font-display);gap:20px;}
+.click-and-hold .wrapper .text {font-family:var(--pt-font-display);font-size:17px;gap:20px;}
+@media(max-width:991px){.click-and-hold .wrapper .text {font-size:14px;}}
 @media(max-width:760px){
- .click-and-hold .wrapper .text {font-size:clamp(17px,4.4vw,28px);gap:16px;}
+ .click-and-hold .wrapper .text {font-size:clamp(8.5px,2.2vw,14px);gap:16px;}
  .click-and-hold .wrapper .text span:first-child {width:auto;flex:1;}
  .click-and-hold .wrapper .text span:nth-child(3) {max-width:46%;text-align:right;}
 }

@@ -23,7 +23,7 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
  w.__ptMountContent();
  const home=d.createElement("div");home.id="home-scene";home.style.opacity=1;d.body.append(home);
  execute("pt-story.js");
- assert.equal(w.__ptPages.length,10);
+ assert(w.__ptPages.length>15,"detailed scroll narrative is the default");
  w.__ptSetTourMode("details");
  assert(w.__ptPages.length>15);assert.equal(new Set(w.__ptPages.map(p=>p.id)).size,6);
  assert(!d.querySelector("iframe,dialog"));
