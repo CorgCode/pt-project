@@ -17,7 +17,7 @@ class Page(HTMLParser):
                     references.add(urlsplit(value).path)
 for page in ('index.html', 'model/index.html'):
     Page().feed((root / page).read_text())
-references.add('/model/scene.js')
+# The model case is static and loads no standalone 3D scene.
 for file in (root / '_nuxt').glob('*'):
     if file.suffix not in ('.js', '.css'):
         continue
