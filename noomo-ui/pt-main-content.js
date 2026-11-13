@@ -17,10 +17,20 @@ window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,righ
   bottom.forEach(el=>{el.hidden=true;});
   const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
   const blocks=[];
+  let sequence;
+  const syncVisibility=()=>{
+    const time=sequence?.time()||0;
+    const active=time>0?Math.min(pages.length-1,Math.floor(time)):-1;
+    blocks.forEach((block,index)=>{
+      block.hidden=index!==active;
+      block.setAttribute("aria-hidden",String(index!==active));
+    });
+  };
+  sequence=gsap.timeline({onUpdate:syncVisibility,scrollTrigger:{trigger:"body",start:`top+=${start} top`,end:`top+=${start+pages.length*stride} top`,scrub:reduced?true:1.2,invalidateOnRefresh:true}});
   pages.forEach((page,index)=>{
     const block=index===0?left:index===1?right:(index%2?right:left).cloneNode(false);
     if(index>1)left.parentElement.append(block);
-    block.classList.add("pt-product-copy");block.replaceChildren();
+    block.classList.add("pt-product-copy");block.dataset.ptCopy=index;block.hidden=true;block.replaceChildren();
     const paragraph=document.createElement("p"),lines=[];
     [page.title,...page.paragraphs,...(page.note?[page.note]:[])].forEach((text,i)=>{
       const mask=document.createElement("span");mask.className="pt-copy-mask";
@@ -28,12 +38,13 @@ window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,righ
       line.textContent=text;mask.append(line);paragraph.append(mask);lines.push(line);
     });block.append(paragraph);blocks.push(block);
     gsap.set(block,{opacity:1});
-    const sequence=gsap.timeline({scrollTrigger:{trigger:"body",start:`top+=${start+index*stride} top`,end:`top+=${start+(index+1)*stride} top`,scrub:reduced?true:1.2,invalidateOnRefresh:true}});
-    sequence.fromTo(lines,{yPercent:reduced?0:110,opacity:0},{yPercent:0,opacity:1,stagger:.06,duration:.28,ease:"power2.out"},0);
-    sequence.to({}, {duration:.35},.45);
-    if(index<pages.length-1)sequence.to(lines,{yPercent:reduced?0:-25,opacity:0,stagger:.025,duration:.2,ease:"power1.in"},.8);
+    gsap.set(lines,{yPercent:reduced?0:110,opacity:0});
+    sequence.fromTo(lines,{yPercent:reduced?0:110,opacity:0},{yPercent:0,opacity:1,stagger:.04,duration:.24,ease:"power2.out",immediateRender:false},index+.04);
+    if(index<pages.length-1)sequence.to(lines,{yPercent:reduced?0:-25,opacity:0,stagger:.02,duration:.14,ease:"power1.in"},index+.78);
+    sequence.to({}, {duration:.02},index+.98);
   });
-  window.__ptNativeCopy={blocks,start,stride,pages};
+  syncVisibility();
+  window.__ptNativeCopy={blocks,start,stride,pages,sequence,syncVisibility};
   window.__ptGoChapter=id=>{
     const index=pages.findIndex(p=>p.id===id);if(index<0)return;
     const y=start+index*stride+stride*.4,smoother=gsap.core.globals().ScrollSmoother?.get();

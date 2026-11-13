@@ -225,7 +225,7 @@
 /* Original scene text elements, animated by its own GSAP/ScrollTrigger context. */
 .pt-native-story .header .right-menu,.pt-native-story .home-footer {display:none !important;}
 .pt-native-story .scene-texts .bottom-texts {display:none !important;}
-.pt-native-story .scene-texts .wrapper .pt-product-copy p {
+.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {
  font:500 clamp(22px,2.2vw,32px)/1.08 var(--pt-font-display);
  width:min(460px,33vw);color:var(--pt-main-ink);background:none;border:0;box-shadow:none;
 }
@@ -233,6 +233,9 @@
 .pt-copy-line {display:block;will-change:transform,opacity;}
 .pt-copy-heading {font-size:1.15em;line-height:1.08;}
 .pt-copy-note {font:400 11px/1.4 var(--pt-font-body);text-transform:none;}
-@media(max-width:991px){.pt-native-story .scene-texts .wrapper .pt-product-copy p {width:min(420px,50vw);font-size:24px;}}
-@media(max-width:760px){.pt-native-story .scene-texts .wrapper .pt-product-copy p {width:calc(100vw - 32px);font-size:19px;}.pt-native-story .scene-texts .pt-product-copy {left:16px;right:16px;padding-top:100px;}.pt-copy-mask {margin-bottom:14px;}}
-@media(max-width:360px){.pt-native-story .scene-texts .wrapper .pt-product-copy p {font-size:17px;}.pt-native-story .scene-texts .pt-product-copy {padding-top:90px;}}
+@media(max-width:991px){.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {width:min(420px,50vw);font-size:24px;}}
+@media(max-width:760px){.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {width:calc(100vw - 32px);font-size:19px;}.scene-texts .wrapper .pt-product-copy[data-pt-copy] {left:16px;right:16px;padding-top:100px;}.pt-copy-mask {margin-bottom:14px;}}
+@media(max-width:360px){.scene-texts .wrapper .pt-product-copy[data-pt-copy] p {font-size:17px;}.scene-texts .wrapper .pt-product-copy[data-pt-copy] {padding-top:90px;}}
+
+/* Inactive chapters are removed from display, independent of scrub/opacity state. */
+.scene-texts .wrapper .pt-product-copy[hidden] {display:none !important;}
