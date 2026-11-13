@@ -6,16 +6,27 @@ async function check(){
  assert.equal(d.documentElement.lang,'ru');assert(d.querySelector('.case-hero .wrapper .info-block .right'),'original Noomo case structure');
  assert.equal(d.querySelectorAll('.model-section').length,8);assert.equal(d.querySelectorAll('canvas,iframe,#model-stage,.chapter').length,0);
  assert(!d.querySelector('script[src*="three"],script[src*="scene.js"],script[src*="pt-page"]'),'rejected 3D implementation is disconnected');
- const video=d.querySelector('video');assert(video.hasAttribute('muted')&&video.hasAttribute('playsinline'));assert(d.querySelector('.source-figure img'));
+ assert.equal(d.querySelectorAll('video').length,0);assert(!/jellyfish-case|jellyfish-poster/.test(html));assert(d.querySelector('.source-figure img'));assert.equal(d.querySelectorAll('[data-figure]').length,8);assert.equal(d.querySelector('audio').getAttribute('src'),'/audio/BG5.mp3');
  assert(!/FWA|Awards|Wallis|Salesforce/.test(d.body.textContent),'no borrowed client claims or awards');
- for(const element of d.querySelectorAll('script[src],link[href],img[src],video[poster],source[src]')){
-  const url=element.getAttribute('src')||element.getAttribute('href')||element.getAttribute('poster');if(url.startsWith('/'))assert(fs.statSync(path.join(root,url.split('?')[0])).size>0,url);
+ for(const element of d.querySelectorAll('script[src],link[href],img[src],audio[src],source[srcset]')){
+  const url=element.getAttribute('src')||element.getAttribute('href')||element.getAttribute('srcset');if(url.startsWith('/'))assert(fs.statSync(path.join(root,url.split('?')[0])).size>0,url);
  }
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'model/reference/source-manifest.json'),'utf8'));
  for(const item of manifest.files){if(item.sha256)assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'model/reference',item.file))).digest('hex'),item.sha256,item.file);}
  const ids=[...d.querySelectorAll('[id]')].map(e=>e.id);assert.equal(new Set(ids).size,ids.length);
  const js=fs.readFileSync(path.join(root,'model/model.js'),'utf8');assert(js.includes("scale:.82"));assert(js.includes("start:'center bottom'"));assert(js.includes("end:'bottom top'"));
  assert(d.querySelector('a[href="https://scikit-learn.org/stable/modules/neural_networks_supervised.html"]'),'source of the diagram is credited');
- dom.window.close();console.log('PASS: original Noomo case structure and stylesheet hashes, local video/fonts/official diagram, no custom 3D, valid asset references and model content');
+ const evidence=JSON.parse(fs.readFileSync(path.join(root,'model/assets/evidence.json'),'utf8'));
+ const scoreboard=fs.readFileSync(path.join(root,'../scoreboard/README.md'));
+ assert.equal(evidence.source_sha256,crypto.createHash('sha256').update(scoreboard).digest('hex'));
+ assert.deepEqual(evidence.models.map(m=>m.score),[56.5,64.9,70]);assert.deepEqual(evidence.vector_parts,[896,64,64]);
+ // Browser autoplay rejection and a subsequent user toggle must both be handled.
+ const w=dom.window,audio=d.querySelector('audio'),button=d.querySelector('#music-toggle');let paused=true,blocked=true;
+ Object.defineProperty(audio,'paused',{get:()=>paused});audio.play=async()=>{if(blocked)throw Error('autoplay blocked');paused=false;audio.dispatchEvent(new w.Event('play'));};audio.pause=()=>{paused=true;audio.dispatchEvent(new w.Event('pause'));};
+ w.matchMedia=()=>({matches:false});w.eval(js);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(audio.volume,.12);assert.equal(button.getAttribute('aria-pressed'),'false');assert.equal(button.dataset.blocked,'true');
+ blocked=false;button.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(button.getAttribute('aria-pressed'),'true');
+ button.click();assert.equal(paused,true);assert.equal(w.sessionStorage.getItem('pt-model-music'),'off');
+ dom.window.close();console.log('PASS: original Noomo case structure and stylesheet hashes, local music/fonts/diagrams, real research data and autoplay fallback, no custom 3D, valid asset references and model content');
 }
 module.exports=check;if(require.main===module)check().catch(e=>{console.error(e);process.exitCode=1;});

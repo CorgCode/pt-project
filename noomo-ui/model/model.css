@@ -41,3 +41,17 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--model-ink);outline
 @media(max-width:767px){.pt-model-case .case-hero .cover-block video {width:80%;}}
 
 .model-header-inner{position:relative;}
+/* Research figures preserve the case layout and have dedicated readable mobile versions. */
+:root{--model-accent:#8231fe;}
+.model-header-actions{display:flex;align-items:center;gap:20px;}
+.music-toggle{display:inline-flex;align-items:center;gap:7px;border:0;background:var(--model-clear);color:var(--model-ink);font:400 12px var(--model-font);padding:10px 0;cursor:pointer;white-space:nowrap;}
+.music-toggle[aria-pressed=true]{color:var(--model-accent);}
+.model-figure{margin:42px 0 48px;}
+.model-figure picture,.model-figure img{display:block;width:100%;height:auto;}
+.model-figure figcaption{font:400 12px/1.6 var(--model-font);color:var(--model-muted);margin-top:18px;max-width:760px;}
+.pt-model-case .case-hero .model-overview{margin:0 0 90px;}
+.model-overview figcaption{padding:0 40px;}
+.model-section li{margin-bottom:15px;}
+.model-section audio{display:none;}
+@media(max-width:767px){.model-header-actions{gap:14px;}.model-figure{margin:30px 0 38px;}.model-overview figcaption{padding:0 20px;}.model-figure figcaption{font-size:11px;}}
+@media(max-width:480px){.model-header-inner .logo{width:105px;}.music-label{display:none;}.music-toggle{font-size:20px;padding:8px;}.model-header-actions{gap:10px;}}
