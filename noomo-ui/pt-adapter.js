@@ -1,46 +1,24 @@
 "use strict";
 function openProduct(hash = "#demo") {
-  window.__ptMountContent?.();
-  window.__ptGoChapter?.(hash.replace("#", ""));
+  window.location.assign(/model|result|train/.test(hash)?"/model/":"/lab/");
 }
 window.__ptOpenProduct = openProduct;
-document.addEventListener(
-  "click",
-  (event) => {
-    const link = event.target.closest("a");
-    if (!link) return;
-    const raw = link.getAttribute("href") || "";
-    let section = null,
-      external = null;
-    if (raw.startsWith("#pt-detail-")) section = "#" + raw.slice(11);
-    else if (raw.startsWith("/product/"))
-      section = raw.includes("#") ? raw.slice(raw.indexOf("#")) : "#demo";
-    else if (raw === "/work" || raw === "/work/" || raw.startsWith("/cases/"))
-      section = "#demo";
-    else if (
-      raw === "/contact" ||
-      raw === "/contact/" ||
-      raw.includes("noomoagency.com") ||
-      raw.startsWith("mailto:")
-    )
-      section = "#model";
-    else if (/linkedin\.com|instagram\.com|twitter\.com/.test(raw))
-      external = "https://github.com/CorgCode/pt-project";
-    if (section || external) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (section) openProduct(section);
-      else window.location.assign(external);
-    }
-  },
-  true,
-);
+document.addEventListener("click",event=>{
+ const link=event.target.closest('a');if(!link)return;
+ const raw=link.getAttribute('href')||'';
+ let route=null;
+ if(/^\/(lab|model)\//.test(raw))route=raw;
+ else if(raw.startsWith('#pt-detail-')||raw.startsWith('/product/'))route=/model|result|train/.test(raw)?'/model/':'/lab/';
+ else if(raw==='/work'||raw==='/work/'||raw.startsWith('/cases/'))route='/lab/';
+ else if(raw==='/contact'||raw==='/contact/'||raw.startsWith('mailto:'))route='/model/';
+ if(route){event.preventDefault();event.stopImmediatePropagation();window.location.assign(route);}
+},true);
 function adapt() {
   window.__ptMountContent?.();
   document.querySelectorAll(".mobile-menu .bottom a").forEach((link, i) => {
-    const label = ["Код проекта", "О модели", "Демонстрация", "Результаты"][i % 4];
+    const label = ["Код проекта", "О модели", "Лаборатория", "Результаты"][i % 4];
     if (link.textContent !== label) link.textContent = label;
-    link.href = ["https://github.com/CorgCode/pt-project", "#pt-detail-model", "#pt-detail-demo", "#pt-detail-results"][i % 4];
+    link.href = ["https://github.com/CorgCode/pt-project", "/model/", "/lab/", "/model/#results"][i % 4];
   });
   document.querySelectorAll(".status p, .home-preloader .inner-circle p").forEach(p => {
     const labels = {on:"Вкл", off:"Выкл", start:"Начать"};
@@ -65,7 +43,8 @@ function adapt() {
       const span = link.querySelector("span");
       if (!span) return;
       const text = span.textContent.trim();
-      const names = { Work: "Продукт", Contact: "Модель", Home: "Сцена" };
+      const names = { Work: "Лаборатория", Contact: "Модель", Home: "Продукт" };
+      const href=link.getAttribute("href");if(href==="/work")link.setAttribute("href","/lab/");if(href==="/contact")link.setAttribute("href","/model/");
       if (names[text]) span.textContent = names[text];
     });
   document.querySelectorAll(".home-footer .socials a").forEach((link, i) => {
@@ -73,13 +52,13 @@ function adapt() {
     if (link.textContent !== label) link.textContent = label;
     link.href = [
       "https://github.com/CorgCode/pt-project",
-      "#pt-detail-model",
-      "#pt-detail-demo",
+      "/model/",
+      "/lab/",
     ][i % 3];
   });
   const send = document.querySelector(".home-footer .send");
   if (send) {
-    send.href = "#pt-detail-demo";
+    send.href = "/lab/";
     const p = send.querySelector(".inner-circle p");
     if (p && p.textContent.trim() !== "Открыть продукт")
       p.textContent = "Открыть продукт";
@@ -123,6 +102,11 @@ window.__ptPrepareSceneText = function (scene, types) {
   };
   // GLTFLoader removes punctuation from node names (DELIGHTD.001 -> DELIGHTD001).
   const normalizedLabels = Object.fromEntries(Object.entries(labels).map(([name,text])=>[name.replace(/[.\[\]:/]/g,""),text]));
+  scene.traverse(mesh=>{
+    if(mesh.isMesh&&(labels[mesh.name]||normalizedLabels[mesh.name.replace(/[.\[\]:/]/g, "")])){
+      mesh.userData.ptTextWasVisible=mesh.visible;mesh.visible=false;
+    }
+  });
   const loader = new types.FontLoader();
   loader.load(
     "/fonts/PTDisplay_Regular.json",
@@ -159,6 +143,8 @@ window.__ptPrepareSceneText = function (scene, types) {
         geometry.computeBoundingSphere();
         mesh.geometry = geometry;
         mesh.userData.ptText = text;
+        mesh.visible=mesh.userData.ptTextWasVisible??true;
+        delete mesh.userData.ptTextWasVisible;
         const materials = Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material];
@@ -173,4 +159,28 @@ window.__ptPrepareSceneText = function (scene, types) {
     undefined,
     (error) => console.error("PT 3D text could not load", error),
   );
+};
+
+// A transmission pass must not sample the texture currently attached for writing.
+window.__ptRenderTargetScene = function (world, target) {
+  const hidden=[];
+  world.scene.traverse(mesh=>{
+    if(!mesh.isMesh||!mesh.visible)return;
+    const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
+    if(materials.some(material=>material?.buffer===target.texture)){
+      hidden.push(mesh);mesh.visible=false;
+    }
+  });
+  try{world.gl.render(world.scene,world.camera);}
+  finally{hidden.forEach(mesh=>mesh.visible=true);}
+};
+
+// Resizing an open DevTools panel can interrupt the original loader timeline.
+// Reveal its real start control only after the scene loader reports completion.
+window.__ptSceneReady = function () {
+  setTimeout(()=>{
+    document.body.classList.add('pt-scene-ready');
+    const start=document.querySelector('.home-preloader .done .send');
+    if(start){start.setAttribute('role','button');start.setAttribute('aria-label','Начать исследование сети');start.tabIndex=0;start.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();start.click();}});}
+  },2800);
 };

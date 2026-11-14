@@ -31,7 +31,8 @@
  gsap.registerPlugin(ScrollTrigger);
  if(!reduced){
   // Preserve semantic headings while allowing each word to rise from its own mask.
-  document.querySelectorAll('h1,.model-section h2,.model-section h3').forEach(heading=>{
+  document.querySelectorAll('h1,.model-section h2,.model-section h3,.pt-site-journey h2').forEach(heading=>{
+   if(!heading.textContent.trim())return;
    heading.setAttribute('aria-label',heading.textContent.trim());
    const nodes=[...heading.childNodes];heading.replaceChildren();
    nodes.forEach(node=>{
@@ -44,8 +45,8 @@
    });
    gsap.fromTo(heading.querySelectorAll('.word-inner'),{yPercent:110,rotateX:-18,opacity:0},{yPercent:0,rotateX:0,opacity:1,duration:1.15,stagger:.055,ease:'power3.out',scrollTrigger:{trigger:heading,start:'top 91%',once:true}});
   });
-  gsap.fromTo('.case-hero .info-block .show-load',{opacity:0,y:24},{opacity:1,y:0,duration:1.25,stagger:.14,ease:'power3.out'});
-  gsap.to('.case-hero .cover-block',{scale:.82,ease:'power1.inOut',scrollTrigger:{trigger:'.case-hero .cover-block',start:'center bottom',end:'bottom top',scrub:1.2}});
+  if(document.querySelector('.case-hero .info-block .show-load'))gsap.fromTo('.case-hero .info-block .show-load',{opacity:0,y:24},{opacity:1,y:0,duration:1.25,stagger:.14,ease:'power3.out'});
+  if(document.querySelector('.case-hero .cover-block'))gsap.to('.case-hero .cover-block',{scale:.82,ease:'power1.inOut',scrollTrigger:{trigger:'.case-hero .cover-block',start:'center bottom',end:'bottom top',scrub:1.2}});
   document.querySelectorAll('.model-section > p,.model-section > dl,.model-section > table,.model-section > ol,.model-section > details').forEach(element=>{
    gsap.fromTo(element,{y:28,opacity:0},{y:0,opacity:1,duration:1.15,ease:'power2.out',scrollTrigger:{trigger:element,start:'top 94%',once:true}});
   });

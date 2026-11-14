@@ -25,6 +25,7 @@ function visibleAt(time){sequence.time(time,false);w.__ptNativeCopy.syncVisibili
 for(let i=0;i<=600;i++){const time=i/100,visible=visibleAt(time);if(time>0)assert.equal(visible[0],blocks[Math.min(5,Math.floor(time))]);}
 for(let i=600;i>=0;i--)visibleAt(i/100);
 for(const time of [5.8,.2,3.99,4.01,1.9,.01,0])visibleAt(time);
+visibleAt(5.2);assert.equal(d.querySelector('.pt-end-actions').hidden,false);assert(d.querySelector('.pt-end-actions a[href="/lab/"]'));visibleAt(.2);assert.equal(d.querySelector('.pt-end-actions').hidden,true);
 visibleAt(.05);const firstLine=blocks[0].querySelector('.pt-copy-line'),earlyY=realGsap.getProperty(firstLine,'yPercent');
 visibleAt(.35);assert(realGsap.getProperty(firstLine,'yPercent')<earlyY,'actual GSAP transform moves text from bottom to top');
 assert.equal(parseFloat(d.querySelector('.home-page').style.height)-w.innerHeight,11650,'no empty runway after the last caption');

@@ -146,7 +146,7 @@ function parseCSV(text) {
     h.v[6] = h.peers.size;
     h.v[7] = h.v[0] + h.v[1];
     h.v = h.v.map(Math.log1p);
-    return { id: h.id, v: h.v,activity };
+    return { id: h.id, v: h.v,logValues:[...h.v],activity };
   });
   if (dataset.length < 2) throw Error("Для сравнения нужны хотя бы два хоста.");
   const scales = dataset[0].v.map((_, i) =>
@@ -224,5 +224,23 @@ function group(dataset,k=3){
  }
  return labels;
 }
-window.PTLab={parseCSV,project,cosine,group};
+function compareWindows(before,after,k=3){
+ if(before.kind!==after.kind)throw Error('Оба окна должны иметь один формат: записи трафика или готовые векторы.');
+ if(before.stats.dimensions!==after.stats.dimensions)throw Error('Число координат в окнах должно совпадать.');
+ const flow=before.kind==='flows',all=[...before.dataset,...after.dataset];
+ const scales=flow?Array.from({length:before.stats.dimensions},(_,i)=>Math.max(1,...all.map(h=>h.logValues[i]))):null;
+ const prepare=data=>data.dataset.map(h=>{const v=flow?h.logValues.map((x,i)=>x/scales[i]):h.v.slice();return {...h,v,norm:Math.hypot(...v)};});
+ const old=prepare(before),fresh=prepare(after),labels=group(old,k),centers=[];
+ for(const label of [...new Set(labels)]){
+  const sum=new Array(old[0].v.length).fill(0);old.forEach((h,i)=>{if(labels[i]===label)h.v.forEach((x,j)=>sum[j]+=x/h.norm);});const norm=Math.hypot(...sum);centers.push({label,v:sum.map(x=>norm?x/norm:0)});
+ }
+ const assignment=h=>{let best=-Infinity,result=centers[0].label;for(const center of centers){const score=h.v.reduce((s,x,i)=>s+x/h.norm*center.v[i],0);if(score>best){best=score;result=center.label;}}return result;};
+ const contacts=(data,id)=>new Set((data.connections||[]).filter(l=>l.src===id||l.dst===id).map(l=>l.src===id?l.dst:l.src).filter(other=>other!==id));
+ const beforeMap=new Map(old.map((h,i)=>[h.id,{host:h,group:labels[i]}]));
+ const changes=fresh.filter(h=>beforeMap.has(h.id)).map(h=>{const prior=beforeMap.get(h.id),a=contacts(before,h.id),b=contacts(after,h.id);return {id:h.id,before:prior.host,after:h,similarity:cosine(prior.host,h),beforeGroup:prior.group,afterGroup:assignment(h),added:[...b].filter(id=>!a.has(id)),removed:[...a].filter(id=>!b.has(id)),beforeContacts:[...a],afterContacts:[...b]};}).sort((a,b)=>a.similarity-b.similarity||a.id.localeCompare(b.id));
+ if(!changes.length)throw Error('В окнах нет общих ID устройств. Для сравнения нужны те же устройства.');
+ const oldIds=new Set(old.map(h=>h.id)),newIds=new Set(fresh.map(h=>h.id));
+ return {changes,newHosts:[...newIds].filter(id=>!oldIds.has(id)),missingHosts:[...oldIds].filter(id=>!newIds.has(id)),kind:before.kind};
+}
+window.PTLab={parseCSV,project,cosine,group,compareWindows};
 })();

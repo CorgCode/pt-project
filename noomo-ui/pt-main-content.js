@@ -2,12 +2,12 @@
  * pre-emit critique: P4 H4 E4 S5 R5 V4 · slop test: browser verification pending
  */
 window.__ptMainPages = [
-  {id:"problem",kind:"device",title:"Зачем изучать сеть",paragraphs:["В сети компании работают компьютеры, серверы и служебные системы. Они постоянно обмениваются данными.","Чтобы разобраться в работе сети, важно понимать, какие устройства ведут себя похоже и что их объединяет."]},
-  {id:"problem",kind:"traffic",title:"Адреса недостаточно",paragraphs:["По адресу компьютера не видно, чем он занят и какое место занимает в сети.","Взаимодействия дают больше контекста: с кем он общается, какие сервисы использует и когда активен. Из этого складывается картина его поведения."]},
-  {id:"model",kind:"features",title:"Что мы предлагаем?",paragraphs:["Наша ML-модель сама находит сходства в сетевом поведении устройств.","Вы выбираете компьютер — сервис показывает, на какие устройства он похож. Для этого не нужно заранее знать их назначение."]},
-  {id:"product",kind:"search",title:"Чем вам будет полезен наш продукт?",paragraphs:["Вместо поиска по всей сети вы получаете устройства с похожим поведением. Можно изучать их вместе и сравнивать окружение."],note:"Здесь — пример на учебных данных."},
-  {id:"product",kind:"device",title:"Видеть сеть целиком",paragraphs:["Наша цель — показывать группы похожих устройств и замечать изменения в их поведении."],note:"Сейчас в прототипе работает поиск похожих устройств."},
-  {id:"demo",kind:"device",title:"От устройства — к окружению",paragraphs:["Сначала изучаете одно устройство, затем — похожие на него. Так можно разбирать сеть по частям, а не просматривать все адреса подряд."]}
+  {id:"problem",kind:"device",title:"Понять, что происходит в сети",paragraphs:["В компании работают сотни устройств. По списку адресов трудно понять, кто чем занят.","Оператору SOC нужен контекст: как ведёт себя устройство и на кого оно похоже."]},
+  {id:"problem",kind:"traffic",title:"Поведение видно по связям",paragraphs:["С кем устройство общается, какими сервисами пользуется, сколько данных передаёт и когда активно.","Мы собираем эти признаки в числовой профиль — компактное описание сетевого поведения."]},
+  {id:"model",kind:"features",title:"От одного устройства — к похожим",paragraphs:["Вы выбираете компьютер. Сервис находит близкие профили и помогает сравнить окружение.","Роли устройств могут быть неизвестны: начинаем с того, что видно в сетевых данных."]},
+  {id:"product",kind:"search",title:"Контекст для оператора SOC",paragraphs:["Кого проверить рядом с выбранным устройством? С кем оно обменивалось данными? Что общего у двух профилей?"],note:"Похожесть помогает исследовать сеть. Она не является вердиктом об атаке."},
+  {id:"product",kind:"device",title:"Попробуйте на своих данных",paragraphs:["В лаборатории работают загрузка CSV, поиск соседей, группы и сравнение двух окон трафика.","Наблюдавшиеся контакты показаны отдельно от числовой похожести."],note:"Учебные данные отмечены. Ваш CSV обрабатывается локально."},
+  {id:"demo",kind:"device",title:"Откройте лабораторию",paragraphs:["Начните с понятного учебного примера или загрузите свои записи. Выберите устройство — и исследуйте его окружение."],note:"Архитектура, обучение и реальные результаты исследования — на странице модели."}
 ];
 window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,right,bottom}) {
   document.body.classList.add("pt-native-story");
@@ -19,10 +19,13 @@ window.__ptConfigureOriginalText = function ({gsap,ScrollTrigger,layer,left,righ
   bottom.forEach(el=>{el.hidden=true;});
   const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
   const blocks=[];
+  let actions=document.querySelector('.pt-end-actions');
+  if(!actions){actions=document.createElement('nav');actions.className='pt-end-actions';actions.setAttribute('aria-label','Продолжить знакомство с продуктом');actions.innerHTML='<a href="/lab/">Попробовать на данных ↗</a><a href="/model/">Как устроена модель ↗</a>';actions.hidden=true;document.body.append(actions);}
   let sequence;
   const syncVisibility=()=>{
     const time=sequence?.time()||0;
     const active=time>0?Math.min(pages.length-1,Math.floor(time)):-1;
+    actions.hidden=active!==pages.length-1;
     blocks.forEach((block,index)=>{
       block.hidden=index!==active;
       block.setAttribute("aria-hidden",String(index!==active));

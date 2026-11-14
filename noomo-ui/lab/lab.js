@@ -140,6 +140,7 @@
    g.append(svg('text',{y:10,'text-anchor':'middle',class:'device-name'},label),svg('text',{y:32,'text-anchor':'middle',class:'device-detail'},selected?'Выбрано':`Группа ${group+1} · выбрать ↗`));
    g.addEventListener('click',()=>{if(!dragged)select(host.id);});g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(host.id);}});return g;
   }
+  if(!entries.length)fragment.append(svg('text',{x:mobile?180:500,y:mobile?520:445,'text-anchor':'middle',class:'network-empty'},'Других контактов в этих записях нет'));
   entries.forEach((n,i)=>fragment.append(node(n.host,spots[i],false,n.score)));fragment.append(node(state.selected,center,true,1));network.replaceChildren(fragment);
  }
  function zoom(factor){
@@ -197,6 +198,22 @@
   try{const text=await file.text();if(request!==fileRequest)return;const data=math.parseCSV(text);install(data,file.name,data.kind==='flows'?'Ваш трафик · простые признаки построены в браузере.':'Ваши готовые профили · поиск по всем координатам.');preset('uploaded');}
   catch(error){if(request===fileRequest)status('Не удалось прочитать файл: '+error.message,true);}
  }
+ function exportReport(){
+  const doc=document.implementation.createHTMLDocument('Разбор устройства — PT Network');doc.documentElement.lang='ru';
+  const meta=doc.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';doc.head.append(meta);
+  const style=doc.createElement('style');style.textContent=":root{--ink:#181520;--paper:#f4f3f8;--muted:#626671;--line:#18152025;--accent:#8231fe;--font:Arial,sans-serif;--model-ink:var(--ink);--model-paper:var(--paper);--model-muted:var(--muted);--lab-white:var(--paper);--glass-top:#ffffffa0;--glass-edge:#ffffff;--model-line:var(--line);--model-accent:var(--accent);--model-font:var(--font);--glass-bottom:#ffffff60;}body{max-width:1000px;margin:auto;padding:36px;font:16px/1.7 var(--font);background:var(--paper);color:var(--ink);}h1,h2{line-height:1.2;}p{overflow-wrap:anywhere;}small{color:var(--muted);}table{width:100%;border-collapse:collapse;margin:25px 0;}td,th{text-align:left;padding:10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere;}svg{width:100%;height:auto;max-height:600px;}.clear-edge{stroke:var(--line);stroke-width:2;}.edge-label-bg{fill:var(--paper);}.edge-score{fill:var(--muted);font:13px var(--font);}.device-tile{fill:var(--glass-top);stroke:var(--line);}.device-name{font:16px var(--font);fill:var(--ink);}.device-detail{font:11px var(--font);fill:var(--muted);}.device-icon{stroke:var(--ink);fill:none;}.is-selected .device-tile{fill:var(--ink);}.is-selected text{fill:var(--paper);}.is-selected .device-icon{stroke:var(--paper);}@media print{body{padding:0;background:var(--glass-edge);}h2{break-after:avoid;}svg{max-height:420px;}}";doc.head.append(style);
+  const add=(tag,text)=>{const e=doc.createElement(tag);e.textContent=text;doc.body.append(e);return e;};
+  add('small','PT NETWORK · Контекст для оператора SOC');add('h1','Разбор устройства '+state.selected.id);
+  add('p','Набор: '+state.label+'. Анализ выполнен локально. '+(state.kind==='flows'?'Простые признаки построены из записей CSV.':'Сравниваются готовые числовые профили.'));
+  add('h2',networkMode==='traffic'?'Наблюдавшиеся контакты':'Ближайшие по профилю устройства');doc.body.append(doc.importNode($('neighbor-network'),true));
+  add('p',$('network-caption').textContent);
+  const table=doc.createElement('table'),head=doc.createElement('tr');for(const label of ['Сосед','Косинусное сходство']){const th=doc.createElement('th');th.textContent=label;head.append(th);}table.append(head);
+  for(const n of state.near){const tr=doc.createElement('tr');for(const text of [n.host.id,n.score.toFixed(6)]){const td=doc.createElement('td');td.textContent=text;tr.append(td);}table.append(tr);}doc.body.append(table);
+  if(state.selected.activity){add('h2','Что наблюдалось в записях');const a=state.selected.activity;add('p',`Исходящих записей: ${a.outgoing}. Входящих: ${a.incoming}. Разных контактов: ${a.contacts}. Байт отправлено: ${a.sentBytes}. Байт получено: ${a.receivedBytes}.`);}
+  add('h2','Сравнение с '+state.comparator.id);add('p','Сходство пары: '+state.pairScore.toFixed(6)+'. '+$('soc-pair-context').textContent);
+  add('h2','Как читать результат');add('p','Похожесть профилей помогает выбрать устройства для исследования. Она не доказывает одинаковую роль и не является вердиктом об атаке. Результат не получен запуском обученной multiday_codebook_plus в браузере.');
+  const url=URL.createObjectURL(new Blob(['<!doctype html>'+doc.documentElement.outerHTML],{type:'text/html;charset=utf-8'})),a=element('a');a.href=url;a.download='pt-device-review.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
  function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'})),a=element('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  $('zoom-in').addEventListener('click',()=>zoom(.75));$('zoom-out').addEventListener('click',()=>zoom(1/.75));
  $('reset-map').addEventListener('click',()=>{view={...fullView};drawMap();});
@@ -212,6 +229,7 @@
  const stopDrag=()=>{drag=null;mapCanvas.classList.remove('is-dragging');};mapCanvas.addEventListener('pointerup',stopDrag);mapCanvas.addEventListener('pointercancel',stopDrag);mapCanvas.addEventListener('lostpointercapture',stopDrag);
  document.querySelectorAll('[data-soc-task]').forEach(button=>button.addEventListener('click',()=>{
   const task=button.dataset.socTask;
+  if(task==='changes'){$('soc-task-status').textContent='Сравните первый и второй периоды: на учебном примере уже видно изменение контактов. Можно загрузить два своих окна.';$('changes').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});return;}
   if(task==='traffic'&&state.kind!=='flows'){$('soc-task-status').textContent='Для реальных контактов нужен журнал соединений. Выберите «Пример трафика» или загрузите CSV с src и dst. Готовые векторы таких записей не содержат.';document.querySelector('.lab-data').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});return;}
   if(task==='compare'){comparator=state.near[0].host.id;$('compare-host').value=comparator;drawComparison();$('soc-task-status').textContent=`Сравниваем ${state.selected.id} и ближайшего соседа ${comparator}.`;document.querySelector('.lab-comparison').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});}
   else{networkMode=task==='traffic'?'traffic':'similar';drawMap();$('soc-task-status').textContent=task==='traffic'?`Показываем собеседников ${state.selected.id} из записей CSV.`:`Показываем похожие профили для ${state.selected.id}. Нажмите на соседа, чтобы продолжить.`;$('workspace').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});}
@@ -220,6 +238,7 @@
  $('host-search').addEventListener('input',()=>{directoryLimit=20;drawDirectory();});['directory-group','directory-sort'].forEach(id=>$(id).addEventListener('change',()=>{directoryLimit=20;drawDirectory();}));
  $('show-more-hosts').addEventListener('click',()=>{directoryLimit+=20;drawDirectory();});
  $('export-neighbors').addEventListener('click',()=>{const quote=s=>'"'+String(s).replaceAll('"','""')+'"';const rows=state.dataset.filter(h=>h!==state.selected).map(h=>({host:h,score:math.cosine(state.selected,h)})).sort((a,b)=>b.score-a.score);download('source_host,neighbor_host,cosine_similarity\n'+rows.map(n=>[quote(state.selected.id),quote(n.host.id),n.score.toFixed(8)].join(',')).join('\n'),'host-neighbors.csv');});
+ $('export-report').addEventListener('click',exportReport);
  $('download-sample').addEventListener('click',()=>download(sample,'example-network.csv'));
  $('csv-file').addEventListener('change',e=>{const file=e.target.files[0];e.target.value='';upload(file);});
  const drop=$('upload-zone');drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over');});drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag-over');upload(e.dataTransfer.files[0]);});
