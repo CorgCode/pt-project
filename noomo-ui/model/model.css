@@ -82,3 +82,11 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--model-ink);outline
  .pt-model-case .model-details .more-info .wrapper-more .model-section h2{font-size:34px;}
  .pt-model-case .model-details .more-info .wrapper-more .model-section p{font-size:16px;}
 }
+
+/* Long-form explanations use a wider term column and collapse cleanly on phones. */
+.model-section .metric-explanations>div{grid-template-columns:170px minmax(0,1fr);padding:26px 0;gap:30px;}
+.model-section .metric-explanations dt{font-size:20px;overflow-wrap:anywhere;}
+.model-section .metric-explanations dd{font-size:16px;line-height:1.8;}
+.model-section .journey-list li{padding-left:8px;margin-bottom:26px;line-height:1.8;}
+.model-section .metric-explanations strong{display:block;margin-bottom:8px;}
+@media(max-width:600px){.model-section .metric-explanations>div{grid-template-columns:minmax(0,1fr);gap:12px;}.model-section .metric-explanations dd{font-size:15px;}}

@@ -29,7 +29,6 @@ for key,name in zip(IDS,NAMES):
  days=[number(x) for x in dayline.strip('|').split('|')[1:4]]
  records.append({'id':key,'name':name,'score':number(score),'interval':[float(ci[1]),float(ci[2])],'days':days,'dimensions':int(row[4]),'neighbors':number(row[5]),'links':number(row[6]),'partners':number(row[7]),'identity':number(row[9])})
 evidence={'source':'scoreboard/README.md','source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'models':records,'vector_parts':[896,64,64],'train_days':[2,12],'validation_days':[13,13],'test_days':[14,16]}
-(OUT/'evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2))
 
 def txt(ax,x,y,s,size=12,bold=False,ha='center',color=INK,**kw):
  return ax.text(x,y,s,fontproperties=BOLD if bold else FONT,fontsize=size,ha=ha,va='center',color=color,**kw)
@@ -166,7 +165,75 @@ def similarity(mobile):
   arrow(ax,(50,30),(50,23));box(ax,50,11,66,17,'Список похожих устройств',accent=True,size=12)
  save(fig,'similarity',mobile,'Что значит похожий профиль','Схема сравнения числовых профилей, без вымышленных устройств и измерений. Близость поведения сама по себе не доказывает одинаковую роль.')
 
+
+def channels(mobile):
+ fig,ax=canvas(3.2 if mobile else 9.2,8 if mobile else 5.4)
+ labels=[('Поведение','интенсивность и направления'),('Счётчики','собеседники и сервисы'),('TF-IDF','характерные контакты'),('MLP-голова','обучаемое преобразование'),('MLP-голова','вторая обучаемая часть')]
+ for j,(title,sub) in enumerate(labels):
+  y=90-j*17;box(ax,38,y,66,12,title,sub,size=10 if mobile else 12);arrow(ax,(73,y),(84,y))
+ ax.plot([86,86],[21,90],color=ACCENT,lw=2);txt(ax,93,55,'896',11 if mobile else 16,True,color=ACCENT,rotation=90)
+ save(fig,'encoder-channels',mobile,'Состав базового кодировщика','Пять смысловых ветвей по описанию multiday_codebook. Размеры отдельных ветвей не опубликованы в карточке; их ширина на схеме условна.')
+
+def decay(mobile):
+ import numpy as np
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 8.8,4.8));fig.subplots_adjust(left=.19 if mobile else .12,right=.94,top=.92,bottom=.19)
+ x=np.linspace(0,12,121);ax.plot(x,2**(-x/3),color=ACCENT,lw=2.5)
+ for day in [0,3,6,9,12]:ax.scatter([day],[2**(-day/3)],color=INK,s=24,zorder=3)
+ ax.set(xlim=(-.3,12.3),ylim=(0,1.07),xticks=[0,3,6,9,12],yticks=[0,.25,.5,.75,1]);chart_font(ax,10);ax.grid(axis='y',color=LINE,alpha=.3,lw=.7)
+ ax.set_xlabel('Возраст наблюдения, дней',fontproperties=FONT,fontsize=10,labelpad=12)
+ ax.set_ylabel('Относительный вес',fontproperties=FONT,fontsize=10,labelpad=10)
+ save(fig,'recency',mobile,'Свежие связи весят больше','Расчётная функция веса 2^(−возраст/3), полураспад 3 дня. Это параметр модели, не измеренная кривая качества.')
+
+def network(mobile):
+ import math
+ fig,ax=canvas(3.2 if mobile else 9.2,6.8 if mobile else 5.8)
+ points=[(22,78),(45,87),(70,77),(16,50),(49,55),(80,48),(28,22),(64,20)]
+ edges=[(0,1),(0,3),(1,2),(1,4),(2,5),(3,4),(3,6),(4,5),(4,6),(4,7),(5,7),(6,7)]
+ for a,b in edges:
+  x,y=points[a];xx,yy=points[b];ax.plot([x,xx],[y,yy],color=ACCENT if 4 in (a,b) else LINE,lw=1.8 if 4 in (a,b) else 1,zorder=1)
+ for j,(x,y) in enumerate(points):
+  ax.scatter([x],[y],s=450 if mobile else 1000,color=ACCENT if j==4 else SOFT,edgecolor=ACCENT if j==4 else LINE,linewidth=1,zorder=2)
+  txt(ax,x,y,chr(65+j),10 if mobile else 13,bold=True,color=SOFT if j==4 else INK,zorder=3)
+ txt(ax,50,3,'Точка — устройство. Линия — связь.',9 if mobile else 12,color=MUTED)
+ save(fig,'network-context',mobile,'Как устройство выглядит в графе связей','Условная сеть A–H для объяснения графового блока. Это не реальные хосты LANL и не результат кластеризации; выделены связи устройства E.')
+
+def transfer(mobile):
+ fig,ax=canvas(3.2 if mobile else 9.2,7.2 if mobile else 4.8)
+ if mobile:
+  for y,title,sub in [(88,'Исходное устройство','кого хотим понять'),(63,'Похожие устройства','находим по профилям'),(38,'Их собеседники','кандидаты на будущие связи'),(13,'Ранжирование','поднимаем полезных кандидатов')]:box(ax,50,y,86,17,title,sub,size=10)
+  for y in [77,52,27]:arrow(ax,(50,y),(50,y-3))
+ else:
+  for x,y,title,sub in [(24,80,'Исходное устройство','кого хотим понять'),(76,80,'Похожие устройства','находим по профилям'),(76,23,'Их собеседники','кандидаты на будущие связи'),(24,23,'Ранжирование','полезные кандидаты выше')]:box(ax,x,y,42,25,title,sub,size=11)
+  arrow(ax,(47,80),(53,80));arrow(ax,(76,66),(76,38));arrow(ax,(53,23),(47,23))
+ save(fig,'partner-transfer',mobile,'Как соседи помогают искать новые контакты','Концептуальная схема переноса контактов. Число кандидатов и соединения не являются измерениями. Голова New partners обучается делать подобное соседство полезным.')
+
+def ranking(mobile):
+ rows=[]
+ for line in text.splitlines():
+  if not re.match(r'^\| \d+ \|',line):continue
+  cells=[c.strip() for c in line.strip('|').split('|')];key=re.search(r'`([^`]+)`',cells[1]).group(1);rows.append((key,number(cells[3])))
+ evidence['ranking']=[{'id':key,'score':score} for key,score in rows]
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 10.4,11 if mobile else 9.2));fig.subplots_adjust(left=.08 if mobile else .37,right=.88,top=.98,bottom=.07)
+ ax.set_xlim(0,100);ax.set_ylim(-.7,len(rows)-.15);ax.set_yticks([]);ax.set_xticks([0,25,50,75,100]);chart_font(ax,9 if mobile else 11)
+ for i,(key,score) in enumerate(rows):
+  y=len(rows)-1-i;color=ACCENT if i==0 else INK if i<3 else LINE;ax.barh(y,score,height=.19 if mobile else .5,color=color)
+  label=key if len(key)<26 else key.replace('behavioral_dae_consistency','behavioral_dae + consistency')
+  ax.text(0 if mobile else -3,y+.26 if mobile else y,label,fontproperties=FONT,fontsize=7.8 if mobile else 10,ha='left' if mobile else 'right',va='center')
+  ax.text(101,y,str(score).replace('.',','),fontproperties=BOLD,fontsize=9 if mobile else 10,va='center',clip_on=False)
+ save(fig,'all-methods',mobile,'Все 17 методов из таблицы проекта','Общие баллы переписаны программно из scoreboard/README.md. Сравнение сохраняет ограничения протокола: у многодневных моделей больше обучающей истории.')
+
+def tradeoff(mobile):
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 8.8,5.2));fig.subplots_adjust(left=.28 if mobile else .12,right=.95,top=.9,bottom=.2)
+ for i,(r,c) in enumerate(zip(records,COLORS)):
+  ax.scatter(r['identity'],r['neighbors'],s=85,color=c,zorder=3)
+  label=['Кодировщик','История','Plus'][i]
+  ax.annotate(label,(r['identity'],r['neighbors']),xytext=(-5 if i==1 else 6,10 if i!=2 else -18),textcoords='offset points',ha='right' if i==1 else 'left',fontproperties=FONT,fontsize=10,color=c)
+ ax.set(xlim=(.3,.7),ylim=(.2,.23),xticks=[.3,.4,.5,.6,.7],yticks=[.2,.21,.22,.23]);chart_font(ax,9 if mobile else 11);ax.grid(axis='y',color=LINE,alpha=.3,lw=.7)
+ ax.set_xlabel('Узнавание устройства · Top-1',fontproperties=FONT,fontsize=10,labelpad=13);ax.set_ylabel('Похожесть поведения · Neighbors@10',fontproperties=FONT,fontsize=10,labelpad=12)
+ save(fig,'quality-tradeoff',mobile,'Общий рост не означает рост каждой задачи','Оси показывают две разные метрики из таблицы. Масштабы увеличены для сравнения; это не карта embedding-пространства.')
+
 if __name__=='__main__':
  for mobile in [False,True]:
-  for builder in [architecture,features,composition,timeline,adapter,scores,days,tasks,learning,similarity]:builder(mobile)
- print('Generated 20 responsive SVG figures and 10 PNG previews from',SOURCE)
+  for builder in [architecture,features,composition,timeline,adapter,scores,days,tasks,learning,similarity,channels,decay,network,transfer,ranking,tradeoff]:builder(mobile)
+ (OUT/'evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2))
+ print('Generated 32 responsive SVG figures and 16 PNG previews from',SOURCE)
