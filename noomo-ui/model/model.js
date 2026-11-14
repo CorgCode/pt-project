@@ -3,7 +3,6 @@
  const audio=document.getElementById('model-music'),button=document.getElementById('music-toggle');
  if(audio&&button){
   let wanted=true,starting=false;
-  try{wanted=sessionStorage.getItem('pt-model-music')!=='off';}catch{}
   audio.volume=.12;
   function sync(){
    const playing=!audio.paused&&!audio.ended;
@@ -17,7 +16,6 @@
   }
   button.addEventListener('click',()=>{
    wanted=audio.paused;
-   try{sessionStorage.setItem('pt-model-music',wanted?'on':'off');}catch{}
    if(wanted)play();else audio.pause();sync();
   });
   ['play','pause','ended','error'].forEach(type=>audio.addEventListener(type,sync));
@@ -32,9 +30,27 @@
  if(!gsap||!ScrollTrigger)return;
  gsap.registerPlugin(ScrollTrigger);
  if(!reduced){
-  gsap.fromTo('.case-hero .show-load',{opacity:0,y:30},{opacity:1,y:0,duration:.8,stagger:.09,ease:'power2.out'});
-  gsap.to('.case-hero .cover-block',{scale:.82,ease:'power1.inOut',scrollTrigger:{trigger:'.case-hero .cover-block',start:'center bottom',end:'bottom top',scrub:true}});
-  document.querySelectorAll('.model-section').forEach(section=>gsap.fromTo(section,{y:30,opacity:0},{y:0,opacity:1,duration:.8,ease:'power2.out',scrollTrigger:{trigger:section,start:'top 90%',toggleActions:'play none none reverse'}}));
+  // Preserve semantic headings while allowing each word to rise from its own mask.
+  document.querySelectorAll('h1,.model-section h2,.model-section h3').forEach(heading=>{
+   heading.setAttribute('aria-label',heading.textContent.trim());
+   const words=heading.textContent.trim().split(/\s+/);heading.replaceChildren();
+   words.forEach((word,i)=>{
+    const mask=document.createElement('span'),inner=document.createElement('span');
+    mask.className='word-mask';mask.setAttribute('aria-hidden','true');inner.className='word-inner';inner.textContent=word;mask.append(inner);heading.append(mask);
+    if(i<words.length-1)heading.append(' ');
+   });
+   gsap.fromTo(heading.querySelectorAll('.word-inner'),{yPercent:110,rotateX:-18,opacity:0},{yPercent:0,rotateX:0,opacity:1,duration:1.15,stagger:.055,ease:'power3.out',scrollTrigger:{trigger:heading,start:'top 91%',once:true}});
+  });
+  gsap.fromTo('.case-hero .info-block .show-load',{opacity:0,y:24},{opacity:1,y:0,duration:1.25,stagger:.14,ease:'power3.out'});
+  gsap.to('.case-hero .cover-block',{scale:.82,ease:'power1.inOut',scrollTrigger:{trigger:'.case-hero .cover-block',start:'center bottom',end:'bottom top',scrub:1.2}});
+  document.querySelectorAll('.model-section > p,.model-section > dl,.model-section > table,.model-section > ol,.model-section > details').forEach(element=>{
+   gsap.fromTo(element,{y:28,opacity:0},{y:0,opacity:1,duration:1.15,ease:'power2.out',scrollTrigger:{trigger:element,start:'top 94%',once:true}});
+  });
+  document.querySelectorAll('.model-figure,.source-figure').forEach(figure=>{
+   gsap.fromTo(figure,{y:48,opacity:0},{y:0,opacity:1,duration:1.5,ease:'power3.out',scrollTrigger:{trigger:figure,start:'top 92%',once:true}});
+   const img=figure.querySelector('img');
+   if(img&&!figure.classList.contains('model-overview'))gsap.fromTo(img,{scale:.96},{scale:1,ease:'none',scrollTrigger:{trigger:figure,start:'top bottom',end:'center center',scrub:1.4}});
+  });
  }
  let refreshTimer;
  const refresh=()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>ScrollTrigger.refresh(),80);};

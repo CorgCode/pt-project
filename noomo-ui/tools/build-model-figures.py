@@ -143,7 +143,30 @@ def tasks(mobile):
  fig.legend(handles,['Кодировщик','История','Plus'],loc='lower center',bbox_to_anchor=(.5,0),frameon=False,ncol=3,prop=FontProperties(fname=FONT.get_file(),size=9))
  save(fig,'task-comparison',mobile,'Что меняется в отдельных задачах','Сравнивать нужно модели внутри одной панели. Шкалы задач различаются. Plus улучшает общий балл, но Neighbors@10 уменьшается с 0,222 до 0,208.')
 
+def learning(mobile):
+ fig,ax=canvas(3.2 if mobile else 9.2,7.2 if mobile else 4.2)
+ if mobile:
+  stages=[(50,89,'Профиль хоста','обучаемый вектор'),(50,65,'Прогноз контактов','кто окажется рядом завтра'),(50,41,'Реальные связи','из следующего дня истории'),(50,17,'Поправка профиля','уменьшаем ошибку')]
+  for x,y,title,sub in stages:box(ax,x,y,86,17,title,sub,size=11)
+  for y in [79,55,31]:arrow(ax,(50,y),(50,y-5))
+ else:
+  for x,y,title,sub in [(25,79,'Профиль хоста','обучаемый вектор'),(75,79,'Прогноз контактов','с кем будет общаться'),(75,24,'Реальные связи','следующий день истории'),(25,24,'Поправка профиля','уменьшаем ошибку')]:box(ax,x,y,42,26,title,sub,size=12)
+  arrow(ax,(47,79),(53,79));arrow(ax,(75,64),(75,40));arrow(ax,(53,24),(47,24));arrow(ax,(25,40),(25,64))
+ save(fig,'learning-loop',mobile,'Как профиль учится на истории','Концептуальная схема цели обучения. Будущие связи берутся только из обучающего периода; это не онлайн-обучение по тестовым дням.')
+
+def similarity(mobile):
+ fig,ax=canvas(3.2 if mobile else 9.2,7.2 if mobile else 4.3)
+ if mobile:
+  for y,title,sub in [(90,'Устройство A','сервисы · контакты · активность'),(68,'Устройство B','сервисы · контакты · активность')]:box(ax,50,y,86,15,title,sub,size=11)
+  arrow(ax,(50,58),(50,51));box(ax,50,40,86,16,'Сравнение профилей','близость направлений векторов',size=10)
+  arrow(ax,(50,30),(50,23));box(ax,50,12,86,14,'Список похожих устройств',accent=True,size=10)
+ else:
+  box(ax,24,83,42,22,'Устройство A','сервисы · контакты · активность',size=11);box(ax,76,83,42,22,'Устройство B','сервисы · контакты · активность',size=11)
+  arrow(ax,(24,70),(43,55));arrow(ax,(76,70),(57,55));box(ax,50,43,66,22,'Сравнение профилей','близость направлений векторов',size=12)
+  arrow(ax,(50,30),(50,23));box(ax,50,11,66,17,'Список похожих устройств',accent=True,size=12)
+ save(fig,'similarity',mobile,'Что значит похожий профиль','Схема сравнения числовых профилей, без вымышленных устройств и измерений. Близость поведения сама по себе не доказывает одинаковую роль.')
+
 if __name__=='__main__':
  for mobile in [False,True]:
-  for builder in [architecture,features,composition,timeline,adapter,scores,days,tasks]:builder(mobile)
- print('Generated 16 responsive SVG figures and 8 PNG previews from',SOURCE)
+  for builder in [architecture,features,composition,timeline,adapter,scores,days,tasks,learning,similarity]:builder(mobile)
+ print('Generated 20 responsive SVG figures and 10 PNG previews from',SOURCE)

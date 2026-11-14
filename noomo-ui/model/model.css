@@ -2,11 +2,11 @@
  * pre-emit critique: P4 H4 E4 S5 R5 V4 · studied: yes · browser review pending
  * The case layout, typography scale and colors come from the copied reference CSS.
  */
-:root{--model-ink:#181520;--model-muted:#626671;--model-paper:#c9d2e7;--model-line:#18152030;--model-clear:transparent;--model-font:OnestCase,Arial,sans-serif;--model-title:NeueMachina,OnestCase,Arial,sans-serif;}
+:root{--model-ink:#181520;--model-muted:#626671;--model-paper:#d2d9e9;--model-line:#18152030;--model-clear:transparent;--model-font:OnestCase,Arial,sans-serif;--model-title:NeueMachina,OnestCase,Arial,sans-serif;}
 @font-face{font-family:OnestCase;src:url('/fonts/onest-400.ttf') format('truetype');font-weight:400;font-display:swap;}
 @font-face{font-family:OnestCase;src:url('/fonts/onest-600.ttf') format('truetype');font-weight:600;font-display:swap;}
 html,body{overflow-x:clip;}html{scroll-behavior:smooth;}body{margin:0;}*{box-sizing:border-box;min-width:0;}
-.pt-model-case{color:var(--model-ink);font-family:var(--model-font);}
+.pt-model-case{background-color:var(--model-paper);color:var(--model-ink);font-family:var(--model-font);}
 .pt-model-case .font-neue-roman-16,.pt-model-case .small-title,.pt-model-case .case-hero .link,.pt-model-case .case-hero .more-info-trigger{font-family:var(--model-font);}
 .pt-model-case .case-hero{position:relative;padding-top:227px;}
 .pt-model-case .case-hero h1{font-family:var(--model-title);overflow-wrap:anywhere;min-width:0;}
@@ -27,7 +27,7 @@ html,body{overflow-x:clip;}html{scroll-behavior:smooth;}body{margin:0;}*{box-siz
 .model-section .quiet{font-size:13px !important;color:var(--model-muted) !important;}.model-section .sequence-line{font-family:var(--model-title) !important;font-size:21px !important;margin:32px 0;}
 .model-footer{display:flex;justify-content:space-between;align-items:center;gap:30px;padding:40px;border-top:1px solid var(--model-line);font:400 12px var(--model-font);}.model-footer a{color:var(--model-ink);white-space:nowrap;}.model-footer p{margin:0;color:var(--model-muted);}
 a:focus-visible,summary:focus-visible{outline:2px solid var(--model-ink);outline-offset:5px;}.skip-link{position:fixed;top:-70px;left:20px;z-index:100;background:var(--model-paper);padding:12px;font:400 12px var(--model-font);white-space:nowrap;}.skip-link:focus{top:80px;}
-@media(max-width:1024px){.pt-model-case .case-hero{padding-top:180px;}.pt-model-case .model-details{padding-top:0;}.model-index{display:none !important;}.pt-model-case .model-details .info-block>.right{margin-left:0;width:100%;}.pt-model-case .model-details .more-info{width:100%;padding-right:0;}}
+@media(max-width:1024px){.pt-model-case .case-hero{padding-top:180px;}.pt-model-case .model-details{padding-top:0;}.pt-model-case .model-details .info-block>.right{margin-left:0;width:100%;}.pt-model-case .model-details .more-info{width:100%;padding-right:0;}}
 @media(max-width:767px){
  .pt-model-case .case-hero{padding-top:140px;}.pt-model-case .model-details{padding-top:0;}.model-header-inner .logo{width:130px;height:36px !important;}.return-home{font-size:11px;}
  .model-section{margin-bottom:65px;}.model-section dl>div{grid-template-columns:80px minmax(0,1fr);gap:12px;}.model-section dd{font-size:13px;}.model-section dt{font-size:22px;}
@@ -55,3 +55,30 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--model-ink);outline
 .model-section audio{display:none;}
 @media(max-width:767px){.model-header-actions{gap:14px;}.model-figure{margin:30px 0 38px;}.model-overview figcaption{padding:0 20px;}.model-figure figcaption{font-size:11px;}}
 @media(max-width:480px){.model-header-inner .logo{width:105px;}.music-label{display:none;}.music-toggle{font-size:20px;padding:8px;}.model-header-actions{gap:10px;}}
+
+/* Wider reading canvas: remove the inherited metadata column at every width. */
+:root{--model-background-opacity:.78;--model-reading:860px;--model-canvas:1180px;}
+.pt-model-case .custom-l-back-image{opacity:var(--model-background-opacity);}
+.pt-model-case .model-details{padding:0 clamp(20px,4vw,64px);}
+.pt-model-case .model-details>.info-block{display:block;width:100%;max-width:var(--model-canvas);margin:0 auto;padding:0;}
+.pt-model-case .model-details .model-index{display:none;}
+.pt-model-case .model-details .info-block>.right{width:100%;margin:0;max-width:none;}
+.pt-model-case .model-details .more-info{width:100%;margin:0;padding:0;max-width:none;}
+.pt-model-case .model-details .more-info .wrapper-more{width:100%;max-width:none;margin:0;padding:0;}
+.model-section{padding-top:56px;border-top:1px solid var(--model-line);margin-bottom:112px;}
+.model-section > :is(p,h2,h3,ol,ul,details,dl,table){max-width:var(--model-reading);margin-left:auto;margin-right:auto;}
+.pt-model-case .model-details .more-info .wrapper-more .model-section h2{font-size:clamp(32px,4.1vw,62px);line-height:1.12;margin-bottom:36px;}
+.pt-model-case .model-details .more-info .wrapper-more .model-section p{font-size:clamp(16px,1.35vw,19px);line-height:1.75;}
+.model-section > .model-figure{width:100%;margin:64px auto 76px;max-width:1040px;}
+.model-section .source-figure{max-width:var(--model-reading);margin:56px auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:center;}
+.model-section .source-figure figcaption{font-size:14px;line-height:1.8;}
+.word-mask{display:inline-block;overflow:clip;vertical-align:bottom;padding-bottom:.12em;margin-bottom:-.12em;perspective:800px;}
+.word-inner{display:inline-block;transform-origin:center bottom;}
+.music-toggle:focus-visible{outline:2px solid var(--model-accent);outline-offset:5px;}
+@media(max-width:767px){
+ .model-section{padding-top:32px;margin-bottom:72px;}
+ .model-section > .model-figure{margin:36px 0 48px;}
+ .model-section .source-figure{grid-template-columns:minmax(0,1fr);gap:20px;}
+ .pt-model-case .model-details .more-info .wrapper-more .model-section h2{font-size:34px;}
+ .pt-model-case .model-details .more-info .wrapper-more .model-section p{font-size:16px;}
+}
