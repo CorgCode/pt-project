@@ -1,0 +1,32 @@
+// Operator workflow against real CSV math; the HTTP persistence is tested separately.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
+const root=path.resolve(__dirname,'../..'),app=path.join(root,'app/operator/static');
+async function check(){
+ const dom=new JSDOM(fs.readFileSync(path.join(app,'index.html'),'utf8'),{runScripts:'outside-only',url:'http://127.0.0.1:8846/'}),w=dom.window,d=w.document,store=new Map();w.innerWidth=1440;
+ w.fetch=async(route,options)=>{if(options){const value=JSON.parse(options.body),id=options.method==='POST'?'workspace-1':route.split('/').pop();store.set(id,value);return{ok:true,json:async()=>({id})};}return{ok:true,json:async()=>route==='/api/workspaces'?[...store].map(([id,p])=>({id,name:p.name})):store.get(route.split('/').pop())};};
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};let blob;w.URL.createObjectURL=b=>{blob=b;return'blob:case';};w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
+ w.eval(fs.readFileSync(path.join(root,'noomo-ui/lab/core.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'app.js'),'utf8'));await new Promise(setImmediate);
+ const click=s=>{const e=d.querySelector(s);assert(e,s);e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));},input=(id,value)=>{d.getElementById(id).value=value;d.getElementById(id).dispatchEvent(new w.Event('input'));};
+ async function upload(id,text){Object.defineProperty(d.getElementById(id),'files',{configurable:true,value:[{name:'capture.csv',size:text.length,text:async()=>text}]});d.getElementById(id).dispatchEvent(new w.Event('change'));await new Promise(setImmediate);}
+ assert.equal(d.getElementById('stat-hosts').textContent,'15');assert(d.querySelectorAll('#network [role=button]').length===6);
+ click('#network [aria-label="Выбрать device-02"]');assert.equal(w.__corgState.selected.id,'device-02');
+ click('#mode-traffic');assert.equal(d.getElementById('mode-traffic').getAttribute('aria-pressed'),'true');assert.match(d.getElementById('map-caption').textContent,/наблюдавшийся/);
+ const initial=d.getElementById('network').getAttribute('viewBox');click('#zoom-in');assert.notEqual(d.getElementById('network').getAttribute('viewBox'),initial);click('#zoom-reset');assert.equal(d.getElementById('network').getAttribute('viewBox'),initial);
+ input('host-search','device-09');assert.equal(d.querySelectorAll('#host-list button').length,1);click('#host-list button');assert.equal(w.__corgState.selected.id,'device-09');input('host-search','no-such-device');assert.match(d.getElementById('host-list').textContent,/не найдены/);
+ click('[data-view=groups]');assert.equal(d.getElementById('view-groups').hidden,false);assert.equal(d.querySelectorAll('#cluster-map circle').length,15);assert(d.querySelectorAll('#group-list button').length>1);click('#cluster-map circle');assert.equal(d.getElementById('view-devices').hidden,false);
+ click('#to-case');input('operator-note','Проверить новые контакты <script>');click('#save-note');await new Promise(setImmediate);assert.equal(store.size,1);assert.equal(store.get('workspace-1').notes[w.__corgState.selected.id],'Проверить новые контакты <script>');assert.match(d.getElementById('save-state').textContent,/Сохранено/);
+ click('#export-case');assert(blob);const reader=new w.FileReader();const exported=await new Promise(resolve=>{reader.onload=()=>resolve(JSON.parse(reader.result));reader.readAsText(blob);});assert.equal(exported.product,'CorgCode');assert(exported.neighbors.length===14);assert.match(exported.operatorNote,/<script>/);
+ click('#sample-button');click('#saved-workspaces button');await new Promise(setImmediate);assert.match(d.getElementById('operator-note').value,/Проверить/);
+ // Switching preserves edited notes before replacing the working data.
+ input('operator-note','Автосохранение перед переключением');click('#sample-button');await new Promise(setImmediate);assert(Object.values(store.get('workspace-1').notes).includes('Автосохранение перед переключением'));
+ const current=w.__corgState.payload.csv;await upload('baseline-file',current+'\ndevice-02,new-service,40000,100,8443,TCP');click('[data-view=changes]');assert.equal(d.getElementById('changes-content').hidden,false);assert(d.querySelectorAll('#change-list .change-row').length===15);click('#change-list button');assert(d.getElementById('change-detail').textContent.length>30);
+ await upload('current-file','host_id,emb_0,emb_1\na,1,0\nb,0,1\nc,1,1');assert.equal(w.__corgState.state.kind,'vectors');assert.equal(d.getElementById('mode-traffic').disabled,true);assert.equal(d.getElementById('changes-content').hidden,true);await upload('baseline-file','host_id,emb_0,emb_1\na,0,1\nb,0,1\nc,1,1');assert.equal(d.getElementById('changes-content').hidden,false);assert.match(d.getElementById('change-detail').textContent,/не позволяют/);
+ await upload('current-file','host_id,emb_0\na,0\nb,1');assert.equal(w.__corgState.state.dataset.length,3);assert.equal(d.getElementById('status').dataset.error,'true');
+ await upload('current-file','host_id,emb_0,emb_1\n<script>,1,0\nb,0,1');assert.equal(d.querySelectorAll('#host-list script').length,0);assert(d.getElementById('host-list').textContent.includes('<script>'));
+ click('#open-workspaces');assert(d.getElementById('workspaces-dialog').open);click('#close-workspaces');
+ // A failed save keeps the dirty working set rather than replacing it.
+ click('#to-case');input('operator-note','Не терять эту заметку');const oldCSV=w.__corgState.payload.csv,normalFetch=w.fetch;w.fetch=async()=>({ok:false,json:async()=>({error:'Хранилище недоступно'})});click('#sample-button');await new Promise(setImmediate);assert.equal(w.__corgState.payload.csv,oldCSV);assert.equal(d.getElementById('operator-note').value,'Не терять эту заметку');assert.match(d.getElementById('save-state').textContent,/несохранённые/);w.fetch=normalFetch;
+ w.innerWidth=375;w.dispatchEvent(new w.Event('resize'));assert.match(d.getElementById('network').getAttribute('viewBox'),/360 600$/);
+ await new Promise(setImmediate);dom.window.close();console.log('PASS: CorgCode selection, traffic/neighbor distinction, zoom, search, groups, notes/save/reopen, report, two windows, imports/errors, escaping and mobile diagram');
+}
+check().catch(e=>{console.error(e);process.exitCode=1;});
