@@ -28,9 +28,10 @@ async function check(){
  blocked=false;button.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(button.getAttribute('aria-pressed'),'true');
  button.click();assert.equal(paused,true);assert.equal(button.getAttribute('aria-pressed'),'false');
  const motion=new JSDOM(html,{runScripts:'outside-only',url:'http://localhost/model/'}),mw=motion.window,calls=[];
+ const lineBreak=mw.document.createElement('br');mw.document.querySelector('h1').prepend(lineBreak);
  mw.matchMedia=()=>({matches:false});mw.document.querySelector('audio').play=async()=>{};
  mw.gsap={registerPlugin(){},fromTo(target,from,to){calls.push({target,from,to});},to(){}};mw.ScrollTrigger={refresh(){}};
- mw.eval(js);assert(mw.document.querySelectorAll('h2 .word-inner').length>20);assert(calls.some(c=>c.to.stagger===.055));assert(calls.some(c=>c.to.duration===1.5));
+ mw.eval(js);assert(mw.document.querySelector('h1 br'),'intentional heading line breaks survive word masks');assert(mw.document.querySelectorAll('h2 .word-inner').length>20);assert(calls.some(c=>c.to.stagger===.055));assert(calls.some(c=>c.to.duration===1.5));
  for(const heading of mw.document.querySelectorAll('h1,h2,h3'))assert.equal(heading.getAttribute('aria-label'),heading.textContent.trim());
  motion.window.close();
  dom.window.close();console.log('PASS: original Noomo case structure and stylesheet hashes, local music/fonts/diagrams, real research data and autoplay fallback, no custom 3D, valid asset references and model content');

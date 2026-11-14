@@ -33,11 +33,14 @@
   // Preserve semantic headings while allowing each word to rise from its own mask.
   document.querySelectorAll('h1,.model-section h2,.model-section h3').forEach(heading=>{
    heading.setAttribute('aria-label',heading.textContent.trim());
-   const words=heading.textContent.trim().split(/\s+/);heading.replaceChildren();
-   words.forEach((word,i)=>{
-    const mask=document.createElement('span'),inner=document.createElement('span');
-    mask.className='word-mask';mask.setAttribute('aria-hidden','true');inner.className='word-inner';inner.textContent=word;mask.append(inner);heading.append(mask);
-    if(i<words.length-1)heading.append(' ');
+   const nodes=[...heading.childNodes];heading.replaceChildren();
+   nodes.forEach(node=>{
+    if(node.nodeName==='BR'){heading.append(document.createElement('br'));return;}
+    (node.textContent.match(/\S+|\s+/g)||[]).forEach(word=>{
+     if(/^\s+$/.test(word)){heading.append(' ');return;}
+     const mask=document.createElement('span'),inner=document.createElement('span');
+     mask.className='word-mask';mask.setAttribute('aria-hidden','true');inner.className='word-inner';inner.textContent=word;mask.append(inner);heading.append(mask);
+    });
    });
    gsap.fromTo(heading.querySelectorAll('.word-inner'),{yPercent:110,rotateX:-18,opacity:0},{yPercent:0,rotateX:0,opacity:1,duration:1.15,stagger:.055,ease:'power3.out',scrollTrigger:{trigger:heading,start:'top 91%',once:true}});
   });

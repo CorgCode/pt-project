@@ -10,7 +10,7 @@
   return `device-${String(device+1).padStart(2,'0')},service-${service+1},${(device+1)*280+(i%13)*170},${(device+1)*2+i%9},${[443,53,22][service]},${service===1?'UDP':'TCP'}`;
  }).join('\n');
  const featureNames=['Исходящие записи','Входящие записи','Байты отправлено','Байты получено','Пакеты отправлено','Пакеты получено','Разных контактов','Всего записей',...Array.from({length:6},(_,i)=>`Сервисы · исходящие ${i+1}`),...Array.from({length:6},(_,i)=>`Сервисы · входящие ${i+1}`)];
- let state=null,comparator=null,fileRequest=0;
+ let state=null,comparator=null,fileRequest=0,view=null,fullView=null,focused=false,dragged=false;
  const charts={};
  function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
  function status(text,error=false){$('lab-status').textContent=text;$('lab-status').dataset.error=String(error);}
@@ -28,6 +28,7 @@
   $('lab-mode').textContent=data.kind==='flows'?'20 простых признаков':'Готовые числовые профили';
   options($('lab-host'),state.dataset,state.dataset[0].id);
   $('lab-summary').replaceChildren(...[[state.dataset.length,'устройств'],[data.stats.dimensions,'признаков'],...(data.stats.flows?[[data.stats.flows,'сетевых записей']]:[])].map(([value,label])=>{const d=element('div');d.append(element('strong',String(value)),element('small',label));return d;}));
+  fullView=bounds(state.projection);view={...fullView};focused=false;
   comparator=null;select(state.dataset[0].id);
   status(`${label} · ${state.dataset.length} устройств. Выберите устройство на карте или в списке.`);
   refreshLayout();
@@ -46,7 +47,13 @@
   $('lab-insight-copy').textContent=`Косинусное сходство ${state.near[0].score.toFixed(3)}. Поиск выполнен по всем ${state.dataset.length} устройствам и всем ${selected.v.length} признакам. Близость профилей помогает выбрать соседей для сравнения; одинаковую роль она не доказывает.`;
   if(!comparator||comparator===id||!state.dataset.some(h=>h.id===comparator))comparator=state.near[0].host.id;
   options($('compare-host'),state.dataset.filter(h=>h!==selected),comparator);
-  drawMap();drawNeighbors();drawGroups();drawComparison();drawNetwork();
+  if(focused)focusBounds();
+  else{
+   const p=state.projection[index];
+   if(p.x<view.minX||p.x>view.maxX||p.y<view.minY||p.y>view.maxY){const sx=(view.maxX-view.minX)/2,sy=(view.maxY-view.minY)/2;view={minX:p.x-sx,maxX:p.x+sx,minY:p.y-sy,maxY:p.y+sy};}
+  }
+  drawMap();drawNeighbors();drawGroups();drawComparison();drawNetwork();drawHero();
+  if(window.gsap&&!reduced)gsap.fromTo('.inspector #selected-name,.inspector #selected-group',{opacity:.25,y:8},{opacity:1,y:0,duration:.5,overwrite:true});
   window.__ptLabState=state;
  }
  const mapConnections={id:'lab-connections',beforeDatasetsDraw(chart){
@@ -68,7 +75,7 @@
   charts[name]=new Chart($(id),{type,data,options,plugins:name==='map'?[mapConnections]:[]});
  }
  function common(){return {responsive:true,maintainAspectRatio:false,animation:reduced?false:{duration:850,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{displayColors:false}},layout:{padding:8}};}
- function drawMap(){
+ function drawMap(animate=true){
   const near=new Set(state.near.map(n=>n.host.id)),grouped=$('show-groups').checked;
   const datasets=[];
   const activeGroups=[...new Set(state.groups)];
@@ -78,10 +85,12 @@
   }
   datasets.push({label:'Ближайшие',data:state.projection.filter(p=>near.has(p.hostId)),pointRadius:7,pointHoverRadius:10,backgroundColor:colors.accent});
   datasets.push({label:'Выбрано',data:state.projection.filter(p=>p.hostId===state.selected.id),pointRadius:10,pointHoverRadius:12,backgroundColor:colors.ink,borderColor:colors.accent,borderWidth:2});
-  const opt=common();opt.scales={x:{display:false},y:{display:false}};
+  const opt=common();if(!animate)opt.animation=false;opt.scales={x:{display:false,min:view.minX,max:view.maxX},y:{display:false,min:view.minY,max:view.maxY}};
   opt.plugins.tooltip.callbacks={label:c=>c.raw.hostId};
-  opt.onClick=(_,elements)=>{if(elements.length){const e=elements[0];select(charts.map.data.datasets[e.datasetIndex].data[e.index].hostId);}};
+  opt.onClick=(_,elements)=>{if(dragged)return;if(elements.length){const e=elements[0];select(charts.map.data.datasets[e.datasetIndex].data[e.index].hostId);}};
   chart('map','lab-map-chart','scatter',{datasets},opt);
+  $('focus-neighbors').setAttribute('aria-pressed',String(focused));
+  const ratio=(fullView.maxX-fullView.minX)/(view.maxX-view.minX);$('map-zoom').textContent=ratio.toFixed(1)+'×';
  }
  function drawNeighbors(){
   const opt=common();opt.indexAxis='y';opt.scales={x:{min:-1,max:1,grid:{color:colors.line},border:{display:false},ticks:{font:{size:10}}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:11},callback:function(value){const label=this.getLabelForValue(value);return label.length>20?label.slice(0,18)+'…':label;}}}};
@@ -107,7 +116,9 @@
   const opt=common();opt.indexAxis='y';opt.plugins.legend={display:true,position:'bottom',labels:{usePointStyle:true,boxWidth:6,font:{size:10}}};opt.plugins.tooltip.callbacks={label:c=>`${c.dataset.label}: ${Number(c.raw).toFixed(3)}`};
   opt.scales={x:{grid:{color:colors.line},border:{display:false},ticks:{font:{size:9}}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10}}}};
   chart('features','lab-features-chart','bar',{labels:visible.map(v=>name(v.i)),datasets:[{label:a.id.length>20?a.id.slice(0,18)+'…':a.id,data:visible.map(v=>v.a),backgroundColor:colors.accent,barThickness:7},{label:b.id.length>20?b.id.slice(0,18)+'…':b.id,data:visible.map(v=>v.b),backgroundColor:colors.base,barThickness:7}]},opt);
-  const score=math.cosine(a,b);$('pair-title').textContent=`Сходство пары — ${score.toFixed(3)}`;
+  const score=math.cosine(a,b);$('pair-score-value').textContent=score.toFixed(3);$('pair-score-marker').style.left=((score+1)*50)+'%';
+  drawFingerprint(a,b,av,bv);
+  $('pair-title').textContent=`Сходство пары — ${score.toFixed(3)}`;
   $('pair-copy').textContent=flow?'Справа — близкие по значениям простые признаки этой пары. Нулевые у обоих признаки исключены. Сходство может объясняться несколькими сторонами поведения сразу; это сравнение признаков, а не объяснение нейросети.':'Справа — близкие по значениям ненулевые координаты. Без словаря признаков нельзя назвать их сервисами или ролями. Поиск работает с готовыми векторами и не восстанавливает причину их происхождения.';
   const close=values.filter(v=>Math.max(Math.abs(v.a),Math.abs(v.b))>1e-8).sort((x,y)=>Math.abs(x.a-x.b)-Math.abs(y.a-y.b)).slice(0,4);
   $('shared-features').replaceChildren(...close.map(v=>{const d=element('div');d.append(element('span',name(v.i)),element('span',`${v.a.toFixed(2)} / ${v.b.toFixed(2)}`));return d;}));
@@ -124,13 +135,49 @@
   state.near.forEach((n,i)=>{const p=spots[i];fragment.append(svg('path',{d:`M ${center[0]} ${center[1]} L ${p[0]} ${p[1]}`,pathLength:1,class:'network-edge'}));});
   function node(host,point,selected,score){
    const g=svg('g',{class:`network-node${selected?' is-selected':''}`,transform:`translate(${point[0]} ${point[1]})`,role:'button',tabindex:'0','aria-label':selected?`Выбрано ${host.id}`:`Выбрать ${host.id}, сходство ${score.toFixed(3)}`});
-   g.append(svg('title',{},host.id),svg('circle',{r:mobile?37:40}),svg('text',{y:8,'text-anchor':'middle',class:'network-symbol'},selected?'◎':'○'));
+   g.append(svg('title',{},host.id),svg('circle',{r:mobile?37:40}),svg('rect',{x:-15,y:-13,width:30,height:21,rx:2,class:'device-icon'}),svg('path',{d:'M 0 8 V 15 M -10 15 H 10',class:'device-icon'}));
    const label=host.id.length>20?host.id.slice(0,18)+'…':host.id;
    g.append(svg('text',{y:mobile?56:59,'text-anchor':'middle'},label));
    if(!selected)g.append(svg('text',{y:mobile?73:77,'text-anchor':'middle',class:'network-score'},score.toFixed(3)));
    g.addEventListener('click',()=>select(host.id));g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(host.id);}});return g;
   }
   state.near.forEach((n,i)=>fragment.append(node(n.host,spots[i],false,n.score)));fragment.append(node(state.selected,center,true,1));network.replaceChildren(fragment);
+ }
+ function bounds(points){
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sx=Math.max(x1-x0,.05),sy=Math.max(y1-y0,.05);
+  return {minX:x0-sx*.18,maxX:x1+sx*.18,minY:y0-sy*.18,maxY:y1+sy*.18};
+ }
+ function focusBounds(){const ids=new Set([state.selected.id,...state.near.map(n=>n.host.id)]);view=bounds(state.projection.filter(p=>ids.has(p.hostId)));}
+ function zoom(factor){
+  const next=(view.maxX-view.minX)*factor,base=fullView.maxX-fullView.minX;if(next<base/20||next>base*4)return;
+  const cx=(view.minX+view.maxX)/2,cy=(view.minY+view.maxY)/2,h=(view.maxY-view.minY)*factor/2;
+  view={minX:cx-next/2,maxX:cx+next/2,minY:cy-h,maxY:cy+h};focused=false;drawMap(false);
+ }
+ function drawHero(){
+  const root=$('hero-map'),b=fullView,chosen=state.projection.find(p=>p.hostId===state.selected.id),near=new Set(state.near.map(n=>n.host.id));
+  const pos=p=>({x:26+(p.x-b.minX)/(b.maxX-b.minX)*368,y:24+(b.maxY-p.y)/(b.maxY-b.minY)*252});
+  const c=pos(chosen),fragment=document.createDocumentFragment();
+  state.projection.filter(p=>near.has(p.hostId)).forEach(p=>{const t=pos(p);fragment.append(svg('path',{d:`M ${c.x} ${c.y} L ${t.x} ${t.y}`,class:'hero-edge'}));});
+  state.projection.forEach(p=>{const t=pos(p);fragment.append(svg('circle',{cx:t.x,cy:t.y,r:p===chosen?7:near.has(p.hostId)?4.5:3,class:p===chosen?'hero-dot selected':near.has(p.hostId)?'hero-dot neighbor':'hero-dot'}));});
+  root.replaceChildren(fragment);$('hero-map-caption').textContent=`${state.dataset.length} устройств · текущий набор`;
+ }
+ function drawFingerprint(a,b,av,bv){
+  const root=$('profile-fingerprint'),mobile=window.innerWidth<600;
+  const indices=av.map((_,i)=>i).sort((i,j)=>Math.abs(av[j])+Math.abs(bv[j])-Math.abs(av[i])-Math.abs(bv[i])).slice(0,32);
+  const n=indices.length,cols=Math.min(n,mobile?8:16),rows=Math.ceil(n/cols),cell=mobile?34:45,gap=mobile?5:8,pad=4,block=rows*(cell+gap)+40,width=cols*(cell+gap)+pad*2;
+  root.setAttribute('viewBox',`0 0 ${width} ${block*2+40}`);
+  const max=Math.max(.00001,...indices.flatMap(i=>[Math.abs(av[i]),Math.abs(bv[i])])),fragment=document.createDocumentFragment();
+  const label=(value,selected)=>{const text=svg('text',{x:pad,y:selected?18:block+18,class:'fingerprint-label'},value.length>42?value.slice(0,40)+'…':value);fragment.append(text);};
+  label(a.id,true);label(b.id,false);
+  [av,bv].forEach((v,row)=>indices.forEach((index,j)=>{
+   const x=pad+j%cols*(cell+gap),y=32+row*block+Math.floor(j/cols)*(cell+gap);
+   const rect=svg('rect',{x,y,width:cell,height:cell,rx:4,class:v[index]<0?'fingerprint-cell negative':'fingerprint-cell','fill-opacity':.12+.88*Math.abs(v[index])/max,tabindex:0,role:'button','aria-label':`${row?b.id:a.id}, координата ${index}: ${v[index].toFixed(4)}`});
+   const show=()=>{$('fingerprint-readout').textContent=`Координата ${index}: ${a.id} — ${av[index].toFixed(4)}; ${b.id} — ${bv[index].toFixed(4)}.`;};
+   rect.append(svg('title',{},`Координата ${index}: ${v[index].toFixed(4)}`));rect.addEventListener('pointerenter',show);rect.addEventListener('focus',show);rect.addEventListener('click',show);rect.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});fragment.append(rect);
+  }));
+  root.replaceChildren(fragment);$('fingerprint-copy').textContent=`${n} наиболее выраженных координат после L2-нормировки. Порядок одинаков для обоих устройств. Насыщенность — модуль значения; серый цвет — отрицательное значение. Это фрагмент числового профиля, не изображение трафика.`;
+  $('fingerprint-readout').textContent='Наведите на ячейку или выберите её клавиатурой, чтобы увидеть точные значения.';
  }
  async function upload(file){
   if(!file)return;const request=++fileRequest;
@@ -140,6 +187,18 @@
   catch(error){if(request===fileRequest)status('Не удалось прочитать файл: '+error.message,true);}
  }
  function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'})),a=element('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ $('zoom-in').addEventListener('click',()=>zoom(.75));$('zoom-out').addEventListener('click',()=>zoom(1/.75));
+ $('reset-map').addEventListener('click',()=>{view={...fullView};focused=false;drawMap();});
+ $('focus-neighbors').addEventListener('click',()=>{focused=!focused;if(focused)focusBounds();else view={...fullView};drawMap();});
+ const mapCanvas=$('lab-map-chart');let drag=null;
+ mapCanvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragged=false;drag={x:e.clientX,y:e.clientY,start:{...view}};mapCanvas.setPointerCapture?.(e.pointerId);});
+ mapCanvas.addEventListener('pointermove',e=>{
+  if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<6&&!dragged)return;dragged=true;
+  const rect=mapCanvas.getBoundingClientRect(),area=charts.map?.chartArea,width=area?.width||rect.width||500,height=area?.height||rect.height||400;
+  const vx=dx/width*(drag.start.maxX-drag.start.minX),vy=dy/height*(drag.start.maxY-drag.start.minY);
+  view={minX:drag.start.minX-vx,maxX:drag.start.maxX-vx,minY:drag.start.minY+vy,maxY:drag.start.maxY+vy};focused=false;mapCanvas.classList.add('is-dragging');drawMap(false);
+ });
+ const stopDrag=()=>{drag=null;mapCanvas.classList.remove('is-dragging');};mapCanvas.addEventListener('pointerup',stopDrag);mapCanvas.addEventListener('pointercancel',stopDrag);mapCanvas.addEventListener('lostpointercapture',stopDrag);
  $('download-sample').addEventListener('click',()=>download(sample,'example-network.csv'));
  $('csv-file').addEventListener('change',e=>{const file=e.target.files[0];e.target.value='';upload(file);});
  const drop=$('upload-zone');drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over');});drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag-over');upload(e.dataTransfer.files[0]);});
@@ -152,7 +211,7 @@
  install(math.parseCSV(sample),'Учебный трафик','Небольшой сгенерированный пример соединений — для знакомства с поиском.');
  if(!window.Chart)status('Графики не загрузились. Поиск, группы и сравнение значений доступны ниже.',true);
  let mobile=window.innerWidth<600;
- window.addEventListener('resize',()=>{const next=window.innerWidth<600;if(mobile!==next){mobile=next;drawNetwork();}},{passive:true});
- if(window.gsap&&window.ScrollTrigger&&!reduced){document.querySelectorAll('.data-layout,.workspace-grid,.comparison-grid,.explanation,.neighborhood-figure,.format-grid,.boundary-grid').forEach(e=>gsap.fromTo(e,{opacity:0,y:32},{opacity:1,y:0,duration:1.25,ease:'power3.out',scrollTrigger:{trigger:e,start:'top 94%',once:true}}));}
+ window.addEventListener('resize',()=>{const next=window.innerWidth<600;if(mobile!==next){mobile=next;drawNetwork();drawComparison();}},{passive:true});
+ if(window.gsap&&window.ScrollTrigger&&!reduced){document.querySelectorAll('.lab-hero-visual,.data-layout,.workspace-grid,.comparison-grid,.explanation,.neighborhood-figure,.format-grid,.boundary-grid').forEach(e=>gsap.fromTo(e,{opacity:0,y:32},{opacity:1,y:0,duration:1.25,ease:'power3.out',scrollTrigger:{trigger:e,start:'top 94%',once:true}}));}
  window.__ptSelectHost=select;
 })();
