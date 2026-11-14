@@ -99,10 +99,10 @@
   const av=a.v.map(x=>x/a.norm),bv=b.v.map(x=>x/b.norm);
   const flow=state.kind==='flows';
   const values=a.v.map((_,i)=>({i,a:flow?a.v[i]:av[i],b:flow?b.v[i]:bv[i]}));
-  const visible=values.slice().sort((x,y)=>(Math.abs(y.a)+Math.abs(y.b))-(Math.abs(x.a)+Math.abs(x.b))).slice(0,flow?8:10);
+  const visible=flow?values.slice(0,8):values.slice().sort((x,y)=>(Math.abs(y.a)+Math.abs(y.b))-(Math.abs(x.a)+Math.abs(x.b))).slice(0,10);
   const name=i=>flow?featureNames[i]:`Координата ${i}`;
-  $('comparison-description').textContent=flow?'Сравните направления, объёмы и активность двух устройств на одном графике.':'Сравните значения нормированных координат. Для готового embedding смысл отдельных координат заранее неизвестен.';
-  $('feature-caption').textContent=flow?'Восемь наиболее выраженных признаков пары. Применены log(1+x) и масштабирование по набору; высота столбика не показывает сырые байты или пакеты.':'Десять координат с наибольшей суммой модулей у пары после L2-нормировки. Это фрагмент профиля; сходство рассчитано по всем координатам.';
+  $('comparison-description').textContent=flow?'Выберите второе устройство справа. Ниже видно, в чём его активность близка к выбранному, а в чём отличается.':'Сравните значения нормированных координат. Для готового embedding смысл отдельных координат заранее неизвестен.';
+  $('feature-caption').textContent=flow?'Восемь показателей активности на общей шкале. Длина столбика не равна сырым байтам или пакетам. Точные объёмы выбранного устройства показаны в его карточке выше.':'Десять координат с наибольшей суммой модулей у пары после L2-нормировки. Это фрагмент профиля; сходство рассчитано по всем координатам.';
   const opt=common();opt.indexAxis='y';opt.plugins.legend={display:true,position:'bottom',labels:{usePointStyle:true,boxWidth:6,font:{size:10}}};opt.plugins.tooltip.callbacks={label:c=>`${c.dataset.label}: ${Number(c.raw).toFixed(3)}`};
   opt.scales={x:{grid:{color:colors.line},border:{display:false},ticks:{font:{size:9}}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10}}}};
   chart('features','lab-features-chart','bar',{labels:visible.map(v=>name(v.i)),datasets:[{label:a.id.length>20?a.id.slice(0,18)+'…':a.id,data:visible.map(v=>v.a),backgroundColor:colors.accent,barThickness:7},{label:b.id.length>20?b.id.slice(0,18)+'…':b.id,data:visible.map(v=>v.b),backgroundColor:colors.base,barThickness:7}]},opt);
@@ -110,9 +110,13 @@
   drawFingerprint(a,b,av,bv);
   $('pair-title').textContent=`Сходство пары — ${score.toFixed(3)}`;
   $('pair-copy').textContent=flow?'Справа — близкие по значениям простые признаки этой пары. Нулевые у обоих признаки исключены. Сходство может объясняться несколькими сторонами поведения сразу; это сравнение признаков, а не объяснение нейросети.':'Справа — близкие по значениям ненулевые координаты. Без словаря признаков нельзя назвать их сервисами или ролями. Поиск работает с готовыми векторами и не восстанавливает причину их происхождения.';
-  const close=values.filter(v=>Math.max(Math.abs(v.a),Math.abs(v.b))>1e-8).sort((x,y)=>Math.abs(x.a-x.b)-Math.abs(y.a-y.b)).slice(0,4);
+  const close=(flow?values.slice(0,8):values).filter(v=>Math.max(Math.abs(v.a),Math.abs(v.b))>1e-8).sort((x,y)=>Math.abs(x.a-x.b)-Math.abs(y.a-y.b)).slice(0,4);
   $('shared-features').replaceChildren(...close.map(v=>{const d=element('div');d.append(element('span',name(v.i)),element('span',`${v.a.toFixed(2)} / ${v.b.toFixed(2)}`));return d;}));
   state.comparator=b;state.pairScore=score;
+  const contacts=id=>new Set((state.connections||[]).filter(l=>l.src===id||l.dst===id).map(l=>l.src===id?l.dst:l.src).filter(other=>other!==id));
+  const ac=contacts(a.id),bc=contacts(b.id),shared=[...ac].filter(id=>bc.has(id));
+  $('soc-pair-context').textContent=!flow?'Здесь загружены готовые числовые профили, а не журнал соединений. Можно сравнить близость профилей, но без сетевых записей нельзя показать общих собеседников.':shared.length?`Общих собеседников в этом файле: ${shared.length}. Оба устройства обменивались с ними данными. Это проверяемый контекст для оператора; само по себе такое совпадение не объясняет всю числовую близость.`:'Общих собеседников в этом файле нет. Устройства всё равно могут быть похожи по объёмам, направлениям и сервисам. Сравните показатели выше — одинаковые контакты не обязательны для близких профилей.';
+  $('shared-contact-buttons').replaceChildren(...shared.slice(0,12).map(id=>{const button=element('button',id+' ↗');button.type='button';button.addEventListener('click',()=>{networkMode='traffic';select(id);$('workspace').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});});return button;}));
  }
  const ns='http://www.w3.org/2000/svg';
  function svg(tag,attributes,text){const e=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attributes))e.setAttribute(key,String(value));if(text!==undefined)e.textContent=text;return e;}
@@ -206,6 +210,12 @@
   view={minX:drag.start.minX-vx,maxX:drag.start.maxX-vx,minY:drag.start.minY+vy,maxY:drag.start.maxY+vy};mapCanvas.classList.add('is-dragging');drawMap(false);
  });
  const stopDrag=()=>{drag=null;mapCanvas.classList.remove('is-dragging');};mapCanvas.addEventListener('pointerup',stopDrag);mapCanvas.addEventListener('pointercancel',stopDrag);mapCanvas.addEventListener('lostpointercapture',stopDrag);
+ document.querySelectorAll('[data-soc-task]').forEach(button=>button.addEventListener('click',()=>{
+  const task=button.dataset.socTask;
+  if(task==='traffic'&&state.kind!=='flows'){$('soc-task-status').textContent='Для реальных контактов нужен журнал соединений. Выберите «Пример трафика» или загрузите CSV с src и dst. Готовые векторы таких записей не содержат.';document.querySelector('.lab-data').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});return;}
+  if(task==='compare'){comparator=state.near[0].host.id;$('compare-host').value=comparator;drawComparison();$('soc-task-status').textContent=`Сравниваем ${state.selected.id} и ближайшего соседа ${comparator}.`;document.querySelector('.lab-comparison').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});}
+  else{networkMode=task==='traffic'?'traffic':'similar';drawMap();$('soc-task-status').textContent=task==='traffic'?`Показываем собеседников ${state.selected.id} из записей CSV.`:`Показываем похожие профили для ${state.selected.id}. Нажмите на соседа, чтобы продолжить.`;$('workspace').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});}
+ }));
  $('view-similar').addEventListener('click',()=>{networkMode='similar';drawMap();});$('view-traffic').addEventListener('click',()=>{if(state.kind==='flows'){networkMode='traffic';drawMap();}});
  $('host-search').addEventListener('input',()=>{directoryLimit=20;drawDirectory();});['directory-group','directory-sort'].forEach(id=>$(id).addEventListener('change',()=>{directoryLimit=20;drawDirectory();}));
  $('show-more-hosts').addEventListener('click',()=>{directoryLimit+=20;drawDirectory();});
@@ -221,6 +231,7 @@
  if(window.Chart){Chart.defaults.font.family=token('--model-font');Chart.defaults.color=colors.muted;}
  install(math.parseCSV(sample),'Учебный трафик','Небольшой сгенерированный пример соединений — для знакомства с поиском.');
  if(!window.Chart)status('Графики не загрузились. Поиск, группы и сравнение значений доступны ниже.',true);
+ document.querySelectorAll('details').forEach(details=>details.addEventListener('toggle',()=>window.ScrollTrigger?.refresh()));
  let mobile=window.innerWidth<600;
  window.addEventListener('resize',()=>{const next=window.innerWidth<600;if(mobile!==next){mobile=next;fullView=mobile?{minX:0,maxX:360,minY:0,maxY:790}:{minX:0,maxX:1000,minY:0,maxY:600};view={...fullView};drawMap();drawComparison();}},{passive:true});
  if(window.gsap&&window.ScrollTrigger&&!reduced){document.querySelectorAll('.lab-hero-visual,.data-layout,.comparison-grid,.explanation,.neighborhood-figure,.format-grid,.boundary-grid').forEach(e=>gsap.fromTo(e,{opacity:.65,y:32},{opacity:1,y:0,duration:1.25,ease:'power3.out',scrollTrigger:{trigger:e,start:'top 94%',once:true}}));}

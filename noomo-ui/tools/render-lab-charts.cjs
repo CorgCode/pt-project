@@ -21,5 +21,7 @@ for(const [i,c]of configs.entries()){
   const svg=w.document.getElementById('neighbor-network').cloneNode(true),s=w.document.createElementNS('http://www.w3.org/2000/svg','style');s.textContent=resolved;svg.prepend(s);svg.setAttribute('xmlns','http://www.w3.org/2000/svg');svg.setAttribute('width',mobile?'360':'1000');svg.setAttribute('height',mobile?'790':'600');
   const image=await loadImage(Buffer.from(svg.outerHTML));const canvas=createCanvas(mobile?360:1000,mobile?790:600),ctx=canvas.getContext('2d');ctx.fillStyle='#d2d9e9';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);fs.writeFileSync(path.join(output,mobile?'lab-neighborhood-mobile.png':'lab-neighborhood.png'),canvas.toBuffer('image/png'));
  }
- dom.window.close();console.log('Rendered 2 Chart.js charts and desktop/mobile SVG neighborhood to',output);
+ const art=w.document.getElementById('soc-overview').cloneNode(true),artStyle=w.document.createElementNS('http://www.w3.org/2000/svg','style');artStyle.textContent=resolved;art.prepend(artStyle);art.setAttribute('xmlns','http://www.w3.org/2000/svg');art.setAttribute('width','520');art.setAttribute('height','440');
+ const artImage=await loadImage(Buffer.from(art.outerHTML)),artCanvas=createCanvas(520,440),artContext=artCanvas.getContext('2d');artContext.fillStyle='#d2d9e9';artContext.fillRect(0,0,520,440);artContext.drawImage(artImage,0,0);fs.writeFileSync(path.join(output,'lab-soc-overview.png'),artCanvas.toBuffer('image/png'));
+ dom.window.close();console.log('Rendered 2 Chart.js charts, desktop/mobile neighborhood and SOC overview to',output);
 })().catch(error=>{console.error(error);process.exitCode=1;});
