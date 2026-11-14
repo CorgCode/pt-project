@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from app.operator.server import Store, make_server
+from app.operator.server import Store, make_server, validate
 
 
 class ServerTest(unittest.TestCase):
@@ -30,16 +30,31 @@ class ServerTest(unittest.TestCase):
             return response.status, response.read(), response.headers
 
     def test_save_reopen_update_and_persistence(self):
-        body = {"name": "Сеть", "csv": "src,dst\na,b", "notes": {"a": "Проверить связь"}}
+        body = {"name": "Сеть", "csv": "src,dst\na,b", "notes": {"a": "Проверить связь"}, "annotations": {"a": {"status": "review", "label": "Проверить сервер", "watch": True, "tags": ["инфра"]}}, "settings": {"groupCount": 4}}
         code, raw, _ = self.request("/api/workspaces", body)
         self.assertEqual(code, 201)
         key = json.loads(raw)["id"]
         saved = json.loads(self.request("/api/workspaces/" + key)[1])
         self.assertEqual(saved["notes"], body["notes"])
+        self.assertEqual(saved["annotations"], body["annotations"])
+        self.assertEqual(saved["settings"], body["settings"])
         body["name"] = "Новое имя"
         self.request("/api/workspaces/" + key, body, "PUT")
         self.assertEqual(Store(Path(self.directory.name) / "workspaces.sqlite3").get(key)["name"], "Новое имя")
         self.assertEqual(len(json.loads(self.request("/api/workspaces")[1])), 1)
+
+    def test_legacy_and_invalid_annotations(self):
+        base = {"name": "Сеть", "csv": "src,dst\na,b"}
+        self.assertEqual(validate(base)["annotations"], {})
+        self.assertEqual(validate(base)["settings"], {"groupCount": 3})
+        for item in ({"status": "attack"}, {"watch": "true"}, {"tags": ["x"] * 9},
+                     {"label": "x" * 81}, {"tags": ["x" * 33]}, {"tags": [""]}):
+            with self.assertRaises(ValueError):
+                validate({**base, "annotations": {"a": item}})
+        for count in (True, 0, 7, "3"):
+            with self.assertRaises(ValueError):
+                validate({**base, "settings": {"groupCount": count}})
+        self.assertEqual(validate({**base, "annotations": {"__proto__": {"watch": True}}})["annotations"]["__proto__"]["watch"], True)
 
     def test_private_server_paths_and_origin(self):
         for route in ("/../README.md", "/assets/../../.git/config", "/api/workspaces/missing"):
@@ -59,7 +74,7 @@ class ServerTest(unittest.TestCase):
                 self.request("/api/workspaces", body)
             self.assertEqual(caught.exception.code, 400)
             caught.exception.close()
-        for asset in ("/", "/app.js", "/app.css", "/assets/core.js", "/assets/onest.ttf", "/assets/display.otf"):
+        for asset in ("/", "/app.js", "/app.css", "/assets/core.js", "/workflow.js", "/assets/onest.ttf", "/assets/display.otf"):
             code, raw, headers = self.request(asset)
             self.assertEqual(code, 200)
             self.assertTrue(raw)

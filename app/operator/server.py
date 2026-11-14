@@ -38,9 +38,35 @@ def validate(payload):
         for k, v in notes.items()
     ):
         raise ValueError("Заметки: до 500 устройств и 10 000 символов на устройство.")
+    annotations = payload.get("annotations", {})
+    if not isinstance(annotations, dict) or len(annotations) > 500:
+        raise ValueError("Метки можно задать максимум для 500 устройств.")
+    clean_annotations = {}
+    for host, item in annotations.items():
+        if not isinstance(host, str) or len(host) > 500 or not isinstance(item, dict):
+            raise ValueError("Некорректное описание устройства.")
+        label, tags = item.get("label", ""), item.get("tags", [])
+        status, watch = item.get("status", "new"), item.get("watch", False)
+        if not isinstance(label, str) or len(label) > 80:
+            raise ValueError("Подпись устройства — до 80 символов.")
+        if status not in ("new", "review", "done") or not isinstance(watch, bool):
+            raise ValueError("Неизвестный статус или отметка наблюдения.")
+        if not isinstance(tags, list) or len(tags) > 8 or any(
+            not isinstance(tag, str) or not tag.strip() or len(tag) > 32 for tag in tags
+        ):
+            raise ValueError("До 8 меток, каждая от 1 до 32 символов.")
+        clean_annotations[host] = {"label": label.strip(), "tags": list(dict.fromkeys(tag.strip() for tag in tags)),
+                                   "status": status, "watch": watch}
+    settings = payload.get("settings", {})
+    if not isinstance(settings, dict):
+        raise ValueError("Некорректные настройки набора.")
+    group_count = settings.get("groupCount", 3)
+    if type(group_count) is not int or not 2 <= group_count <= 6:
+        raise ValueError("Число групп — от 2 до 6.")
     return {"name": name.strip(), "csv": payload["csv"],
             "baseline": payload.get("baseline", ""), "notes": notes,
-            "sample": payload.get("sample") is True}
+            "sample": payload.get("sample") is True, "annotations": clean_annotations,
+            "settings": {"groupCount": group_count}}
 
 
 class Store:
@@ -104,8 +130,9 @@ def make_server(port=8846, data_dir=None):
                 value = store.get(route.rsplit("/", 1)[-1])
                 return self.send(200 if value else 404, value or {"error": "Набор не найден."})
             if route == "/api/health":
-                return self.send(200, {"status": "ok", "product": "CorgCode", "storage": "local"})
-            files = {"/": STATIC / "index.html", "/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js", **ASSETS}
+                return self.send(200, {"status": "ok", "product": "CorgCode", "storage": "local", "workspaceSchema": 2})
+            files = {"/": STATIC / "index.html", "/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
+                     "/workflow.js": STATIC / "workflow.js", **ASSETS}
             file = files.get(route)
             if file and file.is_file():
                 return self.send(200, file.read_bytes(), mimetypes.guess_type(file.name)[0] or "application/octet-stream")
