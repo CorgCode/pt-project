@@ -82,3 +82,17 @@
 @media(max-width:800px){.hero-top{gap:30px;}.pt-laboratory .hero-top h1{font-size:68px;}.lab-intro-copy{gap:15px;}.pair-readout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:35px;}.fingerprint-panel>div{grid-template-columns:minmax(0,1fr);gap:5px;}}
 @media(max-width:600px){.hero-top{grid-template-columns:minmax(0,1fr);gap:5px;}.pt-laboratory .hero-top h1{font-size:66px;margin-bottom:0;}.lab-hero-visual{width:75%;margin-left:auto;}.pt-laboratory .lab-intro{padding-bottom:42px;}.explore-link{margin-top:4px;}.map-view-controls{gap:8px;flex-wrap:wrap;}.map-view-controls button{font-size:10px;padding:8px 10px;}.map-view-controls .zoom-controls{margin-left:auto;}.zoom-controls button{font-size:18px;padding:3px 8px;}.pair-readout{grid-template-columns:minmax(0,1fr);gap:4px;padding:26px 0;margin-top:35px;}.similarity-scale{margin-bottom:10px;}.fingerprint-panel{margin-top:35px;padding-top:28px;}}
 @media(prefers-reduced-motion:reduce){.scale-track i,.explore-link span{transition:none;}}
+/* Replace the abstract scatter with a readable, directly selectable neighborhood. */
+:root{--lab-device-a:#e2e5ed;--lab-device-b:#ded4ee;--lab-device-c:#d3c4e8;}
+.hero-top{display:block;}.pt-laboratory .hero-top h1{font-size:clamp(58px,8vw,110px);}
+.map-chart{height:570px;}.map-chart>svg{display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y;user-select:none;}.map-chart>svg.is-dragging{cursor:grabbing;}
+.clear-edge{stroke:var(--lab-edge);stroke-width:2;}
+.edge-label-bg{fill:var(--model-paper);stroke:none;}.edge-score{fill:var(--model-muted);font:400 13px var(--model-font);pointer-events:none;}
+.clear-node .device-tile{fill:var(--lab-glass);stroke:var(--model-line);stroke-width:1.5;transition:fill .2s,stroke .2s,stroke-width .2s;}
+.clear-node.tinted[data-group="0"] .device-tile{fill:var(--lab-device-a);}.clear-node.tinted[data-group="1"] .device-tile{fill:var(--lab-device-b);}.clear-node.tinted[data-group="2"] .device-tile{fill:var(--lab-device-c);}
+.clear-node .device-name{font:400 16px var(--model-font);}.clear-node .device-detail{font:400 11px var(--model-font);fill:var(--model-muted);}
+.clear-node.is-selected .device-tile,.clear-node.is-selected.tinted .device-tile{fill:var(--model-ink);stroke:var(--model-ink);}
+.clear-node:hover .device-tile,.clear-node:focus .device-tile{stroke:var(--model-accent);stroke-width:3;}
+.clear-node.is-selected .device-detail{fill:var(--lab-white);}
+@media(max-width:1100px){.workspace-grid{grid-template-columns:minmax(0,1fr);}.inspector{border-left:0;border-top:1px solid var(--model-line);}.map-chart{height:570px;}}
+@media(max-width:600px){.map-chart{height:auto;aspect-ratio:360/790;}.map-chart>svg{height:100%;}.pt-laboratory .hero-top h1{font-size:66px;}.clear-node .device-name{font-size:13px;}.clear-node .device-detail{font-size:10px;}.edge-score{font-size:11px;}}
