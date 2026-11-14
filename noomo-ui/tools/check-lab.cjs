@@ -26,9 +26,9 @@ async function check(){
  const target=w.__ptLabState.near[0].host.id;d.querySelector('#neighbor-network .clear-node:not(.is-selected)').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));assert.equal(w.__ptLabState.selected.id,target);
  const keyboardTarget=w.__ptLabState.near[0].host.id;d.querySelector('#neighbor-network .clear-node:not(.is-selected)').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(w.__ptLabState.selected.id,keyboardTarget);
  const k=d.getElementById('group-count');k.value='2';k.dispatchEvent(new w.Event('change'));assert(w.__ptLabState.groups.every(x=>x<2));
- d.querySelector('[data-preset=small]').click();assert.equal(w.__ptLabState.dataset.length,24);d.querySelector('[data-preset=project]').click();assert.equal(w.__ptLabState.dataset.length,300);
+ d.querySelector('[data-preset=small]').click();assert.equal(w.__ptLabState.dataset.length,24);d.querySelector('[data-preset=project]').click();assert.equal(w.__ptLabState.dataset.length,300);assert.equal(d.querySelectorAll('.directory-row').length,20);d.getElementById('show-more-hosts').click();assert.equal(d.querySelectorAll('.directory-row').length,40);
  async function upload(text,name='mine.csv',size=text.length){Object.defineProperty(d.getElementById('csv-file'),'files',{configurable:true,value:[{name,size,text:async()=>text}]});d.getElementById('csv-file').dispatchEvent(new w.Event('change'));await new Promise(setImmediate);}
- await upload('host_id,emb_0,emb_1\na,1,0\nb,1,1\nc,0,1');assert.equal(w.__ptLabState.dataset.length,3);assert.equal(w.__ptLabState.selected.id,'a');assert(Math.abs(w.__ptLabState.near[0].score-Math.SQRT1_2)<1e-12);
+ await upload('host_id,emb_0,emb_1\na,1,0\nb,1,1\nc,0,1');assert.equal(d.getElementById('view-traffic').disabled,true);assert.equal(w.__ptLabState.dataset.length,3);assert.equal(w.__ptLabState.selected.id,'a');assert(Math.abs(w.__ptLabState.near[0].score-Math.SQRT1_2)<1e-12);
 assert.equal(d.querySelectorAll('#neighbor-network [role=button]').length,3);
  await upload('host_id,emb_0\na,bad\nb,1');assert.equal(w.__ptLabState.dataset.length,3);assert.equal(d.getElementById('lab-status').dataset.error,'true');
  await upload('anything','large.csv',4*1024*1024);assert.match(d.getElementById('lab-status').textContent,/слишком большой/);
@@ -39,8 +39,18 @@ assert.equal(d.querySelectorAll('#neighbor-network [role=button]').length,3);
  const grouping=[{id:'a',v:[1,0],norm:1},{id:'b',v:[.99,.01],norm:Math.hypot(.99,.01)},{id:'c',v:[0,1],norm:1},{id:'d',v:[.01,.99],norm:Math.hypot(.01,.99)}];const groups=w.PTLab.group(grouping,2);assert.equal(groups[0],groups[1]);assert.equal(groups[2],groups[3]);assert.notEqual(groups[0],groups[2]);assert.deepEqual(groups,w.PTLab.group(grouping,2));
  w.innerWidth=375;w.dispatchEvent(new w.Event('resize'));assert.equal(d.getElementById('neighbor-network').getAttribute('viewBox'),'0 0 360 790');
  await upload('host_id,emb_0,emb_1\n"<img src=x>",1,0\nb,0,1');assert(!d.querySelector('#selected-name img'));assert.equal(d.getElementById('selected-name').textContent,'<img src=x>');
+ await upload('src,dst,bytes,packets\na,b,100,1\na,b,200,2\nb,c,50,1');
+ assert.equal(w.__ptLabState.selected.activity.outgoing,2);assert.equal(w.__ptLabState.selected.activity.sentBytes,300);
+ d.getElementById('view-traffic').click();assert.equal(d.getElementById('view-traffic').getAttribute('aria-pressed'),'true');assert.equal(d.querySelectorAll('#neighbor-network .clear-node').length,2);assert.equal(d.querySelector('#neighbor-network .edge-score').textContent,'2');
+ d.getElementById('host-search').value='b';d.getElementById('host-search').dispatchEvent(new w.Event('input'));assert.equal(d.querySelectorAll('.directory-row').length,1);assert.equal(d.querySelector('.directory-row strong').textContent,'b');
+ d.querySelector('.directory-row .directory-actions button:last-child').click();assert.equal(w.__ptLabState.comparator.id,'b');
+ d.getElementById('host-search').value='not-present';d.getElementById('host-search').dispatchEvent(new w.Event('input'));assert.equal(d.querySelectorAll('.directory-row').length,0);
+ d.getElementById('host-search').value='';d.getElementById('host-search').dispatchEvent(new w.Event('input'));
+ let blob;w.URL.createObjectURL=b=>{blob=b;return 'blob:local';};w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};d.getElementById('export-neighbors').click();assert(blob);
+ const csv=await new Promise(resolve=>{const r=new w.FileReader();r.onload=()=>resolve(r.result);r.readAsText(blob);});assert.match(csv,/source_host,neighbor_host,cosine_similarity/);assert.equal(csv.split('\n').length,3);
+ d.getElementById('view-similar').click();assert.equal(d.querySelectorAll('#neighbor-network .clear-node').length,3);assert.equal(d.getElementById('network-status').hidden,true);
  let release;const pending=new Promise(resolve=>release=resolve);Object.defineProperty(d.getElementById('csv-file'),'files',{configurable:true,value:[{name:'late.csv',size:80,text:()=>pending}]});d.getElementById('csv-file').dispatchEvent(new w.Event('change'));
  d.querySelector('[data-preset=flows]').click();release('host_id,emb_0\na,1\nb,2');await new Promise(setImmediate);assert.equal(w.__ptLabState.kind,'flows');assert.equal(w.__ptLabState.dataset.length,11);
- dom.window.close();console.log('PASS: /lab/ live selection, clickable labeled SVG, two charts, zoom/pan/fingerprint, deterministic grouping, CSV imports/errors/1024D, safe rendering and responsive neighborhood');
+ dom.window.close();console.log('PASS: /lab/ live selection, clickable labeled SVG, observed traffic, search/export, two charts, zoom/pan/fingerprint, deterministic grouping, CSV imports/errors/1024D, safe rendering and responsive neighborhood');
 }
 module.exports=check;if(require.main===module)check().catch(e=>{console.error(e);process.exitCode=1;});

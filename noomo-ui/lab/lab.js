@@ -11,7 +11,7 @@
  }).join('\n');
  const featureNames=['Исходящие записи','Входящие записи','Байты отправлено','Байты получено','Пакеты отправлено','Пакеты получено','Разных контактов','Всего записей',...Array.from({length:6},(_,i)=>`Сервисы · исходящие ${i+1}`),...Array.from({length:6},(_,i)=>`Сервисы · входящие ${i+1}`)];
  let state=null,comparator=null,fileRequest=0,view=null,fullView=null,dragged=false;
- const charts={};
+ const charts={};let networkMode='similar',directoryLimit=20;
  function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
  function status(text,error=false){$('lab-status').textContent=text;$('lab-status').dataset.error=String(error);}
  function preset(value){document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.preset===value)));}
@@ -27,6 +27,11 @@
   options($('lab-host'),state.dataset,state.dataset[0].id);
   $('lab-summary').replaceChildren(...[[state.dataset.length,'устройств'],[data.stats.dimensions,'признаков'],...(data.stats.flows?[[data.stats.flows,'сетевых записей']]:[])].map(([value,label])=>{const d=element('div');d.append(element('strong',String(value)),element('small',label));return d;}));
   fullView=window.innerWidth<600?{minX:0,maxX:360,minY:0,maxY:790}:{minX:0,maxX:1000,minY:0,maxY:600};view={...fullView};
+  if(data.kind!=='flows')networkMode='similar';
+  $('view-traffic').disabled=data.kind!=='flows';
+  $('view-traffic').title=data.kind==='flows'?'Показать соединения из вашего CSV':'Для этого режима нужен CSV сетевых взаимодействий';
+  syncGroupFilter();
+  $('host-search').value='';directoryLimit=20;
   comparator=null;select(state.dataset[0].id);
   status(`${label} · ${state.dataset.length} устройств. Выберите устройство на карте или в списке.`);
   refreshLayout();
@@ -41,12 +46,11 @@
   $('selected-name').textContent=id;
   const index=state.dataset.indexOf(selected),group=state.groups[index];
   $('selected-group').textContent=`Группа ${group+1} · ${selected.v.length} числовых признаков`;
-  $('lab-neighbor-buttons').replaceChildren(...state.near.map(n=>{const button=element('button');button.type='button';button.append(element('span',n.host.id+' ↗'),element('span',n.score.toFixed(3)));button.setAttribute('aria-label',`Выбрать ${n.host.id}, сходство ${n.score.toFixed(3)}`);button.addEventListener('click',()=>select(n.host.id));return button;}));
   $('lab-insight-title').textContent=`Ближе всего — ${state.near[0].host.id}`;
   $('lab-insight-copy').textContent=`Косинусное сходство ${state.near[0].score.toFixed(3)}. Поиск выполнен по всем ${state.dataset.length} устройствам и всем ${selected.v.length} признакам. Близость профилей помогает выбрать соседей для сравнения; одинаковую роль она не доказывает.`;
   if(!comparator||comparator===id||!state.dataset.some(h=>h.id===comparator))comparator=state.near[0].host.id;
   options($('compare-host'),state.dataset.filter(h=>h!==selected),comparator);
-  drawMap();drawNeighbors();drawGroups();drawComparison();
+  drawMap();drawNeighbors();drawGroups();drawComparison();drawDirectory();drawActivity();
   if(window.gsap&&!reduced)gsap.fromTo('.inspector #selected-name,.inspector #selected-group',{opacity:.25,y:8},{opacity:1,y:0,duration:.5,overwrite:true});
   window.__ptLabState=state;
  }
@@ -56,8 +60,26 @@
   charts[name]=new Chart($(id),{type,data,options,plugins:[]});
  }
  function common(){return {responsive:true,maintainAspectRatio:false,animation:reduced?false:{duration:850,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{displayColors:false}},layout:{padding:8}};}
+ function shownNeighbors(){
+  if(networkMode==='similar')return state.near;
+  const found=new Map();
+  for(const link of state.connections||[]){
+   if(link.src!==state.selected.id&&link.dst!==state.selected.id)continue;
+   const id=link.src===state.selected.id?link.dst:link.src;if(id===state.selected.id)continue;
+   if(!found.has(id))found.set(id,{host:state.dataset.find(h=>h.id===id),flows:0,bytes:0});
+   const entry=found.get(id);entry.flows+=link.flows;entry.bytes+=link.bytes;
+  }
+  return [...found.values()].sort((a,b)=>b.flows-a.flows||b.bytes-a.bytes).slice(0,5);
+ }
  function drawMap(){
-  drawNetwork();
+  const entries=shownNeighbors(),traffic=networkMode==='traffic';
+  $('view-similar').setAttribute('aria-pressed',String(!traffic));$('view-traffic').setAttribute('aria-pressed',String(traffic));
+  $('neighbors-heading').textContent=traffic?'Обменивались трафиком':'Рядом по поведению';$('neighbors-unit').textContent=traffic?'Записей':'Сходство';
+  $('network-mode-copy').textContent=traffic?'Только соединения из загруженных записей. На линиях — число записей обмена в обоих направлениях.':'Пять ближайших по числовому профилю. Ближе к 1 — поведение ближе; соединений между ними могло не быть.';
+  $('network-caption').textContent=traffic?'Линии — реальные наблюдавшиеся взаимодействия в этом CSV. Число записей не равно числу сессий; координаты узлов условны.':'Линии — сходство, не реальные соединения. Нажмите на устройство: оно станет центральным. Положение узлов условно.';
+  $('neighbors-hint').textContent=traffic?'Показаны до пяти собеседников с наибольшим числом записей. Это наблюдения из файла.':'Поиск выполнен по всему набору. Нажмите на соседа или выберите любое устройство в поиске ниже.';
+  $('lab-neighbor-buttons').replaceChildren(...entries.map(n=>{const b=element('button');b.type='button';b.append(element('span',n.host.id+' ↗'),element('span',traffic?String(n.flows):n.score.toFixed(3)));b.addEventListener('click',()=>select(n.host.id));return b;}));
+  drawNetwork(entries);$('network-status').hidden=true;
   const ratio=(fullView.maxX-fullView.minX)/(view.maxX-view.minX);$('map-zoom').textContent=ratio.toFixed(1)+'×';
  }
  function drawNeighbors(){
@@ -94,27 +116,27 @@
  }
  const ns='http://www.w3.org/2000/svg';
  function svg(tag,attributes,text){const e=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attributes))e.setAttribute(key,String(value));if(text!==undefined)e.textContent=text;return e;}
- function drawNetwork(){
+ function drawNetwork(entries){
   const network=$('neighbor-network'),mobile=window.innerWidth<600;
   network.setAttribute('viewBox',`${view.minX} ${view.minY} ${view.maxX-view.minX} ${view.maxY-view.minY}`);
   const center=mobile?[180,380]:[500,290];
   const spots=mobile?[[85,105],[275,105],[275,560],[85,560],[180,730]]:[[180,110],[820,110],[830,455],[170,455],[500,525]];
   const fragment=document.createDocumentFragment();
-  state.near.forEach((n,i)=>{
+  entries.forEach((n,i)=>{
    const p=spots[i],path=svg('path',{d:`M ${center[0]} ${center[1]} L ${p[0]} ${p[1]}`,class:'clear-edge'});
    const x=center[0]+(p[0]-center[0])*.52,y=center[1]+(p[1]-center[1])*.52;
-   fragment.append(path,svg('rect',{x:x-(mobile?22:26),y:y-11,width:mobile?44:52,height:23,rx:12,class:'edge-label-bg'}),svg('text',{x,y:y+5,'text-anchor':'middle',class:'edge-score'},n.score.toFixed(3)));
+   fragment.append(path,svg('rect',{x:x-(mobile?22:26),y:y-11,width:mobile?44:52,height:23,rx:12,class:'edge-label-bg'}),svg('text',{x,y:y+5,'text-anchor':'middle',class:'edge-score'},networkMode==='traffic'?String(n.flows):n.score.toFixed(3)));
   });
   function node(host,point,selected,score){
    const group=state.groups[state.dataset.indexOf(host)],width=mobile?142:190,height=selected?108:96;
-   const g=svg('g',{class:`network-node clear-node${selected?' is-selected':''}${$('show-groups').checked?' tinted':''}`,transform:`translate(${point[0]} ${point[1]})`,role:'button',tabindex:'0','data-group':group,'aria-label':selected?`Выбрано ${host.id}`:`Выбрать ${host.id}, сходство ${score.toFixed(3)}`});
+   const g=svg('g',{class:`network-node clear-node${selected?' is-selected':''}${$('show-groups').checked?' tinted':''}`,transform:`translate(${point[0]} ${point[1]})`,role:'button',tabindex:'0','data-group':group,'aria-label':selected?`Выбрано ${host.id}`:`Выбрать ${host.id}`});
    g.append(svg('title',{},host.id),svg('rect',{x:-width/2,y:-height/2,width,height,rx:14,class:'device-tile'}));
    g.append(svg('rect',{x:-12,y:-height/2+14,width:24,height:16,rx:2,class:'device-icon'}),svg('path',{d:`M 0 ${-height/2+30} V ${-height/2+35} M -8 ${-height/2+35} H 8`,class:'device-icon'}));
    const label=host.id.length>(mobile?18:25)?host.id.slice(0,mobile?16:23)+'…':host.id;
    g.append(svg('text',{y:10,'text-anchor':'middle',class:'device-name'},label),svg('text',{y:32,'text-anchor':'middle',class:'device-detail'},selected?'Выбрано':`Группа ${group+1} · выбрать ↗`));
    g.addEventListener('click',()=>{if(!dragged)select(host.id);});g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(host.id);}});return g;
   }
-  state.near.forEach((n,i)=>fragment.append(node(n.host,spots[i],false,n.score)));fragment.append(node(state.selected,center,true,1));network.replaceChildren(fragment);
+  entries.forEach((n,i)=>fragment.append(node(n.host,spots[i],false,n.score)));fragment.append(node(state.selected,center,true,1));network.replaceChildren(fragment);
  }
  function zoom(factor){
   const next=(view.maxX-view.minX)*factor,base=fullView.maxX-fullView.minX;if(next<base/20||next>base*4)return;
@@ -138,6 +160,32 @@
   root.replaceChildren(fragment);$('fingerprint-copy').textContent=`${n} наиболее выраженных координат после L2-нормировки. Порядок одинаков для обоих устройств. Насыщенность — модуль значения; серый цвет — отрицательное значение. Это фрагмент числового профиля, не изображение трафика.`;
   $('fingerprint-readout').textContent='Наведите на ячейку или выберите её клавиатурой, чтобы увидеть точные значения.';
  }
+ function syncGroupFilter(){
+  options($('directory-group'),[{id:'all'},...[...new Set(state.groups)].map(g=>({id:String(g)}))],'all');
+  $('directory-group').options[0].textContent='Все группы';[...$('directory-group').options].slice(1).forEach(o=>o.textContent='Группа '+(Number(o.value)+1));
+ }
+ function drawActivity(){
+  const a=state.selected.activity;
+  $('host-activity').replaceChildren();if(!a)return;
+  for(const [value,label]of [[a.outgoing,'исходящих записей'],[a.incoming,'входящих записей'],[a.contacts,'разных контактов'],[a.sentBytes,'байт отправлено'],[a.receivedBytes,'байт получено']]){const d=element('div');d.append(element('strong',value.toLocaleString('ru-RU')),element('span',label));$('host-activity').append(d);}
+ }
+ function directoryRows(){
+  const query=$('host-search').value.trim().toLocaleLowerCase(),group=$('directory-group').value;
+  const rows=state.dataset.filter((h,i)=>(!query||h.id.toLocaleLowerCase().includes(query))&&(group==='all'||String(state.groups[i])===group)).map(h=>({host:h,score:math.cosine(state.selected,h),group:state.groups[state.dataset.indexOf(h)]}));
+  rows.sort($('directory-sort').value==='name'?(a,b)=>a.host.id.localeCompare(b.host.id):(a,b)=>b.score-a.score||a.host.id.localeCompare(b.host.id));return rows;
+ }
+ function drawDirectory(){
+  const rows=directoryRows();$('directory-status').textContent=`Найдено ${rows.length} из ${state.dataset.length}. Сходство — относительно ${state.selected.id}.`;
+  $('host-directory').replaceChildren(...rows.slice(0,directoryLimit).map(({host,score,group})=>{
+   const row=element('div',undefined,'directory-row'),info=element('div'),name=element('strong',host.id),detail=element('span',`Группа ${group+1} · сходство ${score.toFixed(3)}`);info.append(name,detail);
+   const actions=element('div',undefined,'directory-actions'),choose=element('button',host===state.selected?'Выбрано':'Исследовать ↗'),compare=element('button','Сравнить');choose.type=compare.type='button';choose.disabled=host===state.selected;compare.disabled=host===state.selected;
+   choose.addEventListener('click',()=>{select(host.id);$('workspace').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});});
+   compare.addEventListener('click',()=>{comparator=host.id;$('compare-host').value=host.id;drawComparison();document.querySelector('.lab-comparison').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});});
+   actions.append(choose,compare);row.append(info,actions);return row;
+  }));
+  if(!rows.length)$('host-directory').append(element('p','Ничего не найдено. Измените имя или выберите другую группу.','lab-small'));
+  $('show-more-hosts').hidden=rows.length<=directoryLimit;
+ }
  async function upload(file){
   if(!file)return;const request=++fileRequest;
   if(file.size>3*1024*1024){status('Файл слишком большой. Поддерживается CSV до 3 МБ.',true);return;}
@@ -158,19 +206,23 @@
   view={minX:drag.start.minX-vx,maxX:drag.start.maxX-vx,minY:drag.start.minY+vy,maxY:drag.start.maxY+vy};mapCanvas.classList.add('is-dragging');drawMap(false);
  });
  const stopDrag=()=>{drag=null;mapCanvas.classList.remove('is-dragging');};mapCanvas.addEventListener('pointerup',stopDrag);mapCanvas.addEventListener('pointercancel',stopDrag);mapCanvas.addEventListener('lostpointercapture',stopDrag);
+ $('view-similar').addEventListener('click',()=>{networkMode='similar';drawMap();});$('view-traffic').addEventListener('click',()=>{if(state.kind==='flows'){networkMode='traffic';drawMap();}});
+ $('host-search').addEventListener('input',()=>{directoryLimit=20;drawDirectory();});['directory-group','directory-sort'].forEach(id=>$(id).addEventListener('change',()=>{directoryLimit=20;drawDirectory();}));
+ $('show-more-hosts').addEventListener('click',()=>{directoryLimit+=20;drawDirectory();});
+ $('export-neighbors').addEventListener('click',()=>{const quote=s=>'"'+String(s).replaceAll('"','""')+'"';const rows=state.dataset.filter(h=>h!==state.selected).map(h=>({host:h,score:math.cosine(state.selected,h)})).sort((a,b)=>b.score-a.score);download('source_host,neighbor_host,cosine_similarity\n'+rows.map(n=>[quote(state.selected.id),quote(n.host.id),n.score.toFixed(8)].join(',')).join('\n'),'host-neighbors.csv');});
  $('download-sample').addEventListener('click',()=>download(sample,'example-network.csv'));
  $('csv-file').addEventListener('change',e=>{const file=e.target.files[0];e.target.value='';upload(file);});
  const drop=$('upload-zone');drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over');});drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag-over');upload(e.dataTransfer.files[0]);});
  $('lab-host').addEventListener('change',()=>select($('lab-host').value));
  $('compare-host').addEventListener('change',()=>{comparator=$('compare-host').value;drawComparison();});
  $('show-groups').addEventListener('change',drawMap);
- $('group-count').addEventListener('change',()=>{state.groups=math.group(state.dataset,Number($('group-count').value));select(state.selected.id);});
+ $('group-count').addEventListener('change',()=>{state.groups=math.group(state.dataset,Number($('group-count').value));syncGroupFilter();select(state.selected.id);});
  document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{fileRequest++;preset(b.dataset.preset);if(b.dataset.preset==='flows'){install(math.parseCSV(sample),'Учебный трафик','Небольшой сгенерированный пример соединений — для знакомства с поиском.');return;}const dataset=window.HOSTS.slice(0,b.dataset.preset==='small'?24:300).map(h=>({...h,v:[...h.v],norm:Math.hypot(...h.v)}));install({dataset,stats:{hosts:dataset.length,dimensions:dataset[0].v.length},kind:'project'},'Учебные профили','Синтетические тестовые профили. Они не являются результатом multiday_codebook_plus.');}));
  if(window.Chart){Chart.defaults.font.family=token('--model-font');Chart.defaults.color=colors.muted;}
  install(math.parseCSV(sample),'Учебный трафик','Небольшой сгенерированный пример соединений — для знакомства с поиском.');
  if(!window.Chart)status('Графики не загрузились. Поиск, группы и сравнение значений доступны ниже.',true);
  let mobile=window.innerWidth<600;
  window.addEventListener('resize',()=>{const next=window.innerWidth<600;if(mobile!==next){mobile=next;fullView=mobile?{minX:0,maxX:360,minY:0,maxY:790}:{minX:0,maxX:1000,minY:0,maxY:600};view={...fullView};drawMap();drawComparison();}},{passive:true});
- if(window.gsap&&window.ScrollTrigger&&!reduced){document.querySelectorAll('.lab-hero-visual,.data-layout,.workspace-grid,.comparison-grid,.explanation,.neighborhood-figure,.format-grid,.boundary-grid').forEach(e=>gsap.fromTo(e,{opacity:0,y:32},{opacity:1,y:0,duration:1.25,ease:'power3.out',scrollTrigger:{trigger:e,start:'top 94%',once:true}}));}
+ if(window.gsap&&window.ScrollTrigger&&!reduced){document.querySelectorAll('.lab-hero-visual,.data-layout,.comparison-grid,.explanation,.neighborhood-figure,.format-grid,.boundary-grid').forEach(e=>gsap.fromTo(e,{opacity:.65,y:32},{opacity:1,y:0,duration:1.25,ease:'power3.out',scrollTrigger:{trigger:e,start:'top 94%',once:true}}));}
  window.__ptSelectHost=select;
 })();
