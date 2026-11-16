@@ -2,28 +2,26 @@ name: Benchmark validation
 
 on:
   pull_request:
-    paths:
-      - "methods/**"
-      - "evaluation/**"
-      - "pipeline/**"
-      - "experiments/**"
-      - "app/**"
-      - "scoreboard/**"
-      - ".github/workflows/benchmark.yml"
   push:
     branches:
       - main
-    paths:
-      - "methods/**"
-      - "evaluation/**"
-      - "pipeline/**"
-      - "experiments/**"
-      - "app/**"
-      - "scoreboard/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-benchmark:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +29,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
       - name: Install dependencies
         run: python -m pip install --upgrade pip -r requirements.txt
@@ -39,8 +39,11 @@ jobs:
       - name: Validate example submission
         run: python -m evaluation.validate methods/example_embeddings.csv
 
+      - name: Check repository and reference integrity
+        run: python tools/check_repo.py
+
       - name: Run evaluation tests
-        run: python -m pytest -q evaluation methods app pipeline experiments
+        run: python -m pytest -q
 
       - name: Pipeline smoke test (synthetic LANL-format fixture)
         run: |
