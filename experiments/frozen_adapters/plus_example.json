@@ -1,0 +1,23 @@
+{
+  "cohort": "${PT_EXPERIMENT_ROOT}/processed/cohort.csv",
+  "cache": "${PT_EXPERIMENT_ROOT}/runs/plus_cache",
+  "source_window": {"name":"source02","day":2,"start":126000,"end":129600,"flows":"${PT_EXPERIMENT_ROOT}/processed/flows/train.csv"},
+  "train": [
+    {"name":"train02","day":2,"start":126000,"end":129600,"flows":"${PT_EXPERIMENT_ROOT}/processed/flows/train.csv"},
+    {"name":"train03","day":3,"start":212400,"end":216000,"flows":"${PT_EXPERIMENT_ROOT}/processed_day03/flows/train.csv"},
+    {"name":"train04","day":4,"start":298800,"end":302400,"flows":"${PT_EXPERIMENT_ROOT}/processed_day04/flows/train.csv"}
+  ],
+  "development": [
+    {"name":"development04","day":4,"start":302400,"end":306000,"flows":"${PT_EXPERIMENT_ROOT}/processed_day04/flows/validation.csv"}
+  ],
+  "test": [
+    {"name":"diagnostic04","day":4,"start":306000,"end":309600,"flows":"${PT_EXPERIMENT_ROOT}/processed_day04/flows/test.csv"}
+  ],
+  "plus_training": {"traffic_steps":300,"code_steps":400,"head_steps":200},
+  "model": {"min_events":300,"svd_dim":128,"alpha":10.0},
+  "probe_reference": "${PT_REPO_ROOT}/scoreboard/data/reference/validation",
+  "residual_strengths": [0.0,0.1,0.2],
+  "teacher_queries":128,
+  "min_behavior_retention":0.95,
+  "test_policy":"Historical local diagnostic; three training days 02/03/04 and later day04 development/test. Not the official leaderboard or a new blind holdout. For full history replace train<=12, dev13 and explicitly declare later test windows."
+}

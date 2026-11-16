@@ -1,0 +1,22 @@
+{
+  "source": "${PT_EXPERIMENT_ROOT}/plus/embeddings.csv",
+  "source_name": "multiday_codebook_plus frozen source; provide real files",
+  "cache": "${PT_EXPERIMENT_ROOT}/adapter_cache",
+  "source_window": {"name":"source_day02","day":2,"start":126000,"end":129600,"flows":"${PT_EXPERIMENT_ROOT}/processed/flows/train.csv"},
+  "train": [
+    {"name":"train02","day":2,"start":126000,"end":129600,"flows":"${PT_EXPERIMENT_ROOT}/processed/flows/train.csv"},
+    {"name":"train03","day":3,"start":212400,"end":216000,"flows":"${PT_EXPERIMENT_ROOT}/day03/flows/train.csv"},
+    {"name":"train04","day":4,"start":298800,"end":302400,"flows":"${PT_EXPERIMENT_ROOT}/day04/flows/train.csv"}
+  ],
+  "development": [
+    {"name":"development13","day":13,"start":1081800,"end":1085400,"flows":"${PT_EXPERIMENT_ROOT}/day13/flows/development.csv","baseline":"${PT_EXPERIMENT_ROOT}/plus/development13.csv"}
+  ],
+  "test": [],
+  "test_policy": "Do not treat published days 14-16 as a new blind test. Add a predeclared window explicitly.",
+  "model": {"min_events":300,"svd_dim":128,"alpha":10.0},
+  "teacher_queries":128,
+  "teacher_proposals":16,
+  "neighbor_steps":150,
+  "neighbor_strengths":[0.0,0.1,0.2,0.4],
+  "min_behavior_retention":0.95
+}

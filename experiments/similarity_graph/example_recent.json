@@ -1,0 +1,25 @@
+{
+  "cache": "$PT_RUNS/similarity_graph_recent/cache",
+  "source_window": {"name": "source02", "day": 2, "start": 126000, "end": 129600, "flows": "$PT_DATA_ROOT/late_test/processed/flows/train.csv"},
+  "cohort": "$PT_DATA_ROOT/late_test/processed/cohort.csv",
+  "train": [
+    {"name": "source02", "day": 2, "start": 126000, "end": 129600, "flows": "$PT_DATA_ROOT/late_test/processed/flows/train.csv"},
+    {"name": "day10_train", "day": 10, "start": 822600, "end": 826200, "flows": "$PT_DATA_ROOT/fingerprint_memory/day10/flows/test.csv"},
+    {"name": "day11_train", "day": 11, "start": 909000, "end": 912600, "flows": "$PT_DATA_ROOT/fingerprint_memory/day11/flows/test.csv"},
+    {"name": "day12_train", "day": 12, "start": 995400, "end": 999000, "flows": "$PT_DATA_ROOT/fingerprint_expanded/day12/flows/test.csv"}
+  ],
+  "development": [
+    {"name": "day13_development", "day": 13, "start": 1081800, "end": 1085400, "flows": "$PT_DATA_ROOT/fingerprint_recent/day13/flows/test.csv"}
+  ],
+  "test": [],
+  "test_policy": "Training through day 12; day 13 development. Previously studied benchmark days 14–16 evaluated only after freeze.",
+  "probe_reference": "$PT_REPO_ROOT/scoreboard/data/reference/validation",
+  "matrix_training": {"passes": 1, "queries_per_pass": 6453, "proposals": 8, "objective": "score_proxy", "min_behavior_retention": 0.95},
+  "compact_dims": [512],
+  "compact_steps": 1500,
+  "graph_weights": [0.0, 0.1, 0.25],
+  "matching_iterations": 5,
+  "references": {"day13_development": "$PT_RUNS/similarity_graph_recent/reference_day13"},
+  "psd_edge_control": false,
+  "compact_loss": "top10"
+}
