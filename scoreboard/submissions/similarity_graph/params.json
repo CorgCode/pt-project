@@ -1,0 +1,24 @@
+{
+  "reference_commit": "70347a32da4bb19baa30ad3cd00f7fe3b1fa6fc6",
+  "experiment_code_commit": "d5430f5d8d62bb8ae49402333f81378cc3c6772c",
+  "selected_checkpoint_sha256": "e11bf63ad780b4b3a22735db910e520ae76872f20edb6c5aa4e12a6e9c9b55e9",
+  "source_sha256": "ede3b8219905bf94af608fafcb1cf598e0850c70b05160a5d58927212d0ee4b1",
+  "test_csv_sha256": {
+    "test": "c539e34b7cc1ec4b8db86f8eeb9ed55126dc3aa869b8a68723cc7258d718f81d",
+    "test_day15": "a289a6b58e22e435e3533646282cb75f0f36814a7c9f027526a2be3dca72f304",
+    "test_day16": "52e1a6da7db3180528fd72229d0fbb12edd5785a68d425f127d0bd4c7920d7d8"
+  },
+  "source_window": "day02 11:00-12:00",
+  "training_windows": ["day02 11:00-12:00", "day03 11:00-12:00", "day04 11:00-12:00"],
+  "development_window": "day04 12:00-13:00",
+  "historical_diagnostic_window": "day04 13:00-14:00",
+  "test_windows": ["day14 12:30-13:30", "day15 12:30-13:30", "day16 12:30-13:30"],
+  "dimension": 512,
+  "graph_weight": 0.1,
+  "matching_iterations": 5,
+  "assignment": "soft partial matching",
+  "profile_bank": "joint_context",
+  "training_or_selection_on_test_days": false,
+  "test_days_previously_studied": true,
+  "checkpoint_and_vectors_in_git": false
+}

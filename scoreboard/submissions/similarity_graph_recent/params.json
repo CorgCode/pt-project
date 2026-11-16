@@ -1,0 +1,29 @@
+{
+  "reference_commit": "70347a32da4bb19baa30ad3cd00f7fe3b1fa6fc6",
+  "experiment_code_commit": "d5430f5d8d62bb8ae49402333f81378cc3c6772c",
+  "selected_checkpoint_sha256": "719c70308ea53a6bbc2d2c30a15d16fed5f16037cf53f0e40e5d1ec5b704d740",
+  "source_sha256": "755869388a420aa9f567d13ab72dc1cefb5f7c2de5b6c316331eaae886a951d0",
+  "test_csv_sha256": {
+    "test": "566269aab2d2db4a3411659f0cfac98f2ebefa10ff83137abc715bb629143311",
+    "test_day15": "5a17204b83345a44103c05352444e7f4a0df563c506f760ed9be69f017ac7a25",
+    "test_day16": "4f0488b6399cb920ac7b1f720ecc266535f67da806a694153a6b37ae13130e03"
+  },
+  "source_window": "day02 11:00-12:00",
+  "additional_training_windows": ["day10 12:30-13:30", "day11 12:30-13:30", "day12 12:30-13:30"],
+  "development_window": "day13 12:30-13:30",
+  "test_windows": ["day14 12:30-13:30", "day15 12:30-13:30", "day16 12:30-13:30"],
+  "matrix_training": {"passes": 1, "queries_per_pass": 6453, "proposals": 8, "objective": "score_proxy", "min_behavior_retention": 0.95, "seed": 17},
+  "compact_dimension": 512,
+  "compact_steps": 1500,
+  "compact_loss": "top10",
+  "selected_matrix": "learned",
+  "rotation": true,
+  "profile_bank": "joint_context",
+  "graph_weight": 0.25,
+  "matching_iterations": 5,
+  "assignment": "soft partial matching",
+  "development_score": 62.06878436476375,
+  "training_or_selection_on_test_days": false,
+  "test_days_previously_studied": true,
+  "checkpoint_and_vectors_in_git": false
+}
