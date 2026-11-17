@@ -5,15 +5,16 @@
     # итоговый блок для склейки: обучение на всех окнах, запись эмбеддингов окон дней 14-16, validation и train
     python -u scoreboard/cross_day.py --holdout none --name xtenc
 
-Вход:
-  runs/blocks_all/<окно>.npz       build_blocks.py по папке со ссылками на окна: train, validation,
+Вход (всё делают уже имеющиеся скрипты):
+  runs/blocks_all/<окно>.npz       build_blocks.py по папке со ссылками на окна (см. команды в инструкции): train, validation,
                                    test, test_day15, test_day16 (дни 14-16) и old_d02, old_d03, old_d04 (часы 12:30-13:30 дней 02-04)
   runs/blocks_ref/<окно>.npz       эталонное поведение для текущих окон (build_behavioral.py)
   runs/old/blocks_ref/<окно>.npz   то же для старых окон (test = день 02, test_day03, test_day04)
 
 Идея. Вектор хоста в окне = [поведение, собеседники (SVD), сервисы (SVD)] с весами. Нейросеть (MLP) переводит его в 128 чисел
 так, чтобы один хост в двух разных окнах получался близким, а разные хосты — далёкими (InfoNCE). Пары окон берутся из
-train, день 02 (12:30-13:30), день 03, день 04. Вектор хоста считается только по одному часу его окна.
+train, день 02 (12:30-13:30), день 03, день 04. Вектор хоста по-прежнему считается только по ОДНОМУ часу его окна;
+дни 02-04 используются лишь для обучения весов нейросети (допустимо: «любые дни до 12»).
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-OLD = {"d02": "test", "d03": "test_day03", "d04": "test_day04"}
+OLD = {"d02": "test", "d03": "test_day03", "d04": "test_day04"}       # имя в обучении -> имя окна в runs/old/blocks_ref
 TRAIN_NAMES = ["train", "d02", "d03", "d04"]
 
 
@@ -38,7 +39,7 @@ def load_x(blocks: Path, behav_dir: Path, w: str, bname: str, kp: int, ks: int, 
     z = np.load(blocks / f"{w}.npz")
     b = np.load(behav_dir / f"{bname}.npz")
     if list(z["hosts"]) != list(b["hosts"]):
-        raise SystemExit(f"{w}: порядок хостов в блоках и в поведении не совпадает (блоки возможно устарели)")
+        raise SystemExit(f"{w}: порядок хостов в блоках и в поведении не совпадает — пересоберите блоки")
     parts = {"b": b["behav"].astype(np.float64), "p": z["peers"][:, :kp].astype(np.float64), "s": z["services"][:, :ks].astype(np.float64)}
     act = (np.abs(parts["p"]).sum(1) > 0) | (np.abs(parts["s"]).sum(1) > 0)          # хост был активен в окне
     if sc is None:
@@ -109,6 +110,7 @@ def main() -> None:
     ap.add_argument("--out", default=str(ROOT / "runs" / "submissions"))
     ap.add_argument("--name", default="xtenc")
     ap.add_argument("--holdout", default="d04", help="d04/d03/d02 — окно не участвует в обучении (проверка); none — обучать на всех и записать результат")
+    ap.add_argument("--exclude", nargs="*", default=[], help="окна, которые не брать в обучение (например d02: оно идёт сразу после validation)")
     ap.add_argument("--k-peers", type=int, default=128)
     ap.add_argument("--k-services", type=int, default=64)
     ap.add_argument("--w-peers", type=float, default=0.5)
@@ -129,7 +131,7 @@ def main() -> None:
     # совместимость поведения старых и текущих окон (стандартизация по одному и тому же train)
     tr_cur, tr_old = np.load(bref / "train.npz")["behav"], np.load(oref / "train.npz")["behav"]
     if tr_cur.shape != tr_old.shape or not np.allclose(tr_cur, tr_old, atol=1e-3):
-        raise SystemExit("поведение train в runs/blocks_ref и runs/old/blocks_ref различается -- старые блоки несовместимы")
+        raise SystemExit("поведение train в runs/blocks_ref и runs/old/blocks_ref различается — старые блоки несовместимы, пересоберите")
     log("поведение train в старой и текущей папках совпадает")
 
     xs, acts, sc = {}, {}, None
@@ -146,7 +148,7 @@ def main() -> None:
         log(f"окно {n}: активных хостов {int(act.sum()):,} из {len(act):,}; вход {x.shape[1]} чисел")
 
     held = None if a.holdout == "none" else a.holdout
-    names = [n for n in TRAIN_NAMES if n != held]
+    names = [n for n in TRAIN_NAMES if n != held and n not in a.exclude]
 
     def evaluate(tag: str, f):
         zs = {n: f(xs[n]) for n in TRAIN_NAMES}
