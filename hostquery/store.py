@@ -413,7 +413,7 @@ class RunStore:
         # `dataset_from_csv` сортирует их по номеру emb_*. Если не привести оба
         # пути к одному порядку, файл с `emb_1,emb_0` сравнится сам с собой как
         # разные векторы. Канонический порядок — числовой, как в core.js.
-        dimensions = sorted((int(m.group(1)), str(column)) for column in frame.columns
+        dimensions = sorted((int(m.group(1)), column) for column in frame.columns
                             if (m := _EMB_COLUMN.fullmatch(str(column))))
         if not dimensions:
             raise HostQueryError(f"эмбеддинг {name!r}: нет координат emb_0, emb_1, …")
