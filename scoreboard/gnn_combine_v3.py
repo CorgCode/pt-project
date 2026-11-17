@@ -1,6 +1,6 @@
 """Склейка четырёх блоков в один вектор хоста; веса блоков подбираются через Optuna.
 
-    python scoreboard/combine_v3.py --gnn <gnn_submission> --behav-dir <behav> --trials <cnt> [--score]
+    python scoreboard/gnn_combine_v3.py --gnn <gnn_submission> [--behav-dir <behav>] --trials <cnt> [--svd-dim 256] [--score]
 
 Блоки (все строятся по train, одинаковые оси координат для всех окон):
   behav     профиль хоста, 66 чисел            (runs/blocks/<окно>.npz, делает build_blocks.py)
@@ -13,6 +13,8 @@ w_services·services, w_gnn·gnn]. Вес поведения зафиксиро�
 расстояния между хостами не влияет). Доля блока в векторе = w² / сумма w² (печатается в итоге).
 Подбор: w_peers, w_services, w_gnn ∈ [0, 3], k_peers ∈ {64,128,256}, k_services ∈ {32,64,128}; цель — validation_score.
 После подбора печатаются "абляции" (без GNN, без TF-IDF, только поведение) — они показывают вклад каждого блока.
+--svd-dim K: итоговый вектор сжимается до K чисел линейной проекцией (SVD по train БЕЗ вычитания среднего, косинусы
+сохраняются почти полностью) — чтобы CSV помещались в репозиторий. Подбор весов идёт до сжатия.
 Результат: runs/submissions/<имя>/ (embeddings.csv, validation.csv, test*.csv, SHARED_COORDINATES, README.md, params.json).
 Нужны optuna и torch (CPU), как для gnn_v1.py.
 """
@@ -33,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 K_PEERS, K_SERVICES = [64, 128, 256], [32, 64, 128]
 ORDER = ["behav", "peers", "services", "gnn"]
-RUS = {"behav": "поведение (профиль)", "peers": "собеседники (TF-IDF)", "services": "сервисы (TF-IDF)", "gnn": "GNN-эмбеддинг"}
+RUS = {"behav": "поведение (профиль)", "peers": "собеседники (TF-IDF)", "services": "сервисы (TF-IDF)", "gnn": "GNN-эмбеддинг", "extra": "доп. блок (кросс-дневной)"}
 
 
 def log(msg: str) -> None:
@@ -42,11 +44,16 @@ def log(msg: str) -> None:
 
 class Data:
     def __init__(self, blocks: Path, gnn: Path, processed: Path, center: bool = True, official_val: bool = False,
-                 behav_dir: Path | None = None):
+                 behav_dir: Path | None = None, pw: float = 0.0, drop_pc: int = 0,
+                 extra: Path | None = None):
         self.center, self.official_val, self.behav_dir = center, official_val, behav_dir
+        self.pw, self.drop_pc = pw, drop_pc                # C: деление столбцов SVD на разброс^pw; A: убрать drop_pc главных направлений
+        self._pc_cache: dict = {}
+        self.extra = extra
+        self.proj = None                                   # матрица сжатия (d x K), задаётся fit_proj() перед финальной записью
         self.cohort = pd.read_csv(processed / "cohort.csv", dtype={"host_id": str}).set_index("host_id")
         self.hosts = self.cohort.index
-        files = sorted(blocks.glob("*.npz"))
+        files = sorted(f for f in blocks.glob("*.npz") if not f.stem.startswith("old_"))   # old_* — окна только для обучения энкодера
         if not files:
             raise SystemExit(f"нет {blocks}/*.npz — сначала python scoreboard/build_blocks.py")
         self.windows = ["train"] + [f.stem for f in files if f.stem != "train"]
@@ -61,6 +68,11 @@ class Data:
                 raise SystemExit(f"нет {f} — это эмбеддинг GNN для окна {w}")
             g = pd.read_csv(f, index_col=0, dtype={0: str}).reindex(self.hosts).fillna(0.0).to_numpy(np.float32)
             self.X[w] = {"behav": self._behav(z, w), "peers": z["peers"], "services": z["services"], "gnn": g}
+            if extra is not None:
+                fe = extra / ("embeddings.csv" if w == "train" else f"{w}.csv")
+                if not fe.exists():
+                    raise SystemExit(f"нет {fe} — доп. блок для окна {w}")
+                self.X[w]["extra"] = pd.read_csv(fe, index_col=0, dtype={0: str}).reindex(self.hosts).fillna(0.0).to_numpy(np.float32)
             self.ev[w] = np.ones(len(self.hosts), bool) if w == "train" else self.cohort[f"evaluable_{w}"].to_numpy(bool)
         self.kmax = {"peers": self.X["train"]["peers"].shape[1], "services": self.X["train"]["services"].shape[1]}
         log(f"данные: хостов {len(self.hosts):,}; окна {self.windows}; peers {self.kmax['peers']}, services {self.kmax['services']}, "
@@ -77,14 +89,17 @@ class Data:
     def parts(self, w: str, p: dict) -> dict[str, np.ndarray]:
         """Взвешенные блоки окна w для хостов, которые оцениваются в этом окне (блоки с весом 0 не включаются)."""
         k = {"peers": min(p["k_peers"], self.kmax["peers"]), "services": min(p["k_services"], self.kmax["services"])}
-        wt = {"behav": 1.0, "peers": p["w_peers"], "services": p["w_services"], "gnn": p["w_gnn"]}
+        wt = {"behav": 1.0, "peers": p["w_peers"], "services": p["w_services"], "gnn": p["w_gnn"], "extra": p.get("w_extra", 0.0)}
         out = {}
         for b in ORDER:
-            if wt[b] <= 0:
+            if wt[b] <= 0 or b not in self.X["train"]:
                 continue
             tr, x = self.X["train"][b], self.X[w][b]
             if b in k:
                 tr, x = tr[:, :k[b]], x[:, :k[b]]
+            if self.pw > 0 and b in k:                    # C: выравнивание вклада компонент SVD (редкие оси весят больше)
+                sd = tr.astype(np.float64).std(0) + 1e-6
+                tr, x = tr / sd ** self.pw, x / sd ** self.pw
             if self.center:
                 mu = tr.astype(np.float64).mean(0)
                 tr, x = tr - mu, x - mu
@@ -92,9 +107,24 @@ class Data:
             out[b] = (wt[b] / scale) * x[self.ev[w]]
         return out
 
-    def embed(self, w: str, p: dict) -> pd.DataFrame:
+    def _full(self, w: str, p: dict) -> np.ndarray:
         parts = self.parts(w, p)
-        z = np.hstack([parts[b] for b in ORDER if b in parts]).astype(np.float32)
+        z = np.hstack([parts[b] for b in ORDER if b in parts]).astype(np.float64)
+        if self.drop_pc > 0:                              # A: убрать главные направления train (без вычитания среднего)
+            key = tuple(sorted(p.items()))
+            if key not in self._pc_cache:
+                tp = self.parts("train", p)
+                xt = np.hstack([tp[b] for b in ORDER if b in tp]).astype(np.float64)
+                self._pc_cache = {key: np.linalg.svd(xt, full_matrices=False)[2][:self.drop_pc]}
+            v = self._pc_cache[key]
+            z = z - (z @ v.T) @ v
+        return z
+
+    def embed(self, w: str, p: dict) -> pd.DataFrame:
+        z = self._full(w, p)
+        if self.proj is not None:
+            z = z @ self.proj
+        z = z.astype(np.float32)
         zero = ~np.isfinite(z).all(1) | (np.abs(z).sum(1) == 0)
         if zero.any():                                    # evaluate не принимает нулевые векторы
             z[zero] = np.random.default_rng(0).normal(size=(int(zero.sum()), z.shape[1])).astype(np.float32) * 1e-3
@@ -105,10 +135,19 @@ class Data:
         tot = sum(sq.values())
         return {b: v / tot for b, v in sq.items()}
 
-    def write(self, d: Path, p: dict, windows: list[str]) -> None:
+    def fit_proj(self, p: dict, k: int) -> None:
+        """Проекция на k главных направлений train-векторов БЕЗ вычитания среднего (центрирование ухудшало Pairs)."""
+        self.proj = None
+        x = self._full("train", p)
+        _, _, vt = np.linalg.svd(x, full_matrices=False)
+        self.proj = vt[:k].T
+        kept = float(((x @ self.proj) ** 2).sum() / (x ** 2).sum())
+        log(f"сжатие до {k} чисел: сохранено {100 * kept:.1f}% квадрата длины векторов train")
+
+    def write(self, d: Path, p: dict, windows: list[str], fmt: str | None = None) -> None:
         d.mkdir(parents=True, exist_ok=True)
         for w in windows:
-            self.embed(w, p).to_csv(d / ("embeddings.csv" if w == "train" else f"{w}.csv"))
+            self.embed(w, p).to_csv(d / ("embeddings.csv" if w == "train" else f"{w}.csv"), float_format=fmt)
 
 
 VAL_NEIGHBORS_IDEAL = 0.2112      # reference_neighbor_stability consistency@10 окна validation (scoreboard/data/reference/validation/manifest.json) актуально на 01.10 - константа на случай, если кто-то в очередной раз что-то поменяет, никому не сказав, и значение не будет читаться из файла
@@ -154,7 +193,7 @@ CARD = """# {name}
 
 ## Архитектура
 
-Вектор = [поведение ×1, собеседники ×{w_peers:.2f}, сервисы ×{w_services:.2f}, GNN ×{w_gnn:.2f}]. Каждый блок перед умножением приведён к среднему квадрату длины 1, поэтому доли блоков в векторе: {share_txt}. Собеседники и сервисы — логарифм числа потоков, TF-IDF по хостам, SVD ({k_peers} и {k_services} компонент). GNN — готовый эмбеддинг из `{gnn}`.
+Вектор = [поведение ×1, собеседники ×{w_peers:.2f}, сервисы ×{w_services:.2f}, GNN ×{w_gnn:.2f}]. Каждый блок перед умножением приведён к среднему квадрату длины 1, поэтому доли блоков в векторе: {share_txt}. Собеседники и сервисы — логарифм числа потоков, TF-IDF по хостам, SVD ({k_peers} и {k_services} компонент). GNN — готовый эмбеддинг из `{gnn}`.{behav_note}{svd_note}
 
 ## Данные
 
@@ -190,18 +229,30 @@ def main() -> None:
                     help="считать балл validation стандартной submit.validation_score (идеал Neighbors как у test)")
     ap.add_argument("--behav-dir", dest="behav_dir", default=None,
                     help="блок поведения из готовых файлов (runs/blocks_ref от build_behavioral.py) вместо нашего профиля")
+    ap.add_argument("--svd-dim", dest="svd_dim", type=int, default=0,
+                    help="сжать итоговый вектор до стольких чисел (0 — не сжимать); для коммита в репозиторий нужно ~256-384")
+    ap.add_argument("--pow", dest="pw", type=float, default=0.0,
+                    help="C: делить столбцы SVD-блоков на (разброс по train)^pow; 0 — как раньше, 0.5 — мягко, 1 — отбеливание")
+    ap.add_argument("--drop-pc", dest="drop_pc", type=int, default=0,
+                    help="A: убрать из итогового вектора столько главных направлений train (без вычитания среднего)")
+    ap.add_argument("--extra", default=None, help="папка с готовым дополнительным блоком (embeddings.csv и <окно>.csv), например runs/submissions/xtenc")
+    ap.add_argument("--w-extra", dest="w_extra", type=float, default=1.0, help="вес доп. блока (если --trials 0)")
     ap.add_argument("--author", default="", help="логин на GitHub для файла AUTHOR (по желанию)")
     ap.add_argument("--score", action="store_true", help="после записи посчитать официальный балл проекта")
     ap.add_argument("--keep-result", action="store_true")
     a = ap.parse_args()
     t0 = time.time()
     D = Data(Path(a.blocks), Path(a.gnn), Path(a.processed), a.center, a.official_val,
-             Path(a.behav_dir) if a.behav_dir else None)
+             Path(a.behav_dir) if a.behav_dir else None, a.pw, a.drop_pc, Path(a.extra) if a.extra else None)
+    log(f"C (pow): {a.pw}; A (drop-pc): {a.drop_pc}")
     log(f"центрирование блоков (вычитание среднего train): {'да' if a.center else 'нет'}")
     if "validation" not in D.windows:
         raise SystemExit("нет окна validation в блоках — нужен runs/features/validation и runs/blocks/validation.npz")
-    tmp = ROOT / "runs" / "tune_tmp_v3"
+    tmp = ROOT / "runs" / f"tune_tmp_v3_{a.name}"          # своя папка на запуск: параллельные запуски не должны перезаписывать файлы друг друга
     p = dict(w_peers=a.w_peers, w_services=a.w_services, w_gnn=a.w_gnn, k_peers=a.k_peers, k_services=a.k_services)
+    if a.extra:
+        ORDER.append("extra")
+        p["w_extra"] = a.w_extra
 
     if a.trials > 0:
         import optuna
@@ -210,13 +261,16 @@ def main() -> None:
                                     storage=f"sqlite:///{ROOT / 'runs' / 'optuna_v3.db'}",
                                     sampler=optuna.samplers.TPESampler(seed=a.seed))
         if not study.trials:
-            study.enqueue_trial({"w_peers": 0.5, "w_services": 0.5, "w_gnn": 1.0, "k_peers": 128, "k_services": 64})
+            study.enqueue_trial({"w_peers": 0.5, "w_services": 0.5, "w_gnn": 1.0, "k_peers": 128, "k_services": 64,
+                                 **({"w_extra": 1.0} if a.extra else {})})
         done = len(study.trials)
 
         def objective(trial):
             q = dict(w_peers=trial.suggest_float("w_peers", 0.0, 3.0), w_services=trial.suggest_float("w_services", 0.0, 3.0),
                      w_gnn=trial.suggest_float("w_gnn", 0.0, 3.0), k_peers=trial.suggest_categorical("k_peers", K_PEERS),
                      k_services=trial.suggest_categorical("k_services", K_SERVICES))
+            if a.extra:
+                q["w_extra"] = trial.suggest_float("w_extra", 0.0, 3.0)
             s, tasks = val_score(D, q, tmp)
             log(f"  проба {trial.number + 1}: балл {s:.2f} | w_peers {q['w_peers']:.2f} w_services {q['w_services']:.2f} "
                 f"w_gnn {q['w_gnn']:.2f} k {q['k_peers']}/{q['k_services']} | {fmt_tasks(tasks)} | {time.time() - t0:.0f} с")
@@ -233,6 +287,8 @@ def main() -> None:
     log("абляции на validation (вклад блоков):")
     variants = {"full": p, "nognn": {**p, "w_gnn": 0.0}, "notfidf": {**p, "w_peers": 0.0, "w_services": 0.0},
                 "behav": {**p, "w_peers": 0.0, "w_services": 0.0, "w_gnn": 0.0}}
+    if a.extra:
+        variants["noextra"] = {**p, "w_extra": 0.0}
     abl, abl_txt = {}, {}
     for k, q in variants.items():
         s, tasks = val_score(D, q, tmp)
@@ -242,12 +298,23 @@ def main() -> None:
 
     sub = Path(a.out) / a.name
     log(f"запись отправки {sub}")
-    D.write(sub, p, D.windows)
+    if a.svd_dim > 0:
+        D.fit_proj(p, a.svd_dim)
+    D.write(sub, p, D.windows, fmt="%.5g")
     (sub / "SHARED_COORDINATES").touch()
     sh = D.shares("train", p)
+    behav_note = (" Блок поведения — эталонный профиль `behavioral` из methods/baselines/temporal.py (57 чисел, стандартизован по train)."
+                  if a.behav_dir else " Блок поведения — наш профиль из build_features.py (66 чисел, стандартизован по train).")
+    svd_note = (f" Итоговый вектор сжат до {a.svd_dim} чисел линейной проекцией (SVD по train без вычитания среднего)."
+                if a.svd_dim > 0 else "")
+    if a.pw > 0:
+        svd_note += f" Столбцы SVD-блоков поделены на разброс по train в степени {a.pw}."
+    if a.drop_pc > 0:
+        svd_note += f" Из итогового вектора убраны {a.drop_pc} главных направлений train."
     share_txt = ", ".join(f"{RUS[b]} {100 * v:.0f}%" for b, v in sh.items())
     (sub / "README.md").write_text(CARD.format(name=a.name, gnn=a.gnn, trials=trials, share_txt=share_txt, abl_full=abl_txt["full"],
-                                              abl_nognn=abl_txt["nognn"], abl_notfidf=abl_txt["notfidf"], abl_behav=abl_txt["behav"], **p),
+                                              abl_nognn=abl_txt["nognn"], abl_notfidf=abl_txt["notfidf"], abl_behav=abl_txt["behav"],
+                                              behav_note=behav_note, svd_note=svd_note, **p),
                                    encoding="utf-8")
     (sub / "params.json").write_text(json.dumps({**p, "w_behav": 1.0, "ablation_validation": abl}, indent=1), encoding="utf-8")
     if a.author:
@@ -257,22 +324,32 @@ def main() -> None:
     print(f"\n{bar} ВЕСА БЛОКОВ В ИТОГОВОМ ВЕКТОРЕ {bar}")
     dims = {"behav": D.X["train"]["behav"].shape[1], "peers": min(p["k_peers"], D.kmax["peers"]),
             "services": min(p["k_services"], D.kmax["services"]), "gnn": D.X["train"]["gnn"].shape[1]}
-    wt = {"behav": 1.0, "peers": p["w_peers"], "services": p["w_services"], "gnn": p["w_gnn"]}
-    wins = [w for w in ["train", "validation", "test", "test_day03", "test_day04"] if w in D.windows]
+    wt = {"behav": 1.0, "peers": p["w_peers"], "services": p["w_services"], "gnn": p["w_gnn"], "extra": p.get("w_extra", 0.0)}
+    if a.extra:
+        dims["extra"] = D.X["train"]["extra"].shape[1]
+    wins = list(D.windows)
     shs = {w: D.shares(w, p) for w in wins}
     print(f"{'блок':24s}{'чисел':>6s}{'вес w':>8s}" + "".join(f"{w:>12s}" for w in wins) + "   (доля блока в квадрате длины вектора)")
     for b in ORDER:
         print(f"{RUS[b]:24s}{dims[b]:>6d}{wt[b]:>8.2f}" + "".join(f"{100 * shs[w].get(b, 0):>11.0f}%" for w in wins))
-    print(f"Всего чисел в векторе: {sum(dims[b] for b in ORDER if wt[b] > 0)}")
+    print(f"Всего чисел в блоках: {sum(dims[b] for b in ORDER if wt[b] > 0)}" + (f"; после сжатия в файлах: {a.svd_dim}" if a.svd_dim > 0 else ""))
     print("Балл на validation (по задачам) для разных наборов блоков — вклад каждого блока:")
-    for k, name in [("full", "все блоки"), ("nognn", "без GNN"), ("notfidf", "поведение + GNN (без TF-IDF)"), ("behav", "только поведение")]:
+    for k, name in [("full", "все блоки"), ("nognn", "без GNN"), ("notfidf", "поведение + GNN (без TF-IDF)"), ("behav", "только поведение")] \
+            + ([("noextra", "без доп. блока")] if a.extra else []):
         print(f"  {name:32s} {abl_txt[k]}")
     print(f"Подбор: {trials} проб; параметры в {sub / 'params.json'}; всего {time.time() - t0:.0f} с")
     print("=" * 83)
     if a.score:
-        import gnn_v1
-        log("оценка официальным кодом проекта (несколько минут) ...")
-        gnn_v1.official_score(sub, a.keep_result)
+        import gc
+        import subprocess
+        del D
+        gc.collect()                                       # оценка — в отдельном процессе: память после подбора не копится
+        log("оценка официальным кодом проекта в отдельном процессе (несколько минут) ...")
+        t1 = time.time()
+        code = ("import sys; sys.path.insert(0, %r); sys.path.insert(0, %r); import gnn_v1; from pathlib import Path; "
+                "gnn_v1.official_score(Path(%r), %r)" % (str(ROOT), str(Path(__file__).resolve().parent), str(sub), a.keep_result))
+        rc = subprocess.run([sys.executable, "-u", "-c", code], cwd=str(ROOT)).returncode
+        log(f"оценка заняла {time.time() - t1:.0f} с, код возврата {rc}" + ("" if rc == 0 else " (не 0 — процесс упал, см. вывод выше)"))
 
 
 if __name__ == "__main__":
