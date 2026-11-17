@@ -79,6 +79,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("serve", parents=[common], help="локальный HTTP API")
     p.add_argument("--port", type=int, default=8847)
     p.add_argument("--compare", type=Path, help="второе окно для /api/lab/changes")
+    p.add_argument("--allow-origin", action="append", default=[], metavar="ORIGIN",
+                   help="локальный origin лаборатории для CORS, например "
+                        "http://127.0.0.1:8845; можно повторять")
     return parser
 
 
@@ -247,10 +250,16 @@ def render(args, result: dict) -> str:
     if kind == "groups":
         blocks = []
         for profile in result["profiles"]:
+            if profile.get("empty"):
+                blocks.append(f"Группа {profile['group']} · 0 хостов (пусто)\n  {profile['note']}")
+                continue
             top = ", ".join(f"{item['name'] or item['index']}" for item in profile["top_features"])
             blocks.append(f"Группа {profile['group']} · {profile['size']} хостов\n  сильнее всего: {top}")
         return "\n\n".join(blocks)
     if kind == "group":
+        if result.get("empty"):
+            return (f"Группа {result['group']} · 0 хостов (пусто)\n"
+                    f"  {result['note']}")
         top = ", ".join(f"{item['name'] or item['index']} {item['centroid']:+.3f}"
                         for item in result["top_features"])
         return (f"Группа {result['group']} · {result['size']} хостов\n"

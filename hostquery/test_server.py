@@ -11,7 +11,8 @@ import urllib.request
 import numpy as np
 import pytest
 
-from hostquery.server import ENDPOINTS, make_server
+from hostquery.errors import HostQueryError
+from hostquery.server import ENDPOINTS, make_server, normalize_origins
 from hostquery.store import Dataset, RunStore
 
 
@@ -28,7 +29,8 @@ def perturbed(data: Dataset) -> Dataset:
 @pytest.fixture(scope="module")
 def running(demo, demo_path):
     server = make_server(RunStore(bundle=demo_path, method="behavioral"),
-                         compare=perturbed(demo), port=0)
+                         compare=perturbed(demo), port=0,
+                         allowed_origins=["http://127.0.0.1:8845"])
     server.RequestHandlerClass.log_message = lambda *args, **kwargs: None
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -70,7 +72,9 @@ def raw(server, method: str, path: str, headers: dict | None = None):
             connection.putheader(key, value)
         connection.endheaders()
         response = connection.getresponse()
-        return response.status, json.load(response)
+        payload = response.read()
+        body = json.loads(payload) if payload else None
+        return response.status, body, dict(response.headers)
     finally:
         connection.close()
 
@@ -157,19 +161,90 @@ def test_changes_without_second_window_explains_how_to_start(plain):
 
 def test_non_read_methods_are_rejected(running):
     for method in ("POST", "PUT", "DELETE", "PATCH"):
-        status, body = raw(running, method, "/api/lab/health",
-                           {"Host": f"127.0.0.1:{running.server_port}"})
+        status, body, _ = raw(running, method, "/api/lab/health",
+                              {"Host": f"127.0.0.1:{running.server_port}"})
         assert status == 405 and "только чтение" in body["error"]
 
 
 def test_foreign_host_and_origin_are_blocked(running):
-    status, body = raw(running, "GET", "/api/lab/health", {"Host": "evil.example"})
+    status, body, _ = raw(running, "GET", "/api/lab/health", {"Host": "evil.example"})
     assert status == 403 and "локальный" in body["error"]
     status, body, _ = get(running, "/api/lab/health", {"Origin": "http://evil.example"})
     assert status == 403 and "локальный" in body["error"]
     status, _, _ = get(running, "/api/lab/health",
                        {"Origin": f"http://127.0.0.1:{running.server_port}"})
-    assert status == 200
+    assert status == 403
+
+
+def test_documented_lab_origin_gets_cors_headers(running):
+    lab_origin = "http://127.0.0.1:8845"          # тот же origin, что в README
+    status, body, headers = get(running, "/api/lab/health", {"Origin": lab_origin})
+    assert status == 200 and body["status"] == "ok"
+    assert headers["Access-Control-Allow-Origin"] == lab_origin
+    assert "Origin" in headers["Vary"]
+
+    # Ошибки тоже читаются fetch-ом: без CORS браузер скрыл бы тело ответа.
+    status, body, headers = get(running, "/api/lab/similar?k=3", {"Origin": lab_origin})
+    assert status == 400 and "error" in body
+    assert headers["Access-Control-Allow-Origin"] == lab_origin
+
+
+def test_cors_preflight_allows_only_get(running):
+    lab_origin = "http://127.0.0.1:8845"
+    status, _, headers = raw(running, "OPTIONS", "/api/lab/health", {
+        "Host": f"127.0.0.1:{running.server_port}",
+        "Origin": lab_origin,
+        "Access-Control-Request-Method": "GET",
+    })
+    assert status == 204
+    assert headers["Access-Control-Allow-Origin"] == lab_origin
+    assert headers["Access-Control-Allow-Methods"] == "GET, OPTIONS"
+    assert headers["Access-Control-Allow-Headers"] == "Accept, Content-Type"
+
+    status, body, _ = raw(running, "OPTIONS", "/api/lab/health", {
+        "Host": f"127.0.0.1:{running.server_port}",
+        "Origin": "http://evil.example",
+        "Access-Control-Request-Method": "GET",
+    })
+    assert status == 403 and "origin" in body["error"]
+
+
+def test_origin_allowlist_accepts_only_loopback():
+    assert normalize_origins(["http://127.0.0.1:8845", "http://localhost:8845/"]) == (
+        "http://127.0.0.1:8845", "http://localhost:8845")
+    for value in ("http://example.com", "https://192.168.1.5:8845",
+                  "http://127.0.0.1:8845/path", "file://"):
+        with pytest.raises(HostQueryError, match="локальным|только схему|порт"):
+            normalize_origins([value])
+
+
+@pytest.fixture(scope="module")
+def identical(tmp_path_factory):
+    path = tmp_path_factory.mktemp("identical") / "vectors.csv"
+    path.write_text("host_id,emb_0,emb_1\na,1,1\nb,1,1\nc,1,1\n", encoding="utf-8")
+    server = make_server(RunStore(embeddings=path), port=0)
+    server.RequestHandlerClass.log_message = lambda *args, **kwargs: None
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_empty_groups_are_described_not_rejected(identical):
+    status, body, _ = get(identical, "/api/lab/groups?n=3")
+    assert status == 200 and body["sizes"] == [3, 0, 0]
+    assert len(body["profiles"]) == 3
+    assert body["profiles"][0]["empty"] is False
+    empty = body["profiles"][1]
+    assert empty["group"] == 1 and empty["size"] == 0 and empty["empty"] is True
+    assert empty["members"] == [] and empty["centroid"] is None
+
+    status, body, _ = get(identical, "/api/lab/group?n=3&group=1")
+    assert status == 200 and body["group"] == 1 and body["size"] == 0
+    assert body["empty"] is True and body["mean_similarity"] is None
 
 
 def test_artifacts_are_not_modified(demo_path, running):

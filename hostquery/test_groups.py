@@ -91,10 +91,18 @@ def test_profile_rejects_bad_labels(demo):
     labels = [0] * demo.n
     with pytest.raises(HostQueryError, match="не совпадают"):
         groups.profile(demo, labels[:-1], 0)
-    with pytest.raises(HostQueryError, match="пуста"):
-        groups.profile(demo, labels, 3)
-    with pytest.raises(HostQueryError, match="пуста"):
-        groups.profile(demo, labels, 1)
+
+
+def test_profile_describes_empty_group_without_failing():
+    data = make([[1, 1], [1, 1], [1, 1]])
+    result = groups.fit(data, 3)
+    assert result["k"] == 3 and result["sizes"] == [3, 0, 0]
+    profile = groups.profile(data, result["labels"], 1)
+    assert profile["group"] == 1 and profile["size"] == 0 and profile["empty"] is True
+    assert profile["members"] == [] and profile["top_features"] == []
+    assert profile["centroid"] is None and profile["mean_similarity"] is None
+    assert "пуста" in profile["note"] and "#21" in profile["note"]
+    assert groups.profile(data, result["labels"], 0)["empty"] is False
 
 
 def test_fit_unit_validates_input():

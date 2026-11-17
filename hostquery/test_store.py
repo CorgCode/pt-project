@@ -16,6 +16,7 @@ from hostquery import features
 from hostquery.errors import HostQueryError
 from hostquery.store import (Dataset, RunStore, dataset_from_csv, open_dataset,
                              read_csv_dataset, sha256_file)
+from hostquery.temporal import compare
 
 DEMO = Path(__file__).resolve().parents[1] / "app" / "testdata" / "synthetic_run"
 
@@ -75,6 +76,22 @@ def test_vectors_csv_bom_semicolon_and_order(tmp_path):
     opened = open_dataset(path)
     assert opened.provenance["source"] == "csv" and opened.provenance["data_kind"] == "vectors"
     assert opened.provenance["embeddings_sha256"] == sha256_file(path)
+
+
+def test_reordered_embeddings_are_read_in_the_same_order_by_both_loaders(tmp_path):
+    """`emb_1,emb_0` не должен превращать файл в другой набор при другом загрузчике."""
+    path = tmp_path / "reordered.csv"
+    path.write_text("host_id,emb_1,emb_0\na,1,0\nb,0,1\nc,1,1\n", encoding="utf-8")
+    direct = read_csv_dataset(path)
+    loaded = RunStore(embeddings=path).dataset()
+    assert direct.ids == loaded.ids == ["a", "b", "c"]
+    assert np.allclose(direct.vectors, [[0, 1], [1, 0], [1, 1]])
+    np.testing.assert_allclose(loaded.vectors, direct.vectors)
+
+    # Сравнение файла с самим собой через два разных загрузчика: сходство ровно 1.
+    changes = compare(direct, loaded, k=3)
+    assert {item["id"] for item in changes["changes"]} == {"a", "b", "c"}
+    assert all(item["similarity"] == pytest.approx(1.0) for item in changes["changes"])
 
 
 def test_flow_csv_builds_same_twenty_features_as_core_js():

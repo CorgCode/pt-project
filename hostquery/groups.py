@@ -113,7 +113,20 @@ def profile(dataset: Dataset, labels: list[int], group: int, *, top: int = 5) ->
         raise HostQueryError("метки групп не совпадают по длине с набором")
     members = [host for host, label in zip(dataset.ids, labels) if label == group]
     if not members:
-        raise HostQueryError(f"группа {group} пуста")
+        # Совпадающие профили — допустимый вход: k-means может оставить кластер
+        # без хостов. Не роняем весь ответ из-за одной пустой группы, а явно
+        # описываем её, сохраняя исходную нумерацию меток.
+        return {
+            "group": group,
+            "size": 0,
+            "members": [],
+            "mean_similarity": None,
+            "centroid": None,
+            "top_features": [],
+            "empty": True,
+            "note": "группа пуста: в наборе нет хостов с этой меткой; "
+                    "качество разбиения оценивает #21",
+        }
     unit = dataset.unit()
     position = {host: index for index, host in enumerate(dataset.ids)}
     rows = unit[[position[host] for host in members]]
@@ -138,5 +151,6 @@ def profile(dataset: Dataset, labels: list[int], group: int, *, top: int = 5) ->
         "mean_similarity": float(np.mean(rows @ centroid)),
         "centroid": [float(x) for x in centroid],
         "top_features": top_features,
+        "empty": False,
         "note": "группа — номер кластера, а не роль хоста",
     }

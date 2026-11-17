@@ -9,6 +9,7 @@ on:
       - "experiments/**"
       - "app/**"
       - "scoreboard/**"
+      - "hostquery/**"
       - ".github/workflows/benchmark.yml"
   push:
     branches:
@@ -20,6 +21,8 @@ on:
       - "experiments/**"
       - "app/**"
       - "scoreboard/**"
+      - "hostquery/**"
+      - ".github/workflows/benchmark.yml"
 
 jobs:
   validate-benchmark:
@@ -33,14 +36,28 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up Node.js for hostquery parity
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Install dependencies
         run: python -m pip install --upgrade pip -r requirements.txt
+
+      - name: Fetch lab core.js for hostquery parity
+        run: |
+          if [ -f noomo-ui/lab/core.js ]; then
+            echo "core.js уже есть в основной ветке"
+          else
+            git fetch --depth=1 origin \
+              physcorgi/ui-soc-story:refs/remotes/origin/physcorgi/ui-soc-story
+          fi
 
       - name: Validate example submission
         run: python -m evaluation.validate methods/example_embeddings.csv
 
       - name: Run evaluation tests
-        run: python -m pytest -q evaluation methods app pipeline experiments
+        run: python -m pytest -q evaluation methods app pipeline experiments hostquery
 
       - name: Pipeline smoke test (synthetic LANL-format fixture)
         run: |

@@ -114,12 +114,17 @@ global.window = {};
 require(process.argv[2]);
 const fs = require("fs");
 const read = (path) => fs.readFileSync(path, "utf8");
-const first = window.PTLab.parseCSV(read(process.argv[3]));
-const out = { projection: window.PTLab.project(first), group: window.PTLab.group(first, 3) };
-if (process.argv[4]) {
-  const second = window.PTLab.parseCSV(read(process.argv[4]));
-  out.changes = window.PTLab.compareWindows(first, second, 3);
-}
+const parse = (path) => window.PTLab.parseCSV(read(path));
+// parseCSV возвращает {dataset, stats, kind}; project/group принимают dataset,
+// а compareWindows — целые разобранные окна. Раньше драйвер путал эти формы.
+const vectors = parse(process.argv[3]);
+const before = parse(process.argv[4]);
+const after = parse(process.argv[5]);
+const out = {
+  projection: window.PTLab.project(vectors.dataset),
+  group: window.PTLab.group(vectors.dataset, 3),
+  changes: window.PTLab.compareWindows(before, after, 3),
+};
 process.stdout.write(JSON.stringify(out));
 """,
         encoding="utf-8",

@@ -41,6 +41,10 @@ JSON, код возврата `2`.
 Готовые векторы не получают придуманных имён координат: `name` равен `null`,
 `kind` равен `embedding_coordinate`. Смысл оси эмбеддинга по номеру не восстановить.
 
+Координаты читаются в числовом порядке `emb_0, emb_1, …`, а не в порядке столбцов
+файла: `host_id,emb_1,emb_0` даёт те же векторы, что и `host_id,emb_0,emb_1`, и при
+сравнении файла с самим собой сходство равно 1. Номера должны идти подряд от `emb_0`.
+
 ## Контракт ответа
 
 Версия контракта — `schema: "hostquery/1"`. Конверт одинаков у CLI и HTTP:
@@ -115,6 +119,12 @@ python -m hostquery group  --bundle app/testdata/synthetic_run -n 4 --group 1 --
 `group` — профиль одной группы: `members`, `size`, `centroid`, `mean_similarity`,
 `top_features` и напоминание `note`, что группа — номер кластера, а не роль.
 
+Совпадающие профили могут оставить кластер без хостов: это допустимый вход.
+Пустая группа не роняет ответ, а описывается явно — `empty: true`, `size: 0`,
+`members: []`, `centroid: null`, `mean_similarity: null`, `top_features: []`.
+Метки и `sizes` при этом сохраняют исходную нумерацию, поэтому `group + 1`
+в интерфейсе не сдвигается.
+
 Алгоритм портирован один в один из `noomo-ui/lab/core.js`: farthest-point init,
 20 итераций, стабильный выбор при равенстве, 18 итераций степенного метода для
 2D-проекции. `sklearn.KMeans`/`PCA` дали бы другие метки и другой поворот, поэтому
@@ -168,13 +178,23 @@ python -m hostquery outliers --bundle app/testdata/synthetic_run -k 10 --json
 ## HTTP API
 
 ```
-python -m hostquery serve --bundle app/testdata/synthetic_run --port 8847
-python -m hostquery serve --bundle окно1/ --compare окно2/ --port 8847
+python -m hostquery serve --bundle app/testdata/synthetic_run --port 8847 \
+  --allow-origin http://127.0.0.1:8845
+python -m hostquery serve --bundle окно1/ --compare окно2/ --port 8847 \
+  --allow-origin http://127.0.0.1:8845
 ```
 
 Сервер слушает только `127.0.0.1`, проверяет `Host` и `Origin`, отвечает только на
 `GET` (остальные методы — `405`) и ничего не пишет на диск. Ответы — тот же конверт,
 что у CLI.
+
+`--allow-origin` — явный список локальных origin лаборатории; флаг можно повторять.
+Разрешены только `http://127.0.0.1:<порт>`, `http://localhost:<порт>` и их `https`
+варианты. Для разрешённого origin сервер отдаёт `Access-Control-Allow-Origin` и
+`Vary: Origin`, включая ответы с ошибками; на preflight `OPTIONS` отвечает `204` с
+`Access-Control-Allow-Methods: GET, OPTIONS`. Без флага cross-origin `fetch` из
+лаборатории отклоняется: так API не открывается даже другим локальным страницам
+по умолчанию.
 
 | Путь | Что отдаёт |
 | --- | --- |
@@ -218,9 +238,10 @@ renderScatter(groups.projection, groups.labels);
 renderChanges(changes.changes);           // before/after/logValues/activity
 ```
 
-Сервер запускается рядом с лабораторией и читает те же артефакты. Если прогон
-обновляется, сервер нужно перезапустить: кэш намеренно не разделяется между
-процессами.
+Сервер запускается рядом с лабораторией и читает те же артефакты. Origin страницы
+лаборатории нужно передать в `--allow-origin`; пример выше рассчитан на страницу
+`http://127.0.0.1:8845`. Если прогон обновляется, сервер нужно перезапустить: кэш
+намеренно не разделяется между процессами.
 
 ## Паритет и тесты
 
@@ -228,13 +249,16 @@ renderChanges(changes.changes);           // before/after/logValues/activity
 python -m pytest -q hostquery
 ```
 
-Тесты покрывают чтение CSV, косинус и консенсус, детерминированные группы,
-объяснение пары, общую шкалу и Procrustes, нетипичность, CLI и HTTP-контракт.
+Тесты покрывают чтение CSV, порядок координат `emb_*`, косинус и консенсус,
+детерминированные группы и пустые кластеры, объяснение пары, общую шкалу и
+Procrustes, нетипичность, CLI, CORS и HTTP-контракт.
 `hostquery/test_parity.py` сверяет константы с `noomo-ui/lab/core.js`, а при
 установленном `node` прогоняет настоящий `core.js` на тех же CSV и сравнивает
-проекцию, метки и `compareWindows` с точностью `1e-12`. Без Node.js этот тест
-пропускается, остальные проверки паритета остаются. Соседи дополнительно сверяются
-с уже существующим `app.results.Bundle.neighborhood`.
+проекцию, метки и `compareWindows` с точностью `1e-12`. В CI пакет подключён к
+`.github/workflows/benchmark.yml`: там ставится Node.js 20, а при отсутствии
+`noomo-ui/lab/core.js` в `main` подтягивается ветка лаборатории #156. Локально без
+Node.js этот тест пропускается, остальные проверки паритета остаются. Соседи
+дополнительно сверяются с уже существующим `app.results.Bundle.neighborhood`.
 
 ## Границы
 

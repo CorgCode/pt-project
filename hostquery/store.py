@@ -409,7 +409,17 @@ class RunStore:
         if frame.empty:
             raise HostQueryError(f"эмбеддинг {name!r} пуст")
         ids = [str(host) for host in frame.index]
-        vectors = frame.to_numpy(dtype=float)
+        # `evaluation.io.load_embeddings` сохраняет порядок столбцов из файла, а
+        # `dataset_from_csv` сортирует их по номеру emb_*. Если не привести оба
+        # пути к одному порядку, файл с `emb_1,emb_0` сравнится сам с собой как
+        # разные векторы. Канонический порядок — числовой, как в core.js.
+        dimensions = sorted((int(m.group(1)), str(column)) for column in frame.columns
+                            if (m := _EMB_COLUMN.fullmatch(str(column))))
+        if not dimensions:
+            raise HostQueryError(f"эмбеддинг {name!r}: нет координат emb_0, emb_1, …")
+        if any(number != position for position, (number, _) in enumerate(dimensions)):
+            raise HostQueryError(f"эмбеддинг {name!r}: координаты должны идти подряд от emb_0")
+        vectors = frame[[column for _, column in dimensions]].to_numpy(dtype=float)
         norms = np.linalg.norm(vectors, axis=1)
         reference = self._reference_path()
         provenance = {

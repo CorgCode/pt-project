@@ -14,6 +14,34 @@ from hostquery import anomaly, explain, groups, schema, similar, temporal
 from hostquery.errors import HostQueryError
 from hostquery.store import RunStore, open_dataset
 
+LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+
+
+def _normalize_origin(value: str) -> str:
+    """Разрешаем только loopback-origin без пути: так API не открывается в сеть."""
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        raise HostQueryError(f"origin {value!r}: неверный порт") from None
+    if parsed.scheme not in {"http", "https"} or parsed.hostname not in LOCAL_HOSTS:
+        raise HostQueryError(f"origin {value!r} должен быть локальным",
+                             hint="например http://127.0.0.1:8845 или http://localhost:8845")
+    if parsed.username or parsed.password or parsed.path not in {"", "/"} \
+            or parsed.query or parsed.fragment:
+        raise HostQueryError(f"origin {value!r} должен содержать только схему, хост и порт")
+    return f"{parsed.scheme}://{parsed.hostname}" + (f":{port}" if port else "")
+
+
+def normalize_origins(values) -> tuple[str, ...]:
+    """Явный список origin лаборатории; дубликаты схлопываются."""
+    seen: list[str] = []
+    for value in values or ():
+        normalized = _normalize_origin(value)
+        if normalized not in seen:
+            seen.append(normalized)
+    return tuple(seen)
+
 ENDPOINTS = [
     "/api/lab/health",
     "/api/lab/meta",
@@ -42,15 +70,23 @@ def _one(params: dict[str, list[str]], name: str) -> str | None:
 
 
 def make_server(store: RunStore, *, compare=None, port: int = 8847,
-                host: str = "127.0.0.1") -> ThreadingHTTPServer:
+                host: str = "127.0.0.1", allowed_origins=()) -> ThreadingHTTPServer:
+    origins = normalize_origins(allowed_origins)
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "hostquery"
 
-        def trusted(self) -> bool:
+        def host_allowed(self) -> bool:
             allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
+            return self.headers.get("Host") in allowed
+
+        def cors_origin(self) -> str | None:
             origin = self.headers.get("Origin")
-            return self.headers.get("Host") in allowed and (
-                not origin or origin in {"http://" + name for name in allowed})
+            return origin if origin and origin in self.server.allowed_origins else None
+
+        def trusted(self) -> bool:
+            origin = self.headers.get("Origin")
+            return self.host_allowed() and (not origin or self.cors_origin() is not None)
 
         def send(self, status: int, data) -> None:
             if not isinstance(data, bytes):
@@ -61,8 +97,31 @@ def make_server(store: RunStore, *, compare=None, port: int = 8847,
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+            origin = self.cors_origin()
+            if origin:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
             self.end_headers()
             self.wfile.write(data)
+
+        def do_OPTIONS(self) -> None:  # noqa: N802 - имя задаёт http.server
+            """Preflight для fetch из лаборатории: только GET и только разрешённый origin."""
+            if not self.host_allowed():
+                return self.send(403, {"error": "доступен только локальный интерфейс"})
+            origin = self.cors_origin()
+            if not origin:
+                return self.send(403, {
+                    "error": "origin не разрешён",
+                    "hint": "запустите serve с --allow-origin http://127.0.0.1:<порт лаборатории>",
+                })
+            self.send_response(204)
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Accept, Content-Type")
+            self.send_header("Access-Control-Max-Age", "600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
 
         def do_GET(self) -> None:  # noqa: N802 - имя задаёт http.server
             if not self.trusted():
@@ -159,7 +218,9 @@ def make_server(store: RunStore, *, compare=None, port: int = 8847,
                                        query={"k": result["k"]}, **result)
             raise HostQueryError(f"неизвестный маршрут {path}", hint="список путей — GET /")
 
-    return ThreadingHTTPServer((host, port), Handler)
+    server = ThreadingHTTPServer((host, port), Handler)
+    server.allowed_origins = origins
+    return server
 
 
 def serve(args) -> None:
@@ -168,7 +229,8 @@ def serve(args) -> None:
     compare = None
     if getattr(args, "compare", None):
         compare = open_dataset(args.compare, method=args.method, reference_dir=args.reference_dir)
-    server = make_server(store, compare=compare, port=args.port)
+    server = make_server(store, compare=compare, port=args.port,
+                         allowed_origins=getattr(args, "allow_origin", ()))
     print(f"hostquery: http://127.0.0.1:{server.server_port}/  (только чтение, Ctrl+C — остановить)",
           flush=True)
     try:

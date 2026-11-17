@@ -95,6 +95,22 @@ def test_groups_and_group_json(capsys, demo_path):
     assert one["group"] == 2 and one["members"] and one["top_features"]
 
 
+def test_empty_groups_are_rendered_without_error(capsys, tmp_path):
+    path = write(tmp_path, "identical.csv", "host_id,emb_0,emb_1\na,1,1\nb,1,1\nc,1,1\n")
+    result = run_json(capsys, "groups", "--embeddings", str(path), "-n", "3")
+    assert result["sizes"] == [3, 0, 0] and len(result["profiles"]) == 3
+    assert result["profiles"][1]["empty"] is True
+    assert result["profiles"][1]["centroid"] is None
+
+    one = run_json(capsys, "group", "--embeddings", str(path), "-n", "3", "--group", "1")
+    assert one["group"] == 1 and one["size"] == 0 and one["empty"] is True
+    assert one["mean_similarity"] is None and one["members"] == []
+
+    code = main(["groups", "--embeddings", str(path), "-n", "3"])
+    out = capsys.readouterr().out
+    assert code == 0 and "(пусто)" in out
+
+
 def test_group_out_of_range_is_a_clean_error(capsys, demo_path):
     code = main(["group", "--bundle", str(demo_path), "-n", "3", "--group", "9"])
     streams = capsys.readouterr()
