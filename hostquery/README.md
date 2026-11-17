@@ -185,17 +185,28 @@ python -m hostquery serve --bundle окно1/ --compare окно2/ --port 8847 \
   --allow-origin http://127.0.0.1:8845
 ```
 
-Сервер слушает только `127.0.0.1`, проверяет `Host` и `Origin`, отвечает только на
-`GET` (остальные методы — `405`) и ничего не пишет на диск. Ответы — тот же конверт,
-что у CLI.
+Сервер на FastAPI: `hostquery/server.py` собирает приложение `create_app()`, а
+`python -m hostquery serve` запускает его через `uvicorn` только на `127.0.0.1`.
+Модели запросов и ответов описаны в коде, поэтому контракт доступен машиночитаемо —
+`GET /api/lab/openapi.json`. Swagger UI и ReDoc отключены намеренно: CSP запрещает
+внешние скрипты, а схема и без них проверяется тестами.
+
+Сервер проверяет `Host` и `Origin`, отвечает только на `GET` (остальные методы —
+`405`) и ничего не пишет на диск. Ответы — тот же конверт, что у CLI. Неверные
+параметры дают `400` с `{"error", "hint"?}`, а не «сырой» `422` pydantic: тексты
+ошибок остаются такими же, как в CLI.
 
 `--allow-origin` — явный список локальных origin лаборатории; флаг можно повторять.
 Разрешены только `http://127.0.0.1:<порт>`, `http://localhost:<порт>` и их `https`
-варианты. Для разрешённого origin сервер отдаёт `Access-Control-Allow-Origin` и
-`Vary: Origin`, включая ответы с ошибками; на preflight `OPTIONS` отвечает `204` с
-`Access-Control-Allow-Methods: GET, OPTIONS`. Без флага cross-origin `fetch` из
-лаборатории отклоняется: так API не открывается даже другим локальным страницам
-по умолчанию.
+варианты; CORS обслуживает `CORSMiddleware`. Для разрешённого origin сервер отдаёт
+`Access-Control-Allow-Origin` и `Vary: Origin`, включая ответы с ошибками; на
+preflight `OPTIONS` отвечает `200` с `Access-Control-Allow-Methods: GET, OPTIONS`.
+Без флага cross-origin `fetch` из лаборатории отклоняется: так API не открывается
+даже другим локальным страницам по умолчанию.
+
+Новые зависимости — `fastapi` и `uvicorn`; `httpx2` нужен только тестовому
+ASGI-клиенту. Все три добавлены в общий `requirements.txt`, вычислительные модули
+по-прежнему знают только `numpy` и `pandas`.
 
 | Путь | Что отдаёт |
 | --- | --- |
@@ -209,15 +220,18 @@ python -m hostquery serve --bundle окно1/ --compare окно2/ --port 8847 \
 | `GET /api/lab/pair?a=ID&b=ID` | объяснение пары |
 | `GET /api/lab/changes?k=3&alignment=none` | изменения (нужен `--compare`) |
 | `GET /api/lab/outliers?k=10&groups=0` | exploratory-нетипичность |
+| `GET /api/lab/openapi.json` | OpenAPI-схема контракта |
 
 Ошибки — `400` с `{"error", "hint"?}`, неизвестный путь — тоже `400` с подсказкой
-`GET /`. Заголовки ответа: `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`,
+`GET /`. Ошибки валидации FastAPI (`422`) перехватываются и отдаются тем же `400`,
+поэтому потребитель видит один формат. Заголовки ответа: `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`,
 `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`.
 
 ### Подключение к лаборатории #156
 
-Никаких новых зависимостей: только стандартный `fetch` браузера. Конверт можно
-проверять по `schema`, а `group` показывать как `group + 1`.
+Никаких новых зависимостей для клиента: только стандартный `fetch` браузера.
+Конверт можно проверять по `schema`, а `group` показывать как `group + 1`.
 
 ```js
 const BASE = "http://127.0.0.1:8847";
@@ -252,7 +266,9 @@ python -m pytest -q hostquery
 
 Тесты покрывают чтение CSV, порядок координат `emb_*`, косинус и консенсус,
 детерминированные группы и пустые кластеры, объяснение пары, общую шкалу и
-Procrustes, нетипичность, CLI, CORS и HTTP-контракт.
+Procrustes, нетипичность, CLI, CORS, OpenAPI и HTTP-контракт. HTTP-тесты идут через
+ASGI-клиент `TestClient`, поэтому не требуют свободных портов, а отдельная проверка
+сравнивает JSON HTTP и CLI на одних и тех же запросах.
 `hostquery/test_parity.py` сверяет константы с `noomo-ui/lab/core.js`, а при
 установленном `node` прогоняет настоящий `core.js` на тех же CSV и сравнивает
 проекцию, метки и `compareWindows` с точностью `1e-12`. В CI пакет подключён к

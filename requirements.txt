@@ -1,4 +1,4 @@
-# Everything needed to run the pipeline, evaluator, experiments, dashboard and tests.
+# Everything needed to run the pipeline, evaluator, experiments, dashboard, API and tests.
 numpy
 pandas
 scipy
@@ -8,4 +8,8 @@ tqdm
 matplotlib
 plotly
 streamlit
+fastapi
+uvicorn
+# Клиент для тестов FastAPI; starlette>=1.7 предпочитает httpx2 вместо httpx.
+httpx2
 pytest

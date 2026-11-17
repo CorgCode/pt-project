@@ -1,20 +1,51 @@
-"""Локальный HTTP API для лаборатории #156.
+"""Локальный HTTP API для лаборатории #156 на FastAPI.
 
-Только 127.0.0.1, только чтение, тот же JSON, что у CLI. Страницы и графику
-здесь не рисуем: #157 отдаёт данные, интерфейс остаётся в своей ветке.
+Только 127.0.0.1, только чтение, тот же JSON, что у CLI. Модели запросов и ответов
+описывают контракт `hostquery/1` в OpenAPI, поэтому UI может проверять ответы по
+схеме, а не по примерам в README. Вычисления и загрузка данных остаются в доменных
+модулях: здесь только маршрутизация, валидация и единая обработка ошибок.
 """
 from __future__ import annotations
 
-import json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from typing import Any
+from urllib.parse import urlsplit
+
+import uvicorn
+from fastapi import FastAPI, Query
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 from hostquery import anomaly, explain, groups, schema, similar, temporal
 from hostquery.errors import HostQueryError
 from hostquery.store import RunStore, open_dataset
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+SECURITY_HEADERS = {
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+}
+
+ENDPOINTS = [
+    "/api/lab/health",
+    "/api/lab/meta",
+    "/api/lab/dataset?method=NAME",
+    "/api/lab/similar?host=ID&k=10&method=NAME",
+    "/api/lab/groups?n=6&method=NAME",
+    "/api/lab/group?n=6&group=0&method=NAME",
+    "/api/lab/pair?a=ID&b=ID&method=NAME",
+    "/api/lab/changes?k=3&alignment=none",
+    "/api/lab/outliers?k=10&method=NAME",
+    "/api/lab/openapi.json",
+]
+
+
+# ------------------------------------------------------------------------------------------ origin
 
 
 def _normalize_origin(value: str) -> str:
@@ -42,206 +73,436 @@ def normalize_origins(values) -> tuple[str, ...]:
             seen.append(normalized)
     return tuple(seen)
 
-ENDPOINTS = [
-    "/api/lab/health",
-    "/api/lab/meta",
-    "/api/lab/dataset?method=NAME",
-    "/api/lab/similar?host=ID&k=10&method=NAME",
-    "/api/lab/groups?n=6&method=NAME",
-    "/api/lab/group?n=6&group=0&method=NAME",
-    "/api/lab/pair?a=ID&b=ID&method=NAME",
-    "/api/lab/changes?k=3&alignment=none",
-    "/api/lab/outliers?k=10&method=NAME",
-]
+
+# ------------------------------------------------------------------------------------------ модели
 
 
-def _int(params: dict[str, list[str]], name: str, default: int) -> int:
-    raw = params.get(name, [None])[0]
-    if raw is None or raw == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        raise HostQueryError(f"параметр {name} должен быть целым") from None
+class ApiModel(BaseModel):
+    """Базовая модель: лишние поля сохраняются, иначе ответ разошёлся бы с CLI."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
-def _one(params: dict[str, list[str]], name: str) -> str | None:
-    return params.get(name, [None])[0] or None
+class Envelope(ApiModel):
+    """Общая часть конверта: версия контракта, запрос и происхождение."""
+
+    schema_version: str = Field(default=schema.SCHEMA, alias="schema")
+    query: dict[str, Any]
+    provenance: dict[str, Any]
 
 
-def make_server(store: RunStore, *, compare=None, port: int = 8847,
-                host: str = "127.0.0.1", allowed_origins=()) -> ThreadingHTTPServer:
+class FeatureInfo(ApiModel):
+    index: int
+    name: str | None = None
+    kind: str
+
+
+class IndexResponse(ApiModel):
+    schema_version: str = Field(default=schema.SCHEMA, alias="schema")
+    endpoints: list[str]
+    note: str
+
+
+class HealthResponse(ApiModel):
+    status: str
+    schema_version: str = Field(default=schema.SCHEMA, alias="schema")
+    methods: list[str]
+    compare: bool
+
+
+class MetaResponse(ApiModel):
+    schema_version: str = Field(default=schema.SCHEMA, alias="schema")
+    source: str
+    root: str
+    synthetic: bool
+    label: str | None = None
+    methods: list[str]
+    hosts: int
+    dimensions: int
+    reference: str | None = None
+    features: list[FeatureInfo]
+
+
+class Neighbor(ApiModel):
+    id: str
+    rank: int
+    similarity: float
+    group: int | None = None
+    reference_rank: int | None = None
+    in_reference_top_k: bool | None = None
+
+
+class SimilarResponse(Envelope):
+    host: str
+    k: int
+    neighbors: list[Neighbor]
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ProjectionPoint(ApiModel):
+    x: float
+    y: float
+    hostId: str
+
+
+class TopFeature(ApiModel):
+    index: int
+    name: str | None = None
+    kind: str
+    centroid: float
+
+
+class GroupProfile(ApiModel):
+    group: int
+    size: int
+    members: list[str]
+    mean_similarity: float | None = None
+    centroid: list[float] | None = None
+    top_features: list[TopFeature]
+    empty: bool
+    note: str
+
+
+class GroupsResponse(Envelope):
+    k: int
+    labels: list[int]
+    sizes: list[int]
+    centers: list[list[float]]
+    projection: list[ProjectionPoint]
+    profiles: list[GroupProfile]
+    warnings: list[str] = Field(default_factory=list)
+
+
+class GroupResponse(Envelope):
+    group: int
+    size: int
+    members: list[str]
+    mean_similarity: float | None = None
+    centroid: list[float] | None = None
+    top_features: list[TopFeature]
+    empty: bool
+    note: str
+    warnings: list[str] = Field(default_factory=list)
+
+
+class Coordinate(ApiModel):
+    index: int
+    name: str | None = None
+    kind: str
+    a: float
+    b: float
+    delta: float
+    product: float
+
+
+class Contribution(ApiModel):
+    index: int
+    name: str | None = None
+    contribution: float
+
+
+class PairResponse(Envelope):
+    a: str
+    b: str
+    cosine: float
+    coordinates: list[Coordinate]
+    top_contributions: list[Contribution]
+    shared_contacts: list[str] | None = None
+    shared_contacts_note: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+
+class DatasetItem(ApiModel):
+    id: str
+    v: list[float]
+    norm: float
+    activity: dict[str, Any] | None = None
+
+
+class DatasetResponse(Envelope):
+    dataset: list[DatasetItem]
+    stats: dict[str, Any]
+    kind: str
+    connections: list[dict[str, Any]] | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+
+class HostState(ApiModel):
+    id: str
+    v: list[float]
+    norm: float
+    logValues: list[float] | None = None
+    activity: dict[str, Any] | None = None
+
+
+class Change(ApiModel):
+    id: str
+    similarity: float
+    drift: float
+    before: HostState
+    after: HostState
+    beforeGroup: int
+    afterGroup: int
+    added: list[str] | None = None
+    removed: list[str] | None = None
+    beforeContacts: list[str] | None = None
+    afterContacts: list[str] | None = None
+
+
+class ChangesResponse(Envelope):
+    kind: str
+    changes: list[Change]
+    newHosts: list[str]
+    missingHosts: list[str]
+    alignment: str
+    k: int
+    n_common: int
+    warnings: list[str] = Field(default_factory=list)
+
+
+class OutlierItem(ApiModel):
+    id: str
+    score: float
+    mean_similarity: float
+    group: int | None = None
+
+
+class OutliersResponse(Envelope):
+    k: int
+    items: list[OutlierItem]
+    warnings: list[str] = Field(default_factory=list)
+
+
+# ------------------------------------------------------------------------------------------ HTTP
+
+
+class UTF8JSONResponse(JSONResponse):
+    """`charset=utf-8` в Content-Type: тело всегда UTF-8, без догадок клиента."""
+
+    media_type = "application/json; charset=utf-8"
+
+
+def _json(status: int, payload: dict) -> UTF8JSONResponse:
+    return UTF8JSONResponse(payload, status_code=status)
+
+
+class LocalOnlyMiddleware(BaseHTTPMiddleware):
+    """Пускает только loopback: проверяет `Host` и разрешённый `Origin`."""
+
+    def __init__(self, app, allowed_origins: tuple[str, ...] = ()):
+        super().__init__(app)
+        self.allowed_origins = allowed_origins
+
+    async def dispatch(self, request: Request, call_next):
+        host = request.headers.get("host", "")
+        if host.split(":")[0].lower() not in LOCAL_HOSTS:
+            return _json(403, {"error": "доступен только локальный интерфейс"})
+        origin = request.headers.get("origin")
+        if origin and origin not in self.allowed_origins:
+            return _json(403, {"error": "доступен только локальный интерфейс"})
+        return await call_next(request)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Одинаковые защитные заголовки на всех ответах, включая ошибки."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        for name, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        return response
+
+
+def create_app(store: RunStore, *, compare=None, allowed_origins=()) -> FastAPI:
+    """Собрать приложение. Вычисления берутся из доменных модулей без изменений."""
     origins = normalize_origins(allowed_origins)
+    app = FastAPI(
+        title="hostquery",
+        version=schema.SCHEMA,
+        summary="Запросы к сохранённым артефактам прогона: только чтение",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url="/api/lab/openapi.json",
+        default_response_class=UTF8JSONResponse,
+    )
 
-    class Handler(BaseHTTPRequestHandler):
-        server_version = "hostquery"
+    def dataset_for(method: str | None):
+        return store.dataset(method or None)
 
-        def host_allowed(self) -> bool:
-            allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
-            return self.headers.get("Host") in allowed
+    @app.get("/", response_model=IndexResponse, tags=["служебные"])
+    @app.get("/api", response_model=IndexResponse, include_in_schema=False)
+    @app.get("/api/lab", response_model=IndexResponse, include_in_schema=False)
+    def index() -> dict:
+        return {"schema": schema.SCHEMA, "endpoints": ENDPOINTS,
+                "note": "только чтение; артефакты прогона не изменяются"}
 
-        def cors_origin(self) -> str | None:
-            origin = self.headers.get("Origin")
-            return origin if origin and origin in self.server.allowed_origins else None
+    @app.get("/api/lab/health", response_model=HealthResponse, tags=["служебные"])
+    def health() -> dict:
+        return {"status": "ok", "schema": schema.SCHEMA,
+                "methods": store.methods, "compare": compare is not None}
 
-        def trusted(self) -> bool:
-            origin = self.headers.get("Origin")
-            return self.host_allowed() and (not origin or self.cors_origin() is not None)
+    @app.get("/api/lab/meta", response_model=MetaResponse, tags=["служебные"])
+    def meta() -> dict:
+        return store.describe()
 
-        def send(self, status: int, data) -> None:
-            if not isinstance(data, bytes):
-                data = json.dumps(data, ensure_ascii=False).encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
-            origin = self.cors_origin()
-            if origin:
-                self.send_header("Access-Control-Allow-Origin", origin)
-                self.send_header("Vary", "Origin")
-            self.end_headers()
-            self.wfile.write(data)
+    @app.get("/api/lab/dataset", response_model=DatasetResponse, tags=["данные"],
+             response_model_exclude_unset=True)
+    def dataset(method: str | None = Query(None, description="метод; по умолчанию behavioral")) -> dict:
+        data = dataset_for(method)
+        return schema.envelope("dataset", provenance=data.provenance,
+                               query={"method": data.provenance.get("method")},
+                               **data.to_json())
 
-        def do_OPTIONS(self) -> None:  # noqa: N802 - имя задаёт http.server
-            """Preflight для fetch из лаборатории: только GET и только разрешённый origin."""
-            if not self.host_allowed():
-                return self.send(403, {"error": "доступен только локальный интерфейс"})
-            origin = self.cors_origin()
-            if not origin:
-                return self.send(403, {
-                    "error": "origin не разрешён",
-                    "hint": "запустите serve с --allow-origin http://127.0.0.1:<порт лаборатории>",
-                })
-            self.send_response(204)
-            self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Vary", "Origin")
-            self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Accept, Content-Type")
-            self.send_header("Access-Control-Max-Age", "600")
-            self.send_header("Content-Length", "0")
-            self.end_headers()
+    @app.get("/api/lab/similar", response_model=SimilarResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def similar_endpoint(
+        host: str | None = Query(None, description="идентификатор хоста"),
+        k: int = Query(10, ge=1, description="сколько соседей вернуть"),
+        group_count: int = Query(0, alias="groups", ge=0,
+                                 description="добавить номер группы при n группах"),
+        method: str | None = Query(None),
+    ) -> dict:
+        if not host:
+            raise HostQueryError("нужен параметр host")
+        data = dataset_for(method)
+        labels = groups.fit(data, group_count)["labels"] if group_count else None
+        result = similar.neighbors(data, host, k, labels=labels,
+                                   reference=store.reference_ranks(host))
+        return schema.envelope("similar", provenance=data.provenance,
+                               query={"host": host, "k": k,
+                                      "method": data.provenance.get("method")},
+                               **result)
 
-        def do_GET(self) -> None:  # noqa: N802 - имя задаёт http.server
-            if not self.trusted():
-                return self.send(403, {"error": "доступен только локальный интерфейс"})
-            parsed = urlsplit(self.path)
-            params = parse_qs(parsed.query)
-            try:
-                return self.send(200, self.route(parsed.path, params))
-            except HostQueryError as error:
-                return self.send(400, error.as_dict())
-            except (KeyError, ValueError) as error:
-                return self.send(400, {"error": str(error)})
-            except Exception:  # noqa: BLE001 - наружу не отдаём трейсбек
-                return self.send(500, {"error": "внутренняя ошибка запроса"})
+    @app.get("/api/lab/groups", response_model=GroupsResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def groups_endpoint(
+        n: int = Query(3, ge=1, description="число групп"),
+        method: str | None = Query(None),
+    ) -> dict:
+        data = dataset_for(method)
+        result = groups.fit(data, n)
+        profiles = [groups.profile(data, result["labels"], group, top=3)
+                    for group in range(result["k"])]
+        return schema.envelope("groups", provenance=data.provenance,
+                               query={"k": n, "method": data.provenance.get("method")},
+                               **result, profiles=profiles)
 
-        def do_POST(self) -> None:  # noqa: N802
-            self.send(405, {"error": "только чтение: метод не поддерживается"})
+    @app.get("/api/lab/group", response_model=GroupResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def group_endpoint(
+        n: int = Query(3, ge=1, description="число групп"),
+        group: int = Query(-1, description="номер группы с нуля"),
+        method: str | None = Query(None),
+    ) -> dict:
+        data = dataset_for(method)
+        result = groups.fit(data, n)
+        if not 0 <= group < result["k"]:
+            raise HostQueryError(f"группа должна быть от 0 до {result['k'] - 1}")
+        profile = groups.profile(data, result["labels"], group)
+        return schema.envelope("group", provenance=data.provenance,
+                               query={"group": group, "k": n}, **profile)
 
-        do_PUT = do_POST
-        do_DELETE = do_POST
-        do_PATCH = do_POST
+    @app.get("/api/lab/pair", response_model=PairResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def pair_endpoint(
+        a: str | None = Query(None, description="первый хост"),
+        b: str | None = Query(None, description="второй хост"),
+        method: str | None = Query(None),
+    ) -> dict:
+        if not a or not b:
+            raise HostQueryError("нужны параметры a и b")
+        data = dataset_for(method)
+        result = explain.pair(data, a, b)
+        return schema.envelope("pair", provenance=data.provenance,
+                               query={"a": a, "b": b}, **result)
 
-        def route(self, path: str, params: dict[str, list[str]]) -> dict:
-            if path in {"/", "/api", "/api/lab"}:
-                return {"schema": schema.SCHEMA, "endpoints": ENDPOINTS,
-                        "note": "только чтение; артефакты прогона не изменяются"}
-            if path == "/api/lab/health":
-                return {"status": "ok", "schema": schema.SCHEMA,
-                        "methods": store.methods, "compare": compare is not None}
-            if path == "/api/lab/meta":
-                return store.describe()
+    @app.get("/api/lab/changes", response_model=ChangesResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def changes_endpoint(
+        k: int = Query(3, ge=1, description="число групп в первом окне"),
+        alignment: str = Query("none", description="none или procrustes"),
+        method: str | None = Query(None),
+    ) -> dict:
+        if compare is None:
+            raise HostQueryError("второе окно не задано",
+                                 hint="запустите сервер с --compare <папка или csv>")
+        data = dataset_for(method)
+        result = temporal.compare(data, compare, k=k, alignment=alignment)
+        warnings = result.pop("warnings", [])
+        provenance = dict(data.provenance)
+        # Контракт совпадает с CLI: путь и sha256 обоих окон. Иначе потребитель
+        # не может проверить, что сравнил именно те файлы.
+        provenance["compare"] = {
+            "before": data.provenance.get("embeddings"),
+            "after": compare.provenance.get("embeddings"),
+            "after_sha256": compare.provenance.get("embeddings_sha256"),
+        }
+        return schema.envelope("changes", provenance=provenance, warnings=warnings,
+                               query={"k": result["k"], "alignment": alignment}, **result)
 
-            method = _one(params, "method")
-            dataset = store.dataset(method)
-            if path == "/api/lab/dataset":
-                return schema.envelope("dataset", provenance=dataset.provenance,
-                                       query={"method": dataset.provenance.get("method")},
-                                       **dataset.to_json())
-            if path == "/api/lab/similar":
-                host = _one(params, "host")
-                if not host:
-                    raise HostQueryError("нужен параметр host")
-                k = _int(params, "k", 10)
-                group_count = _int(params, "groups", 0)
-                labels = groups.fit(dataset, group_count)["labels"] if group_count else None
-                result = similar.neighbors(dataset, host, k, labels=labels,
-                                           reference=store.reference_ranks(host))
-                return schema.envelope("similar", provenance=dataset.provenance,
-                                       query={"host": host, "k": k,
-                                              "method": dataset.provenance.get("method")},
-                                       **result)
-            if path == "/api/lab/groups":
-                count = _int(params, "n", 3)
-                result = groups.fit(dataset, count)
-                profiles = [groups.profile(dataset, result["labels"], group, top=3)
-                            for group in range(result["k"])]
-                return schema.envelope("groups", provenance=dataset.provenance,
-                                       query={"k": count, "method": dataset.provenance.get("method")},
-                                       **result, profiles=profiles)
-            if path == "/api/lab/group":
-                count = _int(params, "n", 3)
-                group = _int(params, "group", -1)
-                result = groups.fit(dataset, count)
-                if not 0 <= group < result["k"]:
-                    raise HostQueryError(f"группа должна быть от 0 до {result['k'] - 1}")
-                profile = groups.profile(dataset, result["labels"], group)
-                return schema.envelope("group", provenance=dataset.provenance,
-                                       query={"group": group, "k": count}, **profile)
-            if path == "/api/lab/pair":
-                first, second = _one(params, "a"), _one(params, "b")
-                if not first or not second:
-                    raise HostQueryError("нужны параметры a и b")
-                result = explain.pair(dataset, first, second)
-                return schema.envelope("pair", provenance=dataset.provenance,
-                                       query={"a": first, "b": second}, **result)
-            if path == "/api/lab/outliers":
-                k = _int(params, "k", 10)
-                group_count = _int(params, "groups", 0)
-                labels = groups.fit(dataset, group_count)["labels"] if group_count else None
-                result = anomaly.outliers(dataset, k, labels=labels)
-                warnings = result.pop("warnings", [])
-                return schema.envelope("outliers", provenance=dataset.provenance,
-                                       warnings=warnings, query={"k": k}, **result)
-            if path == "/api/lab/changes":
-                if compare is None:
-                    raise HostQueryError("второе окно не задано",
-                                         hint="запустите сервер с --compare <папка или csv>")
-                result = temporal.compare(dataset, compare, k=_int(params, "k", 3),
-                                          alignment=_one(params, "alignment") or "none")
-                warnings = result.pop("warnings", [])
-                provenance = dict(dataset.provenance)
-                # Контракт совпадает с CLI: путь и sha256 обоих окон. Иначе
-                # потребитель не может проверить, что сравнил именно те файлы.
-                provenance["compare"] = {
-                    "before": dataset.provenance.get("embeddings"),
-                    "after": compare.provenance.get("embeddings"),
-                    "after_sha256": compare.provenance.get("embeddings_sha256"),
-                }
-                return schema.envelope("changes", provenance=provenance, warnings=warnings,
-                                       query={"k": result["k"]}, **result)
-            raise HostQueryError(f"неизвестный маршрут {path}", hint="список путей — GET /")
+    @app.get("/api/lab/outliers", response_model=OutliersResponse, tags=["запросы"],
+             response_model_exclude_unset=True)
+    def outliers_endpoint(
+        k: int = Query(10, ge=1, description="сколько ближайших соседей усреднять"),
+        group_count: int = Query(0, alias="groups", ge=0,
+                                 description="добавить номер группы при n группах"),
+        method: str | None = Query(None),
+    ) -> dict:
+        data = dataset_for(method)
+        labels = groups.fit(data, group_count)["labels"] if group_count else None
+        result = anomaly.outliers(data, k, labels=labels)
+        warnings = result.pop("warnings", [])
+        return schema.envelope("outliers", provenance=data.provenance,
+                               warnings=warnings, query={"k": k}, **result)
 
-    server = ThreadingHTTPServer((host, port), Handler)
-    server.allowed_origins = origins
-    return server
+    @app.exception_handler(HostQueryError)
+    async def hostquery_error(request: Request, error: HostQueryError) -> UTF8JSONResponse:
+        return _json(400, error.as_dict())
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request,
+                               error: RequestValidationError) -> UTF8JSONResponse:
+        first = error.errors()[0] if error.errors() else {"loc": (), "msg": ""}
+        location = ".".join(str(part) for part in first["loc"] if part != "query")
+        message = f"параметр {location}: неверное значение" if location \
+            else "неверные параметры запроса"
+        return _json(400, {"error": message,
+                           "hint": "проверьте типы и диапазоны: k >= 1, n >= 1, group >= 0"})
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, error: StarletteHTTPException) -> UTF8JSONResponse:
+        # Неизвестный маршрут остаётся 400, как было в контракте CLI и HTTP.
+        if error.status_code == 404:
+            return _json(400, {"error": f"неизвестный маршрут {request.url.path}",
+                               "hint": "список путей — GET /"})
+        if error.status_code == 405:
+            return _json(405, {"error": "только чтение: метод не поддерживается"})
+        return _json(error.status_code, {"error": str(error.detail)})
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, error: Exception) -> UTF8JSONResponse:
+        # Наружу не отдаём трейсбек: только стабильный JSON.
+        return _json(500, {"error": "внутренняя ошибка запроса"})
+
+    # Порядок важен: LocalOnly снаружи (иначе preflight с чужим Host прошёл бы),
+    # CORS внутри — он добавляет заголовки к ответам маршрутов и ошибкам.
+    app.add_middleware(CORSMiddleware, allow_origins=list(origins),
+                       allow_methods=["GET", "OPTIONS"],
+                       allow_headers=["Accept", "Content-Type"], max_age=600)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(LocalOnlyMiddleware, allowed_origins=origins)
+    return app
 
 
 def serve(args) -> None:
+    """Запустить локальный сервер: один процесс, только 127.0.0.1."""
     store = RunStore(bundle=args.bundle, embeddings=args.embeddings,
                      reference_dir=args.reference_dir, method=args.method)
     compare = None
     if getattr(args, "compare", None):
         compare = open_dataset(args.compare, method=args.method, reference_dir=args.reference_dir)
-    server = make_server(store, compare=compare, port=args.port,
-                         allowed_origins=getattr(args, "allow_origin", ()))
-    print(f"hostquery: http://127.0.0.1:{server.server_port}/  (только чтение, Ctrl+C — остановить)",
+    app = create_app(store, compare=compare,
+                     allowed_origins=getattr(args, "allow_origin", ()))
+    print(f"hostquery: http://127.0.0.1:{args.port}/  (только чтение, Ctrl+C — остановить)",
           flush=True)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
+    uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
