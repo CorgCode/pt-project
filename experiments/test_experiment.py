@@ -128,3 +128,25 @@ def test_rerun_reuses_saved_embeddings_without_retraining(processed, reference, 
     assert "обучение" not in out and "взято с диска" in out                       # ничего не переобучено
     again = json.loads((tmp_path / "results" / "test" / "behavioral.json").read_text())
     assert again["metrics"] == first["metrics"]
+
+
+def test_clustering_outputs_exist_and_include_random_baseline(run_dir):
+    csv_path = run_dir / "clustering_scoreboard.csv"
+    md_path = run_dir / "clustering_scoreboard.md"
+    report_path = run_dir / "report.md"
+    manifest_path = run_dir / "manifest.json"
+
+    assert csv_path.exists()
+    assert md_path.exists()
+
+    board = pd.read_csv(csv_path, index_col=0)
+    assert "random" in board.index
+    assert "delta_ari_vs_random" in board.columns
+    assert "delta_jaccard_vs_random" in board.columns
+
+    manifest = json.loads(manifest_path.read_text())
+    assert "clustering_consistency" in manifest
+
+    report = report_path.read_text(encoding="utf-8")
+    assert "Согласованность кластеризации между окнами" in report
+    assert "random" in md_path.read_text(encoding="utf-8").lower()

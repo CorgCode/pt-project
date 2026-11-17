@@ -1,4 +1,4 @@
-"""Согласованность изменений эмбеддингов и поведения между окнами."""
+"""Проверка согласованности изменений эмбеддингов и поведения между окнами."""
 from __future__ import annotations
 
 import numpy as np
@@ -21,7 +21,7 @@ def _cosine_change(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.clip(1.0 - np.sum(a * b, axis=1), 0.0, 2.0)
 
 
-def temporal_anomaly(
+def temporal_consistency(
     emb_train: pd.DataFrame,
     emb_test: pd.DataFrame,
     train_flows: pd.DataFrame,
@@ -29,6 +29,8 @@ def temporal_anomaly(
     target_hosts: list[str],
     *,
     shared_coordinate_system: bool = False,
+    train_duration_seconds: float,
+    test_duration_seconds: float,
     seed: int = 0,
     top_fraction: float = 0.10,
 ) -> dict:
@@ -37,6 +39,10 @@ def temporal_anomaly(
     Для несвязанных систем координат Procrustes обучается на alignment subset,
     а расстояния оцениваются только на held-out subset.
     """
+    for name, duration in (("train", train_duration_seconds), ("test", test_duration_seconds)):
+        if not np.isfinite(duration) or duration <= 0:
+            raise ValueError(f"{name}_duration_seconds должен быть конечным положительным числом")
+
     if not 0 < top_fraction <= 1:
         raise ValueError("top_fraction должен быть в интервале (0, 1]")
 
@@ -74,27 +80,32 @@ def temporal_anomaly(
         "top_k_overlap": None,
         "top_k_overlap_fraction": None,
         "n_scored_hosts": 0,
-        "per_host": {},
     }
     if len(common) < 10:
         result["unavailable"] = "меньше 10 хостов активны в обоих окнах"
         return result
 
-    # Строим признаки только для общей активной когорты: нулевые профили
-    # отсутствующих в окне хостов не попадут в сравнение.
+
     train_features, fitted = build_reference_features(
-        train_flows, hosts=common, return_fitted=True
+        train_flows,
+        hosts=common,
+        return_fitted=True,
+        duration_seconds=train_duration_seconds,
     )
     test_features = build_reference_features(
-        test_flows, hosts=common, fitted=fitted
+        test_flows,
+        hosts=common,
+        fitted=fitted,
+        duration_seconds=test_duration_seconds,
     )
     behavior_change = np.linalg.norm(
         test_features.loc[common].to_numpy() -
         train_features.loc[common].to_numpy(),
         axis=1,
     )
+    behavior_by_host = pd.Series(behavior_change, index=common)
+    result["n_common_active_hosts"] = len(common)
 
-    # Оставляем только ID, которые присутствуют в обоих embedding-файлах.
     emb_train = emb_train.copy()
     emb_test = emb_test.copy()
     emb_train.index = emb_train.index.astype(str)
@@ -106,7 +117,7 @@ def temporal_anomaly(
         h for h in common
         if h in emb_train.index and h in emb_test.index
     ]
-    result["n_common_active_hosts"] = len(common)
+    result["n_common_with_embeddings"] = len(common)
     result["excluded_hosts"]["missing_embeddings"] = (
         len(target & active_train & active_test) - len(common)
     )
@@ -121,7 +132,7 @@ def temporal_anomaly(
     if A.shape != B.shape or A.ndim != 2 or A.shape[1] == 0:
         raise ValueError("размерности train и test эмбеддингов не совпадают")
 
-    behavior = pd.Series(behavior_change, index=common).loc[common].to_numpy()
+    behavior = behavior_by_host.loc[common].to_numpy()
 
     if shared_coordinate_system:
         embedding_change = _cosine_change(A, B)
@@ -171,12 +182,5 @@ def temporal_anomaly(
         "top_k": k,
         "top_k_overlap": overlap,
         "top_k_overlap_fraction": overlap / k,
-        "per_host": {
-            host: {
-                "embedding_change": float(e),
-                "behavior_change": float(b),
-            }
-            for host, e, b in zip(scored_hosts, embedding_change, behavior)
-        },
     })
     return result

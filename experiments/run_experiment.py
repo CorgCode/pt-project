@@ -28,7 +28,8 @@ from methods import graph as graph_methods
 from methods.baselines.temporal import Baseline, default_baselines
 from evaluation.evaluate import run
 from evaluation.identity import identity_retrieval
-from evaluation.temporal_anomaly import temporal_anomaly
+from experiments.temporal_consistency import temporal_consistency
+from experiments.clustering_consistency import clustering_consistency
 from evaluation import scoreboard
 from evaluation.io import load_embeddings
 from experiments import audit as A
@@ -190,20 +191,26 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                 identity[t][name] = ident
                 if t == "test":
                     try:
-                        temporal = temporal_anomaly(
+                        train_window = data.manifest["windows"]["train"]
+                        test_window = data.manifest["windows"][t]
+                        train_duration = float(train_window["end"]) - float(train_window["start"])
+                        test_duration = float(test_window["end"]) - float(test_window["start"])
+                        temporal = temporal_consistency(
                             windows["train"],
                             windows[t],
                             data.flows("train"),
                             data.flows(t),
                             hosts_t,
                             shared_coordinate_system=shared,
+                            train_duration_seconds=train_duration,
+                            test_duration_seconds=test_duration,
                             seed=seed,
                         )
                     except (ValueError, KeyError) as exc:
                         temporal = {"unavailable": str(exc)}
 
                     temporal_changes[name] = temporal
-                    temporal_dir = out_dir / "temporal_anomaly"
+                    temporal_dir = out_dir / "temporal_consistency"
                     temporal_dir.mkdir(parents=True, exist_ok=True)
                     (temporal_dir / f"{name}.json").write_text(
                         json.dumps(
@@ -216,6 +223,14 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             _log(f"оценка на {t} {j}/{len(per_target)}: {name}", t0)
         scoreboard.build(out_dir / "results" / t, out_dir / f"scoreboard_{t}")
+
+    clustering_results = clustering_consistency(
+        emb, min_cluster_size=5, min_samples=5
+    )
+    clustering_results.to_csv(out_dir / "clustering_scoreboard.csv")
+    (out_dir / "clustering_scoreboard.md").write_text(
+        R.md_table(clustering_results), encoding="utf-8"
+    )
 
     # ---- аудит
     audit = None
@@ -261,12 +276,20 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
         "graph_methods": {m: meta[m] for m in implemented},
         "environment": {"python": platform.python_version(), "pandas": pd.__version__,
                         "numpy": np.__version__, "sklearn": sklearn.__version__, "git_sha": _git_sha()},
-        "temporal_anomaly": {
+        "temporal_consistency": {
             "methods": sorted(temporal_changes),
             "description": (
                 "Согласованность изменений эмбеддингов и поведенческих признаков; "
                 "для несвязанных координат Procrustes обучается на отдельной части хостов."
             ),
+        },
+        "clustering_consistency": {
+            "methods": sorted(clustering_results.index.tolist()),
+            "algorithm": "HDBSCAN",
+            "metric": "cosine через L2-нормировку и евклидово расстояние",
+            "min_cluster_size": 5,
+            "min_samples": 5,
+            "random_baseline": "random",
         },
     }
     A.dump(out_dir / "manifest.json", manifest)
@@ -279,11 +302,24 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} — узнаваемость хоста (train -> test)")
     if audit:
         R.weights_plot(audit["weight_sensitivity"], fig_dir / "weight_sensitivity.png")
-    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit, temporal_changes),encoding="utf-8",)
+    (out_dir / "report.md").write_text(
+        build_report(
+            manifest, results, identity, audit, temporal_changes,
+            clustering_results,
+        ),
+        encoding="utf-8",
+    )
     return manifest
 
 
-def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None, temporal_changes: dict | None = None) -> str:
+def build_report(
+    manifest: dict,
+    results: dict,
+    identity: dict,
+    audit: dict | None,
+    temporal_changes: dict | None = None,
+    clustering_results: pd.DataFrame | None = None,
+) -> str:
     kind = manifest["data_kind"]
     L = ["# Отчёт о прогоне\n", f"> **{BADGE_RU[kind]}.**\n>\n> " + SCOPE[kind] + "\n"]
     prov = manifest.get("provenance") or {}
@@ -346,7 +382,7 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         L.append("\n![identity](figures/identity_test.png)\n")
         L.append("Сырые координаты осмысленны только для методов, заявивших общую систему координат.")
 
-    L.append("\n## Временные аномалии (train -> test)\n")
+    L.append("\n## Проверка временной согласованности (train -> test)\n")
 
     temporal_rows = {}
     for method, value in (temporal_changes or {}).items():
@@ -404,6 +440,16 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         ov = pd.DataFrame(audit["information_overlap"]).T
         ov.index.name = "method"
         L.append(R.md_table(ov))
+    if clustering_results is not None:
+        L.append("\n## Согласованность кластеризации между окнами\n")
+        L.append(R.md_table(clustering_results))
+        L.append(
+            "\nARI и pair Jaccard сравнивают разбиения общих хостов в train и test. "
+            "Шум HDBSCAN не учитывается в pair Jaccard; при отсутствии общей "
+            "кластерной структуры ARI принимается равным 0. "
+            "delta_* показывает превышение над случайным baseline. "
+            "Доли кластеризованных хостов и шума приведены отдельно.\n"
+        )
     L.append("\n## Как читать эти числа\n")
     L.append("* **Прогноз:** будущие связи (результат виден позже) и узнаваемость. "
              "**Согласие с выбранным нами приближением:** kNN (поведенческий профиль), пары/тройки/P@k (общие собеседники).")

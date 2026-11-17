@@ -37,6 +37,7 @@ def build_reference_features(
     fitted: dict | None = None,
     return_fitted: bool = False,
     exclude_blocks: tuple[str, ...] = (),
+    duration_seconds: float | None = None,
 ):
     """Поведенческий профиль хоста: строка на хост.
 
@@ -66,6 +67,14 @@ def build_reference_features(
     if fitted is not None and tuple(fitted.get("excluded", ())) != exclude:
         raise ValueError(f"fitted построен без блоков {tuple(fitted.get('excluded', ()))}, "
                          f"а не без {exclude}")
+    if duration_seconds is not None:
+        duration_seconds = float(duration_seconds)
+        if not np.isfinite(duration_seconds) or duration_seconds <= 0:
+            raise ValueError('duration_seconds должен быть конечным положительным числом')
+        duration_hours = duration_seconds / 3600.0
+    else:
+        duration_hours = None
+
     f = flows.copy()
     if not pd.api.types.is_datetime64_any_dtype(f["ts"]):
         f["ts"] = pd.to_datetime(f["ts"], unit="s")
@@ -80,9 +89,14 @@ def build_reference_features(
                                in_pkts=("packets", "sum"), in_peers=("src", "nunique"))
     base = out.join(inn, how="outer").reindex(idx).fillna(0.0)
 
-    volume = np.log1p(base[["out_flows", "out_bytes", "out_pkts",
-                            "in_flows", "in_bytes", "in_pkts"]])
-    peers = np.log1p(base[["out_peers", "in_peers"]])
+    volume_counts = base[["out_flows", "out_bytes", "out_pkts",
+                          "in_flows", "in_bytes", "in_pkts"]]
+    peer_counts = base[["out_peers", "in_peers"]]
+    if duration_hours is not None:
+        volume_counts = volume_counts / duration_hours
+        peer_counts = peer_counts / duration_hours
+    volume = np.log1p(volume_counts)
+    peers = np.log1p(peer_counts)
     ratio = pd.DataFrame({
         "flow_out_share": base.out_flows / (base.out_flows + base.in_flows).replace(0, 1),
         "byte_out_share": base.out_bytes / (base.out_bytes + base.in_bytes).replace(0, 1),

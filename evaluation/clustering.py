@@ -39,10 +39,11 @@ def cluster_embeddings(
     elif metric != "euclidean":
         raise ValueError("metric должен быть 'euclidean' или 'cosine'")
 
+    fit_metric = "euclidean" if metric == "cosine" else metric
     labels = HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
-        metric=metric,
+        metric=fit_metric,
     ).fit_predict(X)
 
     clustered = labels != -1
@@ -61,7 +62,7 @@ def cluster_embeddings(
     if n_clusters >= 2 and n_clustered > n_clusters:
         X_eval = X[clustered]
         y_eval = labels[clustered]
-        details["silhouette"] = float(silhouette_score(X_eval, y_eval, metric=metric))
+        details["silhouette"] = float(silhouette_score(X_eval, y_eval, metric=fit_metric))
         details["davies_bouldin"] = float(davies_bouldin_score(X_eval, y_eval))
 
     assignments = pd.DataFrame(
