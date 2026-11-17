@@ -78,8 +78,9 @@ JSON, код возврата `2`.
 
 Правила, на которые можно опираться:
 
-- `provenance.embeddings_sha256` — sha256 файла, из которого прочитаны числа.
-  Для `changes` добавляется `provenance.compare.after_sha256`.
+- `provenance.embeddings_sha256` — sha256 файла, из которого прочитаны числа
+  (для `changes` — первого окна). У `changes` дополнительно есть
+  `provenance.compare.before`, `.after` и `.after_sha256`: путь и хеш второго окна.
 - `query.kind` — тип запроса: `hosts`, `similar`, `consensus`, `groups`, `group`,
   `pair`, `changes`, `outliers`, `dataset`.
 - Группы нумеруются **с нуля**, как метки `core.js`. Интерфейс показывает `group + 1`.

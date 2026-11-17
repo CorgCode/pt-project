@@ -213,7 +213,13 @@ def make_server(store: RunStore, *, compare=None, port: int = 8847,
                                           alignment=_one(params, "alignment") or "none")
                 warnings = result.pop("warnings", [])
                 provenance = dict(dataset.provenance)
-                provenance["compare"] = {"after": compare.provenance.get("embeddings")}
+                # Контракт совпадает с CLI: путь и sha256 обоих окон. Иначе
+                # потребитель не может проверить, что сравнил именно те файлы.
+                provenance["compare"] = {
+                    "before": dataset.provenance.get("embeddings"),
+                    "after": compare.provenance.get("embeddings"),
+                    "after_sha256": compare.provenance.get("embeddings_sha256"),
+                }
                 return schema.envelope("changes", provenance=provenance, warnings=warnings,
                                        query={"k": result["k"]}, **result)
             raise HostQueryError(f"неизвестный маршрут {path}", hint="список путей — GET /")

@@ -13,7 +13,7 @@ import pytest
 
 from hostquery.errors import HostQueryError
 from hostquery.server import ENDPOINTS, make_server, normalize_origins
-from hostquery.store import Dataset, RunStore
+from hostquery.store import Dataset, RunStore, open_dataset, sha256_file
 
 
 def perturbed(data: Dataset) -> Dataset:
@@ -136,6 +136,36 @@ def test_changes_use_configured_second_window(running):
     assert body["kind"] == "vectors" and body["n_common"] == 300
     assert body["provenance"]["compare"]["after"]
     assert body["changes"][0]["before"]["id"] == body["changes"][0]["after"]["id"]
+
+
+@pytest.fixture(scope="module")
+def two_windows(tmp_path_factory):
+    root = tmp_path_factory.mktemp("windows")
+    text = "host_id,emb_0,emb_1\na,1,0\nb,0,1\nc,1,1\n"
+    before, after = root / "before.csv", root / "after.csv"
+    before.write_text(text, encoding="utf-8")
+    after.write_text(text, encoding="utf-8")
+    server = make_server(RunStore(embeddings=before), compare=open_dataset(after), port=0)
+    server.RequestHandlerClass.log_message = lambda *args, **kwargs: None
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server, before, after
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_changes_provenance_has_both_paths_and_hashes(two_windows):
+    server, before, after = two_windows
+    status, body, _ = get(server, "/api/lab/changes?k=2")
+    assert status == 200
+    provenance = body["provenance"]
+    compare_info = provenance["compare"]
+    assert provenance["embeddings_sha256"] == sha256_file(before)
+    assert compare_info["before"] == str(before)
+    assert compare_info["after"] == str(after)
+    assert compare_info["after_sha256"] == sha256_file(after)
 
 
 def test_errors_are_json_with_400(running):

@@ -142,7 +142,10 @@ def test_changes_json_between_two_csv(tmp_path, capsys):
     assert result["query"]["kind"] == "changes" and result["kind"] == "flows"
     assert result["newHosts"] == ["z"]
     assert next(item for item in result["changes"] if item["id"] == "x")["added"] == ["z"]
-    assert result["provenance"]["compare"]["after_sha256"]
+    compare_info = result["provenance"]["compare"]
+    assert compare_info["before"] == str(before) and compare_info["after"] == str(after)
+    assert len(compare_info["after_sha256"]) == 64
+    assert len(result["provenance"]["embeddings_sha256"]) == 64
 
 
 def test_changes_text_shows_counts(tmp_path, capsys):
