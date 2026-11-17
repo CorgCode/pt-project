@@ -45,6 +45,8 @@ source 02+10 → target11, source 02+10 → target12, source 02+10+11 → target
 Словари из тестовых окон не обучаются. В этом пилоте использованы окна 02,
 10, 11, 12; это **не** полный train дней 02–12 и не эксперимент со скользящим
 12-дневным окном. Окна 13 и 14–16 не читаются в обучении.
+Веса сети инициализируются случайно: это самостоятельная модель, а не
+дообученный checkpoint Similarity Graph или многодневного codebook.
 
 Потери:
 
@@ -54,7 +56,8 @@ source 02+10 → target11, source 02+10 → target12, source 02+10+11 → target
   чем у официального оценщика.
 - Source02-голосование: жёсткий top-10 в прямом проходе, положительный cosine
   и исходные частоты контактов; сигмоида и straight-through дают приближённый
-  градиент. Обучающий rank-loss — суррогат, а не официальный MRR.
+  градиент. При равенстве сходств выбор `torch.topk` может отличаться от
+  оценщика. Обучающий rank-loss — суррогат, а не официальный MRR.
 - BCE прогнозирования исторических связей, приближение поведенческих и
   контактных отношений и восстановление замаскированных входящих/исходящих
   байтов. Байтовые признаки рёбер, инцидентных замаскированному хосту, тоже
@@ -66,6 +69,10 @@ source 02+10 → target11, source 02+10 → target12, source 02+10+11 → target
 использованные настройки конкретного запуска всегда фиксируются в его
 `protocol.json`. Контроль без графа сохраняет собственные признаки и MLP;
 контроль без байтов удаляет соответствующие узловые и рёберные признаки.
+Запросы обучающего batch выбираются среди активных хостов, имеющих хотя бы
+одного допустимого нового партнёра. Поэтому Identity и остальные потери
+обучаются на этом подмножестве, а не на всех активных хостах. Это возможный
+источник смещения и существенное отличие от полного протокола оценки.
 
 `evaluate_dev.py` кодирует source из истории 02+10+11+12 и late из одного
 часа дня 13, затем рассчитывает все пять метрик с локальной нормировкой.
@@ -89,3 +96,21 @@ development-окну нельзя обоснованно заявлять ожи
 Большие графы, данные и checkpoint не входят в Git. Общие пути к данным и
 артефактам передаются аргументами команд; `prepare_windows.py`, `train.py`,
 `evaluate_dev.py` показывают допустимый временной порядок.
+
+Пример пилота из корня репозитория (укажите пути к данным, новому каталогу
+запуска и development-эталону):
+
+```sh
+python -m experiments.temporal_gatv2.prepare_windows --data "$PT_DATA" --output "$PT_RUN/windows" --part train
+python -m experiments.temporal_gatv2.prepare_windows --data "$PT_DATA" --output "$PT_RUN/windows" --part development
+python -m experiments.temporal_gatv2.train --data "$PT_DATA" --windows "$PT_RUN/windows" --output "$PT_RUN/model" --steps 30 --width 256 --batch 64 --seed 17
+python -m experiments.temporal_gatv2.evaluate_dev --data "$PT_DATA" --windows "$PT_RUN/windows" --training "$PT_RUN/model" --reference "$PT_DEV_REFERENCE" --output "$PT_RUN/dev"
+```
+
+Каталоги `model` и `dev` должны отсутствовать до запуска. `PT_DATA` содержит
+`late_test`, `fingerprint_transfer`, `fingerprint_aligned`,
+`fingerprint_memory`, `fingerprint_expanded`, `fingerprint_recent` и
+`fingerprint_codebook_recent`; development-эталон содержит
+`eval_hosts.csv` и остальные файлы проекта. Для двухэтапного варианта задайте
+`--warmup-steps N`: первые N шагов выполняются без донорной потери. Это
+отдельный эксперимент, не настройка опубликованного пилота.
