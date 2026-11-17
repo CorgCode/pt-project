@@ -1,0 +1,56 @@
+{
+  "reference_commit": "70347a32da4bb19baa30ad3cd00f7fe3b1fa6fc6",
+  "base": "similarity_graph_recent",
+  "base_source_sha256": "755869388a420aa9f567d13ab72dc1cefb5f7c2de5b6c316331eaae886a951d0",
+  "seed": 17,
+  "steps": 80,
+  "train_windows": [
+    "day02 11:00–12:00",
+    "day10 12:30–13:30",
+    "day11 12:30–13:30",
+    "day12 12:30–13:30"
+  ],
+  "development": "day13 12:30–13:30",
+  "forecast_training_pairs": [
+    "10→11",
+    "10→12",
+    "11→12"
+  ],
+  "graph_dimension": 64,
+  "base_dimension": 512,
+  "forecast_loss_weight": 0.3,
+  "development_score": 63.38672546708476,
+  "development_controls": {
+    "no_graph_w050": 63.16718118474165,
+    "no_bytes_w050": 63.144777339212915
+  },
+  "control_no_bytes_scope": "byte inputs removed only in added neural block; fixed base may still use bytes",
+  "benchmark_provenance": {
+    "source_sha256": "3b608df1a29f3e9f6632d1ba4482b8af389329aeb9e116a93dceb0a6a66f4bc3",
+    "checkpoint_sha256": "3198dc56db2c9c3706909e63455870f39745feb2ceda977d5bbfb3ebe78cdb1a",
+    "chosen_weight": 0.5,
+    "test_not_used_for_selection": true,
+    "previously_studied_benchmark": true,
+    "windows": {
+      "test": {
+        "n_active": 1581,
+        "base_sha256": "566269aab2d2db4a3411659f0cfac98f2ebefa10ff83137abc715bb629143311",
+        "late_sha256": "5e6a3799f1aa48ed01660fdc061d467616ababfa5ef80e157d98c329de83fc00",
+        "flow_sha256": "d3c19460bd3bf527d13a3edbd18dbfc362f2ef2664d859483c9df74e3e65bf93"
+      },
+      "test_day15": {
+        "n_active": 1762,
+        "base_sha256": "5a17204b83345a44103c05352444e7f4a0df563c506f760ed9be69f017ac7a25",
+        "late_sha256": "25b438186b29c1ab90483736d731719ee69d7836f9981732102d53b5cefd8980",
+        "flow_sha256": "c9b0ffb762d583514010f17513bfe4160af8597efa2a7fec87bde212927b0a34"
+      },
+      "test_day16": {
+        "n_active": 4696,
+        "base_sha256": "4f0488b6399cb920ac7b1f720ecc266535f67da806a694153a6b37ae13130e03",
+        "late_sha256": "3ed8252cefbdbad288c302ddc592a59324dba7cffd4f148e4f275cf4f95ab0ac",
+        "flow_sha256": "1a3208977ee679ace87dae14442d150fd8bc8fe0f19b6f88d30d850a7c92c42d"
+      }
+    }
+  },
+  "checkpoint_and_vectors_in_git": false
+}
