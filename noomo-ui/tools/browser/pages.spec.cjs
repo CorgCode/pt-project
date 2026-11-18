@@ -40,6 +40,36 @@ for (const width of [320, 1440]) {
   });
 }
 
+test('the model page keeps its reading position while diagrams load', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    window.scrollResets = 0;
+    const scrollTo = window.scrollTo.bind(window);
+    window.scrollTo = (...args) => {
+      const top = typeof args[0] === 'object' ? args[0]?.top : args[1];
+      if (top === 0 && window.scrollY > 100) window.scrollResets++;
+      return scrollTo(...args);
+    };
+  });
+  await page.goto('/model/');
+  const diagram = page.locator('.model-figure img[loading="lazy"]').last();
+  await page.mouse.wheel(0, 2200);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1800);
+  const readingPosition = await page.evaluate(() => window.scrollY);
+  await diagram.evaluate(async (image) => {
+    image.loading = 'eager';
+    await image.decode();
+    // Let any layout work triggered by the image finish.
+    await new Promise(resolve => setTimeout(resolve, 250));
+  });
+  expect(await page.evaluate(() => window.scrollResets)).toBe(0);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(readingPosition);
+  const contents = page.getByRole('navigation', { name: 'На этой странице' });
+  await contents.getByRole('link', { name: 'Результаты на LANL' }).click();
+  await expect(page).toHaveURL(/#results$/);
+  await expect(page.locator('#results h2')).toBeInViewport();
+});
+
 test('legacy routes point to the current content and preserve useful deep links', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const [old, next] of [
