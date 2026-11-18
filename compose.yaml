@@ -1,0 +1,25 @@
+services:
+  site:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    environment:
+      PT_PUBLIC_ORIGIN: ${PT_PUBLIC_ORIGIN:-http://127.0.0.1:8845}
+    ports:
+      - "127.0.0.1:${PT_PORT:-8845}:8000"
+    volumes:
+      - workspace:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).close()"]
+      interval: 15s
+      timeout: 4s
+      retries: 4
+      start_period: 10s
+volumes:
+  workspace:

@@ -1,0 +1,22 @@
+services:
+  site:
+    environment:
+      PT_PUBLIC_ORIGIN: https://${PT_DOMAIN:?Set PT_DOMAIN to the production DNS hostname}
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      PT_DOMAIN: ${PT_DOMAIN:?Set PT_DOMAIN to the production DNS hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls:/data
+      - proxy_config:/config
+    depends_on:
+      site:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  tls:
+  proxy_config:
