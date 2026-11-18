@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Вход в лабораторию — CorgCode</title>
+    <link rel="icon" href="/pt-favicon.svg">
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body class="lab-login">
+    <header class="login-nav">
+        <a class="brand" href="/"><span class="brand-icon">C</span><span>CorgCode<small>PT NETWORK</small></span></a>
+        <a class="quiet" href="/lab/">Попробовать демо ↗</a>
+    </header>
+    <main class="login-grid">
+        <section class="login-story" aria-labelledby="login-title">
+            <p class="eyebrow">ЛАБОРАТОРИЯ PT NETWORK</p>
+            <h1 id="login-title">Разбирайте<br>свою сеть.</h1>
+            <p>Загрузите трафик или готовые профили. Сравните устройства и периоды, проверьте контакты и сохраните наблюдения в рабочем наборе.</p>
+            <ul class="login-workflow" aria-label="Сценарий исследования">
+                <li>Загрузить CSV</li><li>Исследовать связи</li><li>Сохранить разбор</li>
+            </ul>
+        </section>
+        <section class="panel login-card" aria-labelledby="form-title">
+            <h2 id="form-title">Вход в лабораторию</h2>
+            <p>Введите данные учётной записи, чтобы открыть свои рабочие наборы.</p>
+            <!-- login-error -->
+            <form method="post" action="/lab/login/" class="login-form">
+                <label>Имя пользователя<input name="name" autocomplete="username" required maxlength="64" autocapitalize="none" spellcheck="false"></label>
+                <label>Пароль<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label>
+                <button class="primary" type="submit">Войти</button>
+            </form>
+            <p class="small">Нет учётной записи? <a href="/lab/">Откройте публичную демоверсию</a>.</p>
+            <details class="login-setup" hidden>
+                <summary>Первый запуск на этом компьютере</summary>
+                <p>Откройте терминал в папке проекта и создайте учётную запись.</p>
+                <pre>python3 noomo-ui/serve.py --add-user analyst</pre>
+                <p>Затем войдите как <code>analyst</code>. Если сервер запущен с <code>--data-dir</code>, укажите ту же папку при создании учётной записи.</p>
+            </details>
+        </section>
+    </main>
+</body>
+</html>
