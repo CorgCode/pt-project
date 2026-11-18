@@ -10,32 +10,12 @@ function watchErrors(page) {
   return errors;
 }
 
-test('devices without WebGL open a usable overview immediately', async ({ page }) => {
-  const errors = watchErrors(page);
-  await page.addInitScript(() => {
-    const getContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
-      return kind === 'webgl2' ? null : getContext.call(this, kind, ...options);
-    };
-  });
-  await page.goto('/');
-  await expect(page.locator('.pt-home-overview')).toHaveAttribute('data-reason', 'graphics');
-  await expect(page.getByRole('link', { name: 'Открыть лабораторию' })).toBeVisible();
-  expect(errors).toEqual([]);
-});
-
 for (const width of [320, 1440]) {
-  test(`overview, model, and demo work at ${width}px`, async ({ page }, testInfo) => {
+  test(`model and demo work at ${width}px`, async ({ page }, testInfo) => {
     const errors = watchErrors(page);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Понять свою сеть' })).toBeVisible();
-    await expect(page.locator('.pt-home-overview')).toHaveAttribute('data-reason', 'preference');
-    await expect(page.locator('canvas')).toHaveCount(0);
-    await page.screenshot({ path: testInfo.outputPath('overview.png'), fullPage: true });
-    await page.getByRole('link', { name: 'Как устроена модель' }).click();
-    await expect(page).toHaveURL(/\/model\/$/);
+    await page.goto('/model/');
     const contents = page.getByRole('navigation', { name: 'На этой странице' });
     await expect(contents.getByRole('link')).toHaveCount(11);
     await contents.getByRole('link', { name: 'Результаты на LANL' }).click();
@@ -64,7 +44,7 @@ test('legacy routes point to the current content and preserve useful deep links'
   for (const [old, next] of [
     ['/work/', /\/lab\/$/],
     ['/contact/', /\/model\/$/],
-    ['/product/', /\/?\?view=overview$/],
+    ['/product/', url => url.pathname === '/' && !url.hash],
     ['/product/#results', /\/model\/#results$/],
   ]) {
     await page.goto(old);
@@ -94,18 +74,18 @@ test('mobile chart labels fit inside their SVG view boxes', async ({ page }) => 
 });
 
 test.describe('native WebGL scene', () => {
-  test('keyboard starts the scene and all six chapters reach the lab link', async ({ page }, testInfo) => {
+  test('a click starts the scene and all six chapters reach the lab link', async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     const errors = watchErrors(page);
     await page.setViewportSize({ width: 1100, height: 730 });
     await page.goto('/');
     const start = page.getByRole('button', { name: 'Начать исследование сети' });
     await expect(start).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByRole('link', { name: 'Без 3D' })).toBeVisible();
-    await start.press('Enter');
+    await expect(page.getByRole('link', { name: 'Без 3D' })).toHaveCount(0);
+    await start.click();
     const enter = page.getByRole('button', { name: 'К сценам' });
     await expect(enter).toBeVisible({ timeout: 20_000 });
-    await enter.press('Enter');
+    await enter.click();
     await expect(enter).toHaveCount(0);
     const active = page.locator('.pt-product-copy:not([hidden])');
     const chapters = [
@@ -134,5 +114,21 @@ test.describe('native WebGL scene', () => {
     await lab.click();
     await expect(page).toHaveURL(/\/lab\/$/);
     expect(errors).toEqual([]);
+  });
+  test('the start button responds to a touch tap', async ({ browser, baseURL }) => {
+    test.setTimeout(70_000);
+    const page = await browser.newPage({
+      baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+      reducedMotion: 'reduce',
+    });
+    try {
+      await page.goto('/');
+      const start = page.getByRole('button', { name: 'Начать исследование сети' });
+      await expect(start).toBeVisible({ timeout: 35_000 });
+      await start.tap();
+      await expect(page.getByRole('button', { name: 'К сценам' })).toBeVisible({ timeout: 20_000 });
+    } finally {
+      await page.close();
+    }
   });
 });

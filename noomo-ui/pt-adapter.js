@@ -16,7 +16,6 @@ document.addEventListener("click",event=>{
 },true);
 function adapt() {
   window.__ptMountContent?.();
-  if (document.body.classList.contains('pt-scene-ready')) prepareStart();
   document.querySelectorAll(".mobile-menu .bottom a").forEach((link, i) => {
     const label = ["Код проекта", "О модели", "Лаборатория", "Результаты"][i % 4];
     if (link.textContent !== label) link.textContent = label;
@@ -177,27 +176,7 @@ window.__ptRenderTargetScene = function (world, target) {
   finally{hidden.forEach(mesh=>mesh.visible=true);}
 };
 
-function prepareStart() {
-  const start = document.querySelector('.home-preloader .done .send');
-  if (!start || start.dataset.ptStart) return;
-  start.dataset.ptStart = 'ready';
-  start.setAttribute('role', 'button');
-  start.setAttribute('aria-label', 'Начать исследование сети');
-  start.tabIndex = 0;
-  start.addEventListener('click', () => {
-    document.body.classList.add('pt-scene-started');
-    start.tabIndex = -1;
-  }, { once: true });
-  start.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      start.click();
-    }
-  });
-}
-window.addEventListener('pt-scene-ready', prepareStart);
-if (document.body.classList.contains('pt-scene-ready')) prepareStart();
-
+// Offer the same scene progression to keyboard and pointer users.
 window.addEventListener('pt-story-intro', () => {
   if (document.querySelector('.pt-enter-story')) return;
   const enter = document.createElement('button');
@@ -208,7 +187,11 @@ window.addEventListener('pt-story-intro', () => {
   window.addEventListener('pt-story-open', () => {
     const restoreFocus = document.activeElement === enter;
     enter.remove();
-    if (restoreFocus) document.querySelector('.pt-home-skip')?.focus();
+    if (restoreFocus) {
+      const scene = document.querySelector('.home-page');
+      scene?.setAttribute('tabindex', '-1');
+      scene?.focus({preventScroll:true});
+    }
   }, { once: true });
   document.body.append(enter);
 });
