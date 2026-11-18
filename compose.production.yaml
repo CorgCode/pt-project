@@ -1,5 +1,6 @@
 services:
   site:
+    ports: !reset []
     environment:
       PT_PUBLIC_ORIGIN: https://${PT_DOMAIN:?Set PT_DOMAIN to the production DNS hostname}
   proxy:

@@ -14,7 +14,7 @@ docker compose exec site python -m app.operator --data-dir /data --add-user anal
 
 Укажите домен с DNS-записью на сервер и разрешите входящий TCP на 80 и 443.
 Caddy выпустит и обновит сертификат. FastAPI доступен Caddy через внутреннюю сеть
-Compose. Проброс порта FastAPI на хост привязан к loopback.
+Compose. В production наружу публикуются только порты Caddy.
 
 ```bash
 export PT_DOMAIN=pt.example.com
@@ -24,10 +24,21 @@ docker compose -f compose.yaml -f compose.production.yaml exec site \
 ```
 
 Пароль вводится в терминале. Данные пользователей и SQLite находятся в томе
-`workspace`, а данные TLS — в `tls`. Сохраните резервную копию тома
-`workspace` при остановленном `site` перед обновлением. Для отката соберите
-предыдущую проверенную ревизию с тем же именем Compose-проекта. При восстановлении
-тома учитывайте, что изменения со времени резервной копии будут потеряны.
+`workspace`, а данные TLS — в `tls`. Перед обновлением сохраните резервную копию тома
+`workspace` при остановленном `site`. Храните архив вне сервера с ограниченным доступом.
+
+```bash
+umask 077
+docker compose -f compose.yaml -f compose.production.yaml stop site
+docker compose -f compose.yaml -f compose.production.yaml run --rm --no-deps -T \
+  --entrypoint tar site -czf - -C /data . > "workspace-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+docker compose -f compose.yaml -f compose.production.yaml start site
+```
+
+Для отката соберите предыдущую проверенную ревизию с тем же именем Compose-проекта.
+Если нужно восстановить резервную копию, остановите приложение и подключите новый
+пустой том как `workspace`. Разверните архив в него, сохранив числовые UID и GID,
+и проверьте данные перед переключением. Архив содержит данные на момент копирования.
 
 ## Инференс multiday_codebook_plus
 
