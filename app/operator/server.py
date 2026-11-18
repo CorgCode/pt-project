@@ -214,7 +214,9 @@ def make_server(port=8846, data_dir=None, *, site=False):
                     return self.redirect(LOGIN)
                 page = (STATIC / "index.html").read_text(encoding="utf-8")
                 navigation = '<div class="site-navigation"><a class="quiet" href="/lab/">О лаборатории</a><form method="post" action="/lab/logout/"><button class="quiet" type="submit">Выйти</button></form></div>'
-                return self.send(200, page.replace("<!-- site-navigation -->", navigation).encode(), "text/html; charset=utf-8")
+                reauth = '<p id="session-expired" class="panel" role="status" hidden>Сессия истекла. <a href="/lab/login/" target="_blank" rel="noopener">Войдите в новой вкладке</a>, затем вернитесь сюда и повторите сохранение.</p>'
+                page = page.replace("<!-- site-navigation -->", navigation).replace("<!-- session-expired -->", reauth)
+                return self.send(200, page.encode(), "text/html; charset=utf-8")
             files = {"/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
                      "/workflow.js": STATIC / "workflow.js", **ASSETS}
             if not site:
