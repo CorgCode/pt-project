@@ -4,13 +4,22 @@ import json
 import mimetypes
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from getpass import getpass
+from http.cookies import CookieError, SimpleCookie
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
+
+from .accounts import Accounts, COOKIE, SESSION_TTL
 
 ROOT = Path(__file__).resolve().parents[2]
 STATIC = Path(__file__).parent / "static"
+SITE = ROOT / "noomo-ui"
+WORKSPACE = "/lab/workspace/"
+LOGIN = "/lab/login/"
+LOGOUT = "/lab/logout/"
 MAX_BODY = 8 * 1024 * 1024
 ASSETS = {
     "/assets/core.js": ROOT / "noomo-ui/lab/core.js",
@@ -73,72 +82,160 @@ class Store:
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.connect() as db:
+        with closing(self.connect()) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, payload TEXT NOT NULL, updated TEXT NOT NULL)")
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)
 
     def list(self):
-        with self.connect() as db:
+        with closing(self.connect()) as db, db:
             return [dict(zip(("id", "name", "updated"), row)) for row in db.execute(
                 "SELECT id,name,updated FROM workspaces ORDER BY updated DESC")]
 
     def get(self, key):
-        with self.connect() as db:
+        with closing(self.connect()) as db, db:
             row = db.execute("SELECT payload FROM workspaces WHERE id=?", (key,)).fetchone()
         return json.loads(row[0]) if row else None
 
     def save(self, payload, key=None):
         payload = validate(payload)
         key = key or str(uuid.uuid4())
-        with self.connect() as db:
+        with closing(self.connect()) as db, db:
             db.execute("INSERT INTO workspaces VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,payload=excluded.payload,updated=excluded.updated",
                        (key, payload["name"], json.dumps(payload, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
         return key
 
 
-def make_server(port=8846, data_dir=None):
-    store = Store(Path(data_dir or Path.home() / ".corgcode") / "workspaces.sqlite3")
+def make_server(port=8846, data_dir=None, *, site=False):
+    directory = Path(data_dir or Path.home() / ".corgcode")
+    accounts = Accounts(directory) if site else None
+    local_store = None if site else Store(directory / "workspaces.sqlite3")
 
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=SITE, **kwargs)
+
+        def list_directory(self, path):
+            self.send_error(404)
+            return None
+
+        def end_headers(self):
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
+
         def trusted(self):
             allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
             origin = self.headers.get("Origin")
             return self.headers.get("Host") in allowed and (
                 not origin or origin in {"http://" + host for host in allowed})
 
-        def send(self, status, data, content_type="application/json; charset=utf-8"):
+        def send(self, status, data, content_type="application/json; charset=utf-8", headers=()):
             if not isinstance(data, bytes):
                 data = json.dumps(data, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+            for name, value in headers:
+                self.send_header(name, value)
             self.end_headers()
-            self.wfile.write(data)
+            if self.command != "HEAD":
+                self.wfile.write(data)
+
+        def redirect(self, target, cookie=None):
+            headers = [("Location", target)]
+            if cookie is not None:
+                age = SESSION_TTL if cookie else 0
+                headers.append(("Set-Cookie", f"{COOKIE}={cookie}; Path=/; Max-Age={age}; HttpOnly; SameSite=Strict"))
+            return self.send(303, b"", "text/plain", headers)
+
+        def token(self):
+            try:
+                item = SimpleCookie(self.headers.get("Cookie", "")).get(COOKIE)
+                return item.value if item else None
+            except CookieError:
+                return None
+
+        def workspace_store(self):
+            if accounts is None:
+                return local_store
+            user = accounts.identify(self.token())
+            return Store(directory / "users" / user / "workspaces.sqlite3") if user else None
+
+        def login_page(self, status=200, *, invalid=False):
+            page = (STATIC / "login.html").read_text(encoding="utf-8")
+            message = '<p class="login-error" role="alert">Проверьте имя пользователя и пароль.</p>' if invalid else ""
+            return self.send(status, page.replace("<!-- login-error -->", message).encode(), "text/html; charset=utf-8")
+
+        def authenticate(self, route):
+            if not self.trusted() or not self.headers.get("Origin"):
+                return self.send(403, {"error": "Откройте форму входа на сайте."})
+            if route == LOGOUT:
+                accounts.logout(self.token())
+                return self.redirect(LOGIN, "")
+            try:
+                size = int(self.headers.get("Content-Length", "0"))
+                if not 0 < size <= 4096 or self.headers.get_content_type() != "application/x-www-form-urlencoded":
+                    return self.login_page(400, invalid=True)
+                fields = parse_qs(self.rfile.read(size).decode(), max_num_fields=4)
+            except ValueError:
+                return self.login_page(400, invalid=True)
+            token = accounts.login(fields.get("name", [""])[0], fields.get("password", [""])[0])
+            if not token:
+                return self.login_page(401, invalid=True)
+            accounts.logout(self.token())
+            return self.redirect(WORKSPACE, token)
+
+        def do_HEAD(self):
+            self.do_GET()
 
         def do_GET(self):
             if not self.trusted():
                 return self.send(403, {"error": "Доступен только локальный интерфейс."})
             route = urlsplit(self.path).path
-            if route == "/api/workspaces":
-                return self.send(200, store.list())
-            if route.startswith("/api/workspaces/"):
+            if route == "/api/workspaces" or route.startswith("/api/workspaces/"):
+                store = self.workspace_store()
+                if store is None:
+                    return self.send(401, {"error": "Войдите в лабораторию снова."})
+                if route == "/api/workspaces":
+                    return self.send(200, store.list())
                 value = store.get(route.rsplit("/", 1)[-1])
                 return self.send(200 if value else 404, value or {"error": "Набор не найден."})
             if route == "/api/health":
                 return self.send(200, {"status": "ok", "product": "CorgCode", "storage": "local", "workspaceSchema": 2})
-            files = {"/": STATIC / "index.html", "/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
+            if site and route in (LOGIN.rstrip("/"), WORKSPACE.rstrip("/")):
+                return self.redirect(route + "/")
+            if site and route == LOGIN:
+                return self.redirect(WORKSPACE) if accounts.identify(self.token()) else self.login_page()
+            if site and route == WORKSPACE:
+                if not accounts.identify(self.token()):
+                    return self.redirect(LOGIN)
+                page = (STATIC / "index.html").read_text(encoding="utf-8")
+                navigation = '<div class="site-navigation"><a class="quiet" href="/lab/">О лаборатории</a><form method="post" action="/lab/logout/"><button class="quiet" type="submit">Выйти</button></form></div>'
+                return self.send(200, page.replace("<!-- site-navigation -->", navigation).encode(), "text/html; charset=utf-8")
+            files = {"/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
                      "/workflow.js": STATIC / "workflow.js", **ASSETS}
+            if not site:
+                files["/"] = STATIC / "index.html"
             file = files.get(route)
             if file and file.is_file():
                 return self.send(200, file.read_bytes(), mimetypes.guess_type(file.name)[0] or "application/octet-stream")
+            if site and not route.startswith("/api/"):
+                path = Path(self.translate_path(self.path)).resolve()
+                if not path.is_relative_to(SITE) or any(
+                    part.startswith(".") or part in {"node_modules", "tools", "__pycache__"}
+                    for part in path.relative_to(SITE).parts
+                ):
+                    return self.send_error(404)
+                return super().do_HEAD() if self.command == "HEAD" else super().do_GET()
             return self.send(404, {"error": "Страница не найдена."})
 
         def do_POST(self):
+            route = urlsplit(self.path).path
+            if site and route in (LOGIN, LOGOUT):
+                return self.authenticate(route)
             self.write_workspace(False)
 
         def do_PUT(self):
@@ -147,6 +244,9 @@ def make_server(port=8846, data_dir=None):
         def write_workspace(self, update):
             if not self.trusted():
                 return self.send(403, {"error": "Запрос должен исходить из локального интерфейса."})
+            store = self.workspace_store()
+            if store is None:
+                return self.send(401, {"error": "Войдите в лабораторию снова."})
             route = urlsplit(self.path).path
             key = route.rsplit("/", 1)[-1] if update else None
             if (not update and route != "/api/workspaces") or (update and (not route.startswith("/api/workspaces/") or store.get(key) is None)):
@@ -166,12 +266,23 @@ def make_server(port=8846, data_dir=None):
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
 
 
-def main():
+def main(*, site=False):
     parser = argparse.ArgumentParser(description="CorgCode — локальное рабочее место SOC")
-    parser.add_argument("--port", type=int, default=8846)
+    parser.add_argument("--port", type=int, default=8845 if site else 8846)
     parser.add_argument("--data-dir", type=Path)
+    parser.add_argument("--add-user", metavar="NAME")
     args = parser.parse_args()
-    server = make_server(args.port, args.data_dir)
+    if args.add_user:
+        password = getpass("Пароль: ")
+        if password != getpass("Повторите пароль: "):
+            parser.error("Пароли различаются.")
+        try:
+            Accounts(args.data_dir or Path.home() / ".corgcode").add(args.add_user, password)
+        except ValueError as error:
+            parser.error(str(error))
+        print("Учётная запись создана.")
+        return
+    server = make_server(args.port, args.data_dir, site=site)
     print(f"CorgCode: http://127.0.0.1:{server.server_port}/", flush=True)
     try:
         server.serve_forever()

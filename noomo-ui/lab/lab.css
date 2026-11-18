@@ -151,3 +151,19 @@ body.pt-laboratory{background-image:radial-gradient(ellipse at 12% 25%,var(--gla
 @media(max-width:700px){.soc-task-grid{grid-template-columns:minmax(0,1fr);}}
 
 .change-search{display:flex;flex-direction:column;gap:10px;font-size:12px;margin:20px 0;}.change-search input{width:100%;min-width:0;border:1px solid var(--glass-edge);border-radius:12px;padding:13px 15px;background:var(--glass-bottom);color:var(--model-ink);font:inherit;}#change-more{margin-top:20px;}
+
+.lab-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: clamp(20px, 4vw, 38px);
+  margin: 0 0 clamp(45px, 8vw, 100px);
+  border: 1px solid #fff9;
+  border-radius: 24px;
+  background: #fff6;
+}
+.lab-entry h2 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 36px); }
+.lab-entry p { margin: 0; max-width: 57ch; }
+.lab-entry a { flex-shrink: 0; }

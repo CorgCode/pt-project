@@ -1,17 +1,11 @@
-"""Local preview without stale JavaScript or CSS. Run: python3 serve.py."""
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+"""Serve the PT Network site and its signed-in lab on the same local origin."""
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-class PreviewHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(Path(__file__).resolve().parent), **kwargs)
-
-    def end_headers(self):
-        self.send_header("Cache-Control", "no-store, max-age=0")
-        super().end_headers()
+from app.operator.server import main  # noqa: E402
 
 
 if __name__ == "__main__":
-    print("PT Network: http://127.0.0.1:8845/", flush=True)
-    ThreadingHTTPServer(("127.0.0.1", 8845), PreviewHandler).serve_forever()
+    main(site=True)

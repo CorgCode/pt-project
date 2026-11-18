@@ -1,4 +1,5 @@
 const fs=require("node:fs"),path=require("node:path"),assert=require("node:assert/strict");
+const os=require("node:os");
 const {JSDOM}=require("jsdom");
 const {createCanvas,GlobalFonts}=require("@napi-rs/canvas");
 const THREE=require("../../ui-prototype/vendor/three.min.js");
@@ -6,6 +7,8 @@ const base=path.resolve(__dirname,"..");
 GlobalFonts.registerFromPath(path.join(base,"fonts/onest-400.ttf"),"PTOnest");
 GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay");
 (async()=>{
+ const output=fs.mkdtempSync(path.join(os.tmpdir(),"pt-ui-tour-"));
+ try {
  const dom=new JSDOM(fs.readFileSync(path.join(base,"index.html"),"utf8"),{runScripts:"outside-only",pretendToBeVisual:true,url:"http://127.0.0.1:8845/"});
  const w=dom.window,d=w.document,callbacks=[];
  let scroll=0,refreshes=0;
@@ -66,7 +69,7 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
    assert(normal.dot(intended)>=-1e-7,"device faces point outward");
   }
  });
- require("./render-model.cjs")(w.__ptWorldDebug.model,camera,THREE,"/private/tmp/pt-ui-qa/devices-preview.png");
+ require("./render-model.cjs")(w.__ptWorldDebug.model,camera,THREE,path.join(output,"devices-preview.png"));
  assert.deepEqual(new Set(devices),new Set(["PT_Device_Laptop","PT_Device_Server","PT_Device_Network_Node"]));
  visit(6);assert(!w.__ptSearchFound);d.getElementById("pt-find-similar").click();frame();assert(w.__ptSearchFound);
  visit(9);
@@ -125,11 +128,12 @@ GlobalFonts.registerFromPath(path.join(base,"fonts/pt-display.ttf"),"PTDisplay")
    w.__ptSetTourMode("details");
    visit(w.__ptPages.findIndex(p=>p.id==="model"));
    const text=w.__ptWorldDebug.root.children.find(m=>m.renderOrder===500);
-   fs.writeFileSync(`/private/tmp/pt-ui-qa/tour-text-${width}.png`,text.material.map.image.__cpu.toBuffer("image/png"));
+   fs.writeFileSync(path.join(output,`tour-text-${width}.png`),text.material.map.image.__cpu.toBuffer("image/png"));
  }
  scroll=100;frame();assert(!w.__ptWorldDebug.root.visible);assert(d.getElementById("pt-world-ui").hidden);
  assert(fs.readFileSync(path.join(base,"_nuxt/DkR7Kq9H.js"),"utf8").includes("window.__ptWorldFrame?.({scene:m,camera:f,renderer:y,delta:N})"));
  console.log("PASS: native-scene hook, full narrative pagination, 3D model parts, host picking, CSV validation, real text rendering at 320/375/414/768/1440px, no dialogs or iframes");
  w.__ptStatusObserver.disconnect();
  dom.window.close();
+ } finally { fs.rmSync(output,{recursive:true,force:true}); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
