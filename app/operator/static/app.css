@@ -89,3 +89,13 @@
 @media (max-width: 540px) {
   .contact-filters { grid-template-columns: 1fr; }
 }
+
+.lab-guide { margin: 18px 0; }
+.lab-guide summary { cursor: pointer; font-weight: 600; }
+.lab-guide > p { margin-top: 10px; color: var(--muted); }
+.lab-guide-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.lab-guide-steps > div { padding: 14px; border-radius: 14px; background: var(--glass-soft); border: 1px solid var(--edge); }
+.lab-guide-steps p { margin: 6px 0; font-size: 13px; }
+.lab-guide-steps button { padding: 5px 0; text-align: left; white-space: normal; }
+@media (max-width: 1150px) { .lab-guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .lab-guide-steps { grid-template-columns: 1fr; } }
