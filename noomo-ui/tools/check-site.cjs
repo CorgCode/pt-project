@@ -13,7 +13,7 @@ function check(){
   }
   dom.window.close();
  }
- const adapter=fs.readFileSync(path.join(root,'pt-adapter.js'),'utf8');const fbo=adapter.slice(adapter.indexOf('window.__ptRenderTargetScene'));
+ const adapter=fs.readFileSync(path.join(root,'pt-adapter.js'),'utf8');const fbo=adapter.slice(adapter.indexOf('window.__ptRenderTargetScene'),adapter.indexOf('function prepareStart'));
  const scope={};new Function('window',fbo)(scope);
  const texture={},sample={isMesh:true,visible:true,material:{buffer:texture}},hidden={isMesh:true,visible:false,material:{buffer:texture}},safe={isMesh:true,visible:true,material:{}},array={isMesh:true,visible:true,material:[{}, {buffer:texture}]};
  const world={scene:{traverse(fn){[sample,hidden,safe,array].forEach(fn);}},camera:{},gl:{render(){assert.equal(sample.visible,false);assert.equal(array.visible,false);assert.equal(safe.visible,true);throw Error('render interrupted');}}};

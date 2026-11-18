@@ -8,7 +8,7 @@ module.exports = defineConfig({
   testDir: './tools/browser',
   outputDir: './test-results',
   workers: 1,
-  use: { baseURL: address, browserName: 'chromium', trace: 'retain-on-failure' },
+  use: { baseURL: address, browserName: 'chromium', channel: 'chromium', trace: 'retain-on-failure' },
   webServer: {
     command: 'python3 tools/browser/fixture.py',
     url: `${address}/api/health`,

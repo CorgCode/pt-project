@@ -5,7 +5,9 @@ const dom=new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true,url:'
 assert(!d.querySelector('script[src^="/pt-world.js"],script[src^="/pt-story.js"]'),'replacement cards and tour are not booted on the landing');
 const imports=JSON.parse(d.querySelector('script[type=importmap]').textContent).imports;
 for(const file of fs.readdirSync(path.join(root,'_nuxt')).filter(f=>f.endsWith('.js'))){assert(imports['/_nuxt/'+file]?.includes('?pt-build=native-'),'compiled modules all get fresh URLs');}
-assert(d.querySelector('script[type=module][src*="pt-build=native-"]'),'the entry URL uses the same build identity');
+assert(d.querySelector('script[type=module][src^="/pt-home-entry.js"]'),'the accessible entry starts the scene');
+const entry=fs.readFileSync(path.join(root,'pt-home-entry.js'),'utf8');
+assert(entry.includes(imports['/_nuxt/iNjJ8EkR.js']),'the scene URL uses the same build identity');
 w.matchMedia=()=>({matches:false});
 global.window=w;global.document=d;global.getComputedStyle=w.getComputedStyle.bind(w);
 const realGsap=require("gsap").gsap;

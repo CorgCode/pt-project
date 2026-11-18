@@ -32,7 +32,10 @@ async function check(){
  mw.matchMedia=()=>({matches:false});mw.document.querySelector('audio').play=async()=>{};
  mw.gsap={registerPlugin(){},fromTo(target,from,to){calls.push({target,from,to});},to(){}};mw.ScrollTrigger={refresh(){}};
  mw.eval(js);assert(mw.document.querySelector('h1 br'),'intentional heading line breaks survive word masks');assert(mw.document.querySelectorAll('h2 .word-inner').length>20);assert(calls.some(c=>c.to.stagger===.055));assert(calls.some(c=>c.to.duration===1.5));
- for(const heading of mw.document.querySelectorAll('h1,h2,h3'))assert.equal(heading.getAttribute('aria-label'),heading.textContent.trim());
+ for(const heading of mw.document.querySelectorAll('h1,h2,h3')){
+  if(heading.querySelector('.word-inner'))assert.equal(heading.getAttribute('aria-label'),heading.textContent.trim());
+ }
+ assert.equal(mw.document.querySelectorAll('.model-contents a[href^="#"]').length,11);
  motion.window.close();
  dom.window.close();console.log('PASS: original Noomo case structure and stylesheet hashes, local music/fonts/diagrams, real research data and autoplay fallback, no custom 3D, valid asset references and model content');
 }

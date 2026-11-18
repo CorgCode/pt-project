@@ -4,7 +4,8 @@ function openProduct(hash = "#demo") {
 }
 window.__ptOpenProduct = openProduct;
 document.addEventListener("click",event=>{
- const link=event.target.closest('a');if(!link)return;
+ if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+ const link=event.target.closest?.('a');if(!link||link.target||link.hasAttribute('download'))return;
  const raw=link.getAttribute('href')||'';
  let route=null;
  if(/^\/(lab|model)\//.test(raw))route=raw;
@@ -15,6 +16,7 @@ document.addEventListener("click",event=>{
 },true);
 function adapt() {
   window.__ptMountContent?.();
+  if (document.body.classList.contains('pt-scene-ready')) prepareStart();
   document.querySelectorAll(".mobile-menu .bottom a").forEach((link, i) => {
     const label = ["Код проекта", "О модели", "Лаборатория", "Результаты"][i % 4];
     if (link.textContent !== label) link.textContent = label;
@@ -175,12 +177,38 @@ window.__ptRenderTargetScene = function (world, target) {
   finally{hidden.forEach(mesh=>mesh.visible=true);}
 };
 
-// Resizing an open DevTools panel can interrupt the original loader timeline.
-// Reveal its real start control only after the scene loader reports completion.
-window.__ptSceneReady = function () {
-  setTimeout(()=>{
-    document.body.classList.add('pt-scene-ready');
-    const start=document.querySelector('.home-preloader .done .send');
-    if(start){start.setAttribute('role','button');start.setAttribute('aria-label','Начать исследование сети');start.tabIndex=0;start.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();start.click();}});}
-  },2800);
-};
+function prepareStart() {
+  const start = document.querySelector('.home-preloader .done .send');
+  if (!start || start.dataset.ptStart) return;
+  start.dataset.ptStart = 'ready';
+  start.setAttribute('role', 'button');
+  start.setAttribute('aria-label', 'Начать исследование сети');
+  start.tabIndex = 0;
+  start.addEventListener('click', () => {
+    document.body.classList.add('pt-scene-started');
+    start.tabIndex = -1;
+  }, { once: true });
+  start.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      start.click();
+    }
+  });
+}
+window.addEventListener('pt-scene-ready', prepareStart);
+if (document.body.classList.contains('pt-scene-ready')) prepareStart();
+
+window.addEventListener('pt-story-intro', () => {
+  if (document.querySelector('.pt-enter-story')) return;
+  const enter = document.createElement('button');
+  enter.type = 'button';
+  enter.className = 'pt-enter-story';
+  enter.textContent = 'К сценам ↓';
+  enter.addEventListener('click', () => window.dispatchEvent(new Event('pt-enter-story')));
+  window.addEventListener('pt-story-open', () => {
+    const restoreFocus = document.activeElement === enter;
+    enter.remove();
+    if (restoreFocus) document.querySelector('.pt-home-skip')?.focus();
+  }, { once: true });
+  document.body.append(enter);
+});

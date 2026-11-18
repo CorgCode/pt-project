@@ -44,7 +44,9 @@ def box(ax,x,y,w,h,title,sub='',accent=False,size=12):
 def arrow(ax,a,b):ax.add_patch(FancyArrowPatch(a,b,arrowstyle='-|>',mutation_scale=12,color=INK,linewidth=1,connectionstyle='arc3,rad=0'))
 def save(fig,name,mobile,title,description):
  suffix='-mobile' if mobile else ''
- fig.savefig(OUT/f'{name}{suffix}.svg',transparent=True,metadata={'Title':title,'Description':description,'Date':None})
+ svg=OUT/f'{name}{suffix}.svg'
+ fig.savefig(svg,transparent=True,metadata={'Title':title,'Description':description,'Date':None})
+ svg.write_text('\n'.join(line.rstrip() for line in svg.read_text().splitlines())+'\n')
  if not mobile:fig.savefig(OUT/f'{name}.png',dpi=140,transparent=True)
  plt.close(fig)
 
@@ -110,7 +112,7 @@ def chart_font(ax,size=11):
  ax.grid(axis='x',color=LINE,alpha=.3,lw=.7);ax.set_axisbelow(True)
 
 def scores(mobile):
- fig,ax=plt.subplots(figsize=(3.2 if mobile else 7.6,4.6 if mobile else 3.6));fig.subplots_adjust(left=.08 if mobile else .35,right=.9,top=.96,bottom=.14)
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 7.6,4.6 if mobile else 3.6));fig.subplots_adjust(left=.08 if mobile else .35,right=.81 if mobile else .9,top=.96,bottom=.14)
  ax.set_xlim(0,100);ax.set_ylim(-.7,2.6);ax.set_yticks([]);ax.set_xticks([0,25,50,75,100]);chart_font(ax,10 if mobile else 11)
  for i,(r,c) in enumerate(zip(records,COLORS)):
   y=2-i;ax.barh(y,r['score'],height=.2 if mobile else .32,color=c)
@@ -176,7 +178,7 @@ def channels(mobile):
 
 def decay(mobile):
  import numpy as np
- fig,ax=plt.subplots(figsize=(3.2 if mobile else 8.8,4.8));fig.subplots_adjust(left=.19 if mobile else .12,right=.94,top=.92,bottom=.19)
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 8.8,4.8));fig.subplots_adjust(left=.28 if mobile else .12,right=.94,top=.92,bottom=.19)
  x=np.linspace(0,12,121);ax.plot(x,2**(-x/3),color=ACCENT,lw=2.5)
  for day in [0,3,6,9,12]:ax.scatter([day],[2**(-day/3)],color=INK,s=24,zorder=3)
  ax.set(xlim=(-.3,12.3),ylim=(0,1.07),xticks=[0,3,6,9,12],yticks=[0,.25,.5,.75,1]);chart_font(ax,10);ax.grid(axis='y',color=LINE,alpha=.3,lw=.7)

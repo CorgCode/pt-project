@@ -3,11 +3,12 @@
  const audio=document.getElementById('model-music'),button=document.getElementById('music-toggle');
  if(audio&&button){
   let wanted=true,starting=false;
+  try{wanted=sessionStorage.getItem('pt-music')!=='off';}catch{}
   audio.volume=.12;
   function sync(){
    const playing=!audio.paused&&!audio.ended;
    button.setAttribute('aria-pressed',String(playing));button.setAttribute('aria-label',playing?'Выключить музыку':'Включить музыку');
-   button.title=playing?'Выключить музыку':'Включить музыку';
+   button.title=playing?'Выключить музыку':button.dataset.blocked?'Нажмите, чтобы включить музыку':'Включить музыку';
   }
   async function play(){
    if(!wanted||starting)return;starting=true;
@@ -16,6 +17,7 @@
   }
   button.addEventListener('click',()=>{
    wanted=audio.paused;
+   try{sessionStorage.setItem('pt-music',wanted?'on':'off');}catch{}
    if(wanted)play();else audio.pause();sync();
   });
   ['play','pause','ended','error'].forEach(type=>audio.addEventListener(type,sync));
