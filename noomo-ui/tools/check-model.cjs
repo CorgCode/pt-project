@@ -1,9 +1,11 @@
-// Verify the transferred case template and local media; no synthetic 3D renderer is used.
+// Verify the model explanation, research figures and local media.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const {JSDOM}=require('jsdom'),root=path.resolve(__dirname,'..');
 async function check(){
  const html=fs.readFileSync(path.join(root,'model/index.html'),'utf8'),dom=new JSDOM(html,{runScripts:'outside-only',url:'http://127.0.0.1:8845/model/'}),d=dom.window.document;
- assert.equal(d.documentElement.lang,'ru');assert(d.querySelector('.case-hero .wrapper .info-block .right'),'original Noomo case structure');
+ assert.equal(d.documentElement.lang,'ru');assert(d.querySelector('.hero-visual [class="visual-profile"]'),'model flow on the first screen');
+ assert.deepEqual([...d.querySelectorAll('.model-jumps a')].map(a=>a.hash),['#journey','#profile','#results','#technical','#limits']);
+ for(const link of d.querySelectorAll('a[href^="#"]'))assert(d.getElementById(link.hash.slice(1)),link.hash);
  assert.equal(d.querySelectorAll('.model-section').length,11);assert.equal(d.querySelectorAll('canvas,iframe,#model-stage,.chapter').length,0);
  assert(!d.querySelector('script[src*="three"],script[src*="scene.js"],script[src*="pt-page"]'),'rejected 3D implementation is disconnected');
  assert.equal(d.querySelectorAll('video').length,0);assert(!/jellyfish-case|jellyfish-poster/.test(html));assert(d.querySelector('.source-figure img'));assert.equal(d.querySelectorAll('[data-figure]').length,16);assert.equal(d.querySelector('audio').getAttribute('src'),'/audio/BG5.mp3');
@@ -38,7 +40,7 @@ async function check(){
   unobserve(element){observed.delete(element);}
  };
  mw.gsap={fromTo(target,from,to){calls.push({target,from,to});return {play(){revealed++;}};},set(){}};
- mw.eval(js);assert(mw.document.querySelector('h1 br'),'intentional heading line breaks survive word masks');assert(mw.document.querySelectorAll('h2 .word-inner').length>20);assert(calls.some(c=>c.to.stagger===.055));assert(calls.some(c=>c.to.duration===1.5));
+ mw.eval(js);assert(mw.document.querySelector('h1 br'),'intentional heading line breaks survive word masks');assert(mw.document.querySelectorAll('h2 .word-inner').length>20);assert(calls.some(c=>c.to.stagger===.055));assert(calls.some(c=>c.to.duration===1.05));
  const title=mw.document.querySelector('h1');assert(observed.has(title));
  visible([{target:title,isIntersecting:false}]);assert.equal(revealed,0);
  visible([{target:title,isIntersecting:true}]);assert.equal(revealed,1);assert(!observed.has(title));
@@ -47,6 +49,6 @@ async function check(){
  }
  assert.equal(mw.document.querySelectorAll('.model-contents a[href^="#"]').length,11);
  motion.window.close();
- dom.window.close();console.log('PASS: original Noomo case structure and stylesheet hashes, local music/fonts/diagrams, real research data and autoplay fallback, no custom 3D, valid asset references and model content');
+ dom.window.close();console.log('PASS: model flow and anchors, local assets, chart data, accessible animations and music toggle');
 }
 module.exports=check;if(require.main===module)check().catch(e=>{console.error(e);process.exitCode=1;});
