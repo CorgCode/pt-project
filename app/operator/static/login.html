@@ -31,6 +31,12 @@
                 <button class="primary" type="submit">Войти</button>
             </form>
             <p class="small">Нет учётной записи? <a href="/lab/">Откройте публичную демоверсию</a>.</p>
+            <details class="login-setup" hidden>
+                <summary>Первый запуск на этом компьютере</summary>
+                <p>Откройте терминал в папке проекта и создайте учётную запись.</p>
+                <pre>python3 noomo-ui/serve.py --add-user analyst</pre>
+                <p>Затем войдите как <code>analyst</code>. Если сервер запущен с <code>--data-dir</code>, укажите ту же папку при создании учётной записи.</p>
+            </details>
         </section>
     </main>
 </body>

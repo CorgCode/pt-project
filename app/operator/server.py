@@ -167,6 +167,8 @@ def make_server(port=8846, data_dir=None, *, site=False):
         def login_page(self, status=200, *, invalid=False):
             page = (STATIC / "login.html").read_text(encoding="utf-8")
             message = '<p class="login-error" role="alert">Проверьте имя пользователя и пароль.</p>' if invalid else ""
+            if not accounts.has_users():
+                page = page.replace('class="login-setup" hidden', 'class="login-setup"')
             return self.send(status, page.replace("<!-- login-error -->", message).encode(), "text/html; charset=utf-8")
 
         def authenticate(self, route):

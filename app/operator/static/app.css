@@ -63,6 +63,9 @@
 .login-form .primary { justify-content: center; margin-top: 6px; }
 .login-card .small a { text-decoration: underline; text-underline-offset: .2em; }
 .login-error { border: 1px solid currentColor; border-radius: 10px; padding: 8px 12px; color: var(--error); }
+.login-setup { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.login-setup summary { cursor: pointer; font-weight: 600; }
+.login-setup p { margin-top: 6px; }
 .site-navigation { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-bottom: 12px; }
 .site-navigation .quiet { padding: 6px 0; }
 @media (max-width: 720px) {
@@ -102,3 +105,21 @@
 
 #session-expired { margin: 12px 0; color: var(--error); }
 #session-expired a { text-decoration: underline; text-underline-offset: .2em; }
+
+.skip { top: 15px; clip-path: inset(50%); }
+.skip:focus { clip-path: none; }
+#change-detail { scroll-margin-top: 24px; }
+@media (max-width: 720px) {
+  .login-card { grid-row: 1; }
+}
+@media (max-width: 700px) {
+  .sidebar nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .sidebar nav button { min-height: 40px; padding: 6px 4px; font-size: 12px; white-space: normal; }
+  .top-actions { flex-wrap: wrap; }
+  .top-actions > button { flex: 1 1 auto; padding-inline: 12px; white-space: normal; }
+  .dataset-strip { flex-wrap: wrap; }
+  .dataset-strip > div { flex: 1 1 170px; }
+  .dataset-strip > button { max-width: 100%; white-space: normal; text-align: left; }
+  .report-actions { flex-wrap: wrap; max-width: 100%; }
+  .report-actions button { white-space: normal; }
+}

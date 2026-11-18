@@ -88,8 +88,6 @@ class LabAccountTest(unittest.TestCase):
     def test_sign_in_persistence_isolation_and_sign_out(self):
         with tempfile.TemporaryDirectory() as temp:
             accounts = Accounts(Path(temp))
-            accounts.add("analyst-one", "example passphrase one")
-            accounts.add("analyst-two", "example passphrase two")
             with make_server(0, temp, site=True) as server:
                 thread = threading.Thread(target=server.serve_forever, daemon=True)
                 thread.start()
@@ -109,6 +107,12 @@ class LabAccountTest(unittest.TestCase):
                                    Origin=source, **{"Content-Type": "application/x-www-form-urlencoded"})
 
                 try:
+                    login_page = request("GET", "/lab/login/")[2]
+                    self.assertIn(b'<details class="login-setup">', login_page)
+                    accounts.add("analyst-one", "example passphrase one")
+                    accounts.add("analyst-two", "example passphrase two")
+                    login_page = request("GET", "/lab/login/")[2]
+                    self.assertIn(b'<details class="login-setup" hidden>', login_page)
                     self.assertIn(b'href="/lab/workspace/"', request("GET", "/lab/")[2])
                     self.assertEqual(request("GET", "/lab/workspace/")[1]["Location"], "/lab/login/")
                     self.assertEqual(request("HEAD", "/lab/workspace/")[0], 303)

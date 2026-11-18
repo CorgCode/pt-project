@@ -33,6 +33,10 @@ class Accounts:
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)
 
+    def has_users(self):
+        with closing(self.connect()) as db:
+            return db.execute("SELECT 1 FROM users LIMIT 1").fetchone() is not None
+
     def add(self, name, password):
         name = name.strip().lower()
         if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{2,63}", name):

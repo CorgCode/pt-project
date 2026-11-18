@@ -24,6 +24,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(detail).toContainText('device-07');
   await expect(detail).toContainText('service-4');
   await page.locator('#quick-start summary').click();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await page.screenshot({ path: testInfo.outputPath('comparison.png'), fullPage: true });
 
   await page.locator('nav [data-view="case"]').click();
@@ -48,7 +49,8 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
 test('mobile viewport keeps login and navigation reachable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/lab/login/');
-  await expect(page.getByRole('button', { name: 'Войти', exact: true })).toBeVisible();
+  const signInButton = page.getByRole('button', { name: 'Войти', exact: true });
+  await expect(signInButton).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: testInfo.outputPath('login-mobile.png'), fullPage: true });
   await signIn(page);
   const nav = page.getByRole('navigation', { name: 'Разделы программы' });
@@ -56,9 +58,11 @@ test('mobile viewport keeps login and navigation reachable', async ({ page }, te
     const bounds = await button.boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(391);
+    expect(await button.evaluate(node => node.scrollWidth)).toBeLessThanOrEqual(await button.evaluate(node => node.clientWidth));
   }
   await page.locator('nav [data-view="changes"]').click();
   await page.getByRole('button', { name: 'Открыть учебный разбор' }).click();
   await expect(page.locator('#change-detail')).toContainText('service-4');
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await page.screenshot({ path: testInfo.outputPath('comparison-mobile.png'), fullPage: true });
 });
