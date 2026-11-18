@@ -7,6 +7,7 @@
 @font-face{font-family:OnestCase;src:url('/fonts/onest-600.ttf') format('truetype');font-weight:600;font-display:swap;}
 html,body{overflow-x:clip;}html{scroll-behavior:smooth;}body{margin:0;}*{box-sizing:border-box;min-width:0;}
 .pt-model-case{background-color:var(--model-paper);color:var(--model-ink);font-family:var(--model-font);}
+.pt-model-case header .back{background:var(--model-paper);transition:opacity .15s ease-out;}
 .pt-model-case .font-neue-roman-16,.pt-model-case .small-title,.pt-model-case .case-hero .link,.pt-model-case .case-hero .more-info-trigger{font-family:var(--model-font);}
 .pt-model-case .case-hero{position:relative;padding-top:227px;}
 .pt-model-case .case-hero h1{font-family:var(--model-title);overflow-wrap:anywhere;min-width:0;}
@@ -108,4 +109,8 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--model-ink);outline
 @media (max-width: 640px) {
   .model-contents-grid { grid-template-columns: 1fr; gap: 15px; }
   .model-contents-grid > div + div { padding-top: 12px; border-top: 1px solid var(--model-line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pt-model-case header .back { transition: none; }
 }
