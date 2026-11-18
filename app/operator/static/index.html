@@ -1,12 +1,16 @@
 <!doctype html>
 <!-- Hallmark · macrostructure: operator desk · theme: CorgCode glass · genre: modern-minimal
      pre-emit critique: P4 H5 E4 S5 R4 V4 · slop test: browser review pending -->
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CorgCode — рабочее место SOC</title><link rel="stylesheet" href="/app.css"><script defer src="/assets/core.js"></script><script defer src="/workflow.js"></script><script defer src="/app.js"></script></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CorgCode — рабочее место SOC</title><link rel="icon" href="/pt-favicon.svg"><link rel="stylesheet" href="/app.css"><script defer src="/assets/core.js"></script><script defer src="/workflow.js"></script><script defer src="/app.js"></script></head>
 <body><a class="skip" href="#main">К исследованию</a>
-<aside class="sidebar"><a class="brand" href="/" aria-label="CorgCode — рабочее место SOC"><span class="brand-icon">C</span><span>CorgCode<small>СЕТЕВОЙ КОНТЕКСТ</small></span></a><!-- site-navigation --><div class="local-badge"><i></i> Локальное рабочее место</div><nav aria-label="Разделы программы"><button data-view="devices" aria-current="page"><span>◈</span> Устройства</button><button data-view="contacts"><span>⇄</span> Контакты</button><button data-view="groups"><span>◌</span> Группы</button><button data-view="changes"><span>↝</span> Изменения</button><button data-view="watch"><span>☆</span> Важное</button><button data-view="case"><span>≡</span> Разбор</button></nav><div class="sidebar-divider"></div><div class="sidebar-label">Рабочие наборы<button id="new-workspace" aria-label="Создать новый набор">＋</button></div><div id="saved-workspaces"><p class="small">Сохранённые наборы появятся здесь.</p></div><div class="sidebar-bottom"><strong>Данные остаются у вас.</strong><p>Файлы и заметки хранятся на этом компьютере. Внешние сервисы не используются.</p><button id="open-help" class="quiet">Форматы данных ↗</button></div></aside>
+<aside class="sidebar"><a class="brand" href="/" aria-label="CorgCode — рабочее место SOC"><span class="brand-icon">C</span><span>CorgCode<small>СЕТЕВОЙ КОНТЕКСТ</small></span></a><div class="site-navigation" aria-label="Сайт и аккаунт">
+<a class="quiet" href="/model/">Модель ↗</a>
+<button type="button" id="site-login" class="quiet">Войти</button>
+<form id="site-logout" method="post" action="/lab/logout/"><button class="quiet" type="submit">Выйти</button></form>
+</div><div class="local-badge"><i></i> Локальное рабочее место</div><nav aria-label="Разделы программы"><button data-view="devices" aria-current="page"><span>◈</span> Устройства</button><button data-view="contacts"><span>⇄</span> Контакты</button><button data-view="groups"><span>◌</span> Группы</button><button data-view="changes"><span>↝</span> Изменения</button><button data-view="watch"><span>☆</span> Важное</button><button data-view="case"><span>≡</span> Разбор</button></nav><div class="sidebar-divider"></div><div class="sidebar-label">Рабочие наборы<button id="new-workspace" aria-label="Создать новый набор">＋</button></div><div id="saved-workspaces"><p class="small">Сохранённые наборы появятся здесь.</p></div><div class="sidebar-bottom"><strong>Данные остаются у вас.</strong><p>Файлы и заметки хранятся на этом компьютере. Внешние сервисы не используются.</p><button id="open-help" class="quiet">Форматы данных ↗</button></div></aside>
 <div class="app"><header class="topbar"><div><span class="eyebrow">РАБОЧЕЕ МЕСТО SOC</span><h1 id="view-title">Устройства сети</h1></div><div class="top-actions"><span id="save-state" role="status">Набор не сохранён</span><button id="open-workspaces" class="glass mobile-tool">Наборы</button><button id="save-workspace" class="primary">Сохранить</button><button id="import-button" class="glass">Загрузить CSV <span>↗</span></button><input id="current-file" type="file" accept=".csv,text/csv" hidden></div></header>
 <main id="main"><div class="dataset-strip"><div><span id="source-badge" class="badge">Учебный пример</span><input id="workspace-name" aria-label="Название рабочего набора" maxlength="120" value="Знакомство с сетью"><span id="dataset-kind" class="small"></span></div><button id="sample-button" class="quiet">Открыть пример ↺</button></div><p id="status" class="status" role="status">Подготавливаем рабочий набор…</p>
-<!-- session-expired --><section class="stats" aria-label="Состав набора"><div><span>Устройств</span><strong id="stat-hosts">—</strong></div><div><span>Групп поведения</span><strong id="stat-groups">—</strong></div><div><span id="stat-records-label">Записей обмена</span><strong id="stat-records">—</strong></div><div><span>Описание профиля</span><strong id="stat-dims">—</strong></div></section>
+<p id="guest-intro" class="guest-intro">Начните с примера или загрузите свой CSV. Вход нужен, чтобы сохранять наборы и заметки между сеансами.</p><section class="stats" aria-label="Состав набора"><div><span>Устройств</span><strong id="stat-hosts">—</strong></div><div><span>Групп поведения</span><strong id="stat-groups">—</strong></div><div><span id="stat-records-label">Записей обмена</span><strong id="stat-records">—</strong></div><div><span>Описание профиля</span><strong id="stat-dims">—</strong></div></section>
 <details id="quick-start" class="panel lab-guide">
     <summary>Как провести разбор</summary>
     <p>Начните с учебной сети или загрузите свой CSV. Один набор объединяет два окна, метки и заметки по устройствам.</p>
@@ -50,4 +54,16 @@ pc-02,service-01,1800,9,443,TCP</pre><p class="small">До 10 000 строк и 
 pc-01,0.2,0.8,-0.1
 pc-02,0.3,0.7,-0.2</pre><p class="small">От 2 до 500 устройств, до 1024 координат. Для сравнения периодов нужны одинаковые оси. По векторам нельзя восстановить реальные контакты. Один CSV — до 3 МБ.</p></dialog>
 <dialog id="workspaces-dialog"><button class="dialog-close" id="close-workspaces" aria-label="Закрыть">×</button><h2>Рабочие наборы</h2><div id="workspace-dialog-list"></div><button class="glass" id="mobile-help">Форматы CSV ↗</button></dialog>
+<dialog id="account-dialog" aria-labelledby="account-title">
+    <button type="button" class="dialog-close" id="close-account" aria-label="Закрыть форму входа">×</button>
+    <h2 id="account-title">Вход в рабочее место</h2>
+    <p id="account-purpose">Войдите, чтобы открыть сохранённые наборы.</p>
+    <p id="account-error" class="login-error" role="alert" hidden></p>
+    <form id="account-form" method="post" action="/lab/login/" class="login-form">
+        <label>Имя пользователя<input name="name" autocomplete="username" required maxlength="64" autocapitalize="none" spellcheck="false"></label>
+        <label>Пароль<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label>
+        <button class="primary" type="submit">Войти</button>
+    </form>
+    <p id="account-setup" class="small" hidden><a href="/lab/login/" target="_blank" rel="noopener">Как создать первый аккаунт ↗</a></p>
+</dialog>
 </body></html>

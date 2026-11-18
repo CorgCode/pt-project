@@ -11,7 +11,7 @@ function watchErrors(page) {
 }
 
 for (const width of [320, 1440]) {
-  test(`model and demo work at ${width}px`, async ({ page }, testInfo) => {
+  test(`model and workspace work at ${width}px`, async ({ page }, testInfo) => {
     const errors = watchErrors(page);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -28,11 +28,12 @@ for (const width of [320, 1440]) {
     }
     await page.locator('header a[href="/lab/"]').click();
     await expect(page).toHaveURL(/\/lab\/$/);
-    await expect(page.locator('#soc-overview')).toBeVisible();
-    await page.locator('[data-soc-task="traffic"]').click();
-    await expect(page.locator('#view-traffic')).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#change-example').click();
-    await expect(page.locator('#change-host-list button').first()).toBeVisible();
+    await expect(page.locator('#stat-hosts')).toHaveText('15');
+    await page.locator('nav [data-view="contacts"]').click();
+    await expect(page.locator('#contacts-title')).toBeVisible();
+    await page.locator('nav [data-view="changes"]').click();
+    await page.locator('#change-scenario').click();
+    await expect(page.locator('#change-detail')).toContainText('service-4');
     const viewportWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(viewportWidth).toBeLessThanOrEqual(width);
     expect(errors).toEqual([]);
@@ -94,7 +95,7 @@ test.describe('native WebGL scene', () => {
       [6000, 'От одного устройства — к похожим'],
       [8000, 'Контекст для оператора SOC'],
       [10000, 'Попробуйте на своих данных'],
-      [11650, 'Откройте лабораторию'],
+      [11650, 'Откройте рабочее место'],
     ];
     for (const [y, title] of chapters) {
       // A scene transition briefly locks scroll. Retry until its scroll controller releases the page.

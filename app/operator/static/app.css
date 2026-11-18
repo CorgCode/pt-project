@@ -123,3 +123,11 @@
   .report-actions { flex-wrap: wrap; max-width: 100%; }
   .report-actions button { white-space: normal; }
 }
+
+.site-navigation, .guest-intro { display: none; }
+body[data-workspace-mode] .site-navigation { display: flex; }
+body[data-workspace-mode="guest"] .guest-intro { display: block; margin-bottom: 15px; color: var(--muted); }
+body[data-workspace-mode="guest"] :is(#site-logout, .sidebar-label, #saved-workspaces, #open-workspaces) { display: none; }
+body[data-workspace-mode="account"] #site-login { display: none; }
+#account-dialog { max-width: 430px; }
+#account-dialog #account-setup a { text-decoration: underline; text-underline-offset: 3px; }
