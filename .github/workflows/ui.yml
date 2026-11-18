@@ -41,3 +41,12 @@ jobs:
         working-directory: noomo-ui
       - run: npm test
         working-directory: noomo-ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: noomo-ui
+      - run: npx playwright test
+        working-directory: noomo-ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab-browser-results
+          path: noomo-ui/test-results/
