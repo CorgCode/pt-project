@@ -301,3 +301,18 @@ def test_artifacts_are_not_modified(demo_path, running):
         get(running, "/api/lab/similar?host=Comp100014&k=3")
         get(running, "/api/lab/changes?k=3")
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_changes_selects_same_method_in_both_bundles(demo_path):
+    before = RunStore(bundle=demo_path, method="behavioral")
+    after = RunStore(bundle=demo_path, method="behavioral")
+    other = next(method for method in before.methods if method != "behavioral")
+    with client_for(create_app(before, compare_store=after)) as client:
+        status, body, _ = get(client, f"/api/lab/changes?method={other}")
+        assert status == 200, body
+        assert body["provenance"]["method"] == other
+        assert body["provenance"]["compare"]["after_sha256"] == body["provenance"]["embeddings_sha256"]
+        assert all(abs(change["similarity"] - 1) < 1e-10 for change in body["changes"])
+
+    with client_for(create_app(before, compare=before.dataset())) as client:
+        assert get(client, f"/api/lab/changes?method={other}")[0] == 400

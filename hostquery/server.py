@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlsplit
 
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.exceptions import RequestValidationError
@@ -313,7 +315,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def create_app(store: RunStore, *, compare=None, allowed_origins=()) -> FastAPI:
+def create_app(store: RunStore, *, compare=None, compare_store: RunStore | None = None, allowed_origins=()) -> FastAPI:
     """Собрать приложение. Вычисления берутся из доменных модулей без изменений."""
     origins = normalize_origins(allowed_origins)
     app = FastAPI(
@@ -339,7 +341,7 @@ def create_app(store: RunStore, *, compare=None, allowed_origins=()) -> FastAPI:
     @app.get("/api/lab/health", response_model=HealthResponse, tags=["служебные"])
     def health() -> dict:
         return {"status": "ok", "schema": schema.SCHEMA,
-                "methods": store.methods, "compare": compare is not None}
+                "methods": store.methods, "compare": compare is not None or compare_store is not None}
 
     @app.get("/api/lab/meta", response_model=MetaResponse, tags=["служебные"])
     def meta() -> dict:
@@ -423,19 +425,27 @@ def create_app(store: RunStore, *, compare=None, allowed_origins=()) -> FastAPI:
         alignment: str = Query("none", description="none или procrustes"),
         method: str | None = Query(None),
     ) -> dict:
-        if compare is None:
+        if compare is None and compare_store is None:
             raise HostQueryError("второе окно не задано",
                                  hint="запустите сервер с --compare <папка или csv>")
         data = dataset_for(method)
-        result = temporal.compare(data, compare, k=k, alignment=alignment)
+        if compare_store is not None:
+            selected = data.provenance.get("method") if store.bundle is not None else compare_store.resolve_method()
+            after = compare_store.dataset(selected)
+        else:
+            # A CSV has no model identifier. Treat it as an export for the server's default method.
+            if store.bundle is not None and store.resolve_method(method) != store.resolve_method():
+                raise HostQueryError("с CSV второго окна сравнивается только метод, выбранный при запуске")
+            after = compare
+        result = temporal.compare(data, after, k=k, alignment=alignment)
         warnings = result.pop("warnings", [])
         provenance = dict(data.provenance)
         # Контракт совпадает с CLI: путь и sha256 обоих окон. Иначе потребитель
         # не может проверить, что сравнил именно те файлы.
         provenance["compare"] = {
             "before": data.provenance.get("embeddings"),
-            "after": compare.provenance.get("embeddings"),
-            "after_sha256": compare.provenance.get("embeddings_sha256"),
+            "after": after.provenance.get("embeddings"),
+            "after_sha256": after.provenance.get("embeddings_sha256"),
         }
         return schema.envelope("changes", provenance=provenance, warnings=warnings,
                                query={"k": result["k"], "alignment": alignment}, **result)
@@ -499,9 +509,13 @@ def serve(args) -> None:
     store = RunStore(bundle=args.bundle, embeddings=args.embeddings,
                      reference_dir=args.reference_dir, method=args.method)
     compare = None
+    compare_store = None
     if getattr(args, "compare", None):
-        compare = open_dataset(args.compare, method=args.method, reference_dir=args.reference_dir)
-    app = create_app(store, compare=compare,
+        if Path(args.compare).is_dir():
+            compare_store = RunStore(bundle=args.compare, method=args.method, reference_dir=args.reference_dir)
+        else:
+            compare = open_dataset(args.compare, reference_dir=args.reference_dir)
+    app = create_app(store, compare=compare, compare_store=compare_store,
                      allowed_origins=getattr(args, "allow_origin", ()))
     print(f"hostquery: http://127.0.0.1:{args.port}/  (только чтение, Ctrl+C — остановить)",
           flush=True)
