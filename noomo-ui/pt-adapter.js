@@ -17,7 +17,7 @@ document.addEventListener("click",event=>{
 function adapt() {
   window.__ptMountContent?.();
   document.querySelectorAll(".mobile-menu .bottom a").forEach((link, i) => {
-    const label = ["Код проекта", "О модели", "Лаборатория", "Результаты"][i % 4];
+    const label = ["Код проекта", "О модели", "Рабочее место", "Результаты"][i % 4];
     if (link.textContent !== label) link.textContent = label;
     link.href = ["https://github.com/CorgCode/pt-project", "/model/", "/lab/", "/model/#results"][i % 4];
   });
@@ -44,7 +44,7 @@ function adapt() {
       const span = link.querySelector("span");
       if (!span) return;
       const text = span.textContent.trim();
-      const names = { Work: "Лаборатория", Contact: "Модель", Home: "Продукт" };
+      const names = { Work: "Рабочее место", Contact: "Модель", Home: "Продукт" };
       const href=link.getAttribute("href");if(href==="/work")link.setAttribute("href","/lab/");if(href==="/contact")link.setAttribute("href","/model/");
       if (names[text]) span.textContent = names[text];
     });
@@ -61,8 +61,8 @@ function adapt() {
   if (send) {
     send.href = "/lab/";
     const p = send.querySelector(".inner-circle p");
-    if (p && p.textContent.trim() !== "Открыть продукт")
-      p.textContent = "Открыть продукт";
+    if (p && p.textContent.trim() !== "Открыть рабочее место")
+      p.textContent = "Открыть рабочее место";
   }
   document.getElementById("pt-product-link")?.remove();
   const soundCopy = document.querySelector(".home-preloader .bottom > p");

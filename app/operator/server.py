@@ -17,11 +17,12 @@ from .accounts import Accounts, COOKIE, SESSION_TTL
 ROOT = Path(__file__).resolve().parents[2]
 STATIC = Path(__file__).parent / "static"
 SITE = ROOT / "noomo-ui"
-WORKSPACE = "/lab/workspace/"
+WORKSPACE = "/lab/"
 LOGIN = "/lab/login/"
 LOGOUT = "/lab/logout/"
 MAX_BODY = 8 * 1024 * 1024
 ASSETS = {
+    "/pt-favicon.svg": SITE / "pt-favicon.svg",
     "/assets/core.js": ROOT / "noomo-ui/lab/core.js",
     "/assets/onest.ttf": ROOT / "noomo-ui/fonts/onest-400.ttf",
     "/assets/onest-bold.ttf": ROOT / "noomo-ui/fonts/onest-600.ttf",
@@ -176,18 +177,28 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 return self.send(403, {"error": "Откройте форму входа на сайте."})
             if route == LOGOUT:
                 accounts.logout(self.token())
-                return self.redirect(LOGIN, "")
+                return self.redirect(WORKSPACE, "")
+            wants_json = self.headers.get("Accept") == "application/json"
+
+            def failed(status):
+                if wants_json:
+                    return self.send(status, {"error": "Проверьте имя пользователя и пароль."})
+                return self.login_page(status, invalid=True)
+
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if not 0 < size <= 4096 or self.headers.get_content_type() != "application/x-www-form-urlencoded":
-                    return self.login_page(400, invalid=True)
+                    return failed(400)
                 fields = parse_qs(self.rfile.read(size).decode(), max_num_fields=4)
             except ValueError:
-                return self.login_page(400, invalid=True)
+                return failed(400)
             token = accounts.login(fields.get("name", [""])[0], fields.get("password", [""])[0])
             if not token:
-                return self.login_page(401, invalid=True)
+                return failed(401)
             accounts.logout(self.token())
+            if wants_json:
+                cookie = f"{COOKIE}={token}; Path=/; Max-Age={SESSION_TTL}; HttpOnly; SameSite=Strict"
+                return self.send(200, {"signedIn": True}, headers=[("Set-Cookie", cookie)])
             return self.redirect(WORKSPACE, token)
 
         def do_HEAD(self):
@@ -209,15 +220,17 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 return self.send(200, {"status": "ok", "product": "CorgCode", "storage": "local", "workspaceSchema": 2})
             if site and route in (LOGIN.rstrip("/"), WORKSPACE.rstrip("/")):
                 return self.redirect(route + "/")
+            if site and route in ("/lab/workspace", "/lab/workspace/", "/lab/index.html"):
+                return self.redirect(WORKSPACE)
             if site and route == LOGIN:
                 return self.redirect(WORKSPACE) if accounts.identify(self.token()) else self.login_page()
             if site and route == WORKSPACE:
-                if not accounts.identify(self.token()):
-                    return self.redirect(LOGIN)
+                signed_in = bool(accounts.identify(self.token()))
                 page = (STATIC / "index.html").read_text(encoding="utf-8")
-                navigation = '<div class="site-navigation"><a class="quiet" href="/lab/">О лаборатории</a><form method="post" action="/lab/logout/"><button class="quiet" type="submit">Выйти</button></form></div>'
-                reauth = '<p id="session-expired" class="panel" role="status" hidden>Сессия истекла. <a href="/lab/login/" target="_blank" rel="noopener">Войдите в новой вкладке</a>, затем вернитесь сюда и повторите сохранение.</p>'
-                page = page.replace("<!-- site-navigation -->", navigation).replace("<!-- session-expired -->", reauth)
+                mode = "account" if signed_in else "guest"
+                page = page.replace("<body>", f'<body data-workspace-mode="{mode}">')
+                if not signed_in and not accounts.has_users():
+                    page = page.replace('id="account-setup" hidden', 'id="account-setup"')
                 return self.send(200, page.encode(), "text/html; charset=utf-8")
             files = {"/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
                      "/workflow.js": STATIC / "workflow.js", **ASSETS}

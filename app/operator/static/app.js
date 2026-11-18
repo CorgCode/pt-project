@@ -9,7 +9,54 @@
  const svg=(tag,attrs,text)=>{const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,String(v));if(text!==undefined)e.textContent=text;return e;};
  function status(text,error=false){$('status').textContent=text;$('status').dataset.error=String(error);}
  function dirty(){revision++;$('save-state').textContent='Есть несохранённые изменения';}
- async function api(route,options){const response=await fetch(route,options);const data=await response.json();const sessionNotice=$('session-expired');if(sessionNotice)sessionNotice.hidden=response.status!==401;if(!response.ok)throw Error(data.error||'Не удалось выполнить запрос.');return data;}
+ const siteMode = Boolean(document.body.dataset.workspaceMode);
+ let saveAfterLogin = false;
+ function isGuest(){return document.body.dataset.workspaceMode==='guest';}
+ function openAccount(afterSave=false){
+  saveAfterLogin=afterSave;
+  $('account-purpose').textContent=afterSave
+   ? 'После входа текущий набор сохранится в вашем аккаунте.'
+   : 'Войдите, чтобы открыть сохранённые наборы.';
+  $('account-error').hidden=true;
+  if(!$('account-dialog').open)$('account-dialog').showModal();
+ }
+ async function api(route,options){
+  const response=await fetch(route,options);
+  const data=await response.json();
+  if(response.status===401&&siteMode&&route!=='/lab/login/'){
+   document.body.dataset.workspaceMode='guest';
+   $('saved-workspaces').replaceChildren();
+   $('workspace-dialog-list').replaceChildren();
+  }
+  if(!response.ok)throw Error(data.error||'Не удалось выполнить запрос.');
+  return data;
+ }
+ async function signIn(event){
+  event.preventDefault();
+  const form=event.currentTarget, submit=form.querySelector('button[type="submit"]');
+  const shouldSave=saveAfterLogin;
+  const formBody=new URLSearchParams(new FormData(form));
+  submit.disabled=true;
+  $('account-error').hidden=true;
+  try{
+   await api('/lab/login/',{method:'POST',headers:{Accept:'application/json'},body:formBody});
+   document.body.dataset.workspaceMode='account';
+   form.reset();
+   $('account-dialog').close();
+   const rows=await savedList();
+   if(workspaceId&&!rows.some(row=>row.id===workspaceId)){
+    workspaceId=null;
+    dirty();
+    status('В этом аккаунте исходного набора нет. Нажмите «Сохранить», чтобы создать копию.');
+   }else if(shouldSave)await save();
+   else status('Вход выполнен. Сохранённые наборы доступны в меню.');
+  }catch(error){
+   if($('account-dialog').open){
+    $('account-error').textContent=error.message;
+    $('account-error').hidden=false;
+   }else status(error.message,true);
+  }finally{submit.disabled=false;}
+ }
  function view(name){currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name)e.setAttribute('aria-current','page');else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case')renderCase();if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();}
  function install(next,data,id=null){state=next;payload={...data,notes:{...data.notes},annotations:{...data.annotations},settings:{groupCount:3,...data.settings}};workspaceId=id;$('group-count').value=payload.settings.groupCount;groups=math.group(state.dataset,Number($('group-count').value));projection=math.project(state.dataset);selected=state.dataset[0];comparator=null;mode='similar';zoom=1;pan={x:0,y:0};limit=30;activeGroup=groups[0];$('host-search').value='';$('contact-search').value='';$('status-filter').value='';$('host-sort').value='name';$('watch-only').checked=false;$('change-search').value='';$('change-filter').value='all';$('workspace-name').value=data.name;$('source-badge').textContent=data.sample?'Учебный пример':'Ваши данные';$('dataset-kind').textContent=state.kind==='flows'?'Записи трафика':'Готовые профили';$('stat-hosts').textContent=state.dataset.length;$('stat-records-label').textContent=state.kind==='flows'?'Записей обмена':'Координат в профиле';$('stat-records').textContent=state.stats.flows??state.stats.dimensions;$('stat-dims').textContent=state.stats.dimensions+' чисел';$('mode-traffic').disabled=state.kind!=='flows';$('baseline-name').textContent=data.baseline?'Первое окно сохранено с набором.':'Первое окно не загружено.';$('save-state').textContent=id?'Набор сохранён локально':'Набор не сохранён';renderGroupOptions();select(selected.id);workflow.renderWatch();renderChanges();status(`${data.sample?'Учебный пример':'Рабочий набор'}: ${state.dataset.length} устройств. Выберите устройство, чтобы начать разбор.`);view(currentView);}
  function openSample(){intent++;importRequest++;baselineRequest++;openRequest++;install(math.parseCSV(sample),{name:'Знакомство с сетью',csv:sample,baseline:'',notes:{},sample:true});}
@@ -82,8 +129,8 @@
  async function savedList(){const rows=await api('/api/workspaces');$('saved-workspaces').replaceChildren(...rows.map(row=>{const button=element('button',row.name);button.type='button';button.title=row.name;button.setAttribute('aria-pressed',String(row.id===workspaceId));button.addEventListener('click',()=>openSaved(row.id));return button;}));if(!rows.length)$('saved-workspaces').append(element('p','Сохранённые наборы появятся здесь.','small'));renderWorkspaceDialog(rows);return rows;}
  function renderWorkspaceDialog(rows){$('workspace-dialog-list').replaceChildren(...rows.map(row=>{const button=element('button',row.name);button.type='button';button.addEventListener('click',()=>{$('workspaces-dialog').close();openSaved(row.id);});return button;}));if(!rows.length)$('workspace-dialog-list').append(element('p','Пока нет сохранённых наборов. Загрузите CSV и нажмите «Сохранить».','small'));}
  async function openSaved(id){if(!(await preserve()))return;const request=++openRequest,currentIntent=++intent;try{const data=await api('/api/workspaces/'+id);if(request!==openRequest||currentIntent!==intent)return;const parsed=math.parseCSV(data.csv);importRequest++;baselineRequest++;install(parsed,data,id);await savedList();}catch(error){if(currentIntent!==intent)return;status('Не удалось открыть набор: '+error.message,true);}}
- async function save(){if(saving){status('Подождите завершения сохранения.');return false;}saving=true;const currentRevision=revision,oldId=workspaceId,originalPayload=payload,data=JSON.parse(JSON.stringify({...payload,name:$('workspace-name').value}));$('save-state').textContent='Сохраняем…';$('save-workspace').disabled=true;$('save-note').disabled=true;try{const result=await api('/api/workspaces'+(oldId?'/'+oldId:''),{method:oldId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(payload===originalPayload&&workspaceId===oldId){workspaceId=result.id;$('save-state').textContent=revision===currentRevision?'Сохранено на компьютере':'Есть несохранённые изменения';}await savedList();return true;}catch(error){$('save-state').textContent='Есть несохранённые изменения';status('Не удалось сохранить: '+error.message,true);return false;}finally{saving=false;$('save-workspace').disabled=false;$('save-note').disabled=false;}}
- async function preserve(){while($('save-state').textContent.includes('несохранённые'))if(!(await save()))return false;return true;}
+ async function save(){if(isGuest()){openAccount(true);return false;}if(saving){status('Подождите завершения сохранения.');return false;}saving=true;const currentRevision=revision,oldId=workspaceId,originalPayload=payload,data=JSON.parse(JSON.stringify({...payload,name:$('workspace-name').value}));$('save-state').textContent='Сохраняем…';$('save-workspace').disabled=true;$('save-note').disabled=true;try{const result=await api('/api/workspaces'+(oldId?'/'+oldId:''),{method:oldId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(payload===originalPayload&&workspaceId===oldId){workspaceId=result.id;$('save-state').textContent=revision===currentRevision?'Сохранено на компьютере':'Есть несохранённые изменения';}await savedList();return true;}catch(error){$('save-state').textContent='Есть несохранённые изменения';status('Не удалось сохранить: '+error.message,true);if(isGuest())openAccount(true);return false;}finally{saving=false;$('save-workspace').disabled=false;$('save-note').disabled=false;}}
+ async function preserve(){if(isGuest()&&$('save-state').textContent.includes('несохранённые'))return window.confirm('Перейти к другому набору без сохранения текущих изменений?');while($('save-state').textContent.includes('несохранённые'))if(!(await save()))return false;return true;}
  async function importFile(file,baseline=false){if(!file)return;const currentIntent=baseline?intent:++intent,request=baseline?++baselineRequest:++importRequest;try{if(file.size>3*1024*1024)throw Error('Поддерживается CSV до 3 МБ.');const csv=await file.text();if(request!==(baseline?baselineRequest:importRequest)||currentIntent!==intent)return;const data=math.parseCSV(csv);if(baseline){math.compareWindows(data,state,Number($('group-count').value));payload.baseline=csv;$('baseline-name').textContent=file.name;dirty();renderChanges();status('Первое окно загружено. Можно сравнивать изменения.');}else{if(!(await preserve()))return;if(currentIntent!==intent)return;openRequest++;baselineRequest++;install(data,{name:file.name.replace(/\.csv$/i,''),csv,baseline:'',notes:{},sample:false});dirty();}}catch(error){if(request===(baseline?baselineRequest:importRequest)&&currentIntent===intent)status('Файл не загружен: '+error.message+' Рабочий набор сохранён.',true);}}
  function download(text,name,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=element('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  function exportCase(){const report={product:'CorgCode',dataset:payload.name,sample:payload.sample,device:selected.id,group:groups[state.dataset.indexOf(selected)]+1,activity:selected.activity||null,neighbors:nearest().map(n=>({id:n.host.id,cosine:n.score})),observedContacts:contacts(state,selected.id),comparedWith:comparator.id,comparisonCosine:math.cosine(selected,comparator),operatorNote:Object.prototype.hasOwnProperty.call(payload.notes,selected.id)?payload.notes[selected.id]:'',annotation:workflow.annotation(selected.id),limitation:'Профиль и группа не определяют роль или наличие атаки. Координаты карты условны.'};download(JSON.stringify(report,null,2),'corgcode-case.json','application/json;charset=utf-8');status('Разбор сохранён в JSON: значения, соседи, контакты и заметка.');}
@@ -99,11 +146,27 @@
  $('change-scenario').addEventListener('click',openChangeScenario);
  $('to-contacts').addEventListener('click',()=>view('contacts'));$('contact-search').addEventListener('input',renderContactTable);$('contact-order').addEventListener('change',renderContactTable);$('export-contacts').addEventListener('click',exportContacts);
  $('to-case').addEventListener('click',()=>view('case'));$('save-workspace').addEventListener('click',save);$('save-note').addEventListener('click',save);$('sample-button').addEventListener('click',async()=>{if(await preserve())openSample();});$('new-workspace').addEventListener('click',()=>{$('current-file').click();});$('import-button').addEventListener('click',()=>$('current-file').click());$('baseline-button').addEventListener('click',()=>$('baseline-file').click());$('current-file').addEventListener('change',e=>{importFile(e.target.files[0]);e.target.value='';});$('baseline-file').addEventListener('change',e=>{importFile(e.target.files[0],true);e.target.value='';});$('export-case').addEventListener('click',exportCase);
- $('open-workspaces').addEventListener('click',()=>{$('workspaces-dialog').showModal();savedList().catch(error=>status(error.message,true));});$('close-workspaces').addEventListener('click',()=>$('workspaces-dialog').close());$('mobile-help').addEventListener('click',()=>{$('workspaces-dialog').close();$('help-dialog').showModal();});
+ $('open-workspaces').addEventListener('click',()=>{if(isGuest()){openAccount();return;}$('workspaces-dialog').showModal();savedList().catch(error=>status(error.message,true));});$('close-workspaces').addEventListener('click',()=>$('workspaces-dialog').close());$('mobile-help').addEventListener('click',()=>{$('workspaces-dialog').close();$('help-dialog').showModal();});
  $('open-help').addEventListener('click',()=>$('help-dialog').showModal());$('close-help').addEventListener('click',()=>$('help-dialog').close());
  $('zoom-in').addEventListener('click',()=>{zoom=Math.min(4,zoom*1.25);drawNetwork();});$('zoom-out').addEventListener('click',()=>{zoom=Math.max(.5,zoom/1.25);drawNetwork();});$('zoom-reset').addEventListener('click',()=>{zoom=1;pan={x:0,y:0};drawNetwork();});
  const network=$('network');network.addEventListener('pointerdown',e=>{if(e.button!==0||e.pointerType==='touch')return;drag={x:e.clientX,y:e.clientY,pan:{...pan}};dragged=false;});network.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)dragged=true;if(!dragged)return;network.setPointerCapture?.(e.pointerId);const rect=network.getBoundingClientRect(),width=innerWidth<700?360:760;pan={x:drag.pan.x-dx/rect.width*width/zoom,y:drag.pan.y-dy/rect.width*width/zoom};network.classList.add('is-dragging');drawNetwork();});const endDrag=()=>{drag=null;network.classList.remove('is-dragging');setTimeout(()=>dragged=false,0);};network.addEventListener('pointerup',endDrag);network.addEventListener('pointercancel',endDrag);let mobile=innerWidth<700;window.addEventListener('resize',()=>{const next=innerWidth<700;if(next!==mobile){mobile=next;zoom=1;pan={x:0,y:0};drawNetwork();}});
  window.addEventListener('beforeunload',e=>{if($('save-state').textContent.includes('несохранённые')){e.preventDefault();e.returnValue='';}});
  workflow=window.createCorgWorkflow(()=>({state,selected,comparator,groups,mode,payload,math,element,select,view,dirty,status,download,nearest,contacts,renderList,renderChanges}));
- openSample();const startupIntent=intent;savedList().then(rows=>{if(rows.length&&intent===startupIntent&&revision===0)openSaved(rows[0].id);}).catch(error=>status('Локальное хранилище недоступно: '+error.message,true));
+ if(siteMode){
+  $('site-login').addEventListener('click',()=>openAccount());
+  $('close-account').addEventListener('click',()=>$('account-dialog').close());
+  $('account-form').addEventListener('submit',signIn);
+ }
+ function followSection(){
+  const section=location.hash.slice(1);
+  if(section==='soc-scenarios')$('quick-start').open=true;
+  if(['devices','groups','contacts','changes','watch','case'].includes(section))view(section);
+ }
+ openSample();
+ followSection();
+ window.addEventListener('hashchange',followSection);
+ const startupIntent=intent;
+ if(!isGuest())savedList().then(rows=>{if(rows.length&&intent===startupIntent&&revision===0)openSaved(rows[0].id);}).catch(error=>{
+  if(!isGuest())status('Локальное хранилище недоступно: '+error.message,true);
+ });
 })();

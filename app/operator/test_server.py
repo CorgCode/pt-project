@@ -113,18 +113,18 @@ class LabAccountTest(unittest.TestCase):
                     accounts.add("analyst-two", "example passphrase two")
                     login_page = request("GET", "/lab/login/")[2]
                     self.assertIn(b'<details class="login-setup" hidden>', login_page)
-                    self.assertIn(b'href="/lab/workspace/"', request("GET", "/lab/")[2])
-                    self.assertEqual(request("GET", "/lab/workspace/")[1]["Location"], "/lab/login/")
+                    self.assertIn(b'data-workspace-mode="guest"', request("GET", "/lab/")[2])
+                    self.assertEqual(request("GET", "/lab/workspace/")[1]["Location"], "/lab/")
                     self.assertEqual(request("HEAD", "/lab/workspace/")[0], 303)
                     self.assertEqual(request("GET", "/api/workspaces")[0], 401)
                     self.assertEqual(login("analyst-one", "wrong")[0], 401)
                     self.assertEqual(login("analyst-one", "example+passphrase+one", "https://example.test")[0], 403)
                     status, headers, _ = login("analyst-one", "example+passphrase+one")
                     self.assertEqual(status, 303)
-                    self.assertEqual(headers["Location"], "/lab/workspace/")
+                    self.assertEqual(headers["Location"], "/lab/")
                     self.assertIn("HttpOnly", headers["Set-Cookie"])
                     cookie = headers["Set-Cookie"].split(";", 1)[0]
-                    self.assertIn(b'/lab/logout/', request("GET", "/lab/workspace/", Cookie=cookie)[2])
+                    self.assertIn(b'data-workspace-mode="account"', request("GET", "/lab/", Cookie=cookie)[2])
                     body = json.dumps({"name": "Первая смена", "csv": "src,dst\na,b"})
                     status, _, data = request("POST", "/api/workspaces", body, Cookie=cookie,
                                               **{"Content-Type": "application/json"})
