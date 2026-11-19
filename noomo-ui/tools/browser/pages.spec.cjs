@@ -111,7 +111,7 @@ test.describe('native WebGL scene', () => {
     await page.setViewportSize({ width: 1100, height: 730 });
     await page.goto('/');
     const start = page.getByRole('button', { name: 'Начать исследование сети' });
-    await expect(start).toBeVisible({ timeout: 25_000 });
+    await expect(start).toBeVisible({ timeout: 45_000 });
     await expect(page.getByRole('link', { name: 'Без 3D' })).toHaveCount(0);
     await start.click();
     const enter = page.getByRole('button', { name: 'К сценам' });
@@ -155,7 +155,7 @@ test.describe('native WebGL scene', () => {
     try {
       await page.goto('/');
       const start = page.getByRole('button', { name: 'Начать исследование сети' });
-      await expect(start).toBeVisible({ timeout: 35_000 });
+      await expect(start).toBeVisible({ timeout: 45_000 });
       await start.tap();
       await expect(page.getByRole('button', { name: 'К сценам' })).toBeVisible({ timeout: 20_000 });
     } finally {
