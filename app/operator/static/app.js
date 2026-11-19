@@ -16,11 +16,11 @@
   const form=$('account-form'), password=form.elements.password;
   form.action=registering?'/lab/register/':'/lab/login/';
   password.autocomplete=registering?'new-password':'current-password';
-  if(registering)password.minLength=12;
+  if(registering)password.minLength=8;
   else password.removeAttribute('minlength');
   $('account-title').textContent=registering?'Регистрация':'Вход в рабочее место';
   $('account-purpose').textContent=registering
-   ? 'Имя латиницей, пароль от 12 символов.'
+   ? 'Имя латиницей, пароль от 8 символов.'
    : saveAfterLogin?'После входа текущий набор сохранится.':'';
   form.querySelector('button[type="submit"]').textContent=registering?'Зарегистрироваться':'Войти';
   $('switch-account-mode').textContent=registering?'Уже есть аккаунт':'Создать аккаунт';

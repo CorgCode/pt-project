@@ -37,7 +37,7 @@ def render_auth_page(registering=False, message=""):
         "title": "Регистрация" if registering else "Вход в лабораторию",
         "action": REGISTER if registering else LOGIN,
         "autocomplete": "new-password" if registering else "current-password",
-        "password-minlength": 'minlength="12"' if registering else "",
+        "password-minlength": 'minlength="8"' if registering else "",
         "submit": "Зарегистрироваться" if registering else "Войти",
         "alternate-url": LOGIN if registering else REGISTER,
         "alternate-label": "Уже есть аккаунт" if registering else "Создать аккаунт",
