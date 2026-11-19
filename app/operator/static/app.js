@@ -134,6 +134,27 @@
  async function importFile(file,baseline=false){if(!file)return;const currentIntent=baseline?intent:++intent,request=baseline?++baselineRequest:++importRequest;try{if(file.size>3*1024*1024)throw Error('Поддерживается CSV до 3 МБ.');const csv=await file.text();if(request!==(baseline?baselineRequest:importRequest)||currentIntent!==intent)return;const data=math.parseCSV(csv);if(baseline){math.compareWindows(data,state,Number($('group-count').value));payload.baseline=csv;$('baseline-name').textContent=file.name;dirty();renderChanges();status('Первое окно загружено. Можно сравнивать изменения.');}else{if(!(await preserve()))return;if(currentIntent!==intent)return;openRequest++;baselineRequest++;install(data,{name:file.name.replace(/\.csv$/i,''),csv,baseline:'',notes:{},sample:false});dirty();}}catch(error){if(request===(baseline?baselineRequest:importRequest)&&currentIntent===intent)status('Файл не загружен: '+error.message+' Рабочий набор сохранён.',true);}}
  function download(text,name,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=element('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  function exportCase(){const report={product:'CorgCode',dataset:payload.name,sample:payload.sample,device:selected.id,group:groups[state.dataset.indexOf(selected)]+1,activity:selected.activity||null,neighbors:nearest().map(n=>({id:n.host.id,cosine:n.score})),observedContacts:contacts(state,selected.id),comparedWith:comparator.id,comparisonCosine:math.cosine(selected,comparator),operatorNote:Object.prototype.hasOwnProperty.call(payload.notes,selected.id)?payload.notes[selected.id]:'',annotation:workflow.annotation(selected.id),limitation:'Профиль и группа не определяют роль или наличие атаки. Координаты карты условны.'};download(JSON.stringify(report,null,2),'corgcode-case.json','application/json;charset=utf-8');status('Разбор сохранён в JSON: значения, соседи, контакты и заметка.');}
+ const sidebarToggle = $('toggle-sidebar');
+ sidebarToggle.addEventListener('click', () => {
+   const sidebar = $('workspace-sidebar');
+   sidebar.hidden = !sidebar.hidden;
+   sidebarToggle.setAttribute('aria-expanded', String(!sidebar.hidden));
+   sidebarToggle.textContent = sidebar.hidden ? 'Показать меню' : 'Свернуть меню';
+ });
+ const firstVisit = $('first-visit');
+ const guideKey = 'corgcode-first-visit-dismissed';
+ try { firstVisit.hidden = localStorage.getItem(guideKey) === 'yes'; }
+ catch { firstVisit.hidden = false; }
+ function dismissFirstVisit() {
+   firstVisit.hidden = true;
+   try { localStorage.setItem(guideKey, 'yes'); } catch {}
+ }
+ $('dismiss-first-visit').addEventListener('click', dismissFirstVisit);
+ $('start-first-visit').addEventListener('click', () => {
+   dismissFirstVisit();
+   view('devices');
+   $('host-search').focus();
+ });
  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
  $('host-search').addEventListener('input',()=>{limit=30;renderList();});$('group-filter').addEventListener('change',()=>{limit=30;renderList();});$('more-hosts').addEventListener('click',()=>{limit+=30;renderList();});
  $('group-count').addEventListener('change',()=>{payload.settings.groupCount=Number($('group-count').value);dirty();groups=math.group(state.dataset,Number($('group-count').value));renderGroupOptions();select(selected.id);drawClusters();renderChanges();workflow.renderWatch();});

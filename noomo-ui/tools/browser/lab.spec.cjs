@@ -17,6 +17,13 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.goto('/lab/');
   await expect(page.locator('body')).toHaveAttribute('data-workspace-mode', 'guest');
   await expect(page.locator('#stat-hosts')).toHaveText('15');
+  await expect(page.getByRole('heading', { name: 'Первый разбор' })).toBeVisible();
+  await page.getByRole('button', { name: 'Найти устройство' }).click();
+  await expect(page.locator('#host-search')).toBeFocused();
+  await page.getByRole('button', { name: 'Свернуть меню' }).click();
+  await expect(page.locator('#workspace-sidebar')).toBeHidden();
+  await page.getByRole('button', { name: 'Показать меню' }).click();
+  await expect(page.locator('#workspace-sidebar')).toBeVisible();
   await expect(page.locator('#host-search')).toBeVisible();
   await expect(page.locator('nav [data-view="groups"]')).toBeHidden();
   await expect(page.locator('#workspace-name')).toBeHidden();
