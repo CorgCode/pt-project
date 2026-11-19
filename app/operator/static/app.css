@@ -195,3 +195,29 @@ body[data-workspace-mode="account"] :is(#site-login, #site-register) { display: 
 .tutorial button { font-size: 12px; }
 
 #switch-account-mode { margin-top: 12px; }
+
+.sidebar nav > button, .secondary-views summary { min-height: 48px; }
+#toggle-sidebar { width: 44px; height: 44px; }
+
+@media (max-width: 700px) {
+  body:has(.sidebar:not([hidden])) { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .sidebar { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .sidebar nav {
+    position: fixed;
+    z-index: 20;
+    inset-inline: 0;
+    bottom: 0;
+    gap: 4px 8px;
+    padding: 8px 16px calc(6px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid var(--edge);
+  }
+  .sidebar nav button {
+    min-height: 48px;
+    padding: 8px 4px;
+    font-size: 14px;
+  }
+  .secondary-views { display: flex; flex-wrap: wrap; align-items: center; }
+  .secondary-views summary { min-height: 40px; padding: 9px 8px; font-size: 13px; }
+  .secondary-views button { min-height: 44px; padding-inline: 8px; }
+}

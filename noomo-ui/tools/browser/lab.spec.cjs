@@ -95,9 +95,12 @@ test('mobile viewport keeps login and navigation reachable', async ({ page }, te
   await page.screenshot({ path: testInfo.outputPath('login-mobile.png'), fullPage: true });
   await signIn(page);
   const nav = page.getByRole('navigation', { name: 'Разделы программы' });
+  const navBounds = await nav.boundingBox();
+  expect(navBounds.y + navBounds.height).toBeCloseTo(844, 0);
   await nav.getByText('Ещё разделы').click();
   for (const button of await nav.getByRole('button').all()) {
     const bounds = await button.boundingBox();
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(391);
     expect(await button.evaluate(node => node.scrollWidth)).toBeLessThanOrEqual(await button.evaluate(node => node.clientWidth));
