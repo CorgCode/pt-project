@@ -19,6 +19,7 @@ STATIC = Path(__file__).parent / "static"
 SITE = ROOT / "noomo-ui"
 WORKSPACE = "/lab/"
 LOGIN = "/lab/login/"
+REGISTER = "/lab/register/"
 LOGOUT = "/lab/logout/"
 MAX_BODY = 8 * 1024 * 1024
 ASSETS = {
@@ -192,13 +193,19 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 fields = parse_qs(self.rfile.read(size).decode(), max_num_fields=4)
             except ValueError:
                 return failed(400)
-            token = accounts.login(fields.get("name", [""])[0], fields.get("password", [""])[0])
+            name, password = fields.get("name", [""])[0], fields.get("password", [""])[0]
+            if route == REGISTER:
+                try:
+                    accounts.add(name, password)
+                except ValueError as error:
+                    return self.send(400, {"error": str(error)}) if wants_json else failed(400)
+            token = accounts.login(name, password)
             if not token:
                 return failed(401)
             accounts.logout(self.token())
             if wants_json:
                 cookie = f"{COOKIE}={token}; Path=/; Max-Age={SESSION_TTL}; HttpOnly; SameSite=Strict"
-                return self.send(200, {"signedIn": True}, headers=[("Set-Cookie", cookie)])
+                return self.send(201 if route == REGISTER else 200, {"signedIn": True}, headers=[("Set-Cookie", cookie)])
             return self.redirect(WORKSPACE, token)
 
         def do_HEAD(self):
@@ -251,7 +258,7 @@ def make_server(port=8846, data_dir=None, *, site=False):
 
         def do_POST(self):
             route = urlsplit(self.path).path
-            if site and route in (LOGIN, LOGOUT):
+            if site and route in (LOGIN, REGISTER, LOGOUT):
                 return self.authenticate(route)
             self.write_workspace(False)
 

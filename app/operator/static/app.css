@@ -119,7 +119,7 @@
 .site-navigation { display: none; }
 body[data-workspace-mode] .site-navigation { display: flex; }
 body[data-workspace-mode="guest"] :is(#site-logout, .sidebar-label, #saved-workspaces, #open-workspaces) { display: none; }
-body[data-workspace-mode="account"] #site-login { display: none; }
+body[data-workspace-mode="account"] :is(#site-login, #site-register) { display: none; }
 #account-dialog { max-width: 430px; }
 #account-dialog #account-setup a { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -193,3 +193,5 @@ body[data-workspace-mode="account"] #site-login { display: none; }
 .tutorial { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; padding: 10px 14px; border-inline-start: 3px solid var(--accent); background: var(--paper); }
 .tutorial[hidden] { display: none; }
 .tutorial button { font-size: 12px; }
+
+#switch-account-mode { margin-top: 12px; }

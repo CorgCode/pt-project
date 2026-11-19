@@ -93,6 +93,7 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
     def sign_in_page(request: Request):
         return RedirectResponse("/lab/", 303) if user(request) else login_page()
 
+    @app.post("/lab/register/")
     @app.post("/lab/login/")
     async def sign_in(request: Request):
         async def form():
@@ -121,12 +122,18 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
             if len(attempts) >= 30:
                 return fail(429, "Слишком много попыток. Попробуйте через минуту.")
             attempts.append(now)
-        token = await run_in_threadpool(accounts.login, fields.get("name", [""])[0],
-                                        fields.get("password", [""])[0])
+        name, password = fields.get("name", [""])[0], fields.get("password", [""])[0]
+        registering = request.url.path == "/lab/register/"
+        if registering:
+            try:
+                await run_in_threadpool(accounts.add, name, password)
+            except ValueError as exc:
+                return error(400, str(exc)) if wants_json else login_page(status=400)
+        token = await run_in_threadpool(accounts.login, name, password)
         if not token:
             return fail(401, "Проверьте имя пользователя и пароль.")
         await run_in_threadpool(accounts.logout, request.cookies.get(COOKIE))
-        response = JSONResponse({"signedIn": True}) if wants_json else RedirectResponse("/lab/", 303)
+        response = JSONResponse({"signedIn": True}, status_code=201 if registering else 200) if wants_json else RedirectResponse("/lab/", 303)
         response.set_cookie(COOKIE, token, max_age=SESSION_TTL, httponly=True, secure=secure, samesite="strict")
         return response
 

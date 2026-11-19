@@ -12,12 +12,23 @@
  const siteMode = Boolean(document.body.dataset.workspaceMode);
  let saveAfterLogin = false;
  function isGuest(){return document.body.dataset.workspaceMode==='guest';}
- function openAccount(afterSave=false){
-  saveAfterLogin=afterSave;
-  $('account-purpose').textContent=afterSave
-   ? 'После входа текущий набор сохранится в вашем аккаунте.'
-   : 'Войдите, чтобы открыть сохранённые наборы.';
+ function setAccountMode(registering){
+  const form=$('account-form'), password=form.elements.password;
+  form.action=registering?'/lab/register/':'/lab/login/';
+  password.autocomplete=registering?'new-password':'current-password';
+  if(registering)password.minLength=12;
+  else password.removeAttribute('minlength');
+  $('account-title').textContent=registering?'Регистрация':'Вход в рабочее место';
+  $('account-purpose').textContent=registering
+   ? 'Имя латиницей, пароль от 12 символов.'
+   : saveAfterLogin?'После входа текущий набор сохранится.':'';
+  form.querySelector('button[type="submit"]').textContent=registering?'Зарегистрироваться':'Войти';
+  $('switch-account-mode').textContent=registering?'Уже есть аккаунт':'Создать аккаунт';
   $('account-error').hidden=true;
+ }
+ function openAccount(afterSave=false,registering=false){
+  saveAfterLogin=afterSave;
+  setAccountMode(registering);
   if(!$('account-dialog').open)$('account-dialog').showModal();
  }
  async function api(route,options){
@@ -37,9 +48,11 @@
   const shouldSave=saveAfterLogin;
   const formBody=new URLSearchParams(new FormData(form));
   submit.disabled=true;
+  $('switch-account-mode').disabled=true;
   $('account-error').hidden=true;
   try{
-   await api('/lab/login/',{method:'POST',headers:{Accept:'application/json'},body:formBody});
+   const route=new URL(form.action).pathname;
+   await api(route,{method:'POST',headers:{Accept:'application/json'},body:formBody});
    document.body.dataset.workspaceMode='account';
    form.reset();
    $('account-dialog').close();
@@ -49,13 +62,13 @@
     dirty();
     status('В этом аккаунте исходного набора нет. Нажмите «Сохранить», чтобы создать копию.');
    }else if(shouldSave)await save();
-   else status('Вход выполнен. Сохранённые наборы доступны в меню.');
+   else status('');
   }catch(error){
    if($('account-dialog').open){
     $('account-error').textContent=error.message;
     $('account-error').hidden=false;
    }else status(error.message,true);
-  }finally{submit.disabled=false;}
+  }finally{submit.disabled=false;$('switch-account-mode').disabled=false;}
  }
  function view(name){const previousView=$('view-'+currentView);const moveFocus=currentView!==name&&previousView?.contains(document.activeElement);currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name){e.setAttribute('aria-current','page');const section=e.closest('.secondary-views');if(section)section.open=true;}else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case'){renderCase();if(tutorialStep===3)setTutorialStep(4);}if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();if(moveFocus)$('view-title').focus();}
  function install(next,data,id=null){state=next;payload={...data,notes:{...data.notes},annotations:{...data.annotations},settings:{groupCount:3,...data.settings}};workspaceId=id;$('group-count').value=payload.settings.groupCount;groups=math.group(state.dataset,Number($('group-count').value));projection=math.project(state.dataset);selected=state.dataset[0];comparator=null;mode='similar';zoom=1;pan={x:0,y:0};limit=30;activeGroup=groups[0];$('host-search').value='';$('contact-search').value='';$('status-filter').value='';$('host-sort').value='name';$('watch-only').checked=false;$('change-search').value='';$('change-filter').value='all';$('workspace-name').value=data.name;$('source-badge').textContent=data.sample?'Учебный пример':'Ваши данные';$('dataset-kind').textContent=state.kind==='flows'?'Записи трафика':'Готовые профили';$('stat-hosts').textContent=state.dataset.length;$('stat-records-label').textContent=state.kind==='flows'?'Записей обмена':'Координат в профиле';$('stat-records').textContent=state.stats.flows??state.stats.dimensions;$('stat-dims').textContent=state.stats.dimensions+' чисел';$('mode-traffic').disabled=state.kind!=='flows';$('baseline-name').textContent=data.baseline?'Первое окно сохранено с набором.':'Первое окно не загружено.';$('save-state').textContent=id?'Набор сохранён локально':'Набор не сохранён';renderGroupOptions();select(selected.id);workflow.renderWatch();renderChanges();status('');setTutorialStep(0);view(currentView);}
@@ -177,11 +190,13 @@
    ][step];
    $('stop-tutorial').textContent = step === 5 ? 'Готово' : 'Выйти из обучения';
  }
+ const tutorialKey='corgcode-tutorial-started';
  async function startTutorial() {
    if (!(await openChangeScenario())) return;
    select(state.dataset[0].id);
    view('devices');
    setTutorialStep(1);
+   try { localStorage.setItem(tutorialKey,'yes'); } catch {}
    $('host-search').focus();
  }
  $('start-tutorial').addEventListener('click', startTutorial);
@@ -206,19 +221,30 @@
  workflow=window.createCorgWorkflow(()=>({state,selected,comparator,groups,mode,payload,math,element,select,view,dirty,status,download,nearest,contacts,renderList,renderChanges}));
  if(siteMode){
   $('site-login').addEventListener('click',()=>openAccount());
+  $('site-register').addEventListener('click',()=>openAccount(false,true));
+  $('switch-account-mode').addEventListener('click',()=>setAccountMode($('account-form').action.endsWith('/lab/login/')));
   $('close-account').addEventListener('click',()=>$('account-dialog').close());
   $('account-form').addEventListener('submit',signIn);
  }
  function followSection(){
   const section=location.hash.slice(1);
-  if(section==='soc-scenarios')$('start-tutorial').focus();
+  if(section==='soc-scenarios')startTutorial();
   if(['devices','groups','contacts','changes','watch','case'].includes(section))view(section);
  }
  openSample();
  followSection();
  window.addEventListener('hashchange',followSection);
  const startupIntent=intent;
- if(!isGuest())savedList().then(rows=>{if(rows.length&&intent===startupIntent&&revision===0)openSaved(rows[0].id);}).catch(error=>{
+ function startFirstTutorial(){
+  if(location.hash||intent!==startupIntent||revision!==0)return;
+  try { if(localStorage.getItem(tutorialKey))return; } catch {}
+  startTutorial();
+ }
+ if(isGuest())startFirstTutorial();
+ else savedList().then(rows=>{
+  if(rows.length&&intent===startupIntent&&revision===0)openSaved(rows[0].id);
+  else if(!rows.length)startFirstTutorial();
+ }).catch(error=>{
   if(!isGuest())status('Локальное хранилище недоступно: '+error.message,true);
  });
 })();

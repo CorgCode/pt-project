@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const root=path.resolve(__dirname,'../..'),app=path.join(root,'app/operator/static');
 async function check(){
  const dom=new JSDOM(fs.readFileSync(path.join(app,'index.html'),'utf8'),{runScripts:'outside-only',url:'http://127.0.0.1:8846/'}),w=dom.window,d=w.document,store=new Map();w.innerWidth=1440;
+ w.localStorage.setItem('corgcode-tutorial-started','yes');
  w.fetch=async(route,options)=>{if(options){const value=JSON.parse(options.body),id=options.method==='POST'?'workspace-1':route.split('/').pop();store.set(id,value);return{ok:true,json:async()=>({id})};}return{ok:true,json:async()=>route==='/api/workspaces'?[...store].map(([id,p])=>({id,name:p.name})):store.get(route.split('/').pop())};};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};let blob;w.URL.createObjectURL=b=>{blob=b;return'blob:case';};w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
  w.eval(fs.readFileSync(path.join(root,'noomo-ui/lab/core.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'workflow.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'app.js'),'utf8'));await new Promise(setImmediate);

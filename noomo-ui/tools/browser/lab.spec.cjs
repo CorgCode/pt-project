@@ -16,7 +16,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/lab/');
   await expect(page.locator('body')).toHaveAttribute('data-workspace-mode', 'guest');
-  await expect(page.locator('#stat-hosts')).toHaveText('15');
+  await expect(page.locator('#stat-hosts')).toHaveText('16');
   const actions = page.getByText('Действия с набором', { exact: true });
   await expect(page.getByRole('button', { name: 'Загрузить CSV' })).toBeHidden();
   await actions.click();
@@ -35,7 +35,6 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(page.locator('#group-filter')).toBeVisible();
   await page.getByText('Фильтры и сортировка', { exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('devices.png') });
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click();
   const tutorial = page.locator('#tutorial-step');
   await expect(tutorial).toContainText('device-07');
   await page.locator('#host-search').fill('device-07');
@@ -60,9 +59,15 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.locator('#save-note').click();
   await expect(page.getByRole('dialog', { name: 'Вход в рабочее место' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('login.png') });
-  await signIn(page);
+  await page.getByRole('button', { name: 'Создать аккаунт' }).click();
+  const registration = page.getByRole('dialog', { name: 'Регистрация' });
+  await registration.getByLabel('Имя пользователя').fill('new-analyst');
+  await registration.getByLabel('Пароль').fill(process.env.PT_LAB_TEST_PASSWORD);
+  await registration.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await expect(registration).toBeHidden();
   await expect(page.locator('#save-state')).toHaveText('Сохранено на компьютере');
   await page.reload();
+  await expect(page.locator('#tutorial')).toBeHidden();
   await expect(page.locator('#workspace-name')).toHaveValue('Учебный разбор: новый контакт');
   await expect(page.locator('#stat-hosts')).toHaveText('16');
   await page.locator('#host-search').fill('device-07');

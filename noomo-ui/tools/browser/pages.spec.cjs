@@ -28,7 +28,7 @@ for (const width of [320, 1440]) {
     }
     await page.locator('header a[href="/lab/"]').click();
     await expect(page).toHaveURL(/\/lab\/$/);
-    await expect(page.locator('#stat-hosts')).toHaveText('15');
+    await expect(page.locator('#stat-hosts')).toHaveText('16');
     await page.locator('nav').getByText('Ещё разделы').click();
     await page.locator('nav [data-view="contacts"]').click();
     await expect(page.locator('#contacts-title')).toBeVisible();

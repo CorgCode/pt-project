@@ -6,6 +6,7 @@
 <aside class="sidebar" id="workspace-sidebar"><a class="brand" href="/" aria-label="CorgCode — рабочее место SOC"><span class="brand-icon">C</span><span>CorgCode<small>СЕТЕВОЙ КОНТЕКСТ</small></span></a><div class="site-navigation" aria-label="Сайт и аккаунт">
 <a class="quiet" href="/model/">Модель ↗</a>
 <button type="button" id="site-login" class="quiet">Войти</button>
+<button type="button" id="site-register" class="quiet">Регистрация</button>
 <form id="site-logout" method="post" action="/lab/logout/"><button class="quiet" type="submit">Выйти</button></form>
 </div><nav aria-label="Разделы программы"><button data-view="devices" aria-current="page"><span>◈</span> Устройства</button><button data-view="changes"><span>↝</span> Изменения</button><button data-view="case"><span>≡</span> Разбор</button><details class="secondary-views"><summary>Ещё разделы</summary><button data-view="contacts"><span>⇄</span> Контакты</button><button data-view="groups"><span>◌</span> Группы</button><button data-view="watch"><span>☆</span> Важное</button></details></nav><div class="sidebar-divider"></div><div class="sidebar-label">Рабочие наборы<button id="new-workspace" aria-label="Создать новый набор">＋</button></div><div id="saved-workspaces"><p class="small">Сохранённые наборы появятся здесь.</p></div><div class="sidebar-bottom"><button id="open-help" class="quiet">Форматы данных ↗</button></div></aside>
 <div class="app"><header class="topbar"><div class="workspace-heading"><button type="button" id="toggle-sidebar" aria-controls="workspace-sidebar" aria-expanded="true" aria-label="Свернуть меню" title="Свернуть меню"><span aria-hidden="true">‹</span></button><div><h1 id="view-title" tabindex="-1">Устройства сети</h1></div></div><div class="top-actions">
@@ -64,6 +65,6 @@ pc-02,0.3,0.7,-0.2</pre><p class="small">От 2 до 500 устройств, д�
         <label>Пароль<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label>
         <button class="primary" type="submit">Войти</button>
     </form>
-    <p id="account-setup" class="small" hidden><a href="/lab/login/" target="_blank" rel="noopener">Как создать первый аккаунт ↗</a></p>
+    <button type="button" id="switch-account-mode" class="quiet">Создать аккаунт</button>
 </dialog>
 </body></html>
