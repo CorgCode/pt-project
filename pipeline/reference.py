@@ -70,7 +70,7 @@ def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
             label_info = {"source": labels_source, "n_labelled": int(len(lab)),
                           "coverage": len(lab) / len(hosts)}
 
-        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv"))}   # вместе с eval_hosts.csv
+        files = {f.name: _sha(f) for f in sorted(out.glob("*.csv")) if not f.name.startswith(".")}   # вместе с eval_hosts.csv
         manifest.update({
             "data_kind": data.manifest["data_kind"],
             "synthetic": data.synthetic,

@@ -8,7 +8,8 @@ git switch main && git pull
 git switch -c physcorgi/feature-68-my-method
 
 # 2. работа, тесты
-python -m pytest -q evaluation methods app pipeline experiments
+python tools/check_repo.py
+python -m pytest -q
 
 # 3. коммит и push
 git add -A
@@ -41,13 +42,14 @@ python scoreboard/my_method.py                             # обучит, со�
 # заполнить scoreboard/submissions/my_method/README.md и запустить ещё раз — покажет место
 ```
 
-Дальше commit, push — CI добавит метод в [таблицу](scoreboard/README.md). Все учатся на одних данных
-(только train-окно) и сравниваются с одними бейзлайнами — шаблон это обеспечивает.
+Дальше commit, push — CI добавит метод в [таблицу](scoreboard/README.md), если доступны векторы.
+Общие эталоны одинаковы; история обучения может отличаться. Укажите точные окна
+в карточке. Для многодневной модели нужен отдельный протокол без обучения на общих test-днях.
 
 Уже есть эмбеддинг из своего кода? Папка `scoreboard/submissions/<метод>/`:
 
 - `embeddings.csv` — `host_id, emb_0, emb_1, …` по train-окну (обязательно);
-- `test.csv`, `test_day03.csv`, `test_day04.csv` — те же хосты по каждому test-окну (обязательно: без них нет
+- `test.csv`, `test_day15.csv`, `test_day16.csv` — те же хосты по каждому test-окну (обязательно: без них нет
   Identity, и вместо score будет incomplete);
 - `SHARED_COORDINATES` — пустой файл, если у окон одна система координат;
 - `AUTHOR` — ваш логин на GitHub, для колонки submitted by;
@@ -57,7 +59,8 @@ python scoreboard/my_method.py                             # обучит, со�
 
 Ваши векторы хранятся в git — по ним CI считает результат. Векторы встроенных методов (`submit --builtin`,
 `combine.py`, `hybrid_tfidf.py`, `temporal_encoder.py`) в git не кладутся (`.gitignore` в их папке):
-их пересобирает `experiments/lanl/multiday.sh`, в git остаются карточка и результат.
+доступные встроенные методы пересобирает `experiments/lanl/multiday.sh`. Этот скрипт
+не восстанавливает отсутствующие реализации codebook-моделей. В Git остаются карточка и результат.
 
 Подбирать параметры по таблице нельзя — для этого `experiments.tune_methods` (validation).
 
@@ -71,3 +74,12 @@ python scoreboard/my_method.py                             # обучит, со�
 
 - Писать напрямую в `main`.
 - Коммитить пароли, токены, ключи, `.env`, данные (`data/`, `runs/`).
+
+## Проверки и воспроизводимость
+
+`python -m pytest -q` собирает тесты во всех пакетах. Не добавляйте новые пакеты
+только в локальную команду проверки: CI должен проверять их тоже.
+Для нейросетей: `python -m pip install -r requirements-ml.txt`.
+Основные документы, ссылки и хеши эталонов проверяет `python tools/check_repo.py`.
+Не переписывайте сохранённые scores при уборке файлов без повторной оценки.
+Требования к передаче модели — [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).

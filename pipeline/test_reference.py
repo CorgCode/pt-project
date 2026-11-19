@@ -95,3 +95,13 @@ def test_reference_works_with_current_evaluator(reference, processed):
                  index=pd.Index(cohort, name="host_id")).add_prefix("emb_").to_csv(emb_path)
     res = run(emb_path, reference / "test", "random")
     assert "consistency@10_mean" in res["metrics"]
+
+
+def test_macos_sidecars_are_not_reference_inputs(processed, tmp_path):
+    target = tmp_path / "test"
+    target.mkdir()
+    (target / "._features.csv").write_bytes(b"AppleDouble metadata")
+    build_reference(processed, tmp_path)
+    manifest = json.loads((target / "manifest.json").read_text())
+    assert "features.csv" in manifest["files_sha256"]
+    assert not any(name.startswith(".") for name in manifest["files_sha256"])

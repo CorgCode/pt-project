@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PT Network</title>
+  <link rel="icon" href="/pt-favicon.svg">
+  <script>
+    const routes = {
+      '#model': '/model/',
+      '#model-experience': '/model/#profile',
+      '#training': '/model/#training',
+      '#results': '/model/#results',
+      '#demo': '/lab/#workspace',
+      '#upload-zone': '/lab/#upload-zone',
+    };
+    location.replace(routes[location.hash] || '/?view=overview');
+  </script>
+</head>
+<body>
+  <p>Откройте <a href="/?view=overview">главную PT Network</a>, <a href="/model/">описание модели</a> или <a href="/lab/">лабораторию</a>.</p>
+</body>
+</html>
