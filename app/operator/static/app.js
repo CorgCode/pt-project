@@ -139,7 +139,10 @@
    const sidebar = $('workspace-sidebar');
    sidebar.hidden = !sidebar.hidden;
    sidebarToggle.setAttribute('aria-expanded', String(!sidebar.hidden));
-   sidebarToggle.textContent = sidebar.hidden ? 'Показать меню' : 'Свернуть меню';
+   const label = sidebar.hidden ? 'Показать меню' : 'Свернуть меню';
+   sidebarToggle.setAttribute('aria-label', label);
+   sidebarToggle.title = label;
+   sidebarToggle.firstElementChild.textContent = sidebar.hidden ? '›' : '‹';
  });
  const workspaceActions = document.querySelector('.workspace-actions');
  workspaceActions.querySelectorAll('button').forEach(button => {

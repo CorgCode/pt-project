@@ -21,9 +21,9 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(page.getByRole('button', { name: 'Загрузить CSV' })).toBeHidden();
   await actions.click();
   await expect(page.getByRole('button', { name: 'Загрузить CSV' })).toBeVisible();
+  await actions.click();
   await page.getByRole('button', { name: 'Свернуть меню' }).click();
   await expect(page.locator('#workspace-sidebar')).toBeHidden();
-  await actions.click();
   await page.getByRole('button', { name: 'Показать меню' }).click();
   await expect(page.locator('#workspace-sidebar')).toBeVisible();
   await expect(page.locator('#host-search')).toBeVisible();
