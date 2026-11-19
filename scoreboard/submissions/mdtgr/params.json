@@ -1,0 +1,24 @@
+{
+  "dim": 96,
+  "code_dim": 64,
+  "bag_dim": 64,
+  "service_dim": 32,
+  "hidden": 192,
+  "epochs": 40,
+  "anchors": 256,
+  "lr": 0.001,
+  "link_weight": 0.05,
+  "seed": 0,
+  "episodes": "test_day02..test_day12",
+  "dev": "test_day13",
+  "block_weights_selected_on": "validation",
+  "trained_through_day": 12,
+  "local_measurement": {
+    "days": "02-05",
+    "episodes": ["test_day02", "test_day03", "test_day04"],
+    "dev": "test_day05",
+    "block_weights": [1.5, 1.0, 0.5],
+    "validation_score": 58.07,
+    "test_score": 65.26
+  }
+}
