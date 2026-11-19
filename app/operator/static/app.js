@@ -57,7 +57,7 @@
    }else status(error.message,true);
   }finally{submit.disabled=false;}
  }
- function view(name){currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name){e.setAttribute('aria-current','page');const section=e.closest('.secondary-views');if(section)section.open=true;}else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case')renderCase();if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();}
+ function view(name){const previousView=$('view-'+currentView);const moveFocus=currentView!==name&&previousView?.contains(document.activeElement);currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name){e.setAttribute('aria-current','page');const section=e.closest('.secondary-views');if(section)section.open=true;}else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case')renderCase();if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();if(moveFocus)$('view-title').focus();}
  function install(next,data,id=null){state=next;payload={...data,notes:{...data.notes},annotations:{...data.annotations},settings:{groupCount:3,...data.settings}};workspaceId=id;$('group-count').value=payload.settings.groupCount;groups=math.group(state.dataset,Number($('group-count').value));projection=math.project(state.dataset);selected=state.dataset[0];comparator=null;mode='similar';zoom=1;pan={x:0,y:0};limit=30;activeGroup=groups[0];$('host-search').value='';$('contact-search').value='';$('status-filter').value='';$('host-sort').value='name';$('watch-only').checked=false;$('change-search').value='';$('change-filter').value='all';$('workspace-name').value=data.name;$('source-badge').textContent=data.sample?'Учебный пример':'Ваши данные';$('dataset-kind').textContent=state.kind==='flows'?'Записи трафика':'Готовые профили';$('stat-hosts').textContent=state.dataset.length;$('stat-records-label').textContent=state.kind==='flows'?'Записей обмена':'Координат в профиле';$('stat-records').textContent=state.stats.flows??state.stats.dimensions;$('stat-dims').textContent=state.stats.dimensions+' чисел';$('mode-traffic').disabled=state.kind!=='flows';$('baseline-name').textContent=data.baseline?'Первое окно сохранено с набором.':'Первое окно не загружено.';$('save-state').textContent=id?'Набор сохранён локально':'Набор не сохранён';renderGroupOptions();select(selected.id);workflow.renderWatch();renderChanges();status(`${data.sample?'Учебный пример':'Рабочий набор'}: ${state.dataset.length} устройств. Выберите устройство, чтобы начать разбор.`);view(currentView);}
  function openSample(){intent++;importRequest++;baselineRequest++;openRequest++;install(math.parseCSV(sample),{name:'Знакомство с сетью',csv:sample,baseline:'',notes:{},sample:true});}
  async function openChangeScenario(){
@@ -145,8 +145,18 @@
    sidebarToggle.firstElementChild.textContent = sidebar.hidden ? '›' : '‹';
  });
  const workspaceActions = document.querySelector('.workspace-actions');
+ const actionSummary = workspaceActions.querySelector('summary');
+ function closeWorkspaceActions() {
+   workspaceActions.open = false;
+   actionSummary.focus();
+ }
  workspaceActions.querySelectorAll('button').forEach(button => {
-   button.addEventListener('click', () => { workspaceActions.open = false; });
+   button.addEventListener('click', closeWorkspaceActions);
+ });
+ workspaceActions.addEventListener('keydown', event => {
+   if (event.key !== 'Escape' || !workspaceActions.open) return;
+   event.preventDefault();
+   closeWorkspaceActions();
  });
  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
  $('host-search').addEventListener('input',()=>{limit=30;renderList();});$('group-filter').addEventListener('change',()=>{limit=30;renderList();});$('more-hosts').addEventListener('click',()=>{limit+=30;renderList();});

@@ -21,7 +21,8 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(page.getByRole('button', { name: 'Загрузить CSV' })).toBeHidden();
   await actions.click();
   await expect(page.getByRole('button', { name: 'Загрузить CSV' })).toBeVisible();
-  await actions.click();
+  await page.getByRole('button', { name: 'Загрузить CSV' }).press('Escape');
+  await expect(actions).toBeFocused();
   await page.getByRole('button', { name: 'Свернуть меню' }).click();
   await expect(page.locator('#workspace-sidebar')).toBeHidden();
   await page.getByRole('button', { name: 'Показать меню' }).click();
@@ -58,6 +59,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.locator('#host-search').fill('device-07');
   await page.locator('#host-list button').click();
   await page.locator('#to-case').click();
+  await expect(page.locator('#view-title')).toBeFocused();
   await expect(page.locator('#operator-note')).toHaveValue('Проверить обращение к service-4');
 
   await page.getByRole('button', { name: 'Выйти' }).click();
@@ -92,4 +94,26 @@ test('mobile viewport keeps login and navigation reachable', async ({ page }, te
   await expect(page.locator('#change-detail')).toContainText('service-4');
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await page.screenshot({ path: testInfo.outputPath('comparison-mobile.png'), fullPage: true });
+});
+
+test('contacts, groups, watchlist and reports work with the demo', async ({ page }) => {
+  await page.goto('/lab/');
+  await page.locator('#toggle-watch').click();
+  const nav = page.getByRole('navigation', { name: 'Разделы программы' });
+  await nav.getByText('Ещё разделы').click();
+  await nav.locator('[data-view="watch"]').click();
+  await expect(page.locator('#watch-list')).toContainText('device-01');
+
+  await nav.locator('[data-view="groups"]').click();
+  await expect(page.locator('#group-list button').first()).toBeVisible();
+  await nav.locator('[data-view="contacts"]').click();
+  await expect(page.locator('#contact-table-body tr').first()).toBeVisible();
+  const csv = page.waitForEvent('download');
+  await page.locator('#export-contacts').click();
+  expect((await csv).suggestedFilename()).toMatch(/\.csv$/);
+
+  await nav.locator('[data-view="case"]').click();
+  const report = page.waitForEvent('download');
+  await page.locator('#export-readable').click();
+  expect((await report).suggestedFilename()).toMatch(/\.html$/);
 });
