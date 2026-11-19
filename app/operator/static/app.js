@@ -57,8 +57,8 @@
    }else status(error.message,true);
   }finally{submit.disabled=false;}
  }
- function view(name){const previousView=$('view-'+currentView);const moveFocus=currentView!==name&&previousView?.contains(document.activeElement);currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name){e.setAttribute('aria-current','page');const section=e.closest('.secondary-views');if(section)section.open=true;}else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case')renderCase();if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();if(moveFocus)$('view-title').focus();}
- function install(next,data,id=null){state=next;payload={...data,notes:{...data.notes},annotations:{...data.annotations},settings:{groupCount:3,...data.settings}};workspaceId=id;$('group-count').value=payload.settings.groupCount;groups=math.group(state.dataset,Number($('group-count').value));projection=math.project(state.dataset);selected=state.dataset[0];comparator=null;mode='similar';zoom=1;pan={x:0,y:0};limit=30;activeGroup=groups[0];$('host-search').value='';$('contact-search').value='';$('status-filter').value='';$('host-sort').value='name';$('watch-only').checked=false;$('change-search').value='';$('change-filter').value='all';$('workspace-name').value=data.name;$('source-badge').textContent=data.sample?'Учебный пример':'Ваши данные';$('dataset-kind').textContent=state.kind==='flows'?'Записи трафика':'Готовые профили';$('stat-hosts').textContent=state.dataset.length;$('stat-records-label').textContent=state.kind==='flows'?'Записей обмена':'Координат в профиле';$('stat-records').textContent=state.stats.flows??state.stats.dimensions;$('stat-dims').textContent=state.stats.dimensions+' чисел';$('mode-traffic').disabled=state.kind!=='flows';$('baseline-name').textContent=data.baseline?'Первое окно сохранено с набором.':'Первое окно не загружено.';$('save-state').textContent=id?'Набор сохранён локально':'Набор не сохранён';renderGroupOptions();select(selected.id);workflow.renderWatch();renderChanges();status(`${data.sample?'Учебный пример':'Рабочий набор'}: ${state.dataset.length} устройств. Выберите устройство, чтобы начать разбор.`);view(currentView);}
+ function view(name){const previousView=$('view-'+currentView);const moveFocus=currentView!==name&&previousView?.contains(document.activeElement);currentView=name;document.querySelectorAll('.view').forEach(e=>e.hidden=e.id!=='view-'+name);document.querySelectorAll('[data-view]').forEach(e=>{if(e.dataset.view===name){e.setAttribute('aria-current','page');const section=e.closest('.secondary-views');if(section)section.open=true;}else e.removeAttribute('aria-current');});$('view-title').textContent={devices:'Устройства сети',groups:'Группы поведения',contacts:'Реальные контакты',changes:'Изменения во времени',case:'Разбор устройства',watch:'Под наблюдением'}[name];if(name==='groups')drawClusters();if(name==='case'){renderCase();if(tutorialStep===3)setTutorialStep(4);}if(name==='changes')renderChanges();if(name==='contacts')renderContactTable();if(name==='watch')workflow.renderWatch();if(moveFocus)$('view-title').focus();}
+ function install(next,data,id=null){state=next;payload={...data,notes:{...data.notes},annotations:{...data.annotations},settings:{groupCount:3,...data.settings}};workspaceId=id;$('group-count').value=payload.settings.groupCount;groups=math.group(state.dataset,Number($('group-count').value));projection=math.project(state.dataset);selected=state.dataset[0];comparator=null;mode='similar';zoom=1;pan={x:0,y:0};limit=30;activeGroup=groups[0];$('host-search').value='';$('contact-search').value='';$('status-filter').value='';$('host-sort').value='name';$('watch-only').checked=false;$('change-search').value='';$('change-filter').value='all';$('workspace-name').value=data.name;$('source-badge').textContent=data.sample?'Учебный пример':'Ваши данные';$('dataset-kind').textContent=state.kind==='flows'?'Записи трафика':'Готовые профили';$('stat-hosts').textContent=state.dataset.length;$('stat-records-label').textContent=state.kind==='flows'?'Записей обмена':'Координат в профиле';$('stat-records').textContent=state.stats.flows??state.stats.dimensions;$('stat-dims').textContent=state.stats.dimensions+' чисел';$('mode-traffic').disabled=state.kind!=='flows';$('baseline-name').textContent=data.baseline?'Первое окно сохранено с набором.':'Первое окно не загружено.';$('save-state').textContent=id?'Набор сохранён локально':'Набор не сохранён';renderGroupOptions();select(selected.id);workflow.renderWatch();renderChanges();status('');setTutorialStep(0);view(currentView);}
  function openSample(){intent++;importRequest++;baselineRequest++;openRequest++;install(math.parseCSV(sample),{name:'Знакомство с сетью',csv:sample,baseline:'',notes:{},sample:true});}
  async function openChangeScenario(){
   const request=++intent;
@@ -70,11 +70,11 @@
   select('device-07');
   view('changes');
   $('baseline-name').textContent='Учебное окно до изменения.';
-  status('Учебное изменение: device-07 отправил 70 записей новому контакту service-4.');
+  return true;
  }
  function nearest(){return state.dataset.filter(h=>h!==selected).map(host=>({host,score:math.cosine(selected,host)})).sort((a,b)=>b.score-a.score);}
  function contacts(data,id){const found=new Map();for(const edge of data.connections||[]){if(edge.src!==id&&edge.dst!==id)continue;const other=edge.src===id?edge.dst:edge.src;if(other===id)continue;const previous=found.get(other)||{id:other,flows:0,bytes:0};previous.flows+=edge.flows;previous.bytes+=edge.bytes;found.set(other,previous);}return [...found.values()].sort((a,b)=>b.flows-a.flows);}
- function select(id){const host=state.dataset.find(h=>h.id===id);if(!host)return;selected=host;const near=nearest();if(!comparator||comparator===selected)comparator=near[0].host;$('selected-id').textContent=id;$('selected-group').textContent=`Группа ${groups[state.dataset.indexOf(host)]+1} · ${state.stats.dimensions} признаков`;$('activity').replaceChildren();if(host.activity){for(const[label,value]of [['Исходящих записей',host.activity.outgoing],['Входящих записей',host.activity.incoming],['Разных контактов',host.activity.contacts],['Отправлено байт',host.activity.sentBytes],['Получено байт',host.activity.receivedBytes]]){const row=element('div');row.append(element('span',label),element('b',value.toLocaleString('ru-RU')));$('activity').append(row);}}else $('activity').append(element('p','Векторы описывают поведение, но не содержат исходные записи обмена.','small'));renderList();drawNetwork();renderNeighbors();renderCase();workflow.syncSelected();if(currentView==='groups')drawClusters();window.__corgState={state,selected,comparator,groups,payload};}
+ function select(id){const host=state.dataset.find(h=>h.id===id);if(!host)return;selected=host;if(tutorialStep===1&&host.id==='device-07')setTutorialStep(2);else if(tutorialStep>=2&&tutorialStep<=4&&host.id!=='device-07')setTutorialStep(1);const near=nearest();if(!comparator||comparator===selected)comparator=near[0].host;$('selected-id').textContent=id;$('selected-group').textContent=`Группа ${groups[state.dataset.indexOf(host)]+1} · ${state.stats.dimensions} признаков`;$('activity').replaceChildren();if(host.activity){for(const[label,value]of [['Исходящих записей',host.activity.outgoing],['Входящих записей',host.activity.incoming],['Разных контактов',host.activity.contacts],['Отправлено байт',host.activity.sentBytes],['Получено байт',host.activity.receivedBytes]]){const row=element('div');row.append(element('span',label),element('b',value.toLocaleString('ru-RU')));$('activity').append(row);}}else $('activity').append(element('p','Векторы описывают поведение, но не содержат исходные записи обмена.','small'));renderList();drawNetwork();renderNeighbors();renderCase();workflow.syncSelected();if(currentView==='groups')drawClusters();window.__corgState={state,selected,comparator,groups,payload};}
  function renderGroupOptions(){const actual=[...new Set(groups)].sort((a,b)=>a-b);$('stat-groups').textContent=actual.length;$('group-filter').replaceChildren(new Option('Все группы',''),...actual.map(g=>new Option('Группа '+(g+1),g)));}
  function renderList(){const query=$('host-search').value.trim().toLocaleLowerCase('ru'),filter=$('group-filter').value;const rows=workflow.directory(state.dataset.filter((h,i)=>workflow.matches(h,query)&&(filter===''||groups[i]===Number(filter))));$('directory-count').textContent=rows.length;$('host-list').replaceChildren(...rows.slice(0,limit).map(host=>{const button=element('button');button.type='button';button.setAttribute('aria-pressed',String(host===selected));const meta=workflow.annotation(host.id);button.title=[host.id,meta.label,...meta.tags].filter(Boolean).join(' · ');button.dataset.status=meta.status;button.dataset.watch=String(meta.watch);const dot=element('i',undefined,'dot');dot.dataset.group=groups[state.dataset.indexOf(host)];button.append(dot,element('span',(meta.watch?'★ ':'')+(meta.label||host.id)));button.addEventListener('click',()=>select(host.id));return button;}));if(!rows.length)$('host-list').append(element('p','Устройства не найдены. Измените поиск или группу.','small'));$('more-hosts').hidden=rows.length<=limit;}
  function renderNeighbors(){const traffic=mode==='traffic',rows=traffic?contacts(state,selected.id).slice(0,5).map(c=>({...c,host:state.dataset.find(h=>h.id===c.id)})):nearest().slice(0,5);$('neighbors-title').textContent=traffic?'Наблюдавшиеся контакты':'Рядом по поведению';$('neighbors').replaceChildren(...rows.map(n=>{const b=element('button');b.type='button';b.append(element('span',n.host.id+' ↗'),element('span',traffic?n.flows+' зап.':n.score.toFixed(3)));b.addEventListener('click',()=>select(n.host.id));return b;}));if(!rows.length)$('neighbors').append(element('p','В этом окне контактов не наблюдалось.','small'));}
@@ -163,10 +163,38 @@
  $('group-count').addEventListener('change',()=>{payload.settings.groupCount=Number($('group-count').value);dirty();groups=math.group(state.dataset,Number($('group-count').value));renderGroupOptions();select(selected.id);drawClusters();renderChanges();workflow.renderWatch();});
  for(const name of ['similar','traffic'])$('mode-'+name).addEventListener('click',()=>{mode=name;zoom=1;pan={x:0,y:0};drawNetwork();renderNeighbors();});
  $('compare-host').addEventListener('change',()=>{comparator=state.dataset.find(h=>h.id===$('compare-host').value);renderCase();});$('operator-note').addEventListener('input',()=>{payload.notes={...payload.notes,[selected.id]:$('operator-note').value};dirty();});$('workspace-name').addEventListener('input',()=>{payload.name=$('workspace-name').value;dirty();});
- $('guide-device').addEventListener('click',()=>{view('devices');$('host-search').focus();});
- document.querySelectorAll('[data-guide-view]').forEach(button=>button.addEventListener('click',()=>{
-  view(button.dataset.guideView);$('view-'+button.dataset.guideView).scrollIntoView?.({block:'start'});
- }));
+ let tutorialStep = 0;
+ function setTutorialStep(step) {
+   tutorialStep = step;
+   $('tutorial').hidden = step === 0;
+   $('tutorial-step').textContent = [
+     '',
+     'Найдите и выберите device-07 в списке устройств.',
+     'На карте переключитесь на «Реальные контакты».',
+     'service-4 — новый контакт. Откройте разбор устройства.',
+     'Запишите наблюдение в поле заметки.',
+     'Разбор завершён. Вы нашли новый контакт и записали наблюдение.',
+   ][step];
+   $('stop-tutorial').textContent = step === 5 ? 'Готово' : 'Выйти из обучения';
+ }
+ async function startTutorial() {
+   if (!(await openChangeScenario())) return;
+   select(state.dataset[0].id);
+   view('devices');
+   setTutorialStep(1);
+   $('host-search').focus();
+ }
+ $('start-tutorial').addEventListener('click', startTutorial);
+ $('stop-tutorial').addEventListener('click', () => {
+   setTutorialStep(0);
+   $('start-tutorial').focus();
+ });
+ $('mode-traffic').addEventListener('click', () => {
+   if (tutorialStep === 2) setTutorialStep(3);
+ });
+ $('operator-note').addEventListener('input', () => {
+   if (tutorialStep === 4 && $('operator-note').value.trim()) setTutorialStep(5);
+ });
  $('change-scenario').addEventListener('click',openChangeScenario);
  $('to-contacts').addEventListener('click',()=>view('contacts'));$('contact-search').addEventListener('input',renderContactTable);$('contact-order').addEventListener('change',renderContactTable);$('export-contacts').addEventListener('click',exportContacts);
  $('to-case').addEventListener('click',()=>view('case'));$('save-workspace').addEventListener('click',save);$('save-note').addEventListener('click',save);$('sample-button').addEventListener('click',async()=>{if(await preserve())openSample();});$('new-workspace').addEventListener('click',()=>{$('current-file').click();});$('import-button').addEventListener('click',()=>$('current-file').click());$('baseline-button').addEventListener('click',()=>$('baseline-file').click());$('current-file').addEventListener('change',e=>{importFile(e.target.files[0]);e.target.value='';});$('baseline-file').addEventListener('change',e=>{importFile(e.target.files[0],true);e.target.value='';});$('export-case').addEventListener('click',exportCase);
@@ -183,7 +211,7 @@
  }
  function followSection(){
   const section=location.hash.slice(1);
-  if(section==='soc-scenarios'){const guide=$('quick-start');guide.closest('.dataset-options').open=true;guide.open=true;}
+  if(section==='soc-scenarios')$('start-tutorial').focus();
   if(['devices','groups','contacts','changes','watch','case'].includes(section))view(section);
  }
  openSample();

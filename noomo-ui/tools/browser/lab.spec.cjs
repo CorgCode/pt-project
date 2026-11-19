@@ -35,14 +35,23 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(page.locator('#group-filter')).toBeVisible();
   await page.getByText('Фильтры и сортировка', { exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('devices.png') });
-  await page.getByText('О наборе', { exact: true }).click();
-  await page.getByText('Как провести разбор', { exact: true }).click();
-  await page.getByRole('button', { name: 'К сравнению' }).click();
-  await page.getByRole('button', { name: 'Открыть учебный разбор' }).click();
+  await page.getByRole('button', { name: 'Обучение', exact: true }).click();
+  const tutorial = page.locator('#tutorial-step');
+  await expect(tutorial).toContainText('device-07');
+  await page.locator('#host-search').fill('device-07');
+  await page.locator('#host-list button').click();
+  await expect(tutorial).toContainText('Реальные контакты');
+  await page.locator('#mode-traffic').click();
+  await expect(tutorial).toContainText('service-4');
+  await page.locator('#to-case').click();
+  await expect(tutorial).toContainText('Запишите наблюдение');
+  await page.locator('#operator-note').fill('Проверить обращение к service-4');
+  await expect(tutorial).toContainText('Разбор завершён');
+  await page.getByRole('button', { name: 'Готово', exact: true }).click();
+  await page.locator('nav [data-view="changes"]').click();
   const detail = page.locator('#change-detail');
   await expect(detail).toContainText('device-07');
   await expect(detail).toContainText('service-4');
-  await page.getByText('О наборе', { exact: true }).click();
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await page.screenshot({ path: testInfo.outputPath('comparison.png'), fullPage: true });
 

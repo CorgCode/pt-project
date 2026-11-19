@@ -49,11 +49,10 @@ async function check(){
  // A failed save keeps the dirty working set rather than replacing it.
  click('#to-case');input('operator-note','Не терять эту заметку');const oldCSV=w.__corgState.payload.csv,normalFetch=w.fetch;w.fetch=async()=>({ok:false,json:async()=>({error:'Хранилище недоступно'})});click('#sample-button');await new Promise(setImmediate);assert.equal(w.__corgState.payload.csv,oldCSV);assert.equal(d.getElementById('operator-note').value,'Не терять эту заметку');assert.match(d.getElementById('save-state').textContent,/несохранённые/);w.fetch=normalFetch;
  w.innerWidth=375;w.dispatchEvent(new w.Event('resize'));assert.match(d.getElementById('network').getAttribute('viewBox'),/360 600$/);
- click('[data-guide-view=changes]');click('#change-scenario');await new Promise(setImmediate);
+ click('[data-view=changes]');click('#change-scenario');await new Promise(setImmediate);
  assert.equal(w.__corgState.payload.sample,true);
  assert.match(d.getElementById('change-detail').textContent,/device-07/);
  assert.match(d.getElementById('change-detail').textContent,/service-4/);
- assert.match(d.getElementById('status').textContent,/70 записей/);
  await new Promise(setImmediate);dom.window.close();console.log('PASS: CorgCode core workflow, saved labels/status/tags/watchlist/group settings, directory and change filters, safe standalone HTML reports, legacy sets, CSV errors and mobile diagram');
 }
 check().catch(e=>{console.error(e);process.exitCode=1;});
