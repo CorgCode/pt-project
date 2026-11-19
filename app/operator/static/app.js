@@ -141,19 +141,9 @@
    sidebarToggle.setAttribute('aria-expanded', String(!sidebar.hidden));
    sidebarToggle.textContent = sidebar.hidden ? 'Показать меню' : 'Свернуть меню';
  });
- const firstVisit = $('first-visit');
- const guideKey = 'corgcode-first-visit-dismissed';
- try { firstVisit.hidden = localStorage.getItem(guideKey) === 'yes'; }
- catch { firstVisit.hidden = false; }
- function dismissFirstVisit() {
-   firstVisit.hidden = true;
-   try { localStorage.setItem(guideKey, 'yes'); } catch {}
- }
- $('dismiss-first-visit').addEventListener('click', dismissFirstVisit);
- $('start-first-visit').addEventListener('click', () => {
-   dismissFirstVisit();
-   view('devices');
-   $('host-search').focus();
+ const workspaceActions = document.querySelector('.workspace-actions');
+ workspaceActions.querySelectorAll('button').forEach(button => {
+   button.addEventListener('click', () => { workspaceActions.open = false; });
  });
  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
  $('host-search').addEventListener('input',()=>{limit=30;renderList();});$('group-filter').addEventListener('change',()=>{limit=30;renderList();});$('more-hosts').addEventListener('click',()=>{limit+=30;renderList();});
