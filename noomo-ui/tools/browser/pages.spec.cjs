@@ -32,6 +32,7 @@ for (const width of [320, 1440]) {
     await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await expect(page).toHaveURL(/\/lab\/$/);
     await expect(page.locator('#stat-hosts')).toHaveText('16');
+    await page.getByRole('button', { name: 'Выйти из обучения' }).click();
     await page.locator('nav').getByText('Ещё разделы').click();
     await page.locator('nav [data-view="contacts"]').click();
     await expect(page.locator('#contacts-title')).toBeVisible();
