@@ -107,13 +107,10 @@ class LabAccountTest(unittest.TestCase):
                                    Origin=source, **{"Content-Type": "application/x-www-form-urlencoded"})
 
                 try:
-                    login_page = request("GET", "/lab/login/")[2]
-                    self.assertIn(b'<details class="login-setup">', login_page)
+                    self.assertIn(b'action="/lab/register/"', request("GET", "/lab/register/")[2])
                     accounts.add("analyst-one", "example passphrase one")
                     accounts.add("analyst-two", "example passphrase two")
-                    login_page = request("GET", "/lab/login/")[2]
-                    self.assertIn(b'<details class="login-setup" hidden>', login_page)
-                    self.assertIn(b'data-workspace-mode="guest"', request("GET", "/lab/")[2])
+                    self.assertEqual(request("GET", "/lab/")[1]["Location"], "/lab/login/")
                     self.assertEqual(request("GET", "/lab/workspace/")[1]["Location"], "/lab/")
                     self.assertEqual(request("HEAD", "/lab/workspace/")[0], 303)
                     self.assertEqual(request("GET", "/api/workspaces")[0], 401)

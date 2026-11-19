@@ -26,7 +26,9 @@ def test_site_workspace_session(tmp_path):
         for route in ("/", "/model/", "/lab/", "/product/", "/app.js", "/assets/core.js", "/pt-favicon.svg"):
             assert client.get(route).status_code == 200, route
         assert client.get("/.git/config").status_code == 404
-        assert 'data-workspace-mode="guest"' in client.get("/lab/").text
+        assert client.get("/lab/", follow_redirects=False).headers["location"] == "/lab/login/"
+        assert 'id="host-search"' not in client.get("/lab/").text
+        assert 'action="/lab/register/"' in client.get("/lab/register/").text
         assert client.get("/api/workspaces").status_code == 401
         response = sign_in(client, "one")
         assert response.status_code == 200

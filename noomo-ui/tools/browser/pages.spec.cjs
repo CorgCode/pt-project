@@ -27,6 +27,9 @@ for (const width of [320, 1440]) {
       await expect.poll(() => image.evaluate(node => node.naturalWidth)).toBeGreaterThan(0);
     }
     await page.locator('header a[href="/lab/"]').click();
+    await page.getByLabel('Имя пользователя').fill('browser-test');
+    await page.getByLabel('Пароль').fill(process.env.PT_LAB_TEST_PASSWORD);
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await expect(page).toHaveURL(/\/lab\/$/);
     await expect(page.locator('#stat-hosts')).toHaveText('16');
     await page.locator('nav').getByText('Ещё разделы').click();
@@ -74,7 +77,7 @@ test('the model page keeps its reading position while diagrams load', async ({ p
 test('legacy routes point to the current content and preserve useful deep links', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const [old, next] of [
-    ['/work/', /\/lab\/$/],
+    ['/work/', /\/lab\/login\/$/],
     ['/contact/', /\/model\/$/],
     ['/product/', url => url.pathname === '/' && !url.hash],
     ['/product/#results', /\/model\/#results$/],
@@ -144,7 +147,7 @@ test.describe('native WebGL scene', () => {
     await expect(active).toContainText(chapters[0][1]);
     await page.evaluate(() => window.scrollTo(0, 11650));
     await lab.click();
-    await expect(page).toHaveURL(/\/lab\/$/);
+    await expect(page).toHaveURL(/\/lab\/login\/$/);
     expect(errors).toEqual([]);
   });
   test('the start button responds to a touch tap', async ({ browser, baseURL }) => {

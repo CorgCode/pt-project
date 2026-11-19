@@ -16,7 +16,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.staticfiles import StaticFiles
 
 from .accounts import Accounts, COOKIE, SESSION_TTL
-from .server import ASSETS, MAX_BODY, SITE, STATIC, Store
+from .server import ASSETS, MAX_BODY, SITE, STATIC, Store, render_auth_page
 
 STATIC_DIRS = {
     "_nuxt", "audio", "fonts", "hdri", "images", "models", "textures", "vendor",
@@ -56,12 +56,6 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
     def store(user_id):
         return Store(directory / "users" / user_id / "workspaces.sqlite3")
 
-    def login_page(message="", status=200):
-        page = (STATIC / "login.html").read_text(encoding="utf-8")
-        if message:
-            page = page.replace("<!-- login-error -->", f'<p class="login-error" role="alert">{message}</p>')
-        return HTMLResponse(page, status)
-
     @app.middleware("http")
     async def protect(request, call_next):
         if request.method in {"POST", "PUT"} and request.headers.get("origin") != origin:
@@ -85,13 +79,17 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
 
     @app.api_route("/lab/", methods=["GET", "HEAD"])
     def workspace(request: Request):
-        mode = "account" if user(request) else "guest"
+        if not user(request):
+            return RedirectResponse("/lab/login/", 303)
         page = (STATIC / "index.html").read_text(encoding="utf-8")
-        return HTMLResponse(page.replace("<body>", f'<body data-workspace-mode="{mode}">'))
+        return HTMLResponse(page.replace("<body>", '<body data-workspace-mode="account">'))
 
+    @app.api_route("/lab/register/", methods=["GET", "HEAD"])
     @app.api_route("/lab/login/", methods=["GET", "HEAD"])
     def sign_in_page(request: Request):
-        return RedirectResponse("/lab/", 303) if user(request) else login_page()
+        if user(request):
+            return RedirectResponse("/lab/", 303)
+        return HTMLResponse(render_auth_page(request.url.path == "/lab/register/"))
 
     @app.post("/lab/register/")
     @app.post("/lab/login/")
@@ -106,8 +104,10 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
 
         wants_json = request.headers.get("accept") == "application/json"
 
+        registering = request.url.path == "/lab/register/"
+
         def fail(status, message):
-            return error(status, message) if wants_json else login_page(message, status)
+            return error(status, message) if wants_json else HTMLResponse(render_auth_page(registering, message), status)
 
         if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
             return fail(400, "Ожидается форма входа.")
@@ -123,12 +123,11 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None) -
                 return fail(429, "Слишком много попыток. Попробуйте через минуту.")
             attempts.append(now)
         name, password = fields.get("name", [""])[0], fields.get("password", [""])[0]
-        registering = request.url.path == "/lab/register/"
         if registering:
             try:
                 await run_in_threadpool(accounts.add, name, password)
             except ValueError as exc:
-                return error(400, str(exc)) if wants_json else login_page(status=400)
+                return fail(400, str(exc))
         token = await run_in_threadpool(accounts.login, name, password)
         if not token:
             return fail(401, "Проверьте имя пользователя и пароль.")

@@ -7,6 +7,7 @@ import uuid
 from contextlib import closing
 from datetime import datetime, timezone
 from getpass import getpass
+from html import escape
 from http.cookies import CookieError, SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +30,23 @@ ASSETS = {
     "/assets/onest-bold.ttf": ROOT / "noomo-ui/fonts/onest-600.ttf",
     "/assets/display.otf": ROOT / "noomo-ui/model/reference/NeueMachina-Regular.otf",
 }
+
+def render_auth_page(registering=False, message=""):
+    page = (STATIC / "login.html").read_text(encoding="utf-8")
+    fields = {
+        "title": "Регистрация" if registering else "Вход в лабораторию",
+        "action": REGISTER if registering else LOGIN,
+        "autocomplete": "new-password" if registering else "current-password",
+        "password-minlength": 'minlength="12"' if registering else "",
+        "submit": "Зарегистрироваться" if registering else "Войти",
+        "alternate-url": LOGIN if registering else REGISTER,
+        "alternate-label": "Уже есть аккаунт" if registering else "Создать аккаунт",
+    }
+    for key, value in fields.items():
+        page = page.replace("{{" + key + "}}", value)
+    alert = f'<p class="login-error" role="alert">{escape(message)}</p>' if message else ""
+    return page.replace("<!-- login-error -->", alert)
+
 
 
 def validate(payload):
@@ -166,12 +184,9 @@ def make_server(port=8846, data_dir=None, *, site=False):
             user = accounts.identify(self.token())
             return Store(directory / "users" / user / "workspaces.sqlite3") if user else None
 
-        def login_page(self, status=200, *, invalid=False):
-            page = (STATIC / "login.html").read_text(encoding="utf-8")
-            message = '<p class="login-error" role="alert">Проверьте имя пользователя и пароль.</p>' if invalid else ""
-            if not accounts.has_users():
-                page = page.replace('class="login-setup" hidden', 'class="login-setup"')
-            return self.send(status, page.replace("<!-- login-error -->", message).encode(), "text/html; charset=utf-8")
+        def login_page(self, status=200, *, registering=False, message=""):
+            page = render_auth_page(registering, message)
+            return self.send(status, page.encode(), "text/html; charset=utf-8")
 
         def authenticate(self, route):
             if not self.trusted() or not self.headers.get("Origin"):
@@ -181,10 +196,10 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 return self.redirect(WORKSPACE, "")
             wants_json = self.headers.get("Accept") == "application/json"
 
-            def failed(status):
+            def failed(status, message="Проверьте имя пользователя и пароль."):
                 if wants_json:
-                    return self.send(status, {"error": "Проверьте имя пользователя и пароль."})
-                return self.login_page(status, invalid=True)
+                    return self.send(status, {"error": message})
+                return self.login_page(status, registering=route == REGISTER, message=message)
 
             try:
                 size = int(self.headers.get("Content-Length", "0"))
@@ -198,7 +213,7 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 try:
                     accounts.add(name, password)
                 except ValueError as error:
-                    return self.send(400, {"error": str(error)}) if wants_json else failed(400)
+                    return failed(400, str(error))
             token = accounts.login(name, password)
             if not token:
                 return failed(401)
@@ -225,19 +240,17 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 return self.send(200 if value else 404, value or {"error": "Набор не найден."})
             if route == "/api/health":
                 return self.send(200, {"status": "ok", "product": "CorgCode", "storage": "local", "workspaceSchema": 2})
-            if site and route in (LOGIN.rstrip("/"), WORKSPACE.rstrip("/")):
+            if site and route in (LOGIN.rstrip("/"), REGISTER.rstrip("/"), WORKSPACE.rstrip("/")):
                 return self.redirect(route + "/")
             if site and route in ("/lab/workspace", "/lab/workspace/", "/lab/index.html"):
                 return self.redirect(WORKSPACE)
-            if site and route == LOGIN:
-                return self.redirect(WORKSPACE) if accounts.identify(self.token()) else self.login_page()
+            if site and route in (LOGIN, REGISTER):
+                return self.redirect(WORKSPACE) if accounts.identify(self.token()) else self.login_page(registering=route == REGISTER)
             if site and route == WORKSPACE:
-                signed_in = bool(accounts.identify(self.token()))
+                if not accounts.identify(self.token()):
+                    return self.redirect(LOGIN)
                 page = (STATIC / "index.html").read_text(encoding="utf-8")
-                mode = "account" if signed_in else "guest"
-                page = page.replace("<body>", f'<body data-workspace-mode="{mode}">')
-                if not signed_in and not accounts.has_users():
-                    page = page.replace('id="account-setup" hidden', 'id="account-setup"')
+                page = page.replace("<body>", '<body data-workspace-mode="account">')
                 return self.send(200, page.encode(), "text/html; charset=utf-8")
             files = {"/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
                      "/workflow.js": STATIC / "workflow.js", **ASSETS}

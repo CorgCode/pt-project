@@ -190,7 +190,7 @@
    ][step];
    $('stop-tutorial').textContent = step === 5 ? 'Готово' : 'Выйти из обучения';
  }
- const tutorialKey='corgcode-tutorial-started';
+ const tutorialKey=siteMode?'corgcode-account-tutorial-started':'corgcode-tutorial-started';
  async function startTutorial() {
    if (!(await openChangeScenario())) return;
    select(state.dataset[0].id);
