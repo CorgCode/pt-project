@@ -132,3 +132,18 @@ body[data-workspace-mode="guest"] :is(#site-logout, .sidebar-label, #saved-works
 body[data-workspace-mode="account"] #site-login { display: none; }
 #account-dialog { max-width: 430px; }
 #account-dialog #account-setup a { text-decoration: underline; text-underline-offset: 3px; }
+
+.secondary-views { min-width: 0; }
+.secondary-views summary, .dataset-options summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.secondary-views summary { padding: 12px 14px; }
+.secondary-views button { width: 100%; }
+.dataset-context { margin: 12px 0 20px; }
+.dataset-context > .badge { vertical-align: middle; }
+.dataset-options { display: inline; margin-inline-start: 10px; }
+.dataset-options summary { display: inline list-item; padding-block: 8px; }
+.dataset-options[open] > .dataset-strip { margin-top: 14px; }
+@media (max-width: 700px) {
+  .secondary-views { grid-column: 1 / -1; }
+  .secondary-views summary { padding: 8px 12px; }
+  .secondary-views button { width: auto; }
+}
