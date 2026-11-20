@@ -20,7 +20,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.getByLabel('Пароль').fill(process.env.PT_LAB_TEST_PASSWORD);
   await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
   await expect(page).toHaveURL(/\/lab\/$/);
-  await expect(page.locator('#stat-hosts')).toHaveText('15');
+  await expect(page.locator('#directory-count')).toHaveText('15');
   await expect(page.locator('#search-help')).toBeVisible();
   await expect(page.locator('#workspace-sidebar')).toBeVisible();
   const search = page.locator('#host-search');
@@ -72,7 +72,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await page.reload();
   await expect(page.locator('#search-help')).toBeHidden();
   await expect(page.locator('#workspace-name')).toHaveValue('Учебный разбор: новый контакт');
-  await expect(page.locator('#stat-hosts')).toHaveText('16');
+  await expect(page.locator('#directory-count')).toHaveText('16');
   await page.locator('#host-search').fill('device-07');
   await page.locator('#host-list button').click();
   await page.locator('#to-case').click();

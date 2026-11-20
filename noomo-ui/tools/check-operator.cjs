@@ -8,7 +8,7 @@ async function check(){
  w.eval(fs.readFileSync(path.join(root,'noomo-ui/lab/core.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'workflow.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'app.js'),'utf8'));await new Promise(setImmediate);
  const click=s=>{const e=d.querySelector(s);assert(e,s);e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));},input=(id,value)=>{d.getElementById(id).value=value;d.getElementById(id).dispatchEvent(new w.Event('input'));};
  async function upload(id,text){Object.defineProperty(d.getElementById(id),'files',{configurable:true,value:[{name:'capture.csv',size:text.length,text:async()=>text}]});d.getElementById(id).dispatchEvent(new w.Event('change'));await new Promise(setImmediate);}
- assert.equal(d.getElementById('stat-hosts').textContent,'15');assert(d.querySelectorAll('#network [role=button]').length===6);
+ assert.equal(d.getElementById('directory-count').textContent,'15');assert(d.querySelectorAll('#network [role=button]').length===6);
  click('#network [aria-label="Выбрать device-02"]');assert.equal(w.__corgState.selected.id,'device-02');
  click('#to-contacts');assert.match(d.getElementById('contacts-title').textContent,/device-02/);
  const row=d.querySelector('#contact-table-body tr');

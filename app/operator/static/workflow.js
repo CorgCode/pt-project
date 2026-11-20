@@ -74,7 +74,10 @@ window.createCorgWorkflow = function (context) {
     }));
     if (!rows.length) {
       const empty = c.element('div', undefined, 'panel empty');
-      empty.append(c.element('h3', 'Нужное устройство легко сохранить.'), c.element('p', 'Выберите его в каталоге и нажмите «Под наблюдение». Метки и заметки остаются в рабочем наборе.'));
+      const choose = c.element('button', 'Выбрать устройство', 'glass');
+      choose.type = 'button';
+      choose.addEventListener('click', () => c.view('devices'));
+      empty.append(c.element('h3', 'Нет устройств под наблюдением'), c.element('p', 'В каталоге откройте «Ещё действия» и добавьте устройство под наблюдение.'), choose);
       $('watch-list').append(empty);
     }
   }

@@ -31,7 +31,7 @@ for (const width of [320, 1440]) {
     await page.getByLabel('Пароль').fill(process.env.PT_LAB_TEST_PASSWORD);
     await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await expect(page).toHaveURL(/\/lab\/$/);
-    await expect(page.locator('#stat-hosts')).toHaveText('15');
+    await expect(page.locator('#directory-count')).toHaveText('15');
     await page.locator('nav').getByText('Ещё разделы').click();
     await page.locator('nav [data-view="contacts"]').click();
     await expect(page.locator('#contacts-title')).toBeVisible();

@@ -225,3 +225,14 @@ body[data-context-help] .context-help {
 .map-tools .zoom button { min-height: 40px; font-size: 13px; }
 .change-row button { min-height: 36px; font-size: 13px; text-align: start; }
 .period-detail > button { margin-top: 14px; }
+
+#save-state:empty, body[data-context-help] .context-help[hidden] { display: none; }
+#site-logout { display: none; }
+body[data-workspace-mode="account"] #site-logout { display: block; }
+#site-logout button { width: 100%; min-height: 44px; margin-top: 12px; text-align: start; }
+.workspace-name-field { display: grid; gap: 4px; padding: 8px 12px; font-size: 12px; }
+.workspace-name-field input { width: 100%; }
+@media (max-width: 700px) {
+  #site-logout { grid-column: 1 / -1; }
+  #site-logout button { margin-top: 0; width: auto; }
+}
