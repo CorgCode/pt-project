@@ -78,12 +78,14 @@ class TfidfSvd:
     def _weight(self, x: sp.csr_matrix) -> sp.csr_matrix:
         return row_norm((x @ sp.diags(self.idf)).tocsr())
 
-    def fit(self, trip: pd.DataFrame, hidx: dict) -> np.ndarray:
-        t = trip[trip["host"].isin(hidx)].drop_duplicates(["host", "col"])
-        dfc = t.groupby("col").size()
-        cols = sorted(dfc[dfc >= self.min_df].index)         # токен хотя бы у min_df хостов
+    def fit(self, trip: pd.DataFrame, hidx: dict, extra: tuple = ()) -> np.ndarray:
+        """Словарь, IDF и SVD по train и (необязательно) дополнительным окнам extra: строки "хост × окно" ставятся друг под другом.
+        Вектор хоста всё равно считается по одному окну (transform); дополнительные окна нужны только для осей."""
+        trips = [trip, *extra]
+        dfc = pd.concat([t[t["host"].isin(hidx)].drop_duplicates(["host", "col"]) for t in trips]).groupby("col").size()
+        cols = sorted(dfc[dfc >= self.min_df].index)         # токен хотя бы в min_df строках "хост × окно"
         self.vocab = {c: i for i, c in enumerate(cols)}
-        x = self._matrix(trip, hidx)
+        x = sp.vstack([self._matrix(t, hidx) for t in trips]).tocsr()
         df = np.asarray((x > 0).sum(0)).ravel()
         self.idf = np.log((1 + x.shape[0]) / (1 + df)) + 1.0
         xw = self._weight(x).astype(np.float64)
@@ -104,6 +106,9 @@ def main() -> None:
     ap.add_argument("--out", default=str(ROOT / "runs" / "blocks"))
     ap.add_argument("--k-peers", type=int, default=256, help="максимальная длина SVD для peers")
     ap.add_argument("--k-services", type=int, default=128, help="максимальная длина SVD для services")
+    ap.add_argument("--extra-fit", nargs="*", default=[], metavar="DIR",
+                    help="папки окон (runs/features_multi/test_day03 ...) только для обучения словаря, IDF и SVD вместе с train; "
+                         "блоки для них не пишутся")
     a = ap.parse_args()
     t0 = time.time()
     feat, out = Path(a.features), Path(a.out)
@@ -118,6 +123,13 @@ def main() -> None:
     log(f"когорта: {len(hosts):,} хостов; окна: {windows}")
 
     peers_m, svc_m = TfidfSvd(a.k_peers), TfidfSvd(a.k_services)
+    extra_p, extra_s = [], []
+    for d in map(Path, a.extra_fit):
+        if not (d / "edges.csv").exists():
+            raise SystemExit(f"нет {d}/edges.csv — это окно не посчитано build_features.py")
+        extra_p.append(peer_triplets(pd.read_csv(d / "edges.csv", dtype={"a": str, "b": str})))
+        extra_s.append(svc_triplets(pd.read_csv(d / "services.csv", dtype={"host": str})))
+        log(f"доп. окно для обучения осей: {d}")
     stat: dict = {}
     for i, w in enumerate(windows, 1):
         log(f"[{i}/{len(windows)}] окно {w}")
@@ -131,9 +143,9 @@ def main() -> None:
             stat["behav_cols"] = cols
             stat["mean"], stat["std"] = x.mean(0), x.std(0) + 1e-6
             log("  обучаю TF-IDF + SVD на train (peers) ...")
-            pz = peers_m.fit(pt, hidx)
+            pz = peers_m.fit(pt, hidx, tuple(extra_p))
             log("  обучаю TF-IDF + SVD на train (services) ...")
-            sz = svc_m.fit(st, hidx)
+            sz = svc_m.fit(st, hidx, tuple(extra_s))
             log(f"  peers: словарь {len(peers_m.vocab):,}, компонент {pz.shape[1]}; services: словарь {len(svc_m.vocab):,}, компонент {sz.shape[1]}")
         else:
             if cols != stat["behav_cols"]:
@@ -144,7 +156,7 @@ def main() -> None:
                             peers=pz.astype(np.float32), services=sz.astype(np.float32))
         log(f"  записано {out / (w + '.npz')} ({time.time() - t0:.0f} с)")
     (out / "fit.json").write_text(json.dumps({
-        "hosts": len(hosts), "behav_dim": len(stat["behav_cols"]),
+        "hosts": len(hosts), "extra_fit": list(a.extra_fit), "behav_dim": len(stat["behav_cols"]),
         "peers": {"vocab": len(peers_m.vocab), "k": int(len(peers_m.s)), "top_sv": [round(float(v), 3) for v in peers_m.s[:8]]},
         "services": {"vocab": len(svc_m.vocab), "k": int(len(svc_m.s)), "top_sv": [round(float(v), 3) for v in svc_m.s[:8]]},
     }, ensure_ascii=False, indent=1), encoding="utf-8")
