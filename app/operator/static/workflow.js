@@ -154,7 +154,7 @@ window.createCorgWorkflow = function (context) {
     const figure = out.doc.createElement('figure'), diagram = $('network').cloneNode(true);
     diagram.setAttribute('viewBox', innerWidth < 700 ? '0 0 360 600' : '0 0 760 470');
     diagram.querySelectorAll('[role="button"]').forEach(node => { node.removeAttribute('role'); node.removeAttribute('tabindex'); });
-    figure.append(diagram); out.add('figcaption', $('map-caption').textContent + ' Положение узлов условно.', figure); out.doc.body.append(figure);
+    figure.append(diagram); out.add('figcaption', $('map-help').textContent + ' Положение узлов условно.', figure); out.doc.body.append(figure);
     out.add('h2', 'Ближайшие по всем координатам');
     out.table(['Устройство', 'Косинусное сходство'], c.nearest().slice(0, 10).map(n => [n.host.id, n.score.toFixed(4)]));
     out.add('p', `Сравниваемая пара: ${host.id} и ${c.comparator.id}. Сходство: ${c.math.cosine(host, c.comparator).toFixed(4)}.`);

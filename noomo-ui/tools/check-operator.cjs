@@ -3,7 +3,6 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const root=path.resolve(__dirname,'../..'),app=path.join(root,'app/operator/static');
 async function check(){
  const dom=new JSDOM(fs.readFileSync(path.join(app,'index.html'),'utf8'),{runScripts:'outside-only',url:'http://127.0.0.1:8846/'}),w=dom.window,d=w.document,store=new Map();w.innerWidth=1440;
- w.localStorage.setItem('corgcode-tutorial-started','yes');
  w.fetch=async(route,options)=>{if(options){const value=JSON.parse(options.body),id=options.method==='POST'?'workspace-1':route.split('/').pop();store.set(id,value);return{ok:true,json:async()=>({id})};}return{ok:true,json:async()=>route==='/api/workspaces'?[...store].map(([id,p])=>({id,name:p.name})):store.get(route.split('/').pop())};};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};let blob;w.URL.createObjectURL=b=>{blob=b;return'blob:case';};w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};
  w.eval(fs.readFileSync(path.join(root,'noomo-ui/lab/core.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'workflow.js'),'utf8'));w.eval(fs.readFileSync(path.join(app,'app.js'),'utf8'));await new Promise(setImmediate);
@@ -19,7 +18,7 @@ async function check(){
  click('#contact-table-body button');assert.match(d.getElementById('contacts-title').textContent,/service-1/);
  assert.deepEqual([...d.querySelector('#contact-table-body tr').querySelectorAll('td')].slice(0,2).map(td=>td.textContent),['0','15']);
  click('[data-view=devices]');click('#network [aria-label="Выбрать device-02"]');
- click('#mode-traffic');assert.equal(d.getElementById('mode-traffic').getAttribute('aria-pressed'),'true');assert.match(d.getElementById('map-caption').textContent,/наблюдавшийся/);
+ click('#mode-traffic');assert.equal(d.getElementById('mode-traffic').getAttribute('aria-pressed'),'true');assert.match(d.getElementById('map-help').textContent,/с кем общалось/);
  const initial=d.getElementById('network').getAttribute('viewBox');click('#zoom-in');assert.notEqual(d.getElementById('network').getAttribute('viewBox'),initial);click('#zoom-reset');assert.equal(d.getElementById('network').getAttribute('viewBox'),initial);
  input('host-search','device-09');assert.equal(d.querySelectorAll('#host-list button').length,1);click('#host-list button');assert.equal(w.__corgState.selected.id,'device-09');input('host-search','no-such-device');assert.match(d.getElementById('host-list').textContent,/не найдены/);
  click('[data-view=groups]');assert.equal(d.getElementById('view-groups').hidden,false);assert.equal(d.querySelectorAll('#cluster-map circle').length,15);assert(d.querySelectorAll('#group-list button').length>1);click('#cluster-map circle');assert.equal(d.getElementById('view-devices').hidden,false);

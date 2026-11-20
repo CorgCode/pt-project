@@ -190,9 +190,6 @@ body[data-workspace-mode="account"] :is(#site-login, #site-register) { display: 
 #view-title, .directory h2 { font-family: var(--font-body); }
 #status:empty { display: none; }
 #start-tutorial { margin-inline-start: 12px; font-size: 12px; }
-.tutorial { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 16px; margin-bottom: 16px; padding: 10px 14px; border-inline-start: 3px solid var(--accent); background: var(--paper); }
-.tutorial[hidden] { display: none; }
-.tutorial button { font-size: 12px; }
 
 #switch-account-mode { margin-top: 12px; }
 
@@ -203,41 +200,14 @@ body[data-workspace-mode="account"] :is(#site-login, #site-register) { display: 
   .sidebar nav button { min-height: 44px; }
 }
 
-body[data-tutorial-step] .sidebar,
-body[data-tutorial-step] .topbar,
-body[data-tutorial-step] :is(.dataset-context, #save-state),
-body[data-tutorial-step="1"] :is(.map-panel, .inspector, .directory-refine),
-body[data-tutorial-step="2"] :is(.directory, .inspector),
-body[data-tutorial-step="3"] :is(.directory, .segmented),
-body[data-tutorial-step="5"] .view {
-  display: none;
-}
-body[data-tutorial-step] .app { margin-left: 0; }
-body[data-tutorial-step] main { max-width: 900px; margin-inline: auto; padding-top: 20px; }
-body[data-tutorial-step] :is(.workspace-grid, .case-layout) { grid-template-columns: minmax(0, 1fr); }
-body[data-tutorial-step] .map-panel :is(.zoom, .map-legend) { display: none; }
-body[data-tutorial-step="3"] .inspector { display: block; }
-body[data-tutorial-step="3"] .inspector > :not(#selected-id, #to-case) { display: none; }
-body[data-tutorial-step="4"] :is(#view-case .section-intro, .case-layout > section) { display: none; }
-body[data-tutorial-step="4"] .case-layout > aside > :not(#note-host, label[for="operator-note"], #operator-note, #finish-tutorial-note) {
-  display: none;
-}
-body[data-tutorial-step="4"] #operator-note { width: 100%; min-height: 120px; }
-#finish-tutorial-note[hidden] { display: none; }
-@media (min-width: 701px) {
-  body[data-tutorial-step="3"] .workspace-grid {
-    grid-template-columns: minmax(0, 1fr) 220px;
-  }
-  body[data-tutorial-step="3"] .inspector { grid-column: 2; }
-}
 
-
-body[data-tutorial-step="4"] #finish-tutorial-note { margin-top: 0; min-height: 44px; }
-.tutorial #stop-tutorial { min-height: 44px; }
-@media (max-width: 700px) {
-  .tutorial { grid-template-columns: minmax(0, 1fr); }
-  .tutorial #stop-tutorial { justify-self: start; }
-  body[data-tutorial-step] main { padding-top: 12px; }
-  body[data-tutorial-step="3"] #network { width: 100%; margin-block: 8px; }
-  body[data-tutorial-step="4"] #finish-tutorial-note { width: 100%; }
+.context-help { display: none; }
+body[data-context-help] .context-help {
+  display: block;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-inline-start: 2px solid var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
+.search input:focus, .search input:focus-visible { outline: none; }
