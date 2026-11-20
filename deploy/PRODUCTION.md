@@ -60,7 +60,11 @@ existing vhosts until the readiness check and migration are complete.
 Administrator actions include enabling lingering, preparing the static
 directories (readable by Nginx and writable by the deployment user),
 configuring TLS/ACME, and establishing a dedicated SSH principal per
-environment. Keep the current HTTP-to-HTTPS and ACME locations.
+environment. The existing service users have a nologin shell.
+Use an administrator-controlled forced-command wrapper that runs as the
+corresponding service user, or create dedicated deployment users with a
+valid shell and only forced-command keys. Keep the current HTTP-to-HTTPS
+and ACME locations.
 
 Install the deployment scripts at `~/.local/share/pt-network` for each
 deployment principal. Create `~/.config/pt-network/staging.env` mode 0600
@@ -138,8 +142,10 @@ model-specific schema. The root of the read-only model volume contains
 `manifest.json` with `{"version":"v1","files":{"checkpoint.bin":"<sha256>"}}`.
 Set `PT_INFERENCE_IMAGE`, `PT_MODEL_VERSION`,
 `PT_MODEL_MANIFEST_SHA256`, `PT_MODEL_MEMORY` and `PT_MODEL_CPUS` in the
-environment. Make the results path writable by container UID 10001 via
-`podman unshare`. Public Nginx has no route into the model network.
+environment. Give container UID 10001 read and traversal access to models
+and datasets, and write access to results, via `podman unshare`.
+When enabling or changing the model, verify its private `/ready` before
+sending real requests. Public Nginx has no route into the model network.
 The repository's base checkpoint and reported Plus results do not supply
 the full Plus preprocessing, adapter and weights. The server has no swap.
 A model should fit alongside Nginx, PostgreSQL and active staging with RAM

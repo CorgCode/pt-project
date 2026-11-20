@@ -46,6 +46,8 @@ rollback() {
         systemctl --user restart "$prefix-api.service"
     else
         systemctl --user stop "$prefix-api.service" || true
+        rm -f "$units/$prefix-api.container"
+        systemctl --user daemon-reload
     fi
 }
 install -m 0644 "$rendered"/*.network "$rendered"/*.volume "$rendered/$prefix-postgres.container" "$units"
@@ -60,9 +62,17 @@ done
 podman exec "$prefix-postgres" pg_isready -h 127.0.0.1 -U postgres -d pt
 deploy/migrate.sh "$environment" "$PT_API_IMAGE"
 if [[ -f "$rendered/$prefix-inference.container" ]]; then
-    install -m 0644 "$rendered/$prefix-inference.container" "$units"
+    if ! cmp -s "$rendered/$prefix-inference.container" "$units/$prefix-inference.container"; then
+        install -m 0644 "$rendered/$prefix-inference.container" "$units"
+        systemctl --user daemon-reload
+        systemctl --user restart "$prefix-inference.service"
+    else
+        systemctl --user start "$prefix-inference.service"
+    fi
+elif [[ -f "$units/$prefix-inference.container" ]]; then
+    systemctl --user stop "$prefix-inference.service"
+    rm "$units/$prefix-inference.container"
     systemctl --user daemon-reload
-    systemctl --user start "$prefix-inference.service"
 fi
 install -m 0644 "$rendered/$prefix-api.container" "$units"
 systemctl --user daemon-reload

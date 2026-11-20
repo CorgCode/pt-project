@@ -42,7 +42,7 @@ workspaces = Table(
 
 
 def connect_database(url):
-    return create_engine(url, pool_pre_ping=True)
+    return create_engine(url, pool_pre_ping=True, hide_parameters=True)
 
 
 class DatabaseAccounts:
