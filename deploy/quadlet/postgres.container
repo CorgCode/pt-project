@@ -1,0 +1,22 @@
+[Container]
+Image=@POSTGRES_IMAGE@
+ContainerName=@PREFIX@-postgres
+Network=@PREFIX@-database.network
+Volume=@PREFIX@-postgres.volume:/var/lib/postgresql/data
+Volume=@STATE@/init-postgres.sh:/docker-entrypoint-initdb.d/10-operator.sh:ro
+Environment=POSTGRES_DB=pt
+Environment=POSTGRES_USER=postgres
+Environment=POSTGRES_PASSWORD_FILE=/run/secrets/pg-admin
+Secret=@PREFIX@-pg-admin,target=pg-admin
+Secret=@PREFIX@-pg-owner,target=pg-owner
+Secret=@PREFIX@-pg-app,target=pg-app
+HealthCmd=pg_isready -U postgres -d pt -h 127.0.0.1
+HealthInterval=15s
+PodmanArgs=--memory=512m --pids-limit=128
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target

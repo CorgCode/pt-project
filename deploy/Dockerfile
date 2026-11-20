@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir -r /tmp/pt-requirements.txt \
 COPY app/__init__.py app/__init__.py
 COPY app/operator app/operator
 COPY noomo-ui noomo-ui
+COPY deploy/alembic.ini deploy/alembic.ini
+COPY deploy/alembic deploy/alembic
+COPY deploy/export-static.py deploy/export-static.py
 USER 10001:10001
 EXPOSE 8000
-CMD ["uvicorn", "app.operator.web:from_environment", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "app.operator.web:from_environment", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log", "--no-proxy-headers"]

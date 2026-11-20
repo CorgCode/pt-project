@@ -1,0 +1,8 @@
+[Unit]
+Description=Monthly PostgreSQL restore drill for PT Network %i
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=45m
+Persistent=true
+[Install]
+WantedBy=timers.target
