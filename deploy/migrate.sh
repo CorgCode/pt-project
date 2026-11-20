@@ -9,6 +9,6 @@ podman run --rm --network "systemd-$prefix-database" \
     --secret "$prefix-migration-url,target=migration-url,uid=10001,gid=10001,mode=0400" \
     --env PT_DATABASE_URL_FILE=/run/secrets/migration-url "$image" \
     alembic -c deploy/alembic.ini upgrade head
-podman exec "$prefix-postgres" psql -X -v ON_ERROR_STOP=1 -U postgres -d pt <<'SQL'
+podman exec -i "$prefix-postgres" psql -X -v ON_ERROR_STOP=1 -U postgres -d pt <<'SQL'
 GRANT SELECT, INSERT, UPDATE, DELETE ON users, sessions, workspaces, jobs TO pt_app;
 SQL
