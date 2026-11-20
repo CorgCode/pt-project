@@ -236,3 +236,57 @@ body[data-workspace-mode="account"] #site-logout { display: block; }
   #site-logout { grid-column: 1 / -1; }
   #site-logout button { margin-top: 0; width: auto; }
 }
+
+body:has(#workspace-sidebar) {
+  --line: #dce2ec;
+  --edge: #dce2ec;
+  --glass: #f7f9fd;
+  --glass-soft: #eef2f8;
+  --glass-bright: #ffffff;
+  --paper: #f3f6fb;
+  --muted: #4d596d;
+  background: var(--paper);
+}
+.sidebar { background: #e9eef7; backdrop-filter: none; }
+.app > .topbar, .app > main {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2.25vw, 36px);
+}
+.app > .topbar { min-height: 0; gap: 8px; padding-block: 16px 12px; }
+.app > main { padding-block: 20px 28px; }
+.top-actions { gap: 6px 16px; align-items: center; }
+#start-tutorial { margin-inline-start: 0; }
+.workspace-actions summary, #start-tutorial { padding-block: 7px; min-height: 36px; }
+.panel {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px #18243a08;
+  backdrop-filter: none;
+}
+.workspace-grid { gap: 16px; }
+.workspace-grid > .panel { padding: 18px; }
+.workspace-grid .panel-title { margin-bottom: 12px; }
+.workspace-grid h2 { font-family: var(--font-body); font-size: 18px; }
+.inspector #selected-id { font-size: 23px; overflow-wrap: anywhere; }
+.device-actions > button { width: 100%; }
+.map-panel .map-legend { justify-content: flex-start; margin-top: 0; }
+.map-panel #network { display: block; width: 100%; margin-inline: auto; background: #f8faff; border-radius: 10px; }
+@media (min-width: 1180px) {
+  .workspace-grid {
+    grid-template-columns: minmax(200px, .86fr) minmax(0, 2fr) minmax(210px, 1fr);
+    align-items: stretch;
+  }
+  .workspace-grid > .inspector { display: block; grid-column: auto; }
+  .workspace-grid .host-list { max-height: 320px; }
+}
+@media (max-width: 700px) {
+  .app > .topbar, .app > main { padding-inline: 16px; }
+  .workspace-grid > .panel { padding: 14px; }
+  .workspace-grid .map-panel { min-height: 0; }
+}
+.map-panel .map-legend > span:last-child { margin-inline-start: 0; }
+.map-panel #network .node text { font-size: 16px; }
+.map-panel #network .node .node-sub { font-size: 11px; }
+.map-panel #network .edge-value { font-size: 14px; }
