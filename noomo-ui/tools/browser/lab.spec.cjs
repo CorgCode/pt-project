@@ -27,9 +27,10 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await search.focus();
   expect(await search.evaluate(input => getComputedStyle(input).outlineStyle)).toBe('none');
   expect(await page.locator('.search').evaluate(field => getComputedStyle(field).outlineStyle)).toBe('solid');
-  await search.fill('device-02');
+  await search.fill('Рабочий ПК 02');
   await page.locator('#host-list button').click();
-  await expect(page.locator('#selected-id')).toHaveText('device-02');
+  await expect(page.locator('#selected-id')).toHaveText('Рабочий ПК 02');
+  await expect(page.locator('#selected-technical-id')).toHaveText('device-02');
   await page.locator('#mode-traffic').click();
   await expect(page.locator('#map-help')).toContainText('с кем общалось');
   await page.getByRole('button', { name: 'Скрыть подсказки' }).click();

@@ -26,6 +26,9 @@ window.createCorgWorkflow = function (context) {
     const meta = annotation(c.selected.id);
     $('toggle-watch').textContent = meta.watch ? 'Снять с наблюдения' : 'Добавить под наблюдение';
     $('toggle-watch').setAttribute('aria-pressed', String(meta.watch));
+    const name = c.hostName(c.selected.id);
+    $('selected-id').textContent = name;
+    $('selected-technical-id').textContent = name === c.selected.id ? '' : c.selected.id;
     $('selected-status').textContent = labels[meta.status];
     $('host-label').value = meta.label;
     $('host-status').value = meta.status;
@@ -34,7 +37,7 @@ window.createCorgWorkflow = function (context) {
 
   function matches(host, query) {
     const meta = annotation(host.id);
-    return [host.id, meta.label, ...meta.tags].join(' ').toLocaleLowerCase('ru').includes(query);
+    return [host.id, context().hostName(host.id), ...meta.tags].join(' ').toLocaleLowerCase('ru').includes(query);
   }
 
   function directory(rows) {
@@ -58,7 +61,7 @@ window.createCorgWorkflow = function (context) {
     $('watch-list').replaceChildren(...rows.map(host => {
       const meta = annotation(host.id), row = c.element('article', undefined, 'panel watch-row');
       const heading = c.element('div');
-      heading.append(c.element('h3', meta.label || host.id), c.element('p', host.id, 'small'));
+      heading.append(c.element('h3', c.hostName(host.id)), c.element('p', host.id, 'small'));
       const badge = c.element('span', labels[meta.status], 'badge');
       const copy = c.element('p', meta.tags.length ? meta.tags.join(' · ') : 'Без меток', 'small');
       const actions = c.element('div', undefined, 'report-actions');

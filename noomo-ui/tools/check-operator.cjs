@@ -9,7 +9,7 @@ async function check(){
  const click=s=>{const e=d.querySelector(s);assert(e,s);e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));},input=(id,value)=>{d.getElementById(id).value=value;d.getElementById(id).dispatchEvent(new w.Event('input'));};
  async function upload(id,text){Object.defineProperty(d.getElementById(id),'files',{configurable:true,value:[{name:'capture.csv',size:text.length,text:async()=>text}]});d.getElementById(id).dispatchEvent(new w.Event('change'));await new Promise(setImmediate);}
  assert.equal(d.getElementById('directory-count').textContent,'15');assert(d.querySelectorAll('#network [role=button]').length===6);
- click('#network [aria-label="Выбрать device-02"]');assert.equal(w.__corgState.selected.id,'device-02');
+ click('#network [aria-label="Выбрать Рабочий ПК 02 · device-02"]');assert.equal(w.__corgState.selected.id,'device-02');
  click('#to-contacts');assert.match(d.getElementById('contacts-title').textContent,/device-02/);
  const row=d.querySelector('#contact-table-body tr');
  assert.match(row.textContent,/service-1/);assert.deepEqual([...row.querySelectorAll('td')].slice(0,2).map(td=>td.textContent),['15','0']);
@@ -17,7 +17,7 @@ async function check(){
  assert(d.getElementById('export-contacts').disabled);input('contact-search','');
  click('#contact-table-body button');assert.match(d.getElementById('contacts-title').textContent,/service-1/);
  assert.deepEqual([...d.querySelector('#contact-table-body tr').querySelectorAll('td')].slice(0,2).map(td=>td.textContent),['0','15']);
- click('[data-view=devices]');click('#network [aria-label="Выбрать device-02"]');
+ click('[data-view=devices]');click('#network [aria-label="Выбрать Рабочий ПК 02 · device-02"]');
  click('#mode-traffic');assert.equal(d.getElementById('mode-traffic').getAttribute('aria-pressed'),'true');assert.match(d.getElementById('map-help').textContent,/с кем общалось/);
  const initial=d.getElementById('network').getAttribute('viewBox');click('#zoom-in');assert.notEqual(d.getElementById('network').getAttribute('viewBox'),initial);click('#zoom-reset');assert.equal(d.getElementById('network').getAttribute('viewBox'),initial);
  input('host-search','device-09');assert.equal(d.querySelectorAll('#host-list button').length,1);click('#host-list button');assert.equal(w.__corgState.selected.id,'device-09');input('host-search','no-such-device');assert.match(d.getElementById('host-list').textContent,/не найдены/);
