@@ -59,6 +59,9 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   const detail = page.locator('#change-detail');
   await expect(detail).toContainText('device-07');
   await expect(detail).toContainText('service-4');
+  await expect(page.locator('.incident-marker')).toContainText('10:42 UTC');
+  await expect(page.locator('#incident-timeline li')).toHaveCount(6);
+  await expect(page.locator('#incident-timeline .incident-start')).toContainText('10:40');
   await expect(page.locator('#change-list .change-row').first()).toContainText('device-07');
   await detail.getByRole('button', { name: 'Проверить контакты device-07' }).click();
   await expect(page.locator('#contact-table-body')).toContainText('service-4');
@@ -72,7 +75,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   await expect(page.locator('#save-state')).toHaveText('Сохранено на компьютере');
   await page.reload();
   await expect(page.locator('#search-help')).toBeHidden();
-  await expect(page.locator('#workspace-name')).toHaveValue('Учебный разбор: новый контакт');
+  await expect(page.locator('#workspace-name')).toHaveValue('Учебный инцидент: новый контакт');
   await expect(page.locator('#directory-count')).toHaveText('16');
   await page.locator('#host-search').fill('device-07');
   await page.locator('#host-list button').click();

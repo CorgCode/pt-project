@@ -3,6 +3,40 @@
  'use strict';
  const $=id=>document.getElementById(id),math=window.PTLab,ns='http://www.w3.org/2000/svg';
  const sample='src,dst,bytes,packets,dst_port,proto\n'+Array.from({length:180},(_,i)=>{const h=i%12,g=Math.floor(h/4);return `device-${String(h+1).padStart(2,'0')},service-${g+1},${400+h*210+i%9*80},${3+h+i%5},${[443,53,445][g]},${g===1?'UDP':'TCP'}`;}).join('\n');
+ const incidentTime = '10:42';
+ const incidentDay = '2026-11-18';
+ const incidentHost = 'device-07';
+ const incidentContact = 'service-4';
+ const incidentBins = [0, 0, 14, 26, 17, 8];
+ const earlierTime = ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25'];
+ const laterTime = ['10:30', '10:35', '10:40', '10:45', '10:50', '10:55'];
+
+ function makeIncidentWindow(times, withIncident) {
+   const rows = ['src,dst,bytes,packets,dst_port,proto,timestamp'];
+   const counts = [];
+   for (const [bucket, time] of times.entries()) {
+     let outgoing = 0;
+     for (let pc = 1; pc <= 12; pc++) {
+       const id = `device-${String(pc).padStart(2, '0')}`;
+       const group = Math.floor((pc - 1) / 4);
+       const records = 3 + (pc + bucket * 3 + Number(withIncident)) % 5;
+       for (let row = 0; row < records; row++) {
+         const bytes = 480 + pc * 170 + row * 65;
+         rows.push(`${id},service-${group + 1},${bytes},${3 + row},${[443, 53, 445][group]},${group === 1 ? 'UDP' : 'TCP'},${incidentDay}T${time}:00Z`);
+       }
+       if (id === incidentHost) outgoing = records;
+     }
+     const extra = withIncident ? incidentBins[bucket] : 0;
+     for (let row = 0; row < extra; row++) {
+       const timestamp = bucket === 2 ? incidentTime : time;
+       rows.push(`${incidentHost},${incidentContact},${6400 + row * 160},35,8443,TCP,${incidentDay}T${timestamp}:00Z`);
+     }
+     counts.push(outgoing + extra);
+   }
+   return {csv: rows.join('\n'), counts};
+ }
+ const incidentBaseline = makeIncidentWindow(earlierTime, false);
+ const incidentCurrent = makeIncidentWindow(laterTime, true);
  const sampleServiceNames = new Map([
    ['service-1', 'Веб-сервер'],
    ['service-2', 'DNS-сервер'],
@@ -93,12 +127,12 @@
   const request=++intent;
   if(!(await preserve())||request!==intent)return;
   importRequest++;baselineRequest++;openRequest++;
-  const newTraffic=Array.from({length:70},()=> 'device-07,service-4,9600,35,8443,TCP').join('\n');
-  const csv=sample+'\n'+newTraffic;
-  install(math.parseCSV(csv),{name:'Учебный разбор: новый контакт',csv,baseline:sample,notes:{},sample:true});
-  select('device-07');
+  install(math.parseCSV(incidentCurrent.csv), {
+    name: 'Учебный инцидент: новый контакт',
+    csv: incidentCurrent.csv, baseline: incidentBaseline.csv, notes: {}, sample: true,
+  });
+  select(incidentHost);
   view('changes');
-  $('baseline-name').textContent='Учебное окно до изменения.';
   return true;
  }
  function nearest(){return state.dataset.filter(h=>h!==selected).map(host=>({host,score:math.cosine(selected,host)})).sort((a,b)=>b.score-a.score);}
@@ -164,7 +198,34 @@
      (state.kind === 'flows' ? 'Чтобы увидеть, с кем устройство общалось, переключитесь на «Реальные контакты».' : 'В этом файле есть только профили устройств.');$('mode-similar').setAttribute('aria-pressed',String(mode==='similar'));$('mode-traffic').setAttribute('aria-pressed',String(mode==='traffic'));}
  function drawClusters(){const root=$('cluster-map'),xs=projection.map(p=>p.x),ys=projection.map(p=>p.y),minX=Math.min(...xs),minY=Math.min(...ys),dx=Math.max(...xs)-minX,dy=Math.max(...ys)-minY;const fragment=document.createDocumentFragment();fragment.append(svg('path',{d:'M 35 250 H 815 M 425 30 V 470',class:'axis'}));projection.forEach((p,i)=>{const cx=dx?45+(p.x-minX)/dx*760:425,cy=dy?45+(p.y-minY)/dy*410:250;const c=svg('circle',{cx,cy,r:state.dataset[i]===selected?10:6,'data-group':groups[i],class:state.dataset[i]===selected?'selected':'',role:'button',tabindex:0,'aria-label':`${p.hostId}, группа ${groups[i]+1}`});c.append(svg('title',{},p.hostId));keyChoose(c,()=>{select(p.hostId);view('devices');});fragment.append(c);});root.replaceChildren(fragment);const actual=[...new Set(groups)].sort((a,b)=>a-b);if(!actual.includes(activeGroup))activeGroup=actual[0];$('group-list').replaceChildren(...actual.map(g=>{const b=element('button');b.type='button';b.setAttribute('aria-pressed',String(g===activeGroup));const dot=element('i',undefined,'dot');dot.dataset.group=g;b.append(dot,element('span','Группа '+(g+1)),element('span',String(groups.filter(v=>v===g).length)));b.addEventListener('click',()=>{activeGroup=g;drawClusters();});return b;}));$('group-members').replaceChildren(...state.dataset.filter((h,i)=>groups[i]===activeGroup).map(h=>{const b=element('button',hostNameWithId(h.id));b.type='button';b.addEventListener('click',()=>{select(h.id);view('devices');});return b;}));}
  function renderCase(){if(!selected)return;const options=state.dataset.filter(h=>h!==selected);$('compare-host').replaceChildren(...options.map(h=>new Option(hostNameWithId(h.id),h.id)));$('compare-host').value=comparator.id;$('case-title').textContent='Разбор · '+hostNameWithId(selected.id);$('note-host').textContent=hostNameWithId(selected.id);$('operator-note').value=Object.prototype.hasOwnProperty.call(payload.notes,selected.id)?payload.notes[selected.id]:'';const score=math.cosine(selected,comparator);$('comparison-summary').textContent=`${selected.id} и ${comparator.id}: сходство ${score.toFixed(3)}. Ближе к 1 — ближе направления профилей.`;const a=selected.v.map(x=>x/selected.norm),b=comparator.v.map(x=>x/comparator.norm);let ids=a.map((_,i)=>i);if(state.kind==='flows')ids=ids.slice(0,8);else ids.sort((i,j)=>Math.abs(a[j])+Math.abs(b[j])-Math.abs(a[i])-Math.abs(b[i]));ids=ids.slice(0,8);const max=Math.max(...ids.flatMap(i=>[Math.abs(a[i]),Math.abs(b[i])]),.001);const chart=$('feature-chart');chart.setAttribute('viewBox',`0 0 800 ${ids.length*45+30}`);const fragment=document.createDocumentFragment();ids.forEach((i,row)=>{const y=24+row*45;fragment.append(svg('text',{x:0,y:y+10,class:'feature-label'},state.kind==='flows'?featureNames[i]:'Координата '+i));for(const[value,cls,offset]of [[a[i],'bar-a',0],[b[i],'bar-b',16]]){const w=Math.abs(value)/max*340;fragment.append(svg('rect',{x:240,y:y+offset-2,width:w,height:10,rx:4,class:cls}),svg('text',{x:590,y:y+offset+7,class:'feature-value'},value.toFixed(3)));}});chart.replaceChildren(fragment);$('feature-caption').textContent=`Верхняя полоса — ${selected.id}, нижняя — ${comparator.id}. ${state.kind==='flows'?'Показаны восемь простых признаков':'Показаны восемь наиболее выраженных координат'}. Сравниваются L2-нормированные значения; длина полосы — модуль, знак указан числом.`;const other=new Set(contacts(state,comparator.id).map(c=>c.id)),shared=contacts(state,selected.id).filter(c=>other.has(c.id));$('shared-copy').textContent=state.kind==='flows'?shared.length?`В файле найдено общих собеседников: ${shared.length}. Нажмите, чтобы проверить их окружение.`:'Общих контактов в этих записях нет. Похожесть может быть связана с объёмами или сервисами.':'Векторы не содержат записи обмена. Для проверки общих контактов загрузите CSV трафика.';$('shared-contacts').replaceChildren(...shared.map(c=>{const button=element('button',c.id+' ↗');button.type='button';button.addEventListener('click',()=>{mode='traffic';select(c.id);view('devices');});return button;}));}
- function renderChanges(){if(!payload)return;$('changes-empty').hidden=!!payload.baseline;$('changes-content').hidden=!payload.baseline;if(!payload.baseline)return;try{const report=math.compareWindows(math.parseCSV(payload.baseline),state,Number($('group-count').value));$('changes-summary').textContent=`Общих: ${report.changes.length} · новых: ${report.newHosts.length} · отсутствуют: ${report.missingHosts.length}`;const filtered=workflow.changeRows(report);
+ function renderIncident() {
+   const panel = $('incident-context');
+   panel.hidden = !payload.sample || payload.csv !== incidentCurrent.csv ||
+     payload.baseline !== incidentBaseline.csv;
+   if (panel.hidden) return;
+   const max = Math.max(...incidentBaseline.counts, ...incidentCurrent.counts);
+   const timeline = laterTime.map((time, i) => {
+     const entry = element('li', undefined, 'incident-bucket');
+     const bars = element('div', undefined, 'incident-bars');
+     const before = incidentBaseline.counts[i], after = incidentCurrent.counts[i];
+     bars.setAttribute('aria-hidden', 'true');
+     for (const [count, style] of [[before, 'before'], [after, 'after']]) {
+       const bar = element('span', undefined, style);
+       bar.style.height = `${100 * count / max}%`;
+       bars.append(bar);
+     }
+     entry.classList.toggle('incident-start', time === '10:40');
+     entry.append(
+       bars,
+       element('span', time, 'incident-time'),
+       element('span', `${before} → ${after}`, 'incident-count'),
+     );
+     entry.setAttribute('aria-label', `${earlierTime[i]}: ${before} записей, ${time}: ${after} записей`);
+     return entry;
+   });
+   $('incident-timeline').replaceChildren(...timeline);
+ }
+ function renderChanges(){if(!payload)return;renderIncident();$('changes-empty').hidden=!!payload.baseline;$('changes-content').hidden=!payload.baseline;if(!payload.baseline)return;try{const report=math.compareWindows(math.parseCSV(payload.baseline),state,Number($('group-count').value));$('changes-summary').textContent=`Общих: ${report.changes.length} · новых: ${report.newHosts.length} · отсутствуют: ${report.missingHosts.length}`;const filtered=workflow.changeRows(report);
  if(report.kind==='flows'){
    const hostsWithNewContacts=report.changes.filter(change=>change.added.length>0).length;
    $('changes-summary').textContent+=` · с новыми контактами: ${hostsWithNewContacts}`;
@@ -243,6 +304,7 @@
  }
  function followSection(){
   const section=location.hash.slice(1);
+  if(section==='incident'){openChangeScenario();return;}
   if(section==='soc-scenarios'){showHelp(true);view('devices');}
   if(['devices','groups','contacts','changes','watch','case'].includes(section))view(section);
  }
@@ -251,7 +313,7 @@
  window.addEventListener('hashchange',followSection);
  const startupIntent=intent;
  if(!isGuest())savedList().then(rows=>{
-  if(rows.length&&intent===startupIntent&&revision===0)openSaved(rows[0].id);
+  if(rows.length&&location.hash!=='#incident'&&intent===startupIntent&&revision===0)openSaved(rows[0].id);
  }).catch(error=>{
   if(!isGuest())status('Локальное хранилище недоступно: '+error.message,true);
  });

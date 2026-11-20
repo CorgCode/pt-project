@@ -292,3 +292,22 @@ body:has(#workspace-sidebar) {
 .map-panel #network .edge-value { font-size: 14px; }
 
 #selected-technical-id:empty { display: none; }
+
+.incident-context { margin-bottom: 18px; }
+.incident-context[hidden] { display: none; }
+.incident-heading { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; margin-bottom: 14px; }
+.incident-heading h3 { font-size: 20px; }
+.incident-heading p, .incident-marker span { color: var(--muted); font-size: 12px; }
+.incident-marker { display: grid; border-inline-start: 3px solid var(--error); padding-inline-start: 10px; }
+.incident-marker strong { color: var(--error); font-size: 18px; }
+.incident-context > h4 { margin: 18px 0 4px; }
+.incident-timeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 0; margin: 12px 0 0; list-style: none; }
+.incident-bucket { display: grid; justify-items: center; padding: 5px 1px; border-radius: 6px; }
+.incident-start { background: #faeef2; }
+.incident-bars { display: flex; align-items: end; justify-content: center; width: 100%; height: 90px; gap: 3px; }
+.incident-bars span { width: clamp(6px, 25%, 16px); border-radius: 3px 3px 0 0; }
+.incident-bars .before { background: #9aa5b9; }
+.incident-bars .after { background: #5a42a6; }
+.incident-time, .incident-count { font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.incident-time { font-weight: 600; }
+.incident-count { color: var(--muted); }
