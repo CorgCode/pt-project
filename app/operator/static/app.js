@@ -195,7 +195,9 @@
      'Разбор завершён. Вы нашли новый контакт и записали наблюдение.',
    ][step];
    $('stop-tutorial').textContent = step === 5 ? 'Готово' : 'Выйти из обучения';
-   const target = [null, 'host-search', 'mode-traffic', 'to-case', 'operator-note', 'stop-tutorial'][step];
+   const narrowScreen = window.matchMedia?.('(max-width: 700px)').matches;
+   const target = [null, narrowScreen ? 'tutorial-step' : 'host-search', 'mode-traffic',
+     'tutorial-step', narrowScreen ? 'tutorial-step' : 'operator-note', 'stop-tutorial'][step];
    if (updateMap) drawNetwork();
    if (step) window.scrollTo?.(0, 0);
    if (target) $(target).focus({preventScroll:true});

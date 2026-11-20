@@ -190,7 +190,7 @@ body[data-workspace-mode="account"] :is(#site-login, #site-register) { display: 
 #view-title, .directory h2 { font-family: var(--font-body); }
 #status:empty { display: none; }
 #start-tutorial { margin-inline-start: 12px; font-size: 12px; }
-.tutorial { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; padding: 10px 14px; border-inline-start: 3px solid var(--accent); background: var(--paper); }
+.tutorial { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 16px; margin-bottom: 16px; padding: 10px 14px; border-inline-start: 3px solid var(--accent); background: var(--paper); }
 .tutorial[hidden] { display: none; }
 .tutorial button { font-size: 12px; }
 
@@ -219,7 +219,7 @@ body[data-tutorial-step] .map-panel :is(.zoom, .map-legend) { display: none; }
 body[data-tutorial-step="3"] .inspector { display: block; }
 body[data-tutorial-step="3"] .inspector > :not(#selected-id, #to-case) { display: none; }
 body[data-tutorial-step="4"] :is(#view-case .section-intro, .case-layout > section) { display: none; }
-body[data-tutorial-step="4"] .case-layout > aside > :not(#note-host, label[for="operator-note"], #operator-note) {
+body[data-tutorial-step="4"] .case-layout > aside > :not(#note-host, label[for="operator-note"], #operator-note, #finish-tutorial-note) {
   display: none;
 }
 body[data-tutorial-step="4"] #operator-note { width: 100%; min-height: 120px; }
@@ -229,4 +229,15 @@ body[data-tutorial-step="4"] #operator-note { width: 100%; min-height: 120px; }
     grid-template-columns: minmax(0, 1fr) 220px;
   }
   body[data-tutorial-step="3"] .inspector { grid-column: 2; }
+}
+
+
+body[data-tutorial-step="4"] #finish-tutorial-note { margin-top: 0; min-height: 44px; }
+.tutorial #stop-tutorial { min-height: 44px; }
+@media (max-width: 700px) {
+  .tutorial { grid-template-columns: minmax(0, 1fr); }
+  .tutorial #stop-tutorial { justify-self: start; }
+  body[data-tutorial-step] main { padding-top: 12px; }
+  body[data-tutorial-step="3"] #network { width: 100%; margin-block: 8px; }
+  body[data-tutorial-step="4"] #finish-tutorial-note { width: 100%; }
 }
