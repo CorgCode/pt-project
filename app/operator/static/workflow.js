@@ -24,7 +24,7 @@ window.createCorgWorkflow = function (context) {
     const c = context();
     if (!c.selected) return;
     const meta = annotation(c.selected.id);
-    $('toggle-watch').textContent = meta.watch ? '★ Под наблюдением' : '☆ Под наблюдение';
+    $('toggle-watch').textContent = meta.watch ? 'Снять с наблюдения' : 'Добавить под наблюдение';
     $('toggle-watch').setAttribute('aria-pressed', String(meta.watch));
     $('selected-status').textContent = labels[meta.status];
     $('host-label').value = meta.label;

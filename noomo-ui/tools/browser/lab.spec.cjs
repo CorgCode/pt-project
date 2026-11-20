@@ -58,6 +58,10 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   const detail = page.locator('#change-detail');
   await expect(detail).toContainText('device-07');
   await expect(detail).toContainText('service-4');
+  await expect(page.locator('#change-list .change-row').first()).toContainText('device-07');
+  await detail.getByRole('button', { name: 'Проверить контакты device-07' }).click();
+  await expect(page.locator('#contact-table-body')).toContainText('service-4');
+  await page.locator('nav [data-view="changes"]').click();
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await page.screenshot({ path: testInfo.outputPath('comparison.png'), fullPage: true });
 
@@ -117,6 +121,7 @@ test('mobile viewport keeps login and navigation reachable', async ({ page }, te
 test('contacts, groups, watchlist and reports work with the demo', async ({ page }) => {
   await page.goto('/lab/');
   await signIn(page);
+  await page.getByText('Ещё действия', { exact: true }).click();
   await page.locator('#toggle-watch').click();
   const nav = page.getByRole('navigation', { name: 'Разделы программы' });
   await nav.getByText('Ещё разделы').click();
