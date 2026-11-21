@@ -3,8 +3,9 @@
 set -euo pipefail
 allowed=${1:?set the environment in the authorized_keys command}
 case "$allowed" in staging|production) ;; *) exit 2 ;; esac
-read -r command environment revision inference extra <<< "${SSH_ORIGINAL_COMMAND:-}"
+read -r command environment registry_user revision inference extra <<< "${SSH_ORIGINAL_COMMAND:-}"
 [[ "$command" == pt-release && "$environment" == "$allowed" && -z "$extra" ]]
+[[ "$registry_user" =~ ^[A-Za-z0-9-]+$ ]]
 state="$HOME/.local/share/pt-$environment"
 if [[ "$revision" == rollback ]]; then
     [[ -z "$inference" ]]
@@ -21,7 +22,7 @@ umask 077
 auth_dir=$(mktemp -d)
 trap 'unlink "$auth_dir/auth.json" 2>/dev/null || true; rmdir "$auth_dir"' EXIT
 export REGISTRY_AUTH_FILE="$auth_dir/auth.json"
-podman login ghcr.io -u github-actions --password-stdin >/dev/null
+podman login ghcr.io -u "$registry_user" --password-stdin >/dev/null
 export PT_CI_INFERENCE_IMAGE="$inference"
 export PT_INFERENCE_IMAGE="${PT_INFERENCE_IMAGE:-$inference}"
 "$HOME/.local/share/pt-network/deploy/release.sh" "$environment" "$revision"
