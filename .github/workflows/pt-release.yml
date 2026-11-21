@@ -71,7 +71,8 @@ jobs:
     permissions:
       packages: write
     outputs:
-      image: ${{ steps.publish.outputs.image }}
+      image: ${{ steps.publish.outputs.api }}
+      inference_image: ${{ steps.publish.outputs.inference }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -92,9 +93,7 @@ jobs:
             printf '%s\n' "$output"
             digest=$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' <<<"$output")
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-            if [[ "$component" == api ]]; then
-              printf 'image=%s/%s@%s\n' "$base" "$component" "$digest" >> "$GITHUB_OUTPUT"
-            fi
+            printf '%s=%s/%s@%s\n' "$component" "$base" "$component" "$digest" >> "$GITHUB_OUTPUT"
           done
 
   staging:
@@ -102,6 +101,9 @@ jobs:
     needs: publish
     runs-on: ubuntu-24.04
     environment: staging
+    permissions:
+      contents: read
+      packages: read
     concurrency:
       group: pt-staging-deploy
       cancel-in-progress: false
@@ -109,9 +111,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - run: bash deploy/ci-ssh.sh staging "${PT_IMAGE}"
+      - run: bash deploy/ci-ssh.sh staging "$PT_IMAGE" "$PT_INFERENCE_IMAGE"
         env:
           PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_INFERENCE_IMAGE: ${{ needs.publish.outputs.inference_image }}
+          PT_REGISTRY_TOKEN: ${{ github.token }}
           PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
@@ -122,6 +126,9 @@ jobs:
     needs: [publish, staging]
     runs-on: ubuntu-24.04
     environment: production
+    permissions:
+      contents: read
+      packages: read
     concurrency:
       group: pt-production-deploy
       cancel-in-progress: false
@@ -129,9 +136,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - run: bash deploy/ci-ssh.sh production "${PT_IMAGE}"
+      - run: bash deploy/ci-ssh.sh production "$PT_IMAGE" "$PT_INFERENCE_IMAGE"
         env:
           PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_INFERENCE_IMAGE: ${{ needs.publish.outputs.inference_image }}
+          PT_REGISTRY_TOKEN: ${{ github.token }}
           PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}

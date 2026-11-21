@@ -16,6 +16,9 @@ jobs:
   rollback:
     runs-on: ubuntu-24.04
     environment: ${{ inputs.target }}
+    permissions:
+      contents: read
+      packages: read
     concurrency:
       group: pt-${{ inputs.target }}-deploy
       cancel-in-progress: false
@@ -25,6 +28,7 @@ jobs:
           persist-credentials: false
       - run: bash deploy/ci-ssh.sh "$PT_ENVIRONMENT" rollback
         env:
+          PT_REGISTRY_TOKEN: ${{ github.token }}
           PT_ENVIRONMENT: ${{ inputs.target }}
           PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}

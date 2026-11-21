@@ -26,6 +26,9 @@ if [[ -e "$PT_STATIC_ROOT" && ! -L "$PT_STATIC_ROOT" ]]; then
     exit 1
 fi
 podman pull "$PT_API_IMAGE"
+if [[ -n "${PT_INFERENCE_IMAGE:-}" ]]; then
+    podman pull "$PT_INFERENCE_IMAGE"
+fi
 revision="$static_parent/$prefix-$digest"
 if [[ ! -d "$revision" ]]; then
     temporary_assets=$(mktemp -d "$static_parent/$prefix-assets.XXXXXX")
@@ -39,7 +42,23 @@ fi
 if [[ -f "$units/$prefix-api.container" ]]; then
     cp "$units/$prefix-api.container" "$rendered/previous-api"
 fi
+model_unit="$units/$prefix-inference.container"
+if [[ -f "$model_unit" ]]; then
+    cp "$model_unit" "$rendered/previous-inference"
+fi
+restore_inference() {
+    if [[ -f "$rendered/previous-inference" ]]; then
+        install -m 0644 "$rendered/previous-inference" "$model_unit"
+        systemctl --user daemon-reload
+        systemctl --user restart "$prefix-inference.service"
+    elif [[ -f "$model_unit" ]]; then
+        systemctl --user stop "$prefix-inference.service" || true
+        unlink "$model_unit"
+        systemctl --user daemon-reload
+    fi
+}
 rollback() {
+    restore_inference
     if [[ -f "$rendered/previous-api" ]]; then
         cp "$rendered/previous-api" "$units/$prefix-api.container"
         systemctl --user daemon-reload
@@ -62,10 +81,6 @@ done
 podman exec "$prefix-postgres" pg_isready -h 127.0.0.1 -U postgres -d pt
 deploy/migrate.sh "$environment" "$PT_API_IMAGE"
 if [[ -f "$rendered/$prefix-inference.container" ]]; then
-    model_unit="$units/$prefix-inference.container"
-    if [[ -f "$model_unit" ]]; then
-        cp "$model_unit" "$rendered/previous-inference"
-    fi
     model_started=true
     if ! cmp -s "$rendered/$prefix-inference.container" "$model_unit"; then
         install -m 0644 "$rendered/$prefix-inference.container" "$units"
@@ -85,15 +100,7 @@ if [[ -f "$rendered/$prefix-inference.container" ]]; then
         done
     fi
     if [[ "$model_ready" != true ]]; then
-        systemctl --user stop "$prefix-inference.service" || true
-        if [[ -f "$rendered/previous-inference" ]]; then
-            install -m 0644 "$rendered/previous-inference" "$model_unit"
-            systemctl --user daemon-reload
-            systemctl --user start "$prefix-inference.service"
-        else
-            rm -f "$model_unit"
-            systemctl --user daemon-reload
-        fi
+        restore_inference
         echo "Inference failed readiness" >&2
         exit 1
     fi
@@ -127,7 +134,11 @@ if ! ln -s "$revision" "$link" || ! mv -Tf "$link" "$PT_STATIC_ROOT"; then
 fi
 if [[ -f "$state/current-image" ]]; then
     cp "$state/current-image" "$state/previous-image"
+    if [[ -f "$state/current-inference-image" ]]; then
+        cp "$state/current-inference-image" "$state/previous-inference-image"
+    fi
 fi
 printf '%s\n' "$PT_API_IMAGE" > "$state/current-image"
+printf '%s\n' "${PT_CI_INFERENCE_IMAGE:-${PT_INFERENCE_IMAGE:-}}" > "$state/current-inference-image"
 install -m 0644 "$rendered/$prefix.conf" "$state/nginx.conf"
 printf 'API ready. Previous assets: %s\n' "$previous"

@@ -185,7 +185,9 @@ or its production equivalent. The interactive administrator key stays
 separate. Set `PT_ENABLE_STAGING_DEPLOY=1` and
 `PT_ENABLE_PRODUCTION_DEPLOY=1` only after bootstrap.
 CI scans the same images it publishes, deploys staging first, and passes
-the identical API digest into the approved production job. A manual
+the identical API and inference digests into the approved production job.
+The forced command uses the job's short-lived package-read token and discards
+the Podman registry credentials at the end of the SSH session. A manual
 rollback uses the same environment restrictions.
 
 ### Monitoring and backups
