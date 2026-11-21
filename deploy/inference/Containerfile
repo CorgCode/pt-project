@@ -1,4 +1,8 @@
 FROM docker.io/library/python:3.12-slim@sha256:05a994d2344eb364cc186910f4fc8786a38215f39f00d0acc25bff33a08f4177
+# Refresh zlib from the Debian security repositories while the base digest stays pinned.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && find /var/lib/apt/lists -type f -delete
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 WORKDIR /srv/inference
 COPY deploy/inference/requirements.txt .
