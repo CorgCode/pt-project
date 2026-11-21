@@ -1,0 +1,19 @@
+name: PT Telegram delivery check
+on:
+  push:
+    branches: [pt-network-production]
+    paths: [.github/workflows/pt-telegram-check.yml]
+permissions:
+  contents: read
+jobs:
+  telegram:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 deploy/monitoring/telegram.py notify 'PT Network Telegram delivery test.'
+        env:
+          PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
+          PT_TELEGRAM_CHAT_ID: ${{ secrets.PT_TELEGRAM_CHAT_ID }}
