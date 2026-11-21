@@ -1,0 +1,12 @@
+route:
+  receiver: physcorgi
+  group_by: [alertname, job]
+  group_wait: 30s
+
+receivers:
+  - name: physcorgi
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram-token
+        chat_id: $PT_TELEGRAM_CHAT_ID
+        send_resolved: true
+        parse_mode: ""

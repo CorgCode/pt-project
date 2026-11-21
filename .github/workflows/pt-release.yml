@@ -136,3 +136,34 @@ jobs:
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
           PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}
+
+  telegram-approval:
+    if: vars.PT_ENABLE_PRODUCTION_DEPLOY == '1' && needs.staging.result == 'success'
+    needs: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 deploy/monitoring/telegram.py notify 'PT Network staging passed. Review the production deployment in GitHub.'
+        env:
+          PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
+          PT_TELEGRAM_CHAT_ID: ${{ secrets.PT_TELEGRAM_CHAT_ID }}
+
+  telegram-production-result:
+    if: ${{ always() && (needs.production.result == 'success' || needs.production.result == 'failure' || needs.production.result == 'cancelled') }}
+    needs: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 deploy/monitoring/telegram.py notify "PT Network production deployment: $PT_DEPLOY_RESULT"
+        env:
+          PT_DEPLOY_RESULT: ${{ needs.production.result }}
+          PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
+          PT_TELEGRAM_CHAT_ID: ${{ secrets.PT_TELEGRAM_CHAT_ID }}

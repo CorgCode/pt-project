@@ -223,3 +223,24 @@ a successful offsite restore and alert delivery, provisioned GitHub
 environment restrictions, and a reviewed Nginx change before the first
 public cutover. Register the current live deployment as the rollback
 target and retain its SQLite snapshot. The bundled traffic profile can be enabled independently of the future Plus package.
+
+### Private Telegram notifications
+
+Create a dedicated bot in @BotFather and send it `/start` privately from
+`@physcorgi`. Run `python3 deploy/monitoring/telegram.py pair` and enter
+the token at the hidden prompt. The pairing command prints a numeric ID only
+when it finds the owner's private `/start` message. Use that ID in both places:
+
+- GitHub Actions repository secrets `PT_TELEGRAM_BOT_TOKEN` and
+  `PT_TELEGRAM_CHAT_ID`. The release workflow links to the GitHub approval
+  screen and reports the result. The bot has no GitHub approval credentials.
+- Set `PT_TELEGRAM_CHAT_ID` to the paired numeric ID and run
+  `python3 deploy/monitoring/telegram.py alertmanager-config` to render
+  the Alertmanager configuration. Install it and put the token in
+  `/etc/alertmanager/secrets/telegram-token`, readable by the Alertmanager
+  service and administrators. Validate with `amtool check-config` and test a
+  firing and resolved alert before relying on delivery.
+
+Use a private chat with the bot. Do not put its token in source control or
+send it in a message. Telegram notifications run only after a merge to
+`main` and the corresponding deployment stage is enabled.
