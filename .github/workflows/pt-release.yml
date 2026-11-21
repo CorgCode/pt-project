@@ -162,7 +162,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - run: python3 deploy/monitoring/telegram.py notify "PT Network production deployment: $PT_DEPLOY_RESULT"
+      - run: |
+          python3 deploy/monitoring/telegram.py notify "PT Network production deployment: $PT_DEPLOY_RESULT"
         env:
           PT_DEPLOY_RESULT: ${{ needs.production.result }}
           PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
