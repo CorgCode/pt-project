@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from string import Template
 from getpass import getpass
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 OWNER = "physcorgi"
@@ -34,13 +35,14 @@ def private_chat(chat_id):
 
 
 def pair():
-    token = getpass("BotFather token: ")
+    token = getpass("BotFather token: ").strip()
     matches = set()
     for update in telegram(token, "getUpdates", {"allowed_updates": ["message"]}):
         message = update.get("message", {})
         chat, sender = message.get("chat", {}), message.get("from", {})
         if (chat.get("type") == "private" and chat.get("id") == sender.get("id")
-                and sender.get("username", "").lower() == OWNER and message.get("text") == "/start"):
+                and sender.get("username", "").lower() == OWNER
+                and message.get("text", "").split(maxsplit=1)[:1] == ["/start"]):
             matches.add(private_chat(str(chat["id"])))
     if len(matches) != 1:
         raise ValueError("Send /start privately from @physcorgi, then retry pairing")
@@ -77,9 +79,18 @@ if __name__ == "__main__":
             notify(sys.argv[2])
         else:
             raise SystemExit("Usage: telegram.py pair | alertmanager-config | notify MESSAGE")
-    except ValueError:
-        # Avoid printing exception details from the HTTP client or Telegram payload.
-        print("Telegram setup or request failed. Check the private pairing and credentials.", file=sys.stderr)
+    except HTTPError as error:
+        reasons = {
+            401: "Telegram rejected the token. Use the current token from BotFather.",
+            404: "Telegram did not recognize this bot token.",
+            409: "Telegram cannot read updates while a webhook or another poller is active.",
+            429: "Telegram is rate limiting requests. Wait briefly and retry.",
+        }
+        print(reasons.get(error.code, f"Telegram returned HTTP {error.code}."), file=sys.stderr)
+        raise SystemExit(1) from None
+    except ValueError as error:
+        # Pairing errors use fixed messages. Never print a Telegram payload or URL.
+        print(str(error), file=sys.stderr)
         raise SystemExit(1) from None
     except OSError:
         print("Telegram request failed.", file=sys.stderr)
