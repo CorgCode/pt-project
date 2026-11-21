@@ -215,14 +215,14 @@ def ranking(mobile):
   if not re.match(r'^\| \d+ \|',line):continue
   cells=[c.strip() for c in line.strip('|').split('|')];key=re.search(r'`([^`]+)`',cells[1]).group(1);rows.append((key,number(cells[3])))
  evidence['ranking']=[{'id':key,'score':score} for key,score in rows]
- fig,ax=plt.subplots(figsize=(3.2 if mobile else 10.4,11 if mobile else 9.2));fig.subplots_adjust(left=.08 if mobile else .37,right=.88,top=.98,bottom=.07)
+ fig,ax=plt.subplots(figsize=(3.2 if mobile else 10.4,max(11, len(rows)*.65) if mobile else max(9.2, len(rows)*.52)));fig.subplots_adjust(left=.08 if mobile else .37,right=.88,top=.98,bottom=.07)
  ax.set_xlim(0,100);ax.set_ylim(-.7,len(rows)-.15);ax.set_yticks([]);ax.set_xticks([0,25,50,75,100]);chart_font(ax,9 if mobile else 11)
  for i,(key,score) in enumerate(rows):
   y=len(rows)-1-i;color=ACCENT if i==0 else INK if i<3 else LINE;ax.barh(y,score,height=.19 if mobile else .5,color=color)
   label=key if len(key)<26 else key.replace('behavioral_dae_consistency','behavioral_dae + consistency')
   ax.text(0 if mobile else -3,y+.26 if mobile else y,label,fontproperties=FONT,fontsize=7.8 if mobile else 10,ha='left' if mobile else 'right',va='center')
   ax.text(101,y,str(score).replace('.',','),fontproperties=BOLD,fontsize=9 if mobile else 10,va='center',clip_on=False)
- save(fig,'all-methods',mobile,'Все 17 методов из таблицы проекта','Общие баллы переписаны программно из scoreboard/README.md. Сравнение сохраняет ограничения протокола: у многодневных моделей больше обучающей истории.')
+ save(fig,'all-methods',mobile,'Методы из таблицы проекта','Общие баллы переписаны программно из scoreboard/README.md. Сравнение сохраняет ограничения протокола: у многодневных моделей больше обучающей истории.')
 
 def tradeoff(mobile):
  fig,ax=plt.subplots(figsize=(3.2 if mobile else 8.8,5.2));fig.subplots_adjust(left=.28 if mobile else .12,right=.95,top=.9,bottom=.2)

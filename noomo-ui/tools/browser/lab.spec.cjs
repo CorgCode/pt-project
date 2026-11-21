@@ -26,7 +26,7 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   const search = page.locator('#host-search');
   await search.focus();
   expect(await search.evaluate(input => getComputedStyle(input).outlineStyle)).toBe('none');
-  expect(await page.locator('.search').evaluate(field => getComputedStyle(field).outlineStyle)).toBe('solid');
+  expect(await search.evaluate(input => getComputedStyle(input.closest('label')).outlineStyle)).toBe('solid');
   await search.fill('Рабочий ПК 02');
   await page.locator('#host-list button').click();
   await expect(page.locator('#selected-id')).toHaveText('Рабочий ПК 02');
@@ -92,6 +92,15 @@ test('a visitor opens the lab, saves a two-period investigation, and signs out',
   expect(scriptErrors).toEqual([]);
 });
 
+test('the public laboratory opens without a session', async ({ page }) => {
+  await page.goto('/lab/');
+  await page.getByRole('link', { name: 'Открыть публичное демо' }).click();
+  await expect(page).toHaveURL(/\/demo\/$/);
+  await expect(page.locator('#neighbor-network')).toBeVisible();
+  await expect(page.locator('#neighbor-network > *').first()).toBeAttached();
+  await expect(page.locator('body')).not.toHaveAttribute('data-workspace-mode', 'account');
+});
+
 test('mobile viewport keeps login and navigation reachable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/lab/');
@@ -132,8 +141,15 @@ test('contacts, groups, watchlist and reports work with the demo', async ({ page
   await nav.locator('[data-view="watch"]').click();
   await expect(page.locator('#watch-list')).toContainText('device-01');
 
+  const extraViews = nav.locator('details.secondary-views');
+  if (await extraViews.getAttribute('open') === null) {
+    await extraViews.getByText('Ещё разделы').click();
+  }
   await nav.locator('[data-view="groups"]').click();
   await expect(page.locator('#group-list button').first()).toBeVisible();
+  if (await extraViews.getAttribute('open') === null) {
+    await extraViews.getByText('Ещё разделы').click();
+  }
   await nav.locator('[data-view="contacts"]').click();
   await expect(page.locator('#contact-table-body tr').first()).toBeVisible();
   const csv = page.waitForEvent('download');

@@ -1,5 +1,7 @@
 # Запуск PT Network на одном сервере
 
+Целевая конфигурация Ubuntu, Nginx, rootless Podman и PostgreSQL описана в [PRODUCTION.md](PRODUCTION.md). Ниже приведён существующий сценарий Docker Compose для локальной разработки и совместимости.
+
 Для локальной проверки с Docker Compose:
 
 ```bash

@@ -31,7 +31,7 @@ ASSETS = {
     "/assets/display.otf": ROOT / "noomo-ui/model/reference/NeueMachina-Regular.otf",
 }
 
-def render_auth_page(registering=False, message=""):
+def render_auth_page(registering=False, message="", *, allow_registration=True):
     page = (STATIC / "login.html").read_text(encoding="utf-8")
     fields = {
         "title": "Регистрация" if registering else "Вход в лабораторию",
@@ -45,6 +45,8 @@ def render_auth_page(registering=False, message=""):
     for key, value in fields.items():
         page = page.replace("{{" + key + "}}", value)
     alert = f'<p class="login-error" role="alert">{escape(message)}</p>' if message else ""
+    if not allow_registration and not registering:
+        page = page.replace('<p class="small"><a href="/lab/register/">Создать аккаунт</a></p>', "")
     return page.replace("<!-- login-error -->", alert)
 
 
@@ -254,6 +256,10 @@ def make_server(port=8846, data_dir=None, *, site=False):
                 return self.send(200, page.encode(), "text/html; charset=utf-8")
             files = {"/app.css": STATIC / "app.css", "/app.js": STATIC / "app.js",
                      "/workflow.js": STATIC / "workflow.js", **ASSETS}
+            if site:
+                if route == "/demo":
+                    return self.redirect("/demo/")
+                files["/demo/"] = SITE / "lab/index.html"
             if not site:
                 files["/"] = STATIC / "index.html"
             file = files.get(route)

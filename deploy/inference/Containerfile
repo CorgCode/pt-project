@@ -1,0 +1,16 @@
+FROM docker.io/library/python:3.12-slim@sha256:05a994d2344eb364cc186910f4fc8786a38215f39f00d0acc25bff33a08f4177
+# Refresh zlib from the Debian security repositories while the base digest stays pinned.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && find /var/lib/apt/lists -type f -delete
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+WORKDIR /srv/inference
+COPY deploy/inference/requirements.txt .
+COPY deploy/requirements.lock .
+RUN pip install --no-cache-dir -r requirements.txt -c requirements.lock
+COPY deploy/inference/service.py deploy/inference/adapter.py deploy/inference/traffic_profile.py deploy/inference/
+COPY hostquery/__init__.py hostquery/schema.py hostquery/store.py hostquery/errors.py hostquery/features.py hostquery/
+RUN chmod -R a+rX /srv/inference
+USER 10001:10001
+EXPOSE 8001
+CMD ["uvicorn", "deploy.inference.service:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--no-access-log", "--no-proxy-headers"]

@@ -8,6 +8,15 @@
 !deploy
 !deploy/Dockerfile
 !deploy/requirements.txt
+!deploy/requirements.lock
+!deploy/alembic.ini
+!deploy/alembic
+!deploy/alembic/**
+!deploy/export-static.py
+!deploy/inference
+!deploy/inference/Containerfile
+!deploy/inference/service.py
+!deploy/inference/requirements.txt
 **/__pycache__
 **/node_modules
 **/test-results
@@ -19,3 +28,11 @@ app/operator/test_*.py
 **/*.pt
 **/*.safetensors
 noomo-ui/playwright*
+!hostquery
+!hostquery/__init__.py
+!hostquery/schema.py
+!hostquery/store.py
+!hostquery/errors.py
+!hostquery/features.py
+!deploy/inference/adapter.py
+!deploy/inference/traffic_profile.py

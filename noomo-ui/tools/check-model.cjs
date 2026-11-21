@@ -19,7 +19,7 @@ async function check(){
  const evidence=JSON.parse(fs.readFileSync(path.join(root,'model/assets/evidence.json'),'utf8'));
  const scoreboard=fs.readFileSync(path.join(root,'../scoreboard/README.md'));
  assert.equal(evidence.source_sha256,crypto.createHash('sha256').update(scoreboard).digest('hex'));
- assert.deepEqual(evidence.models.map(m=>m.score),[56.5,64.9,70]);assert.deepEqual(evidence.vector_parts,[896,64,64]);assert.equal(evidence.ranking.length,17);assert.equal(evidence.ranking[0].id,'multiday_codebook_plus');assert.equal(evidence.ranking[0].score,70);
+ assert.deepEqual(evidence.models.map(m=>m.score),[56.5,64.9,70]);assert.deepEqual(evidence.vector_parts,[896,64,64]);assert.equal(evidence.ranking.length,[...scoreboard.toString().matchAll(/^\| \d+ \|/gm)].length);assert.equal(evidence.ranking[0].id,'multiday_codebook_plus');assert.equal(evidence.ranking[0].score,70);
  // Browser autoplay rejection and a subsequent user toggle must both be handled.
  const w=dom.window,audio=d.querySelector('audio'),button=d.querySelector('#music-toggle');let paused=true,blocked=true;
  Object.defineProperty(audio,'paused',{get:()=>paused});audio.play=async()=>{if(blocked)throw Error('autoplay blocked');paused=false;audio.dispatchEvent(new w.Event('play'));};audio.pause=()=>{paused=true;audio.dispatchEvent(new w.Event('pause'));};

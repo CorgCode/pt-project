@@ -1,0 +1,15 @@
+groups:
+  - name: pt-network
+    rules:
+      - alert: PTNetworkDown
+        expr: up{job=~"pt-production|pt-staging"} == 0
+        for: 3m
+        labels: {severity: critical}
+        annotations:
+          summary: 'PT Network metrics unavailable for {{ $labels.job }}'
+      - alert: PTNetworkErrors
+        expr: sum by (job) (increase(pt_http_requests_total{status=~"5.."}[5m])) > 5
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Repeated server errors for {{ $labels.job }}'

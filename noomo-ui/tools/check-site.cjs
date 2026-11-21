@@ -8,7 +8,7 @@ function check(){
   const body=d.body.cloneNode(true);body.querySelectorAll('script,style').forEach(e=>e.remove());assert(!/noomo|hello@|linkedin|instagram|delight/i.test(body.textContent),file+' public copy');
   for(const a of d.querySelectorAll('a[href]')){
    const href=a.getAttribute('href');assert(!/noomoagency|mailto:hello|twitter.com\/noomo|linkedin.com\/company\/noomo/i.test(href),href);
-   if(href.startsWith('/')&&!href.startsWith('//')){const target=new URL(href,'http://localhost'),local=path.join(root,target.pathname);if(target.pathname==='/lab/workspace/'&&!target.hash)continue; // Route covered by the operator HTTP tests.
+   if(href.startsWith('/')&&!href.startsWith('//')){const target=new URL(href,'http://localhost'),local=path.join(root,target.pathname==='/demo/'?'/lab/':target.pathname);if(target.pathname==='/lab/workspace/'&&!target.hash)continue; // Route covered by the operator HTTP tests.
    assert(fs.existsSync(local),href);if(target.hash){const html=target.pathname.endsWith('/')?path.join(local,'index.html'):local;if(fs.existsSync(html)&&html.endsWith('.html')){const doc=new JSDOM(fs.readFileSync(html,'utf8')).window.document;assert(doc.getElementById(target.hash.slice(1)),href);}}}
   }
   dom.window.close();

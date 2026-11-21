@@ -1,0 +1,25 @@
+[Container]
+Image=@INFERENCE_IMAGE@
+ContainerName=@PREFIX@-inference
+Network=@PREFIX@-inference.network
+User=10001:10001
+ReadOnly=true
+NoNewPrivileges=true
+DropCapability=all
+Volume=@STATE@/models:/models:ro
+Volume=@STATE@/datasets:/datasets:ro
+Volume=@STATE@/results:/results:rw
+Environment=PT_MODEL_DIR=/models
+Environment=PT_MODEL_MANIFEST_SHA256=@MODEL_MANIFEST_SHA256@
+Environment=PT_MODEL_VERSION=@MODEL_VERSION@
+PodmanArgs=--memory=@MODEL_MEMORY@ --cpus=@MODEL_CPUS@ --pids-limit=128
+HealthCmd=python -c "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/ready', timeout=2).close()"
+HealthInterval=30s
+HealthStartPeriod=120s
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target

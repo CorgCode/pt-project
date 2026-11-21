@@ -1,0 +1,36 @@
+name: Roll back PT Network
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to roll back
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.target }}
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: pt-${{ inputs.target }}-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: bash deploy/ci-ssh.sh "$PT_ENVIRONMENT" rollback
+        env:
+          PT_REGISTRY_TOKEN: ${{ github.token }}
+          PT_ENVIRONMENT: ${{ inputs.target }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
+          PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
+          PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
+          PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}

@@ -1,0 +1,31 @@
+[Unit]
+Requires=@PREFIX@-postgres.service
+After=@PREFIX@-postgres.service
+
+[Container]
+Image=@API_IMAGE@
+ContainerName=@PREFIX@-api
+Network=@PREFIX@-edge.network
+Network=@PREFIX@-database.network
+Network=@PREFIX@-inference.network
+PublishPort=127.0.0.1:@API_PORT@:8000
+Environment=PT_PUBLIC_ORIGIN=@PUBLIC_ORIGIN@
+Environment=PT_DATABASE_URL_FILE=/run/secrets/runtime-url
+Environment=PT_METRICS_TOKEN_FILE=/run/secrets/metrics
+Environment=PT_ALLOW_REGISTRATION=@ALLOW_REGISTRATION@
+Secret=@PREFIX@-runtime-url,target=runtime-url,uid=10001,gid=10001,mode=0400
+Secret=@PREFIX@-metrics,target=metrics,uid=10001,gid=10001,mode=0400
+ReadOnly=true
+NoNewPrivileges=true
+DropCapability=all
+PodmanArgs=--memory=512m --pids-limit=128
+HealthCmd=python -c "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/ready', timeout=2).close()"
+HealthInterval=20s
+@INFERENCE_ENV@
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target
