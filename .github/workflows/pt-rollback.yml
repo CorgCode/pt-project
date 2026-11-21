@@ -26,6 +26,7 @@ jobs:
       - run: bash deploy/ci-ssh.sh "$PT_ENVIRONMENT" rollback
         env:
           PT_ENVIRONMENT: ${{ inputs.target }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
           PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}

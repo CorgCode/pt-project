@@ -156,7 +156,8 @@ headroom. Development and CI use test fixtures for the contract.
 Create GitHub environments named `staging` and `production`. Restrict
 production to `main` and enable required reviewers using GitHub repository
 administration. Add `PT_SSH_TARGET`, `PT_SSH_KEY` and pinned
-`PT_SSH_KNOWN_HOSTS` to each environment. Use different keys with an
+`PT_SSH_KNOWN_HOSTS` to each environment, along with its HTTPS origin as `PT_SMOKE_ORIGIN`.
+Use different keys with an
 `authorized_keys` entry of the form
 `restrict,command="/absolute/path/deploy/ci-entrypoint.sh staging" ...`
 or its production equivalent. The interactive administrator key stays

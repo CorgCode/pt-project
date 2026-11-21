@@ -106,6 +106,7 @@ jobs:
       - run: bash deploy/ci-ssh.sh staging "${PT_IMAGE}"
         env:
           PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
           PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}
@@ -125,6 +126,7 @@ jobs:
       - run: bash deploy/ci-ssh.sh production "${PT_IMAGE}"
         env:
           PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
           PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
           PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
           PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}
