@@ -48,7 +48,7 @@ def verified_artifacts(root, version, expected_digest):
 async def lifespan(app):
     version = os.getenv("PT_MODEL_VERSION", "traffic-profile-v1")
     module = os.getenv("PT_MODEL_ADAPTER", "deploy.inference.traffic_profile")
-    digest = os.getenv("PT_MODEL_MANIFEST_SHA256")
+    digest = os.getenv("PT_MODEL_MANIFEST_SHA256") or None
     if digest:
         artifacts = verified_artifacts(Path(os.environ["PT_MODEL_DIR"]), version, digest)
     elif module == "deploy.inference.traffic_profile":

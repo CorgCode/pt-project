@@ -108,7 +108,7 @@ def test_real_embeddings_persist_and_survive_model_switch(tmp_path, migrated, mo
     for name in ("one", "two"):
         accounts.add(name, PASSWORD)
     monkeypatch.delenv("PT_MODEL_ADAPTER", raising=False)
-    monkeypatch.delenv("PT_MODEL_MANIFEST_SHA256", raising=False)
+    monkeypatch.setenv("PT_MODEL_MANIFEST_SHA256", "")
     model = None
 
     def upstream(request, timeout):
