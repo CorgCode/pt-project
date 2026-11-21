@@ -9,6 +9,13 @@
 """
 from hostquery.errors import HostQueryError
 from hostquery.schema import SCHEMA
-from hostquery.store import Dataset, RunStore, open_dataset
 
 __all__ = ["Dataset", "HostQueryError", "RunStore", "SCHEMA", "open_dataset"]
+
+
+def __getattr__(name):
+    if name in {"Dataset", "RunStore", "open_dataset"}:
+        from hostquery import store
+
+        return getattr(store, name)
+    raise AttributeError(name)

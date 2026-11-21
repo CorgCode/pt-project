@@ -93,7 +93,7 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None, *
         return response
 
     if engine is not None:
-        from .resources import add_routes, finish_job, start_job
+        from .resources import add_routes, embedding_result, finish_job, start_job
         add_routes(app, engine, user, error)
 
     if metrics_token:
@@ -120,7 +120,8 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None, *
         if not user(request):
             return RedirectResponse("/lab/login/", 303)
         page = (STATIC / "index.html").read_text(encoding="utf-8")
-        return HTMLResponse(page.replace("<body>", '<body data-workspace-mode="account">'))
+        inference = ' data-ml-enabled="true"' if engine is not None and inference_url else ""
+        return HTMLResponse(page.replace("<body>", f'<body data-workspace-mode="account"{inference}>'))
 
     @app.api_route("/lab/register/", methods=["GET", "HEAD"])
     @app.api_route("/lab/login/", methods=["GET", "HEAD"])
@@ -196,7 +197,12 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None, *
         storage = store(account)
         if key is None:
             return storage.list()
-        return storage.get(key) or error(404, "Набор не найден.")
+        saved = storage.get(key)
+        if saved is None:
+            return error(404, "Набор не найден.")
+        if engine is not None and saved.get("inferenceId"):
+            saved["inference"] = embedding_result(engine, account, saved["inferenceId"])
+        return saved
 
     @app.post("/api/workspaces", status_code=201)
     @app.put("/api/workspaces/{key}")
@@ -221,25 +227,38 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None, *
         return {"id": ident} if ident else error(404, "Набор не найден.")
 
     if inference_url:
-        def run_inference(body):
+        def run_inference(body, digest=None):
+            limit = MAX_BODY
+            if digest is not None:
+                from deploy.inference.adapter import MAX_EMBEDDING_RESPONSE, validate_response
+                limit = MAX_EMBEDDING_RESPONSE
             upstream = urllib.request.Request(
                 inference_url, data=body, headers={"Content-Type": "application/json"}
             )
             try:
                 with urllib.request.urlopen(upstream, timeout=60) as response:
-                    result = response.read(MAX_BODY + 1)
-                if len(result) > MAX_BODY:
+                    result = response.read(limit + 1)
+                if len(result) > limit:
                     return error(502, "Ответ модели слишком большой.")
-                return JSONResponse(json.loads(result))
+                decoded = json.loads(result)
+                if digest is not None:
+                    try:
+                        validate_response(decoded, digest)
+                    except (TypeError, ValueError, OverflowError):
+                        return error(502, "Модель вернула некорректные эмбеддинги.")
+                return JSONResponse(decoded)
             except urllib.error.HTTPError as exc:
                 with exc:
                     if exc.code in {400, 413, 422}:
                         return error(exc.code, "Входные данные не подходят для модели.")
+                    if exc.code == 502 and digest is not None:
+                        return error(502, "Модель вернула некорректные эмбеддинги.")
             except (OSError, ValueError):
                 pass
             return error(503, "Модель временно недоступна.")
 
         @app.post("/api/inference")
+        @app.post("/api/inference/embeddings")
         async def inference(request: Request):
             owner = await run_in_threadpool(user, request)
             if not owner:
@@ -251,19 +270,33 @@ def create_app(directory: Path, origin: str, inference_url: str | None = None, *
                 if len(body) + len(chunk) > MAX_BODY:
                     return error(413, "Входные данные слишком большие.")
                 body.extend(chunk)
+            digest = None
+            if request.url.path.endswith("/embeddings"):
+                if engine is None:
+                    return error(503, "Хранилище эмбеддингов недоступно.")
+                from deploy.inference.adapter import csv_digest, input_csv
+                try:
+                    digest = csv_digest(input_csv(json.loads(body)))
+                except (ValueError, RecursionError):
+                    return error(422, "Ожидается CSV до 3 МБ.")
             if engine is None:
                 return await run_in_threadpool(run_inference, bytes(body))
 
             def run_job():
                 job = start_job(engine, owner)
                 status = "failed"
+                result = None
                 try:
-                    response = run_inference(bytes(body))
+                    response = run_inference(bytes(body), digest)
                     status = "succeeded" if response.status_code < 400 else "failed"
+                    if digest is not None and status == "succeeded":
+                        result = json.loads(response.body)
                     response.headers["X-PT-Job-ID"] = job
+                    if result is not None:
+                        return JSONResponse({**result, "jobId": job}, headers={"X-PT-Job-ID": job})
                     return response
                 finally:
-                    finish_job(engine, job, status)
+                    finish_job(engine, job, status, result)
 
             return await run_in_threadpool(run_job)
 

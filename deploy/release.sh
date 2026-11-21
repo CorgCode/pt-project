@@ -62,12 +62,40 @@ done
 podman exec "$prefix-postgres" pg_isready -h 127.0.0.1 -U postgres -d pt
 deploy/migrate.sh "$environment" "$PT_API_IMAGE"
 if [[ -f "$rendered/$prefix-inference.container" ]]; then
-    if ! cmp -s "$rendered/$prefix-inference.container" "$units/$prefix-inference.container"; then
+    model_unit="$units/$prefix-inference.container"
+    if [[ -f "$model_unit" ]]; then
+        cp "$model_unit" "$rendered/previous-inference"
+    fi
+    model_started=true
+    if ! cmp -s "$rendered/$prefix-inference.container" "$model_unit"; then
         install -m 0644 "$rendered/$prefix-inference.container" "$units"
         systemctl --user daemon-reload
-        systemctl --user restart "$prefix-inference.service"
+        systemctl --user restart "$prefix-inference.service" || model_started=false
     else
-        systemctl --user start "$prefix-inference.service"
+        systemctl --user start "$prefix-inference.service" || model_started=false
+    fi
+    model_ready=false
+    if [[ "$model_started" == true ]]; then
+        for attempt in {1..60}; do
+            if podman healthcheck run "$prefix-inference" >/dev/null 2>&1; then
+                model_ready=true
+                break
+            fi
+            sleep 2
+        done
+    fi
+    if [[ "$model_ready" != true ]]; then
+        systemctl --user stop "$prefix-inference.service" || true
+        if [[ -f "$rendered/previous-inference" ]]; then
+            install -m 0644 "$rendered/previous-inference" "$model_unit"
+            systemctl --user daemon-reload
+            systemctl --user start "$prefix-inference.service"
+        else
+            rm -f "$model_unit"
+            systemctl --user daemon-reload
+        fi
+        echo "Inference failed readiness" >&2
+        exit 1
     fi
 elif [[ -f "$units/$prefix-inference.container" ]]; then
     systemctl --user stop "$prefix-inference.service"

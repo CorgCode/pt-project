@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import Request
-from sqlalchemy import Column, ForeignKey, String, Table, insert, select, update
+from sqlalchemy import JSON, Column, ForeignKey, String, Table, insert, select, update
 
 from .database import metadata, workspaces
 
@@ -15,6 +15,7 @@ jobs = Table(
     Column("status", String(16), nullable=False),
     Column("created", String(40), nullable=False),
     Column("finished", String(40)),
+    Column("result", JSON(none_as_null=True)),
 )
 
 
@@ -29,9 +30,18 @@ def start_job(engine, owner):
     return job
 
 
-def finish_job(engine, job, status):
+def finish_job(engine, job, status, result=None):
     with engine.begin() as db:
-        db.execute(update(jobs).where(jobs.c.id == job).values(status=status, finished=timestamp()))
+        db.execute(update(jobs).where(jobs.c.id == job).values(status=status, finished=timestamp(), result=result))
+
+
+def embedding_result(engine, owner, job):
+    if not isinstance(job, str) or len(job) != 36:
+        return None
+    with engine.connect() as db:
+        return db.execute(select(jobs.c.result).where(
+            jobs.c.id == job, jobs.c.owner_id == owner, jobs.c.status == "succeeded"
+        )).scalar_one_or_none()
 
 
 def add_routes(app, engine, user, error):

@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
+from typing import TYPE_CHECKING
 
-from app.results import Bundle, BundleError
-from evaluation.io import load_embeddings
+if TYPE_CHECKING:
+    import pandas as pd
 from hostquery import features
 from hostquery.errors import HostQueryError
 from hostquery.schema import (MAX_CSV_BYTES, MAX_CSV_DIMENSIONS, MAX_CSV_HOSTS, MAX_CSV_ROWS)
@@ -327,6 +327,7 @@ class RunStore:
         if bundle is not None and embeddings is not None:
             raise HostQueryError("выберите один источник: --bundle или --embeddings")
         if bundle is not None:
+            from app.results import Bundle, BundleError
             path = Path(bundle)
             try:
                 self.bundle = Bundle(path)
@@ -383,9 +384,10 @@ class RunStore:
             # работает и с выгрузкой эмбеддинга, и с выгрузкой netflow.
             path = self.embeddings_path
             if path is not None and _header_has_host_id(path):
+                from evaluation.io import load_embeddings
                 try:
                     frame = load_embeddings(path)
-                except (BundleError, ValueError) as error:
+                except ValueError as error:
                     raise HostQueryError(str(error),
                                          hint="проверьте формат embeddings CSV") from None
                 return self._store_vectors(name, path, frame)
@@ -398,6 +400,8 @@ class RunStore:
             }
             self._datasets[name] = data
             return data
+        from app.results import BundleError
+
         try:
             frame = self.bundle.scored_embedding(name)
             path = self.bundle.run / "embeddings" / name / "train.csv"
@@ -458,6 +462,8 @@ class RunStore:
         """Ранг соседа по логам из сохранённого эталона; пусто, если эталона нет."""
         if self._reference is False:
             path = self._reference_path()
+            import pandas as pd
+
             self._reference = pd.read_csv(path, dtype={"host_id": str, "neighbor_id": str}) if path else None
         if self._reference is None:
             return {}

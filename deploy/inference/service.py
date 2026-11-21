@@ -14,6 +14,11 @@ from fastapi import FastAPI, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
+from deploy.inference.adapter import (
+    ADAPTER_API, MAX_EMBEDDING_RESPONSE, csv_digest, input_csv, validate_response,
+)
+from hostquery.schema import SCHEMA, envelope
+
 MAX_BODY = 8 * 1024 * 1024
 
 
@@ -41,11 +46,20 @@ def verified_artifacts(root, version, expected_digest):
 
 @asynccontextmanager
 async def lifespan(app):
-    version = os.environ["PT_MODEL_VERSION"]
-    artifacts = verified_artifacts(Path(os.environ["PT_MODEL_DIR"]), version,
-                                   os.environ["PT_MODEL_MANIFEST_SHA256"])
-    adapter = importlib.import_module(os.environ["PT_MODEL_ADAPTER"])
-    app.state.predict = adapter.load(artifacts)
+    version = os.getenv("PT_MODEL_VERSION", "traffic-profile-v1")
+    module = os.getenv("PT_MODEL_ADAPTER", "deploy.inference.traffic_profile")
+    digest = os.getenv("PT_MODEL_MANIFEST_SHA256")
+    if digest:
+        artifacts = verified_artifacts(Path(os.environ["PT_MODEL_DIR"]), version, digest)
+    elif module == "deploy.inference.traffic_profile":
+        artifacts = {}
+    else:
+        raise ValueError("External adapters require a verified artifact manifest")
+    adapter = importlib.import_module(module).load(artifacts, version)
+    if adapter.metadata.get("model_version") != version:
+        raise ValueError("Adapter model version differs from configuration")
+    app.state.adapter = adapter
+    app.state.manifest_digest = digest
     app.state.version = version
     app.state.lock = asyncio.Lock()
     yield
@@ -72,13 +86,32 @@ async def predict(request: Request):
                 return JSONResponse({"error": "Request too large"}, status_code=413)
             body.extend(chunk)
         try:
-            payload = json.loads(body)
-            if not isinstance(payload, dict):
-                raise ValueError
-            result = await run_in_threadpool(app.state.predict, payload)
+            csv = input_csv(json.loads(body))
         except (ValueError, RecursionError):
-            return JSONResponse({"error": "Invalid model input"}, status_code=422)
+            return JSONResponse({"error": "Invalid CSV input"}, status_code=422)
+        adapter = app.state.adapter
+        try:
+            prepared = await run_in_threadpool(adapter.preprocess, csv)
+        except (ValueError, OverflowError, RecursionError):
+            return JSONResponse({"error": "Invalid CSV input"}, status_code=422)
+
+        def infer():
+            items = adapter.infer(prepared)
+            adapter.validate_output(prepared, items)
+            digest = csv_digest(csv)
+            provenance = {**adapter.metadata, "schema": SCHEMA, "source": "csv", "synthetic": False,
+                          "adapter_api": ADAPTER_API, "artifact_manifest_sha256": app.state.manifest_digest,
+                          "input_sha256": digest, "hosts": len(items)}
+            result = envelope("dataset", provenance=provenance, dataset=items, kind="vectors",
+                              query={"method": provenance["method"]},
+                              stats={"hosts": len(items), "dimensions": provenance["dimensions"]})
+            return validate_response(result, digest)
+
+        try:
+            result = await run_in_threadpool(infer)
+        except (TypeError, ValueError, OverflowError, KeyError):
+            return JSONResponse({"error": "Invalid model output"}, status_code=502)
         response = JSONResponse(result)
-        if len(response.body) > MAX_BODY:
+        if len(response.body) > MAX_EMBEDDING_RESPONSE:
             return JSONResponse({"error": "Response too large"}, status_code=413)
         return response

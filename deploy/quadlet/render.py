@@ -45,12 +45,17 @@ def render(environment, output):
     if inference:
         values.update({
             "INFERENCE_IMAGE": value("PT_INFERENCE_IMAGE", image),
-            "MODEL_MANIFEST_SHA256": value("PT_MODEL_MANIFEST_SHA256", r"[0-9a-f]{64}"),
-            "MODEL_VERSION": value("PT_MODEL_VERSION", r"[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}"),
+            "MODEL_MANIFEST_SHA256": os.getenv("PT_MODEL_MANIFEST_SHA256", ""),
+            "MODEL_VERSION": os.getenv("PT_MODEL_VERSION", "traffic-profile-v1"),
             "MODEL_MEMORY": value("PT_MODEL_MEMORY", r"[1-9][0-9]{0,4}[mg]"),
             "MODEL_CPUS": value("PT_MODEL_CPUS", r"[1-9][0-9]?(?:\.[0-9])?"),
             "INFERENCE_ENV": f"Environment=PT_INFERENCE_URL=http://{prefix}-inference:8001/v1/predict",
         })
+
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}", values["MODEL_VERSION"]):
+            raise ValueError("Invalid PT_MODEL_VERSION")
+        if not re.fullmatch(r"(?:[0-9a-f]{64})?", values["MODEL_MANIFEST_SHA256"]):
+            raise ValueError("Invalid PT_MODEL_MANIFEST_SHA256")
 
     output.mkdir(parents=True, exist_ok=True)
     for template in sorted(here.iterdir()):

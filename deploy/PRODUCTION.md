@@ -132,24 +132,45 @@ them before switching back to SQLite.
 For a new environment with registration off, run
 `podman exec -it pt-staging-api python -m app.operator.manage_users analyst`.
 
-### Optional inference adapter
+### Inference and reproducibility
 
-The generic image expects an immutable child image with a trusted
-`PT_MODEL_ADAPTER` Python module and any locked dependencies. Implement
-`load(files) -> predict(payload)`. Load only the files provided by the
-verified mapping, run model preprocessing in the adapter, and validate the
-model-specific schema. The root of the read-only model volume contains
-`manifest.json` with `{"version":"v1","files":{"checkpoint.bin":"<sha256>"}}`.
-Set `PT_INFERENCE_IMAGE`, `PT_MODEL_VERSION`,
-`PT_MODEL_MANIFEST_SHA256`, `PT_MODEL_MEMORY` and `PT_MODEL_CPUS` in the
-environment. Give container UID 10001 read and traversal access to models
-and datasets, and write access to results, via `podman unshare`.
-When enabling or changing the model, verify its private `/ready` before
-sending real requests. Public Nginx has no route into the model network.
-The repository's base checkpoint and reported Plus results do not supply
-the full Plus preprocessing, adapter and weights. The server has no swap.
-A model should fit alongside Nginx, PostgreSQL and active staging with RAM
-headroom. Development and CI use test fixtures for the contract.
+Set `PT_INFERENCE_IMAGE` to the published inference image digest in the
+environment. The bundled, checkpoint-free default is `traffic-profile-v1`.
+For a small VPS start with `PT_MODEL_MEMORY=512m` and `PT_MODEL_CPUS=1`.
+Set `PT_MODEL_VERSION=traffic-volume-v1` to select the smaller profile based
+on traffic volume and peer counts. The full profile also uses direction-specific
+service frequencies. Both versions reuse `hostquery.store.dataset_from_csv`.
+They compute deterministic embeddings from the uploaded window and make no
+claims about benchmark scores, future contacts or attack detection.
+
+The signed-in workspace sends flow uploads to
+`POST /api/inference/embeddings`; the API calls private `POST /v1/predict`.
+Inputs have a 3 MiB CSV limit with 10,000 records and 500 hosts. The model
+admits one request at a time. PostgreSQL stores the model output, source
+digest and version with the owned job. A saved workspace can reference the job
+only if the owner and CSV digest match. Reopening restores the original
+embeddings even after switching the deployed model. The raw CSV still supplies
+observed contacts and the existing two-window analysis. Precomputed vector CSV
+uploads continue through the existing local path.
+
+To integrate a checkpoint-backed model, build a child of the inference image
+with a trusted Python module and set `PT_MODEL_ADAPTER` **in that image**.
+Expose `load(verified_artifacts, version)`, returning a
+`pt-embedding-adapter/1` object with:
+
+- `metadata` containing `method`, `model_version` and `dimensions`
+- `preprocess(csv)` producing validated model inputs
+- `infer(prepared)` returning `[{id, v, norm}, ...]`
+- `validate_output(prepared, items)` enforcing model-specific invariants
+
+The service adds provenance and preserves the `hostquery/1` dataset envelope.
+It validates shape, identity and finite nonzero norms before returning, and the
+API independently validates the envelope and input digest before persistence.
+Put the weights under the read-only model mount with a `manifest.json` such
+as `{"version":"v1","files":{"checkpoint.bin":"<sha256>"}}`; set
+`PT_MODEL_VERSION` and `PT_MODEL_MANIFEST_SHA256` in the deployment environment.
+External adapters cannot start without a verified manifest. Measure the full
+Plus package and its RAM before activating it on the VPS.
 
 ### Deployment approvals
 
@@ -201,5 +222,4 @@ Require a rehearsal on a sanitized copy of the site's actual SQLite data,
 a successful offsite restore and alert delivery, provisioned GitHub
 environment restrictions, and a reviewed Nginx change before the first
 public cutover. Register the current live deployment as the rollback
-target and retain its SQLite snapshot. Enable inference separately once
-the missing model package and resource measurements are available.
+target and retain its SQLite snapshot. The bundled traffic profile can be enabled independently of the future Plus package.

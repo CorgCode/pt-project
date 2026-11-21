@@ -120,7 +120,16 @@ class DatabaseWorkspaces:
             return db.execute(select(workspaces.c.payload).where(self.owned(key))).scalar_one_or_none()
 
     def save(self, payload, key=None):
+        inference_id = payload.get("inferenceId") if isinstance(payload, dict) else None
         payload = validate(payload)
+        if inference_id is not None:
+            from deploy.inference.adapter import csv_digest
+            from .resources import embedding_result
+
+            result = embedding_result(self.engine, self.owner, inference_id)
+            if not result or result["provenance"]["input_sha256"] != csv_digest(payload["csv"]):
+                raise ValueError("Результат модели недоступен для этого CSV.")
+            payload["inferenceId"] = inference_id
         values = dict(name=payload["name"], payload=payload,
                       updated=datetime.now(timezone.utc).isoformat())
         with self.engine.begin() as db:
@@ -139,4 +148,4 @@ def check_database(engine):
         db.execute(select(users.c.id).limit(0))
         db.execute(select(sessions.c.token).limit(0))
         db.execute(select(workspaces.c.id).limit(0))
-        db.execute(select(jobs.c.id).limit(0))
+        db.execute(select(jobs.c.result).limit(0))

@@ -11,6 +11,8 @@ COPY noomo-ui noomo-ui
 COPY deploy/alembic.ini deploy/alembic.ini
 COPY deploy/alembic deploy/alembic
 COPY deploy/export-static.py deploy/export-static.py
+COPY deploy/inference/adapter.py deploy/inference/adapter.py
+COPY hostquery/__init__.py hostquery/errors.py hostquery/schema.py hostquery/
 RUN chmod -R a+rX /srv/pt
 USER 10001:10001
 EXPOSE 8000
