@@ -24,8 +24,11 @@ window.createCorgWorkflow = function (context) {
     const c = context();
     if (!c.selected) return;
     const meta = annotation(c.selected.id);
-    $('toggle-watch').textContent = meta.watch ? '★ Под наблюдением' : '☆ Под наблюдение';
+    $('toggle-watch').textContent = meta.watch ? 'Снять с наблюдения' : 'Добавить под наблюдение';
     $('toggle-watch').setAttribute('aria-pressed', String(meta.watch));
+    const name = c.hostName(c.selected.id);
+    $('selected-id').textContent = name;
+    $('selected-technical-id').textContent = name === c.selected.id ? '' : c.selected.id;
     $('selected-status').textContent = labels[meta.status];
     $('host-label').value = meta.label;
     $('host-status').value = meta.status;
@@ -34,7 +37,7 @@ window.createCorgWorkflow = function (context) {
 
   function matches(host, query) {
     const meta = annotation(host.id);
-    return [host.id, meta.label, ...meta.tags].join(' ').toLocaleLowerCase('ru').includes(query);
+    return [host.id, context().hostName(host.id), ...meta.tags].join(' ').toLocaleLowerCase('ru').includes(query);
   }
 
   function directory(rows) {
@@ -58,7 +61,7 @@ window.createCorgWorkflow = function (context) {
     $('watch-list').replaceChildren(...rows.map(host => {
       const meta = annotation(host.id), row = c.element('article', undefined, 'panel watch-row');
       const heading = c.element('div');
-      heading.append(c.element('h3', meta.label || host.id), c.element('p', host.id, 'small'));
+      heading.append(c.element('h3', c.hostName(host.id)), c.element('p', host.id, 'small'));
       const badge = c.element('span', labels[meta.status], 'badge');
       const copy = c.element('p', meta.tags.length ? meta.tags.join(' · ') : 'Без меток', 'small');
       const actions = c.element('div', undefined, 'report-actions');
@@ -74,7 +77,10 @@ window.createCorgWorkflow = function (context) {
     }));
     if (!rows.length) {
       const empty = c.element('div', undefined, 'panel empty');
-      empty.append(c.element('h3', 'Нужное устройство легко сохранить.'), c.element('p', 'Выберите его в каталоге и нажмите «Под наблюдение». Метки и заметки остаются в рабочем наборе.'));
+      const choose = c.element('button', 'Выбрать устройство', 'glass');
+      choose.type = 'button';
+      choose.addEventListener('click', () => c.view('devices'));
+      empty.append(c.element('h3', 'Нет устройств под наблюдением'), c.element('p', 'В каталоге откройте «Ещё действия» и добавьте устройство под наблюдение.'), choose);
       $('watch-list').append(empty);
     }
   }
@@ -154,7 +160,7 @@ window.createCorgWorkflow = function (context) {
     const figure = out.doc.createElement('figure'), diagram = $('network').cloneNode(true);
     diagram.setAttribute('viewBox', innerWidth < 700 ? '0 0 360 600' : '0 0 760 470');
     diagram.querySelectorAll('[role="button"]').forEach(node => { node.removeAttribute('role'); node.removeAttribute('tabindex'); });
-    figure.append(diagram); out.add('figcaption', $('map-caption').textContent + ' Положение узлов условно.', figure); out.doc.body.append(figure);
+    figure.append(diagram); out.add('figcaption', $('map-help').textContent + ' Положение узлов условно.', figure); out.doc.body.append(figure);
     out.add('h2', 'Ближайшие по всем координатам');
     out.table(['Устройство', 'Косинусное сходство'], c.nearest().slice(0, 10).map(n => [n.host.id, n.score.toFixed(4)]));
     out.add('p', `Сравниваемая пара: ${host.id} и ${c.comparator.id}. Сходство: ${c.math.cosine(host, c.comparator).toFixed(4)}.`);
