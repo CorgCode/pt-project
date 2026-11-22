@@ -1,0 +1,1176 @@
+{
+  "period": {
+    "from": "2026-11-17",
+    "through": "2026-11-22",
+    "scope": "calendar dates of experiments, not LANL day indices"
+  },
+  "not_independent_holdout": true,
+  "models": {
+    "directed_bytes_gnn": {
+      "source": {
+        "path": "runs/directed_bytes_gnn_01/benchmark_result.json",
+        "sha256": "96a76bb87cee9f0eb3e1a0d732a258484c92a52bd9fd8d129288f3aa235f5e10",
+        "filesystem_created_local": "2026-11-17T11:58:45+03:00"
+      },
+      "by_window": {
+        "test": {
+          "score": 64.17526776500418,
+          "metrics": {
+            "consistency@10_mean": 0.26831119544592036,
+            "link_learned_roc_auc": 0.9728202118402498,
+            "partner_new_mrr": 0.16562962893523012,
+            "pair_roc_auc": 0.9973345266683198,
+            "identity_top1": 0.649367088607595
+          },
+          "dim": 576,
+          "n_hosts": null
+        },
+        "test_day15": {
+          "score": 63.41983894108814,
+          "metrics": {
+            "consistency@10_mean": 0.24324631101021568,
+            "link_learned_roc_auc": 0.9738315819808052,
+            "partner_new_mrr": 0.16427306462641253,
+            "pair_roc_auc": 0.9986563407365655,
+            "identity_top1": 0.5709421112372304
+          },
+          "dim": 576,
+          "n_hosts": null
+        },
+        "test_day16": {
+          "score": 66.82728223564196,
+          "metrics": {
+            "consistency@10_mean": 0.10922061328790462,
+            "link_learned_roc_auc": 0.9877430786670888,
+            "partner_new_mrr": 0.3674835991780507,
+            "pair_roc_auc": 0.9978141836462926,
+            "identity_top1": 0.44293015332197616
+          },
+          "dim": 576,
+          "n_hosts": null
+        }
+      },
+      "mean_score": 64.8074629805781,
+      "development": {
+        "source": {
+          "path": "runs/directed_bytes_gnn_01/development/frozen_selection.json",
+          "sha256": "89518a44cbc923771f296d2e4a2a7b4e8736ad0b0ae8594c7c579e0be1275231",
+          "filesystem_created_local": "2026-11-17T11:55:40+03:00"
+        },
+        "selected": {
+          "name": "gnn_w050",
+          "mode": "gnn",
+          "weight": 0.5,
+          "score": 63.38672546708476,
+          "metrics": {
+            "consistency@10_mean": 0.2586795674445077,
+            "link_learned_roc_auc": 0.9589287494299994,
+            "partner_new_mrr": 0.16474764012998086,
+            "pair_roc_auc": 0.998625974780156,
+            "identity_top1": 0.5854214123006833
+          },
+          "source_sha256": "3b608df1a29f3e9f6632d1ba4482b8af389329aeb9e116a93dceb0a6a66f4bc3",
+          "late_sha256": "9d8189019d348f0cb013cce60878c500c686400b69646dca2996792666cbebad"
+        },
+        "baseline": {
+          "name": "baseline",
+          "mode": null,
+          "weight": 0.0,
+          "score": 62.06836342352654,
+          "metrics": {
+            "consistency@10_mean": 0.24963005122367674,
+            "link_learned_roc_auc": 0.9549498436478308,
+            "partner_new_mrr": 0.1565415086327948,
+            "pair_roc_auc": 0.9953295107911833,
+            "identity_top1": 0.5842824601366743
+          },
+          "source_sha256": "acb46be7b4186ca38a640bb143fec81b7dba2493274acc3c7076af2aad5971ef",
+          "late_sha256": "a53472eca25bf8bed30b50411eab784f4cdebd79dfd09e660ecf143b863028b8"
+        },
+        "controls": [
+          {
+            "name": "no_graph_w050",
+            "mode": "no_graph",
+            "weight": 0.5,
+            "score": 63.16718118474165,
+            "metrics": {
+              "consistency@10_mean": 0.25776892430278886,
+              "link_learned_roc_auc": 0.9662344989215299,
+              "partner_new_mrr": 0.15931182952148362,
+              "pair_roc_auc": 0.9984109966688364,
+              "identity_top1": 0.5842824601366743
+            },
+            "source_sha256": "851f46665fba31a3297113f6361a53ba3e67de473bbd0810ea61811de01530d5",
+            "late_sha256": "de6aef511b28e189d78fe7d49993d0244e9bb7cc5c70f9f2f5c27e1b69049e05"
+          },
+          {
+            "name": "no_bytes_w050",
+            "mode": "no_bytes",
+            "weight": 0.5,
+            "score": 63.144777339212915,
+            "metrics": {
+              "consistency@10_mean": 0.2568013659647126,
+              "link_learned_roc_auc": 0.9665485342132253,
+              "partner_new_mrr": 0.1595485458781112,
+              "pair_roc_auc": 0.998549396306365,
+              "identity_top1": 0.5842824601366743
+            },
+            "source_sha256": "5043ed25f584b375ba68d587aeb7849b700e833a199e8d8da8116a9e46fa96c0",
+            "late_sha256": "8b56939a97f95380f05cb70f57acc95d8049568af2609262406d17ed14391e64"
+          }
+        ],
+        "weights_tested": [
+          0.25,
+          0.5,
+          1.0
+        ]
+      }
+    },
+    "temporal_gatv2": {
+      "development": {
+        "dev_step13": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/dev_step13/result.json",
+            "sha256": "e6cce7a389941fd88a46619c7b057a2c995e0907ac0933354cf11a7a011df083",
+            "filesystem_created_local": "2026-11-17T13:28:10+03:00"
+          },
+          "score": 35.321865721057655,
+          "metrics": {
+            "consistency@10_mean": 0.1400113830392715,
+            "link_learned_roc_auc": 0.9623654074940171,
+            "partner_new_mrr": 0.1068977780824038,
+            "pair_roc_auc": 0.9930752319689603,
+            "identity_top1": 0.16514806378132119
+          },
+          "dim": 512,
+          "n_hosts": 1757
+        },
+        "dev_step30": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/dev_step30/result.json",
+            "sha256": "23916451a186598f27fea2fd5be28c92cc84e9d0d3c57242a508811c6c752ad5",
+            "filesystem_created_local": "2026-11-17T13:34:07+03:00"
+          },
+          "score": 35.226259082536274,
+          "metrics": {
+            "consistency@10_mean": 0.13972680705748436,
+            "link_learned_roc_auc": 0.9628526908100593,
+            "partner_new_mrr": 0.10551862322463751,
+            "pair_roc_auc": 0.9900515787928681,
+            "identity_top1": 0.1674259681093394
+          },
+          "dim": 512,
+          "n_hosts": 1757
+        },
+        "dev_no_graph": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/dev_no_graph/result.json",
+            "sha256": "a8c65c5ae87748c5276520b8c8707b2ab42cd0b0b36988f27d2bd94f3e59b0ce",
+            "filesystem_created_local": "2026-11-17T13:36:53+03:00"
+          },
+          "score": 34.528744900641605,
+          "metrics": {
+            "consistency@10_mean": 0.14570290267501423,
+            "link_learned_roc_auc": 0.9506774558077934,
+            "partner_new_mrr": 0.10857223619305313,
+            "pair_roc_auc": 0.9939913817309288,
+            "identity_top1": 0.14578587699316628
+          },
+          "dim": 512,
+          "n_hosts": 1757
+        },
+        "dev_no_bytes": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/dev_no_bytes/result.json",
+            "sha256": "3fde4bc23add6a32aadda3fe7b2451ac9f3595e06a36bbd3835b8946acc125d8",
+            "filesystem_created_local": "2026-11-17T13:42:54+03:00"
+          },
+          "score": 38.58520573677957,
+          "metrics": {
+            "consistency@10_mean": 0.1505406943653956,
+            "link_learned_roc_auc": 0.9612197673792625,
+            "partner_new_mrr": 0.11178591675707873,
+            "pair_roc_auc": 0.9930732377378719,
+            "identity_top1": 0.2061503416856492
+          },
+          "dim": 512,
+          "n_hosts": 1757
+        },
+        "dev_no_vote": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/dev_no_vote/result.json",
+            "sha256": "66c23dd4dba9b2aed53ea65afed7efe72cc046caf4cdbf6aa17811f8c2f923ae",
+            "filesystem_created_local": "2026-11-17T14:08:01+03:00"
+          },
+          "score": 35.1930920542574,
+          "metrics": {
+            "consistency@10_mean": 0.13932840068298236,
+            "link_learned_roc_auc": 0.9617851386776521,
+            "partner_new_mrr": 0.10686369701992876,
+            "pair_roc_auc": 0.9927238484512004,
+            "identity_top1": 0.16400911161731208
+          },
+          "dim": 512,
+          "n_hosts": 1757
+        }
+      },
+      "by_window": null,
+      "protocols": {
+        "train256": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/train256/protocol.json",
+            "sha256": "fb661358875a840b38f31cdd5bd58e2d732a816b0f5f633173ca5ad77cc1553b",
+            "filesystem_created_local": "2026-11-17T13:22:15+03:00"
+          },
+          "protocol": {
+            "train_windows": [
+              2,
+              10,
+              11,
+              12
+            ],
+            "episodes": [
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 11
+              },
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 12
+              },
+              {
+                "source": [
+                  2,
+                  10,
+                  11
+                ],
+                "target": 12
+              }
+            ],
+            "development": 13,
+            "benchmark": [
+              14,
+              15,
+              16
+            ],
+            "development_or_benchmark_used_for_fitting": false,
+            "architecture": "two directed edge-aware GATv2 layers, 12-slice + history Transformers",
+            "width": 256,
+            "heads": 4,
+            "output_dim": 512,
+            "steps": 30,
+            "batch": 64,
+            "seed": 17,
+            "loss_weights": {
+              "identity": 1.0,
+              "vote": 0.15,
+              "links": 0.2,
+              "behavior": 0.2,
+              "masked_bytes": 0.3
+            },
+            "graph_cap_per_node_and_slice": 16,
+            "procrustes": "batch stop-gradient, rank often < 512",
+            "not_full_history_02_to_12": true,
+            "train_window_sha256": {
+              "2": "1d9cbbd2defe1380ad6af00296bd5c15ab87a80643db15209d144049bb7da465",
+              "10": "f1fe2ebbcf8ad4e242d946f6101d835b0dc1ecf0bc7099f4d5d84c63659c7f25",
+              "11": "aebb24f1f8de3bd8b3ed077239bc9c6b16fe7c7540cec8dcaca07729de7472a4",
+              "12": "1584b5cf1eb81cc99f0ffba5e78092829f5f4fb14d2fc73c713f456c567e47f9"
+            }
+          }
+        },
+        "control_no_graph": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/control_no_graph/protocol.json",
+            "sha256": "7e300aafefdd9cf93bf518410fccdc40dbecad3a2502ef081a1ca30c0371c2ca",
+            "filesystem_created_local": "2026-11-17T13:33:38+03:00"
+          },
+          "protocol": {
+            "train_windows": [
+              2,
+              10,
+              11,
+              12
+            ],
+            "episodes": [
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 11
+              },
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 12
+              },
+              {
+                "source": [
+                  2,
+                  10,
+                  11
+                ],
+                "target": 12
+              }
+            ],
+            "development": 13,
+            "benchmark": [
+              14,
+              15,
+              16
+            ],
+            "development_or_benchmark_used_for_fitting": false,
+            "architecture": "two directed edge-aware GATv2 layers, 12-slice + history Transformers",
+            "width": 256,
+            "heads": 4,
+            "output_dim": 512,
+            "steps": 13,
+            "batch": 64,
+            "seed": 17,
+            "loss_weights": {
+              "identity": 1.0,
+              "vote": 0.15,
+              "links": 0.2,
+              "behavior": 0.2,
+              "masked_bytes": 0.3
+            },
+            "graph_cap_per_node_and_slice": 16,
+            "procrustes": "batch stop-gradient, rank often < 512",
+            "disable_graph": true,
+            "disable_bytes": false,
+            "disable_vote": false,
+            "warmup_steps": 0,
+            "not_full_history_02_to_12": true,
+            "train_window_sha256": {
+              "2": "1d9cbbd2defe1380ad6af00296bd5c15ab87a80643db15209d144049bb7da465",
+              "10": "f1fe2ebbcf8ad4e242d946f6101d835b0dc1ecf0bc7099f4d5d84c63659c7f25",
+              "11": "aebb24f1f8de3bd8b3ed077239bc9c6b16fe7c7540cec8dcaca07729de7472a4",
+              "12": "1584b5cf1eb81cc99f0ffba5e78092829f5f4fb14d2fc73c713f456c567e47f9"
+            }
+          }
+        },
+        "control_no_bytes": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/control_no_bytes/protocol.json",
+            "sha256": "1525cd81878b38d936b3d94b9cd255bc85cd6670af8b78a5cb299087e458a8cf",
+            "filesystem_created_local": "2026-11-17T13:36:26+03:00"
+          },
+          "protocol": {
+            "train_windows": [
+              2,
+              10,
+              11,
+              12
+            ],
+            "episodes": [
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 11
+              },
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 12
+              },
+              {
+                "source": [
+                  2,
+                  10,
+                  11
+                ],
+                "target": 12
+              }
+            ],
+            "development": 13,
+            "benchmark": [
+              14,
+              15,
+              16
+            ],
+            "development_or_benchmark_used_for_fitting": false,
+            "architecture": "two directed edge-aware GATv2 layers, 12-slice + history Transformers",
+            "width": 256,
+            "heads": 4,
+            "output_dim": 512,
+            "steps": 13,
+            "batch": 64,
+            "seed": 17,
+            "loss_weights": {
+              "identity": 1.0,
+              "vote": 0.15,
+              "links": 0.2,
+              "behavior": 0.2,
+              "masked_bytes": 0.3
+            },
+            "graph_cap_per_node_and_slice": 16,
+            "procrustes": "batch stop-gradient, rank often < 512",
+            "disable_graph": false,
+            "disable_bytes": true,
+            "disable_vote": false,
+            "warmup_steps": 0,
+            "not_full_history_02_to_12": true,
+            "train_window_sha256": {
+              "2": "1d9cbbd2defe1380ad6af00296bd5c15ab87a80643db15209d144049bb7da465",
+              "10": "f1fe2ebbcf8ad4e242d946f6101d835b0dc1ecf0bc7099f4d5d84c63659c7f25",
+              "11": "aebb24f1f8de3bd8b3ed077239bc9c6b16fe7c7540cec8dcaca07729de7472a4",
+              "12": "1584b5cf1eb81cc99f0ffba5e78092829f5f4fb14d2fc73c713f456c567e47f9"
+            }
+          }
+        },
+        "control_no_vote": {
+          "source": {
+            "path": "runs/temporal_gatv2_pilot/control_no_vote/protocol.json",
+            "sha256": "0073ee7c8531cba9a2871a38c02af5278f388db0fe7a0dd16c4235ca1c32d8eb",
+            "filesystem_created_local": "2026-11-17T13:42:26+03:00"
+          },
+          "protocol": {
+            "train_windows": [
+              2,
+              10,
+              11,
+              12
+            ],
+            "episodes": [
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 11
+              },
+              {
+                "source": [
+                  2,
+                  10
+                ],
+                "target": 12
+              },
+              {
+                "source": [
+                  2,
+                  10,
+                  11
+                ],
+                "target": 12
+              }
+            ],
+            "development": 13,
+            "benchmark": [
+              14,
+              15,
+              16
+            ],
+            "development_or_benchmark_used_for_fitting": false,
+            "architecture": "two directed edge-aware GATv2 layers, 12-slice + history Transformers",
+            "width": 256,
+            "heads": 4,
+            "output_dim": 512,
+            "steps": 13,
+            "batch": 64,
+            "seed": 17,
+            "loss_weights": {
+              "identity": 1.0,
+              "vote": 0.15,
+              "links": 0.2,
+              "behavior": 0.2,
+              "masked_bytes": 0.3
+            },
+            "graph_cap_per_node_and_slice": 16,
+            "procrustes": "batch stop-gradient, rank often < 512",
+            "disable_graph": false,
+            "disable_bytes": false,
+            "disable_vote": true,
+            "warmup_steps": 0,
+            "not_full_history_02_to_12": true,
+            "train_window_sha256": {
+              "2": "1d9cbbd2defe1380ad6af00296bd5c15ab87a80643db15209d144049bb7da465",
+              "10": "f1fe2ebbcf8ad4e242d946f6101d835b0dc1ecf0bc7099f4d5d84c63659c7f25",
+              "11": "aebb24f1f8de3bd8b3ed077239bc9c6b16fe7c7540cec8dcaca07729de7472a4",
+              "12": "1584b5cf1eb81cc99f0ffba5e78092829f5f4fb14d2fc73c713f456c567e47f9"
+            }
+          }
+        }
+      }
+    },
+    "codebook_directed_gnn": {
+      "development": {
+        "zero": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/zero/result.json",
+            "sha256": "cd5d9eb9200e98a85216bca73e31a73699ecc03b105516c54c3a28f432a2d78f",
+            "filesystem_created_local": "2026-11-18T17:58:10+03:00"
+          },
+          "score": 61.52302933593121,
+          "metrics": {
+            "consistency@10_mean": 0.2747296528173023,
+            "link_learned_roc_auc": 0.9198717634623598,
+            "partner_new_mrr": 0.1603589054967118,
+            "pair_roc_auc": 0.9946450906816761,
+            "identity_top1": 0.5956719817767654
+          },
+          "dim": 896,
+          "n_hosts": 1757
+        },
+        "dev_identity": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/dev_identity/result.json",
+            "sha256": "5fb2c841deba046e6e7551aac91d48660e3e37b628545b0a07d8093baef00138",
+            "filesystem_created_local": "2026-11-18T17:59:53+03:00"
+          },
+          "score": 61.49354309245883,
+          "metrics": {
+            "consistency@10_mean": 0.2747296528173023,
+            "link_learned_roc_auc": 0.9198717634623598,
+            "partner_new_mrr": 0.1603589054967118,
+            "pair_roc_auc": 0.9946450906816761,
+            "identity_top1": 0.5945330296127562
+          },
+          "dim": 896,
+          "n_hosts": 1757
+        },
+        "dev_no_graph": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/dev_no_graph/result.json",
+            "sha256": "6af425d6c4f1ec9d9df406cec89a3593865017bb10ae763f1414654d8b286865",
+            "filesystem_created_local": "2026-11-18T18:01:38+03:00"
+          },
+          "score": 61.5818749597076,
+          "metrics": {
+            "consistency@10_mean": 0.2747296528173023,
+            "link_learned_roc_auc": 0.9198717634623598,
+            "partner_new_mrr": 0.1603589054967118,
+            "pair_roc_auc": 0.9946450906816761,
+            "identity_top1": 0.5979498861047836
+          },
+          "dim": 896,
+          "n_hosts": 1757
+        },
+        "dev_undirected_bytes": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/dev_undirected_bytes/result.json",
+            "sha256": "34b7345779cb1896555918805e144a051b85230c07d12486e0a672821d674066",
+            "filesystem_created_local": "2026-11-18T18:02:28+03:00"
+          },
+          "score": 61.375171912116315,
+          "metrics": {
+            "consistency@10_mean": 0.2747296528173023,
+            "link_learned_roc_auc": 0.9198717634623598,
+            "partner_new_mrr": 0.1603589054967118,
+            "pair_roc_auc": 0.9946450906816761,
+            "identity_top1": 0.5899772209567198
+          },
+          "dim": 896,
+          "n_hosts": 1757
+        },
+        "dev_donors": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/dev_donors/result.json",
+            "sha256": "52bcd15765f05915598bc2283615997b33d1531f00ea751f081c15fd8c3eb777",
+            "filesystem_created_local": "2026-11-18T18:03:08+03:00"
+          },
+          "score": 60.21930466529894,
+          "metrics": {
+            "consistency@10_mean": 0.2775184974388162,
+            "link_learned_roc_auc": 0.9178080518805205,
+            "partner_new_mrr": 0.14760478189123807,
+            "pair_roc_auc": 0.9987332644127069,
+            "identity_top1": 0.5888382687927107
+          },
+          "dim": 896,
+          "n_hosts": 1757
+        }
+      },
+      "by_window": null,
+      "protocols": {
+        "train_identity": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/train_identity/protocol.json",
+            "sha256": "bde0e019bba3a3b7b740f848780f9024809397b46156e18d75cdb7f739f06933",
+            "filesystem_created_local": "2026-11-18T17:59:00+03:00"
+          },
+          "protocol": {
+            "base_sha256": "a1c4bfa15ed0c227aefd981f59b87769aece146efb232da90617e4f561b10211",
+            "train_days": [
+              10,
+              11,
+              12
+            ],
+            "source": "frozen original codebook",
+            "steps": 12,
+            "batch": 256,
+            "seed": 17,
+            "use_graph": true,
+            "development": 13,
+            "test14_16_used": false,
+            "base_previously_fitted_until_day12": true,
+            "calibration": "batch stop-gradient procrustes; calibration rank at most batch/2 - 1",
+            "phase": "late Identity residual only; donor/source residual stays exactly zero"
+          }
+        },
+        "train_no_graph": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/train_no_graph/protocol.json",
+            "sha256": "ea0ada66d8cf15caac624957fbf8ac818f1a4744542029ff9674ae7f3079aeb7",
+            "filesystem_created_local": "2026-11-18T18:01:01+03:00"
+          },
+          "protocol": {
+            "base_sha256": "a1c4bfa15ed0c227aefd981f59b87769aece146efb232da90617e4f561b10211",
+            "train_days": [
+              10,
+              11,
+              12
+            ],
+            "source": "frozen original codebook",
+            "steps": 12,
+            "batch": 256,
+            "seed": 17,
+            "use_graph": false,
+            "directionless_bytes": false,
+            "development": 13,
+            "test14_16_used": false,
+            "base_previously_fitted_until_day12": true,
+            "calibration": "batch stop-gradient procrustes; calibration rank at most batch/2 - 1",
+            "phase": "late Identity residual only; donor/source residual stays exactly zero"
+          }
+        },
+        "train_undirected_bytes": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/train_undirected_bytes/protocol.json",
+            "sha256": "1203404facf27e2d1e5c4a966235665d67f355164b6ba4d33c41c54b65907a9c",
+            "filesystem_created_local": "2026-11-18T18:01:36+03:00"
+          },
+          "protocol": {
+            "base_sha256": "a1c4bfa15ed0c227aefd981f59b87769aece146efb232da90617e4f561b10211",
+            "train_days": [
+              10,
+              11,
+              12
+            ],
+            "source": "frozen original codebook",
+            "steps": 12,
+            "batch": 256,
+            "seed": 17,
+            "use_graph": true,
+            "directionless_bytes": true,
+            "development": 13,
+            "test14_16_used": false,
+            "base_previously_fitted_until_day12": true,
+            "calibration": "batch stop-gradient procrustes; calibration rank at most batch/2 - 1",
+            "phase": "late Identity residual only; donor/source residual stays exactly zero"
+          }
+        },
+        "train_donors": {
+          "source": {
+            "path": "runs/codebook_directed_gnn_01/train_donors/completed.json",
+            "sha256": "dbee4cb1588123d47fff31ed8e39c7f480ec86e1cdd25bba41b4d3cf3f096a92",
+            "filesystem_created_local": "2026-11-18T18:02:32+03:00"
+          },
+          "protocol": {
+            "steps": 6,
+            "batch": 4,
+            "seed": 17,
+            "base_fitted_through_day12": true,
+            "source_train_prefixes": {
+              "10": [
+                2
+              ],
+              "11": [
+                2,
+                10
+              ],
+              "12": [
+                2,
+                10,
+                11
+              ]
+            },
+            "source_final_windows": [
+              2,
+              10,
+              11,
+              12
+            ],
+            "day13_development_used": false,
+            "test_used": false,
+            "stage1_checkpoint_sha256": "aa2ab940916273025a586550b39386cebdfa8b7b926d6560cfebf70ff6f84dd4",
+            "frozen_graph_encoder": true,
+            "source_contacts": "day02 counts",
+            "targets": "historical day10-12 only"
+          }
+        }
+      }
+    },
+    "temporal_graph_mixer": {
+      "versions": {
+        "v1": {
+          "source": {
+            "path": "runs/temporal_graph_mixer_01/benchmark01/report.json",
+            "sha256": "094500360ec83c9edbcebddf256844ab4d1edab6e18a935fcb566923ab405b37",
+            "filesystem_created_local": "2026-11-22T15:12:18+03:00"
+          },
+          "selected": {
+            "label": "no_graph_global_w1",
+            "score": 57.84019270610908,
+            "metrics": {
+              "consistency@10_mean": 0.2526465566306204,
+              "link_learned_roc_auc": 0.9413194492280784,
+              "partner_new_mrr": 0.1283006111286775,
+              "pair_roc_auc": 0.9988912075149009,
+              "identity_top1": 0.541002277904328
+            }
+          },
+          "by_window": {
+            "test": {
+              "score": 59.67242173129695,
+              "metrics": {
+                "consistency@10_mean": 0.2627450980392157,
+                "link_learned_roc_auc": 0.9554022212791858,
+                "partner_new_mrr": 0.13512902138018598,
+                "pair_roc_auc": 0.9979110976757141,
+                "identity_top1": 0.6354430379746835
+              },
+              "dim": 512,
+              "n_hosts": 1581
+            },
+            "test_day15": {
+              "score": 60.516742052910125,
+              "metrics": {
+                "consistency@10_mean": 0.23813847900113508,
+                "link_learned_roc_auc": 0.9547324187745516,
+                "partner_new_mrr": 0.14673307528203974,
+                "pair_roc_auc": 0.9987845432275801,
+                "identity_top1": 0.5561861520998865
+              },
+              "dim": 512,
+              "n_hosts": 1762
+            },
+            "test_day16": {
+              "score": 65.81376359046115,
+              "metrics": {
+                "consistency@10_mean": 0.1037052810902896,
+                "link_learned_roc_auc": 0.9837831887260671,
+                "partner_new_mrr": 0.34622514971429735,
+                "pair_roc_auc": 0.9944532086032732,
+                "identity_top1": 0.46422487223168657
+              },
+              "dim": 512,
+              "n_hosts": 4696
+            }
+          },
+          "mean_score": 62.00097579155607,
+          "control_mean_scores": {
+            "plain": 54.23747026764016,
+            "graph_global_w1": 62.03756482293949
+          }
+        },
+        "v2": {
+          "source": {
+            "path": "runs/temporal_graph_mixer_01/v2/benchmark/report.json",
+            "sha256": "14335ecb45f757ed4dfc99bf3846041c7f4198c38c80deb22de5a9dcfa10e9f9",
+            "filesystem_created_local": "2026-11-22T16:38:00+03:00"
+          },
+          "selected": {
+            "label": "no_graph_global_w2",
+            "score": 58.153312908356384,
+            "metrics": {
+              "consistency@10_mean": 0.25378486055776894,
+              "link_learned_roc_auc": 0.9569142606972464,
+              "partner_new_mrr": 0.13108547818924607,
+              "pair_roc_auc": 0.9988202128881571,
+              "identity_top1": 0.5170842824601367
+            }
+          },
+          "by_window": {
+            "test": {
+              "score": 59.933628179314795,
+              "metrics": {
+                "consistency@10_mean": 0.26489563567362434,
+                "link_learned_roc_auc": 0.9607366313885353,
+                "partner_new_mrr": 0.13813752788604114,
+                "pair_roc_auc": 0.9976539273547218,
+                "identity_top1": 0.6164556962025316
+              },
+              "dim": 512,
+              "n_hosts": 1581
+            },
+            "test_day15": {
+              "score": 60.51753275955525,
+              "metrics": {
+                "consistency@10_mean": 0.23496027241770714,
+                "link_learned_roc_auc": 0.9635653973786757,
+                "partner_new_mrr": 0.1516459576547196,
+                "pair_roc_auc": 0.9985982738889477,
+                "identity_top1": 0.5346197502837684
+              },
+              "dim": 512,
+              "n_hosts": 1762
+            },
+            "test_day16": {
+              "score": 64.76800541770042,
+              "metrics": {
+                "consistency@10_mean": 0.10308773424190801,
+                "link_learned_roc_auc": 0.9829327494913553,
+                "partner_new_mrr": 0.3538103533455599,
+                "pair_roc_auc": 0.9982293044718829,
+                "identity_top1": 0.4297274275979557
+              },
+              "dim": 512,
+              "n_hosts": 4696
+            }
+          },
+          "mean_score": 61.739722118856825,
+          "control_mean_scores": {
+            "plain": 55.29349662740734,
+            "graph_global_w2": 61.76431955338084
+          }
+        }
+      },
+      "training": {
+        "train_windows": [
+          {
+            "name": "day02",
+            "day": 2,
+            "start": 126000,
+            "end": 129600
+          },
+          {
+            "name": "day03",
+            "day": 3,
+            "start": 217800.0,
+            "end": 221400.0
+          },
+          {
+            "name": "day04",
+            "day": 4,
+            "start": 304200,
+            "end": 307800
+          },
+          {
+            "name": "day05",
+            "day": 5,
+            "start": 390600,
+            "end": 394200
+          },
+          {
+            "name": "day06",
+            "day": 6,
+            "start": 477000,
+            "end": 480600
+          },
+          {
+            "name": "day07",
+            "day": 7,
+            "start": 563400,
+            "end": 567000
+          },
+          {
+            "name": "day08",
+            "day": 8,
+            "start": 649800,
+            "end": 653400
+          },
+          {
+            "name": "day09",
+            "day": 9,
+            "start": 736200,
+            "end": 739800
+          },
+          {
+            "name": "day10",
+            "day": 10,
+            "start": 822600,
+            "end": 826200
+          },
+          {
+            "name": "day11",
+            "day": 11,
+            "start": 909000,
+            "end": 912600
+          },
+          {
+            "name": "day12",
+            "day": 12,
+            "start": 995400,
+            "end": 999000
+          }
+        ],
+        "development_window": {
+          "name": "day13",
+          "day": 13,
+          "start": 1081800,
+          "end": 1085400
+        },
+        "seed": 17,
+        "steps": 600,
+        "finetune_steps": 200,
+        "global_gallery_steps": 600
+      }
+    }
+  },
+  "bases": {
+    "similarity_graph_recent": {
+      "source": {
+        "path": "runs/similarity_graph_recent/benchmark_result.json",
+        "sha256": "5c1fe3b208ffe31e30e025192015df5f9db6abc1bb1c3d84a1beaa42ca4edf2d",
+        "filesystem_created_local": "2026-11-16T19:54:42+03:00"
+      },
+      "by_window": {
+        "test": {
+          "score": 62.872542514079086,
+          "metrics": {
+            "consistency@10_mean": 0.2594560404807084,
+            "link_learned_roc_auc": 0.9667673589410559,
+            "partner_new_mrr": 0.16056285055823286,
+            "pair_roc_auc": 0.9925761478894324,
+            "identity_top1": 0.6481012658227848
+          },
+          "dim": 512,
+          "n_hosts": null
+        },
+        "test_day15": {
+          "score": 62.757730668489025,
+          "metrics": {
+            "consistency@10_mean": 0.2366061293984109,
+            "link_learned_roc_auc": 0.968660333340546,
+            "partner_new_mrr": 0.16497470220476798,
+            "pair_roc_auc": 0.9951343017871458,
+            "identity_top1": 0.565266742338252
+          },
+          "dim": 512,
+          "n_hosts": null
+        },
+        "test_day16": {
+          "score": 65.35201673642317,
+          "metrics": {
+            "consistency@10_mean": 0.10477001703577513,
+            "link_learned_roc_auc": 0.983899391543495,
+            "partner_new_mrr": 0.36137664723984075,
+            "pair_roc_auc": 0.9910632575260218,
+            "identity_top1": 0.436541737649063
+          },
+          "dim": 512,
+          "n_hosts": null
+        }
+      },
+      "mean_score": 63.66076330633043
+    }
+  },
+  "scoring": {
+    "snapshot": "70347a3",
+    "file_sha256": "c6b60c57d681bfb01760abb6395e1659488e48301b74d7eaceb8dc1e5631ec2b",
+    "metrics": [
+      "consistency@10_mean",
+      "link_learned_roc_auc",
+      "partner_new_mrr",
+      "pair_roc_auc",
+      "identity_top1"
+    ]
+  },
+  "structure_of_original_codebook": [
+    {
+      "path": "CodebookEncoder",
+      "class": "experiments.multiday.codebook.CodebookEncoder",
+      "attributes": [
+        "base",
+        "source",
+        "adapter"
+      ],
+      "scalars": {}
+    },
+    {
+      "path": "CodebookEncoder.base",
+      "class": "experiments.multiday.bag.BagHybrid",
+      "attributes": [
+        "base",
+        "bank",
+        "cache",
+        "mode",
+        "weight",
+        "temperature",
+        "hosts",
+        "_encoded",
+        "buckets",
+        "head",
+        "_parts_cache",
+        "_evaluation_cache",
+        "_behavior_cache"
+      ],
+      "scalars": {
+        "mode": "neural",
+        "weight": 0.5,
+        "temperature": 0.05
+      }
+    },
+    {
+      "path": "CodebookEncoder.base.base",
+      "class": "experiments.multiday.bag.BagHybrid",
+      "attributes": [
+        "base",
+        "bank",
+        "cache",
+        "mode",
+        "weight",
+        "temperature",
+        "hosts",
+        "_encoded",
+        "buckets",
+        "head",
+        "_parts_cache",
+        "_evaluation_cache",
+        "_behavior_cache"
+      ],
+      "scalars": {
+        "mode": "neural",
+        "weight": 0.5,
+        "temperature": 0.05
+      }
+    },
+    {
+      "path": "CodebookEncoder.base.base.base",
+      "class": "experiments.multiday.gain.MultiDayEncoder",
+      "attributes": [
+        "recipe",
+        "epochs",
+        "pca_dim",
+        "splits",
+        "encoder",
+        "_parts_cache",
+        "hosts",
+        "beh",
+        "vocab",
+        "models",
+        "scaler",
+        "_train",
+        "posterior_mix",
+        "pca",
+        "net",
+        "classifier",
+        "class_projection",
+        "_evaluation_cache",
+        "_behavior_cache"
+      ],
+      "scalars": {
+        "epochs": 160,
+        "pca_dim": 384,
+        "splits": 18,
+        "encoder": "mlp",
+        "posterior_mix": 1.0
+      },
+      "net": "Encoder(\n  (net): Sequential(\n    (0): Linear(in_features=780, out_features=512, bias=True)\n    (1): LayerNorm((512,), eps=1e-05, elementwise_affine=True, bias=True)\n    (2): GELU(approximate='none')\n    (3): Dropout(p=0.1, inplace=False)\n    (4): Linear(in_features=512, out_features=256, bias=True)\n    (5): LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)\n    (6): GELU(approximate='none')\n    (7): Linear(in_features=256, out_features=128, bias=True)\n  )\n  (shortcut): Linear(in_features=780, out_features=128, bias=False)\n)"
+    },
+    {
+      "path": "CodebookEncoder.base.base.head",
+      "class": "__main__.BagHead",
+      "attributes": [
+        "config",
+        "net",
+        "classifier",
+        "class_projection"
+      ],
+      "scalars": {},
+      "net": "BagNetwork(\n  (embedding): EmbeddingBag(131072, 256, mode='sum')\n  (project): Sequential(\n    (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)\n    (1): Linear(in_features=256, out_features=512, bias=True)\n    (2): GELU(approximate='none')\n    (3): Dropout(p=0.1, inplace=False)\n    (4): Linear(in_features=512, out_features=256, bias=True)\n  )\n)"
+    },
+    {
+      "path": "CodebookEncoder.base.base.bank",
+      "class": "experiments.multiday.memory.FingerprintBank",
+      "attributes": [
+        "latent_dim",
+        "hosts",
+        "days",
+        "vocab",
+        "tfidf",
+        "prototype"
+      ],
+      "scalars": {
+        "latent_dim": 256,
+        "days": 8
+      }
+    },
+    {
+      "path": "CodebookEncoder.base.head",
+      "class": "experiments.multiday.bag.BagHead",
+      "attributes": [
+        "config",
+        "net",
+        "classifier",
+        "class_projection"
+      ],
+      "scalars": {},
+      "net": "BagNetwork(\n  (embedding): EmbeddingBag(262144, 256, mode='sum')\n  (project): Sequential(\n    (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)\n    (1): Linear(in_features=256, out_features=512, bias=True)\n    (2): GELU(approximate='none')\n    (3): Dropout(p=0.1, inplace=False)\n    (4): Linear(in_features=512, out_features=256, bias=True)\n  )\n)"
+    },
+    {
+      "path": "CodebookEncoder.base.bank",
+      "class": "__main__.ExpandedBank",
+      "attributes": [
+        "hosts",
+        "days",
+        "training_manifests",
+        "tfidf",
+        "prototype"
+      ],
+      "scalars": {
+        "days": 32
+      }
+    },
+    {
+      "path": "CodebookEncoder.adapter",
+      "class": "experiments.multiday.codebook.TrafficAdapter",
+      "attributes": [
+        "ridge",
+        "blend"
+      ],
+      "scalars": {
+        "blend": 0.5
+      }
+    },
+    {
+      "path": "CodebookEncoder.adapter.ridge",
+      "class": "sklearn.linear_model._ridge.Ridge",
+      "attributes": [
+        "alpha",
+        "fit_intercept",
+        "copy_X",
+        "max_iter",
+        "tol",
+        "solver",
+        "positive",
+        "random_state",
+        "n_features_in_",
+        "coef_",
+        "n_iter_",
+        "solver_",
+        "intercept_"
+      ],
+      "scalars": {
+        "alpha": 1.0,
+        "fit_intercept": true,
+        "copy_X": true,
+        "tol": 0.0001,
+        "solver": "auto",
+        "positive": false,
+        "n_features_in_": 896,
+        "solver_": "cholesky"
+      }
+    }
+  ],
+  "implementation_model_sha256": {
+    "directed_bytes_gnn": "970d418a929c38cd98e7736d4e3223277f9410763be6010c80f44061eae0b5de",
+    "temporal_gatv2": "b14e2a91b01aa7ca707981fc89fd48c7c714e6ea7fba735c2047424478afcbd8",
+    "codebook_directed_gnn": "385cddc1a72484031964afe6d474d7cfcd9d40939b8ef2299c84d7ec510103a4",
+    "temporal_graph_mixer": "fefa859f75f43ecfde18546ea8323d658790e405b7b359b5b291cd0a280805f6"
+  }
+}
