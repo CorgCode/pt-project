@@ -1,0 +1,123 @@
+{
+  "cohort": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/processed/cohort.csv",
+  "train": [
+    {
+      "name": "day02",
+      "day": 2,
+      "start": 126000,
+      "end": 129600,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/processed/flows/train.csv"
+    },
+    {
+      "name": "day03",
+      "day": 3,
+      "start": 217800.0,
+      "end": 221400.0,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday2d/day03/flows/test.csv"
+    },
+    {
+      "name": "day04",
+      "day": 4,
+      "start": 304200,
+      "end": 307800,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day04/flows/test.csv"
+    },
+    {
+      "name": "day05",
+      "day": 5,
+      "start": 390600,
+      "end": 394200,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day05/flows/test.csv"
+    },
+    {
+      "name": "day06",
+      "day": 6,
+      "start": 477000,
+      "end": 480600,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day06/flows/test.csv"
+    },
+    {
+      "name": "day07",
+      "day": 7,
+      "start": 563400,
+      "end": 567000,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day07/flows/test.csv"
+    },
+    {
+      "name": "day08",
+      "day": 8,
+      "start": 649800,
+      "end": 653400,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day08/flows/test.csv"
+    },
+    {
+      "name": "day09",
+      "day": 9,
+      "start": 736200,
+      "end": 739800,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/multiday_gain/day09/flows/test.csv"
+    },
+    {
+      "name": "day10",
+      "day": 10,
+      "start": 822600,
+      "end": 826200,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/fingerprint_memory/day10/flows/test.csv"
+    },
+    {
+      "name": "day11",
+      "day": 11,
+      "start": 909000,
+      "end": 912600,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/fingerprint_memory/day11/flows/test.csv"
+    },
+    {
+      "name": "day12",
+      "day": 12,
+      "start": 995400,
+      "end": 999000,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/fingerprint_expanded/day12/flows/test.csv"
+    }
+  ],
+  "development": {
+    "name": "day13",
+    "day": 13,
+    "start": 1081800,
+    "end": 1085400,
+    "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/fingerprint_recent/day13/flows/test.csv",
+    "reference": "${PT_REPO_ROOT}/runs/similarity_graph_recent/select01/references/day13_development"
+  },
+  "benchmark": [
+    {
+      "name": "test",
+      "day": 14,
+      "start": 1168200.0,
+      "end": 1171800.0,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/processed/flows/test.csv",
+      "reference": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/reference/test"
+    },
+    {
+      "name": "test_day15",
+      "day": 15,
+      "start": 1254600.0,
+      "end": 1258200.0,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/processed/flows/test_day15.csv",
+      "reference": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/reference/test_day15"
+    },
+    {
+      "name": "test_day16",
+      "day": 16,
+      "start": 1341000.0,
+      "end": 1344600.0,
+      "flows": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/processed/flows/test_day16.csv",
+      "reference": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/reference/test_day16"
+    }
+  ],
+  "probe_reference": "${PT_REPO_ROOT}/PT_PROJECT_ML/late_test/reference/validation",
+  "feature_dir": "${PT_REPO_ROOT}/runs/temporal_graph_mixer_01/features_v2",
+  "seed": 17,
+  "steps": 600,
+  "finetune_steps": 200,
+  "eval_cache": "${PT_REPO_ROOT}/runs/temporal_graph_mixer_01/development01/eval_cache",
+  "global_gallery_steps": 600
+}
