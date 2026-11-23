@@ -215,3 +215,18 @@ def test_score_interval_contains_score():
     score = overall_score(res, cols)
     lo, hi = score_interval(res, cols)
     assert all(lo[m] <= score[m] <= hi[m] for m in score.index)
+
+
+def test_headline_does_not_claim_confidence_interval_when_unestimated():
+    from evaluation.scoreboard import headline_table, overall_score, ranking
+    groups = ['Поведение', 'Будущие связи', 'Будущие связи', 'Общие собеседники', 'Узнаваемость']
+    keys = ['consistency@10_mean', 'link_learned_roc_auc', 'partner_new_mrr', 'pair_roc_auc', 'identity_top1']
+    titles = ['Соседи@10', 'Связь, AUC', 'Новые собеседники, MRR', 'Пары, AUC', 'Узнаваемость, Top-1']
+    r = dict(method='no_bootstrap', dim=8, metrics={k: .8 for k in keys},
+             summary=[dict(metric=k, title=t, group=g, value=.8, chance=.1)
+                      for k,t,g in zip(keys,titles,groups)], score_interval_available=False)
+    cols,_,_ = ranking([r]);score = overall_score([r],cols)['no_bootstrap']
+    text = headline_table([r])
+    assert f'{score:.1f}' in text
+    assert f'{score:.1f}]' not in text
+    assert f'{score:.1f}]' in headline_table([{**r, 'score_interval_available': True}])
