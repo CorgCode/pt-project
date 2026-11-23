@@ -77,13 +77,6 @@ def render(payload,output):
         '- [Codebook Directed GNN](../../../experiments/codebook_directed_gnn/README.md)',
         '- [Temporal Graph Mixer](../../../experiments/temporal_graph_mixer/README.md)',
         '- [Математическое устройство, включая основы](../reports/methods_since_2026_11_17.md)',
-        '', '## Проверка кэша','',
-        'Учтён комментарий physcorgi к PR175: индексы нельзя переносить между словарями партнёров. '
-        'Эпизоды заново строят отображение словаря; его упорядоченный SHA фиксируется при обучении. '
-        'Сырые кэши Similarity Graph теперь учитывают SHA содержимого flows, порядок хостов и версию схемы; '
-        'behavior-кэш также учитывает fitted-словарь. Кэш метрик включает source-значения, порядок host_id и '
-        'хеши эталонов. Тесты проверяют смену словаря, refit, перестановку host_id и изменение файла при '
-        'сохранённых размере и mtime. Приведённые результаты пересчитаны в новом пустом каталоге.',
         '',
         'В таблице используется штатное чтение экспортированных CSV. Веса, потоки и embedding CSV в Git не включены.',
         '', 'Повтор генерации без данных: python -m experiments.methods_nov17.scoreboard --output runs/nov17_table.',
