@@ -627,6 +627,102 @@
       },
       "probe_edges_sha256": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
       "n_hosts": 1757
+    },
+    {
+      "method": "direct_identity_codebook",
+      "window": "test",
+      "dim": 896,
+      "n_hosts": 1581,
+      "score": 63.379648132633044,
+      "metrics": {
+        "consistency@10_mean": 0.2944339025932954,
+        "link_learned_roc_auc": 0.9353986583165088,
+        "partner_new_mrr": 0.1720489938910168,
+        "pair_roc_auc": 0.9927763040354876,
+        "identity_top1": 0.6481012658227848
+      },
+      "origin": "Existing evaluation from branch DrMogger/research-129-direct-identity",
+      "inputs_sha256": "e3c1e5dc8b0a0eb7118f05022f00656ad60a45482bc4c29aabb50495d5c69b7a",
+      "reference_sha256": {
+        "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "edges.csv": "8edd61cd9c8c426dcaa6f76754d06f1cd9fa49455842f7f47da91ab3a24e8566",
+        "eval_hosts.csv": "c4254270bae3a30aae8e58f8a5c2ff4d3a021b087befef754704851d0d5d865f",
+        "features.csv": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
+        "neighbors.csv": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
+        "pairs.csv": "fc184f444a36acacf121725d2a78457e7a2d50f2a75ffb33eee9d647c88df613",
+        "partners.csv": "7cb79e85efbedf7b994ecbed1bfb5e8334ef127c09264a1e263b132c2ddcc97f",
+        "triplets.csv": "a91f77d82bd70c09a0b35db1d573b9fec76fbd217491c5f85f5dffe5393195b5"
+      }
+    },
+    {
+      "method": "direct_identity_codebook",
+      "window": "test_day15",
+      "dim": 896,
+      "n_hosts": 1762,
+      "score": 63.308768929476116,
+      "metrics": {
+        "consistency@10_mean": 0.25964812712826335,
+        "link_learned_roc_auc": 0.9392951724042969,
+        "partner_new_mrr": 0.17605046246197137,
+        "pair_roc_auc": 0.9953350688615885,
+        "identity_top1": 0.5925085130533485
+      },
+      "origin": "Existing evaluation from branch DrMogger/research-129-direct-identity",
+      "inputs_sha256": "e3c1e5dc8b0a0eb7118f05022f00656ad60a45482bc4c29aabb50495d5c69b7a",
+      "reference_sha256": {
+        "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "edges.csv": "01ea967b0bfd8388568c4ea97386e0f03fabeb6e31704f16a34c69b1859e6804",
+        "eval_hosts.csv": "5f12c5263a4485cdf7c62b223c843fadd283fcbc392fcf69138eb406a81cf0b0",
+        "features.csv": "6639bc6de4957c24293d999c53ff081d7f931b86f15ed3ad5c355595939f8b32",
+        "neighbors.csv": "ee28db1f298355d711488fe52eae5ed361086ffac49cbc26bd7351169bb710c5",
+        "pairs.csv": "f020c2c76fac3ea58c4a07578e776b67374278ba512ca14159b4f2c6913728c2",
+        "partners.csv": "0cb4a2fd47c26a6ba687c19741fbe8e1af7d407c50b4054b96f82910e7d20c64",
+        "triplets.csv": "2cc93dbdfaa9f71966dfb3e61ab542f3729a70e1440d04bf33be4607a697545f"
+      }
+    },
+    {
+      "method": "direct_identity_codebook",
+      "window": "test_day16",
+      "dim": 896,
+      "n_hosts": 4696,
+      "score": 68.34245757054296,
+      "metrics": {
+        "consistency@10_mean": 0.11088160136286201,
+        "link_learned_roc_auc": 0.9710445163910627,
+        "partner_new_mrr": 0.40134602033683964,
+        "pair_roc_auc": 0.9524563658302592,
+        "identity_top1": 0.5506814310051107
+      },
+      "origin": "Existing evaluation from branch DrMogger/research-129-direct-identity",
+      "inputs_sha256": "e3c1e5dc8b0a0eb7118f05022f00656ad60a45482bc4c29aabb50495d5c69b7a",
+      "reference_sha256": {
+        "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+        "edges.csv": "e6f6529c8f2e0d50163d68f0c7998b301bb7ce44b8f54dec3293c4ca6d2d0398",
+        "eval_hosts.csv": "d24cd67765d1f8222804b5d3cbe879a2db74ec416d0c5ed635f573842a00a92f",
+        "features.csv": "298b4c17ccadb6f454b3ff2c8b611896433a2fa43a7dd0df9b8c450b5c0daea3",
+        "neighbors.csv": "336a2b04a47bc14818d6066b1f471cf60ed1fe9804b485785e07d9f8ef0b5168",
+        "pairs.csv": "70667d129cb94f59deece8ae173c13ee53653fa62f6632ee69fba3118b0b0b6f",
+        "partners.csv": "892ef7616551b2545f6bd02f611149ebda4025afb97bc01fcb13fe74ccd6ba71",
+        "triplets.csv": "44134cc8db857f0f524845af4c02ae41cd805c3bc4b04c28e26a936aee43435e"
+      }
     }
   ]
 }

@@ -1,10 +1,9 @@
 # Similarity Graph Recent как зависимость
 
-Здесь только загрузка и inference замороженной512-мерной основы Directed Bytes GNN:
-model, matcher, извлечение признаков и кэш с SHA содержимого flows. Обучающие
-скрипты прежнего исследования не дублируются: они есть в
-[PR162](https://github.com/CorgCode/pt-project/pull/162) и
-[коммите d5430f5](https://github.com/CorgCode/pt-project/tree/d5430f5/experiments/similarity_graph).
+Здесь полный код обучения матрицы сходства, сжатия в векторы и сопоставления позднего графа.
+
+Обучение: `python -m experiments.similarity_graph.run --config config.json --output runs/sg_new`.
+Пути и окна задаются по example.json; выбор на development фиксируется до benchmark.
 
 Для нового метода нужны model.joblib и source.csv из
 runs/similarity_graph_recent/refine01. Это зафиксированная история02,10,11,12

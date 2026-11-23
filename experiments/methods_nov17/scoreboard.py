@@ -7,6 +7,7 @@ from pathlib import Path
 
 REQUIRED=['consistency@10_mean','link_learned_roc_auc','partner_new_mrr','pair_roc_auc','identity_top1']
 NAMES={
+    'direct_identity_codebook':'Direct Identity Codebook',
     'similarity_graph_recent_control':'Similarity Graph Recent · контроль',
     'directed_bytes_gnn':'Directed Bytes GNN',
     'temporal_graph_mixer_v2':'Temporal Graph Mixer',
@@ -44,13 +45,13 @@ def render(payload,output):
             writer.writerow({**{k:row[k]for k in ['method','window','dim','n_hosts','score']},
                 'protocol':'development13' if row['window']=='development13' else 'benchmark14_16',
                 **{k:row['metrics'][k]for k in REQUIRED}})
-    text=['# Локальная таблица методов с 17 ноября','',
-        'Актуальный пересчёт из сохранённых CSV с новым кэшем. Все пять метрик обязательны. '
+    text=['# Локальная таблица объединённых методов','',
+        'Все пять метрик обязательны. Direct Identity перенесён из сохранённой штатной оценки его ветки; остальные строки пересчитаны из CSV с новым кэшем. '
         'Это исследовательская таблица, не публикация в общем рейтинге. Окна ранее изучались; закрытого holdout нет.',
         '', '## Benchmark дней 14–16','',
         '| Метод | D | День 14 | День 15 | День 16 | Средний score |',
         '|---|---:|---:|---:|---:|---:|']
-    for name in ['similarity_graph_recent_control','directed_bytes_gnn','temporal_graph_mixer_v2']:
+    for name in ['similarity_graph_recent_control','directed_bytes_gnn','temporal_graph_mixer_v2'] + (['direct_identity_codebook'] if any(r['method']=='direct_identity_codebook' for r in rows) else []):
         selected={r['window']:r for r in rows if r['method']==name and r['window']!='development13'}
         if set(selected)!={'test','test_day15','test_day16'}:raise ValueError('Для benchmark нужны три окна')
         values=[selected[k]['score']for k in ['test','test_day15','test_day16']]

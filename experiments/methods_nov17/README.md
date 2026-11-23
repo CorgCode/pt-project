@@ -1,6 +1,6 @@
 # Методы DrMogger с 17 ноября
 
-Код четырёх семейств, математическое описание и локальная таблица:
+Объединённый код методов, математическое описание и локальная таблица:
 
 - [Таблица с актуальным пересчётом](../../research/DrMogger/nov17/README.md).
 - [Устройство методов и используемых основ](../../research/DrMogger/reports/methods_since_2026_11_17.md).
@@ -9,7 +9,7 @@
 - [Codebook Directed GNN](../codebook_directed_gnn/README.md).
 - [Temporal Graph Mixer](../temporal_graph_mixer/README.md).
 
-Из Similarity Graph включён только необходимый inference замороженной основы Directed Bytes GNN. Оригинальный
+Similarity Graph включает обучение и inference; Directed Bytes GNN использует его замороженную основу. Оригинальный
 multiday_codebook загружается из локального checkpoint с проверкой SHA; код его
 загрузки и получения архивных модулей описан в Codebook Directed GNN.
 
@@ -31,10 +31,10 @@ python -m pytest -q evaluation methods app pipeline experiments
 python -m experiments.methods_nov17.scoreboard --output runs/nov17_table
 ~~~
 
-Последняя команда не читает трафик и воспроизводит таблицу из опубликованного
+Последняя команда не читает трафик и воспроизводит таблицу из сохранённого
 results.json. Links/Pairs и остальные пять метрик остаются доступны в CSV/JSON.
 
-## Полный пересчёт локальных векторов
+## Пересчёт векторов четырёх новых семейств
 
 Из корня checkout этой ветки; укажите существующие локальные каталоги:
 
@@ -51,3 +51,5 @@ python -m experiments.methods_nov17.scoreboard \
 результат принимается лишь при совпадении SHA source/late, эталонов и fit-edges.
 Расчёт использует штатные функции проекта; Links C=1 ограничивает RAM через
 memmap. Эквивалентность штатному оценщику проверяется отдельными тестами.
+
+Direct Identity: код и команды в ../temporal_donor_identity/README.md. Его сохранённая штатная оценка перенесена в общую локальную таблицу.
