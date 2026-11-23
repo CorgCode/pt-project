@@ -98,6 +98,14 @@ class TfidfSvd:
     def transform(self, trip: pd.DataFrame, hidx: dict) -> np.ndarray:
         return np.asarray(self._weight(self._matrix(trip, hidx)) @ self.vt.T)
 
+    def project(self, trip: pd.DataFrame, hidx: dict, r: np.ndarray) -> np.ndarray:
+        """«Отпечаток»: полная (без SVD) взвешенная TF-IDF-строка хоста, умноженная на случайную гауссову матрицу r (словарь × k)."""
+        return np.asarray(self._weight(self._matrix(trip, hidx)) @ r)
+
+
+def rp_matrix(n: int, k: int, seed: int) -> np.ndarray:
+    return (np.random.default_rng(seed).normal(size=(n, k)) / np.sqrt(k)).astype(np.float32)
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -109,6 +117,8 @@ def main() -> None:
     ap.add_argument("--extra-fit", nargs="*", default=[], metavar="DIR",
                     help="папки окон (runs/features_multi/test_day03 ...) только для обучения словаря, IDF и SVD вместе с train; "
                          "блоки для них не пишутся")
+    ap.add_argument("--rp-peers", type=int, default=0, help="длина случайной проекции полной TF-IDF собеседников (0 — не считать); поле peers_rp в блоках")
+    ap.add_argument("--rp-services", type=int, default=0, help="то же для сервисов; поле services_rp")
     a = ap.parse_args()
     t0 = time.time()
     feat, out = Path(a.features), Path(a.out)
@@ -146,14 +156,21 @@ def main() -> None:
             pz = peers_m.fit(pt, hidx, tuple(extra_p))
             log("  обучаю TF-IDF + SVD на train (services) ...")
             sz = svc_m.fit(st, hidx, tuple(extra_s))
+            rp_p = rp_matrix(len(peers_m.vocab), a.rp_peers, 0) if a.rp_peers > 0 else None
+            rp_s = rp_matrix(len(svc_m.vocab), a.rp_services, 1) if a.rp_services > 0 else None
             log(f"  peers: словарь {len(peers_m.vocab):,}, компонент {pz.shape[1]}; services: словарь {len(svc_m.vocab):,}, компонент {sz.shape[1]}")
         else:
             if cols != stat["behav_cols"]:
                 raise SystemExit(f"колонки профиля в {w} не совпадают с train")
             pz, sz = peers_m.transform(pt, hidx), svc_m.transform(st, hidx)
         bz = np.clip(np.nan_to_num((x - stat["mean"]) / stat["std"]), -5, 5)
+        extra_arrays = {}
+        if rp_p is not None:
+            extra_arrays["peers_rp"] = peers_m.project(pt, hidx, rp_p).astype(np.float32)
+        if rp_s is not None:
+            extra_arrays["services_rp"] = svc_m.project(st, hidx, rp_s).astype(np.float32)
         np.savez_compressed(out / f"{w}.npz", hosts=np.array(hosts, dtype=str), behav=bz.astype(np.float32),
-                            peers=pz.astype(np.float32), services=sz.astype(np.float32))
+                            peers=pz.astype(np.float32), services=sz.astype(np.float32), **extra_arrays)
         log(f"  записано {out / (w + '.npz')} ({time.time() - t0:.0f} с)")
     (out / "fit.json").write_text(json.dumps({
         "hosts": len(hosts), "extra_fit": list(a.extra_fit), "behav_dim": len(stat["behav_cols"]),
