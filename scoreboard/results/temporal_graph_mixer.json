@@ -1,0 +1,332 @@
+{
+  "metrics": {
+    "consistency@10_mean": 0.20098121411107983,
+    "identity_top1": 0.5269342913614186,
+    "link_learned_roc_auc": 0.9690782594195221,
+    "pair_roc_auc": 0.9981605019051841,
+    "partner_new_mrr": 0.21453127962877352
+  },
+  "summary": [
+    {
+      "metric": "consistency@10_mean",
+      "value": 0.20098121411107983,
+      "chance": 0.004712543695305299,
+      "group": "Поведение",
+      "title": "Соседи@10",
+      "ci": [
+        0.10308773424190801,
+        0.26489563567362434
+      ]
+    },
+    {
+      "metric": "link_learned_roc_auc",
+      "value": 0.9690782594195221,
+      "chance": 0.795902369363325,
+      "group": "Будущие связи",
+      "title": "Связь, AUC",
+      "ci": [
+        0.9607366313885353,
+        0.9829327494913553
+      ]
+    },
+    {
+      "metric": "partner_new_mrr",
+      "value": 0.21453127962877352,
+      "chance": 0.08160660419953138,
+      "group": "Будущие связи",
+      "title": "Новые собеседники, MRR",
+      "ci": [
+        0.13813752788604114,
+        0.3538103533455599
+      ]
+    },
+    {
+      "metric": "pair_roc_auc",
+      "value": 0.9981605019051841,
+      "chance": 0.5,
+      "group": "Общие собеседники",
+      "title": "Пары, AUC",
+      "ci": [
+        0.9976539273547218,
+        0.9985982738889477
+      ]
+    },
+    {
+      "metric": "identity_top1",
+      "value": 0.5269342913614186,
+      "chance": 0.0009422636476000071,
+      "group": "Узнаваемость",
+      "title": "Узнаваемость, Top-1",
+      "ci": [
+        0.4297274275979557,
+        0.6164556962025316
+      ]
+    }
+  ],
+  "dim": 512,
+  "n_hosts": 1581,
+  "method": "temporal_graph_mixer",
+  "split": "test",
+  "metrics_ci": {
+    "consistency@10_mean": [
+      0.10308773424190801,
+      0.26489563567362434
+    ],
+    "partner_new_mrr": [
+      0.13813752788604114,
+      0.3538103533455599
+    ],
+    "pair_roc_auc": [
+      0.9976539273547218,
+      0.9985982738889477
+    ],
+    "link_learned_roc_auc": [
+      0.9607366313885353,
+      0.9829327494913553
+    ],
+    "identity_top1": [
+      0.4297274275979557,
+      0.6164556962025316
+    ]
+  },
+  "n_bootstrap": 0,
+  "seed": 0,
+  "reference_info": {
+    "cohort_policy": "train_only",
+    "cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+    "data_kind": "lanl_declared",
+    "evaluable_coverage": 0.24500232450023246,
+    "features_sha256": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
+    "files_sha256": {
+      "edges.csv": "8edd61cd9c8c426dcaa6f76754d06f1cd9fa49455842f7f47da91ab3a24e8566",
+      "eval_hosts.csv": "c4254270bae3a30aae8e58f8a5c2ff4d3a021b087befef754704851d0d5d865f",
+      "features.csv": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
+      "neighbors.csv": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
+      "pairs.csv": "fc184f444a36acacf121725d2a78457e7a2d50f2a75ffb33eee9d647c88df613",
+      "partners.csv": "7cb79e85efbedf7b994ecbed1bfb5e8334ef127c09264a1e263b132c2ddcc97f",
+      "triplets.csv": "a91f77d82bd70c09a0b35db1d573b9fec76fbd217491c5f85f5dffe5393195b5"
+    },
+    "fit_reference_files_sha256": {
+      "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
+      "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
+      "features.csv": "dbfffa916f66b78ff00e4b08a1ca820fd71a9a330ac5109738fc406b904c99fb",
+      "neighbors.csv": "a8baa8b2bd6cef5b3a369fc269c88ff010fdb2a515648e5ae63f6bb31b838c7d",
+      "pairs.csv": "286eca14597c9546e26d988ff38272cc7eb5fb97d1ffb64a04db52b894051b13",
+      "partners.csv": "96ad4f6ea91ff3eb637868f145b500a9a9fe5584da0723b1c11a36d3ee13ed62",
+      "triplets.csv": "cc9ce9aa4dd1676474ab6e35a38a57ca8d4dce3a94bf62d91f8be4986ee5949b"
+    },
+    "ground_truth": false,
+    "kind": "heldout_temporal_behavior_proxy",
+    "labels_source": null,
+    "n_cohort": 6453,
+    "n_evaluable": 1581,
+    "neighbors_sha256": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
+    "provenance_verified": false,
+    "provenance_verified_by_pipeline": false,
+    "real_lanl_declared": true,
+    "source_window": "train",
+    "synthetic": false,
+    "target_window": "test",
+    "test_start_utc": "1970-01-14T12:30:00Z",
+    "train_end_utc": "1970-01-02T11:59:59Z"
+  },
+  "ci_kind": "range over test windows",
+  "test_windows": [
+    "test",
+    "test_day15",
+    "test_day16"
+  ],
+  "by_window": {
+    "test": {
+      "metrics": {
+        "consistency@10_mean": 0.26489563567362434,
+        "link_learned_roc_auc": 0.9607366313885353,
+        "partner_new_mrr": 0.13813752788604114,
+        "pair_roc_auc": 0.9976539273547218,
+        "identity_top1": 0.6164556962025316
+      },
+      "summary": [
+        {
+          "metric": "consistency@10_mean",
+          "value": 0.26489563567362434,
+          "chance": 0.006329113924050633,
+          "group": "Поведение",
+          "title": "Соседи@10"
+        },
+        {
+          "metric": "link_learned_roc_auc",
+          "value": 0.9607366313885353,
+          "chance": 0.7767344984118412,
+          "group": "Будущие связи",
+          "title": "Связь, AUC"
+        },
+        {
+          "metric": "partner_new_mrr",
+          "value": 0.13813752788604114,
+          "chance": 0.07721919316333403,
+          "group": "Будущие связи",
+          "title": "Новые собеседники, MRR"
+        },
+        {
+          "metric": "pair_roc_auc",
+          "value": 0.9976539273547218,
+          "chance": 0.5,
+          "group": "Общие собеседники",
+          "title": "Пары, AUC"
+        },
+        {
+          "metric": "identity_top1",
+          "value": 0.6164556962025316,
+          "chance": 0.0012658227848101266,
+          "group": "Узнаваемость",
+          "title": "Узнаваемость, Top-1"
+        }
+      ],
+      "metrics_ci": {}
+    },
+    "test_day15": {
+      "metrics": {
+        "consistency@10_mean": 0.23496027241770714,
+        "link_learned_roc_auc": 0.9635653973786757,
+        "partner_new_mrr": 0.1516459576547196,
+        "pair_roc_auc": 0.9985982738889477,
+        "identity_top1": 0.5346197502837684
+      },
+      "summary": [
+        {
+          "metric": "consistency@10_mean",
+          "value": 0.23496027241770714,
+          "chance": 0.0056785917092561046,
+          "group": "Поведение",
+          "title": "Соседи@10"
+        },
+        {
+          "metric": "link_learned_roc_auc",
+          "value": 0.9635653973786757,
+          "chance": 0.7597346710755377,
+          "group": "Будущие связи",
+          "title": "Связь, AUC"
+        },
+        {
+          "metric": "partner_new_mrr",
+          "value": 0.1516459576547196,
+          "chance": 0.07160244130539231,
+          "group": "Будущие связи",
+          "title": "Новые собеседники, MRR"
+        },
+        {
+          "metric": "pair_roc_auc",
+          "value": 0.9985982738889477,
+          "chance": 0.5,
+          "group": "Общие собеседники",
+          "title": "Пары, AUC"
+        },
+        {
+          "metric": "identity_top1",
+          "value": 0.5346197502837684,
+          "chance": 0.0011350737797956867,
+          "group": "Узнаваемость",
+          "title": "Узнаваемость, Top-1"
+        }
+      ],
+      "metrics_ci": {}
+    },
+    "test_day16": {
+      "metrics": {
+        "consistency@10_mean": 0.10308773424190801,
+        "link_learned_roc_auc": 0.9829327494913553,
+        "partner_new_mrr": 0.3538103533455599,
+        "pair_roc_auc": 0.9982293044718829,
+        "identity_top1": 0.4297274275979557
+      },
+      "summary": [
+        {
+          "metric": "consistency@10_mean",
+          "value": 0.10308773424190801,
+          "chance": 0.002129925452609159,
+          "group": "Поведение",
+          "title": "Соседи@10"
+        },
+        {
+          "metric": "link_learned_roc_auc",
+          "value": 0.9829327494913553,
+          "chance": 0.8512379386025961,
+          "group": "Будущие связи",
+          "title": "Связь, AUC"
+        },
+        {
+          "metric": "partner_new_mrr",
+          "value": 0.3538103533455599,
+          "chance": 0.09599817812986777,
+          "group": "Будущие связи",
+          "title": "Новые собеседники, MRR"
+        },
+        {
+          "metric": "pair_roc_auc",
+          "value": 0.9982293044718829,
+          "chance": 0.5,
+          "group": "Общие собеседники",
+          "title": "Пары, AUC"
+        },
+        {
+          "metric": "identity_top1",
+          "value": 0.4297274275979557,
+          "chance": 0.00042589437819420784,
+          "group": "Узнаваемость",
+          "title": "Узнаваемость, Top-1"
+        }
+      ],
+      "metrics_ci": {}
+    }
+  },
+  "author": "DrMogger",
+  "submission": "scoreboard/submissions/temporal_graph_mixer/embeddings.csv",
+  "code_sha256": "bac5fca6b386806a085e4f720510243232b7d3290642a6af8503ebfcbfb85c69",
+  "n_embedded_hosts": 6453,
+  "input_files_sha256": {
+    "test": {
+      "source_sha256": "72e70ff5e9b015abdd43b00c42405e878e3966688a78d9be98a40b0ffa4190d8",
+      "late_sha256": "cea1f6c2dd45cc1a4a57e3530590ff373d47be6022eb507ea756324dc964f123",
+      "reference_sha256": {
+        "pairs.csv": "fc184f444a36acacf121725d2a78457e7a2d50f2a75ffb33eee9d647c88df613",
+        "eval_hosts.csv": "c4254270bae3a30aae8e58f8a5c2ff4d3a021b087befef754704851d0d5d865f",
+        "neighbors.csv": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
+        "triplets.csv": "a91f77d82bd70c09a0b35db1d573b9fec76fbd217491c5f85f5dffe5393195b5",
+        "partners.csv": "7cb79e85efbedf7b994ecbed1bfb5e8334ef127c09264a1e263b132c2ddcc97f",
+        "features.csv": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
+        "edges.csv": "8edd61cd9c8c426dcaa6f76754d06f1cd9fa49455842f7f47da91ab3a24e8566"
+      },
+      "probe_edges_sha256": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315"
+    },
+    "test_day15": {
+      "source_sha256": "72e70ff5e9b015abdd43b00c42405e878e3966688a78d9be98a40b0ffa4190d8",
+      "late_sha256": "1f5ac192e062be068deb302a64b293be1af5d9776f2ced1622e8493cb1d0b614",
+      "reference_sha256": {
+        "pairs.csv": "f020c2c76fac3ea58c4a07578e776b67374278ba512ca14159b4f2c6913728c2",
+        "eval_hosts.csv": "5f12c5263a4485cdf7c62b223c843fadd283fcbc392fcf69138eb406a81cf0b0",
+        "neighbors.csv": "ee28db1f298355d711488fe52eae5ed361086ffac49cbc26bd7351169bb710c5",
+        "triplets.csv": "2cc93dbdfaa9f71966dfb3e61ab542f3729a70e1440d04bf33be4607a697545f",
+        "partners.csv": "0cb4a2fd47c26a6ba687c19741fbe8e1af7d407c50b4054b96f82910e7d20c64",
+        "features.csv": "6639bc6de4957c24293d999c53ff081d7f931b86f15ed3ad5c355595939f8b32",
+        "edges.csv": "01ea967b0bfd8388568c4ea97386e0f03fabeb6e31704f16a34c69b1859e6804"
+      },
+      "probe_edges_sha256": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315"
+    },
+    "test_day16": {
+      "source_sha256": "72e70ff5e9b015abdd43b00c42405e878e3966688a78d9be98a40b0ffa4190d8",
+      "late_sha256": "548dfbb670cc9675eb1ab7fc31e24e43e31b6df698f57e4921788f825799f6eb",
+      "reference_sha256": {
+        "pairs.csv": "70667d129cb94f59deece8ae173c13ee53653fa62f6632ee69fba3118b0b0b6f",
+        "eval_hosts.csv": "d24cd67765d1f8222804b5d3cbe879a2db74ec416d0c5ed635f573842a00a92f",
+        "neighbors.csv": "336a2b04a47bc14818d6066b1f471cf60ed1fe9804b485785e07d9f8ef0b5168",
+        "triplets.csv": "44134cc8db857f0f524845af4c02ae41cd805c3bc4b04c28e26a936aee43435e",
+        "partners.csv": "892ef7616551b2545f6bd02f611149ebda4025afb97bc01fcb13fe74ccd6ba71",
+        "features.csv": "298b4c17ccadb6f454b3ff2c8b611896433a2fa43a7dd0df9b8c450b5c0daea3",
+        "edges.csv": "e6f6529c8f2e0d50163d68f0c7998b301bb7ce44b8f54dec3293c4ca6d2d0398"
+      },
+      "probe_edges_sha256": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315"
+    }
+  },
+  "inputs_sha256": "bf46723bb73c6a09b12243552856baff4bd8b1e663a55e815b19d65b5acabc17",
+  "score_interval_available": false
+}

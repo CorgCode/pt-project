@@ -217,7 +217,8 @@ def headline_table(results: list[dict], card_url=None, stale: set | None = None)
         sc = ("—" if m in SERVICE else "incomplete") if pd.isna(score.get(m)) else f"{score[m]:.1f}"
         if len(order) and m == order.index[0]:
             sc = f"**{sc}**"
-        if m not in SERVICE and not pd.isna(lo.get(m)) and not pd.isna(hi.get(m)):
+        if (m not in SERVICE and r.get("score_interval_available", True)
+                and not pd.isna(lo.get(m)) and not pd.isna(hi.get(m))):
             sc = f"{sc} [{lo[m]:.1f}–{hi[m]:.1f}]"
         dim = r.get("dim") or "—"
         who = f"@{r['author']}" if r.get("author") else "—"
