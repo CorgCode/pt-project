@@ -172,6 +172,14 @@ as `{"version":"v1","files":{"checkpoint.bin":"<sha256>"}}`; set
 External adapters cannot start without a verified manifest. Measure the full
 Plus package and its RAM before activating it on the VPS.
 
+For a host-local inference image, put the tested inference Quadlet in
+`~/.local/share/pt-<environment>/local-inference.container` and its Podman image
+ID in `local-inference.image-id` in the same directory. Use an image tag under
+`localhost/` in the Quadlet. App releases and app rollbacks reuse this unit
+after verifying the local image ID. The CI registry digest still tracks the
+registry image for app rollback. To roll back the local model, remove both pin
+files and restore the previous inference unit while holding the release lock.
+
 ### Deployment approvals
 
 Create GitHub environments named `staging` and `production`. Restrict
