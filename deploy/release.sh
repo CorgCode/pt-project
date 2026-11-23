@@ -19,6 +19,28 @@ trap 'rm -r -- "$rendered"' EXIT
 static_parent=$(dirname "$PT_STATIC_ROOT")
 digest=${PT_API_IMAGE##*@sha256:}
 python3 deploy/quadlet/render.py "$environment" "$rendered"
+# A host may pin a validated local model while CI continues to track registry images.
+local_unit="$state/local-inference.container"
+local_image_id="$state/local-inference.image-id"
+use_local_inference=false
+if [[ -e "$local_unit" || -e "$local_image_id" ]]; then
+    [[ -f "$local_unit" && -f "$local_image_id" && -f "$rendered/$prefix-inference.container" ]] || {
+        echo "Local inference requires a Quadlet, image ID and enabled inference" >&2
+        exit 1
+    }
+    local_image=$(sed -n 's/^Image=//p' "$local_unit")
+    expected_id=$(cat "$local_image_id")
+    [[ "$local_image" =~ ^localhost/[a-z0-9._/-]+:[a-zA-Z0-9._-]+$ && "$expected_id" =~ ^[a-f0-9]{64}$ ]] || {
+        echo "Invalid local inference image or image ID" >&2
+        exit 1
+    }
+    [[ $(podman image inspect --format '{{.Id}}' "$local_image") == "$expected_id" ]] || {
+        echo "Local inference image missing or does not match its pinned ID" >&2
+        exit 1
+    }
+    install -m 0644 "$local_unit" "$rendered/$prefix-inference.container"
+    use_local_inference=true
+fi
 python3 deploy/provision-secrets.py "$environment"
 previous=$(readlink "$PT_STATIC_ROOT" || true)
 if [[ -e "$PT_STATIC_ROOT" && ! -L "$PT_STATIC_ROOT" ]]; then
@@ -26,7 +48,7 @@ if [[ -e "$PT_STATIC_ROOT" && ! -L "$PT_STATIC_ROOT" ]]; then
     exit 1
 fi
 podman pull "$PT_API_IMAGE"
-if [[ -n "${PT_INFERENCE_IMAGE:-}" ]]; then
+if [[ -n "${PT_INFERENCE_IMAGE:-}" && "$use_local_inference" == false ]]; then
     podman pull "$PT_INFERENCE_IMAGE"
 fi
 revision="$static_parent/$prefix-$digest"
