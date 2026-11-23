@@ -54,12 +54,28 @@ def pair(dataset: Dataset, first: str, second: str, *, top: int = 8) -> dict:
         out["shared_contacts"] = shared
         out["shared_contacts_note"] = ("общий собеседник — проверяемый контекст, "
                                        "а не объяснение всей близости")
+        if dataset.traffic is not None:
+            out["traffic_comparison"] = {
+                direction: _compare_traffic(dataset.traffic[first][direction],
+                                            dataset.traffic[second][direction])
+                for direction in ("outgoing", "incoming")
+            }
         warnings.append("12 сервисных признаков — хешированные блоки, не протоколы")
     else:
         out["shared_contacts"] = None
         warnings.append("у координат эмбеддинга нет имён: сравнение идёт по номерам осей")
     out["warnings"] = warnings
     return out
+
+
+def _compare_traffic(first: dict, second: dict) -> dict:
+    """Compare raw observations for the same direction on both hosts."""
+    result = {key: {"a": first[key], "b": second[key]}
+              for key in ("flows", "bytes", "packets") if key in first and key in second}
+    for key in ("ports", "protocols"):
+        if first.get(key) and second.get(key):
+            result[f"shared_{key}"] = sorted(first[key] & second[key])
+    return result
 
 
 def _contacts(dataset: Dataset) -> dict[str, list[str]]:

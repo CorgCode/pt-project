@@ -211,6 +211,7 @@ class PairResponse(Envelope):
     top_contributions: list[Contribution]
     shared_contacts: list[str] | None = None
     shared_contacts_note: str | None = None
+    traffic_comparison: dict[str, dict[str, Any]] | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

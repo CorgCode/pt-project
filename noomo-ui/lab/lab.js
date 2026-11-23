@@ -113,9 +113,12 @@
   const close=(flow?values.slice(0,8):values).filter(v=>Math.max(Math.abs(v.a),Math.abs(v.b))>1e-8).sort((x,y)=>Math.abs(x.a-x.b)-Math.abs(y.a-y.b)).slice(0,4);
   $('shared-features').replaceChildren(...close.map(v=>{const d=element('div');d.append(element('span',name(v.i)),element('span',`${v.a.toFixed(2)} / ${v.b.toFixed(2)}`));return d;}));
   state.comparator=b;state.pairScore=score;
+  const rows=math.trafficComparisonRows(a,b),traffic=$('pair-traffic');
+  traffic.replaceChildren(...rows.map(row=>element('li',row)));
+  traffic.hidden=!rows.length;
   const contacts=id=>new Set((state.connections||[]).filter(l=>l.src===id||l.dst===id).map(l=>l.src===id?l.dst:l.src).filter(other=>other!==id));
   const ac=contacts(a.id),bc=contacts(b.id),shared=[...ac].filter(id=>bc.has(id));
-  $('soc-pair-context').textContent=!flow?'Здесь загружены готовые числовые профили, а не журнал соединений. Можно сравнить близость профилей, но без сетевых записей нельзя показать общих собеседников.':shared.length?`Общих собеседников в этом файле: ${shared.length}. Оба устройства обменивались с ними данными. Это проверяемый контекст для оператора; само по себе такое совпадение не объясняет всю числовую близость.`:'Общих собеседников в этом файле нет. Устройства всё равно могут быть похожи по объёмам, направлениям и сервисам. Сравните показатели выше — одинаковые контакты не обязательны для близких профилей.';
+  $('soc-pair-context').textContent=!flow?'Здесь загружены готовые числовые профили, а не журнал соединений. Можно сравнить близость профилей, но без сетевых записей нельзя показать общих собеседников.':shared.length?`Общих собеседников в этом файле: ${shared.length}. Оба устройства обменивались с ними данными. Это проверяемый контекст для оператора; само по себе такое совпадение не объясняет всю числовую близость.`:'Общих собеседников в этом файле нет.';
   $('shared-contact-buttons').replaceChildren(...shared.slice(0,12).map(id=>{const button=element('button',id+' ↗');button.type='button';button.addEventListener('click',()=>{networkMode='traffic';select(id);$('workspace').scrollIntoView?.({behavior:reduced?'auto':'smooth',block:'start'});});return button;}));
  }
  const ns='http://www.w3.org/2000/svg';

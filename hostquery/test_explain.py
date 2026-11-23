@@ -31,6 +31,7 @@ def test_pair_on_embedding_has_no_invented_names(demo):
     assert {item["kind"] for item in result["coordinates"]} == {"embedding_coordinate"}
     assert {item["name"] for item in result["coordinates"]} == {None}
     assert result["shared_contacts"] is None
+    assert "traffic_comparison" not in result
     assert any("нет имён" in warning for warning in result["warnings"])
     assert any("не вероятность" in warning for warning in result["warnings"])
 
@@ -66,6 +67,44 @@ def test_contacts_exclude_self_and_are_unique():
     assert contacts["h1"] == ["h2", "h3", "h4"]
     assert contacts["h4"] == ["h1", "h2"]
     assert all(host not in contacts[host] for host in contacts)
+
+
+def test_pair_compares_observed_services_and_volumes_by_direction():
+    data = dataset_from_csv("""src,dst,bytes,packets,proto,dst_port
+a,c,0,1,tcp,443
+b,c,21,2,TCP,443
+a,d,15,2,udp,53
+d,b,30,3,UDP,53
+c,a,10,1,udp,53
+""")
+    result = pair(data, "a", "b")
+    assert result["shared_contacts"] == ["c", "d"]
+    assert result["traffic_comparison"] == {
+        "outgoing": {
+            "flows": {"a": 2, "b": 1}, "bytes": {"a": 15, "b": 21},
+            "packets": {"a": 3, "b": 2}, "shared_ports": ["443"], "shared_protocols": ["TCP"],
+        },
+        "incoming": {
+            "flows": {"a": 1, "b": 1}, "bytes": {"a": 10, "b": 30},
+            "packets": {"a": 1, "b": 3}, "shared_ports": ["53"], "shared_protocols": ["UDP"],
+        },
+    }
+    reverse = pair(data, "b", "a")["traffic_comparison"]
+    assert reverse["outgoing"]["bytes"] == {"a": 21, "b": 15}
+    assert reverse["outgoing"]["shared_ports"] == ["443"]
+
+
+def test_pair_distinguishes_unavailable_fields_from_observed_zero_or_no_overlap():
+    data = dataset_from_csv("src,dst,bytes,proto,dst_port\na,c,0,TCP,\nb,c,0,UDP,443\n")
+    assert pair(data, "a", "b")["traffic_comparison"] == {
+        "outgoing": {"flows": {"a": 1, "b": 1}, "bytes": {"a": 0, "b": 0},
+                     "shared_protocols": []},
+        "incoming": {"flows": {"a": 0, "b": 0}, "bytes": {"a": 0, "b": 0}},
+    }
+    data = dataset_from_csv("src,dst\na,c\nb,c\n")
+    assert pair(data, "a", "b")["traffic_comparison"]["outgoing"] == {
+        "flows": {"a": 1, "b": 1},
+    }
 
 
 def test_pair_is_symmetric_and_rejects_same_or_unknown_hosts(demo):
