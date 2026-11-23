@@ -7,6 +7,22 @@
 Если нет хотя бы одной из четырёх задач, вместо score — incomplete и места нет.
 Название метода — ссылка на его карточку: устройство, какие данные берёт, как обучается.
 
+## Новые модели DrMogger — локальные результаты
+
+| Модель | Размерность | Score | Проверка |
+|---|---:|---:|---|
+| Direct Identity Codebook | 896 | 65,0103 | Среднее дней 14–16 |
+| Directed Bytes GNN | 576 | 64,8075 | Среднее дней 14–16 |
+| Similarity Graph Recent | 512 | 63,6608 | Среднее дней 14–16 |
+| Temporal Graph Mixer | 512 | 61,7397 | Среднее дней 14–16 |
+| Codebook Directed GNN · Identity | 896 | 61,4935 | Только development дня 13 |
+| Codebook Directed GNN · donor | 896 | 60,2208 | Только development дня 13 |
+| Temporal GATv2 · 30 шагов | 512 | 35,2263 | Только development дня 13 |
+
+Это локальные оценки, без официальных мест. Результаты по окнам, пять метрик и абляции — в [локальной таблице](../research/DrMogger/nov17/README.md). Пилоты дня 13 с benchmark дней 14–16 не сравниваются.
+
+## Общая таблица
+
 | # | method | submitted by | **score** | dim | Neighbors@10 | Links, AUC | New partners, MRR | Pairs, AUC | Identity, Top-1 | Tikhon LP, MRR* | Tikhon transfer, MRR* | Tikhon soft transfer, MRR* |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | [`multiday_codebook_plus`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multiday_codebook_plus/README.md) | @physcorgi | **70.0** [65.6–73.4] | 1024 | 0.208 [0.10–0.27] | **0.974 [0.97–0.99]** | **0.318 [0.25–0.44]** | **0.992 [0.98–1.00]** | **0.596 [0.52–0.66]** | 0.023 [0.01–0.03] | 0.871 [0.84–0.93] | 0.845 [0.81–0.90] |
