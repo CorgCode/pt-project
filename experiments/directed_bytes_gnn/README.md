@@ -15,9 +15,10 @@ Train — по часу02,10,11,12; development13; benchmark14–16. Реаль�
 
 ## Повторение
 
-Нужны torch и готовая основа в runs/similarity_graph_recent; её код включён в
+Нужны torch и готовая основа в runs/similarity_graph_recent; минимальный код её inference включён в
 experiments/similarity_graph. Историю и source необходимо восстановить/обучить
-до12, затем фиксировать выбор до benchmark. Команды основы есть в её README.
+до12, затем фиксировать выбор до benchmark. Обучение самой основы находится в PR162;
+в этой ветке её старые обучающие эксперименты не дублируются.
 
 ~~~sh
 python -m experiments.directed_bytes_gnn.prepare_windows --part development --output runs/my_gnn/windows

@@ -6,7 +6,10 @@ import joblib
 import numpy as np
 import pandas as pd
 from .data import Window,read_window,signature
-from .run import frame
+
+
+def frame(x,hosts):
+    return pd.DataFrame(x,index=pd.Index(hosts,name='host_id')).add_prefix('emb_')
 
 
 def main():

@@ -9,7 +9,7 @@
 - [Codebook Directed GNN](../codebook_directed_gnn/README.md).
 - [Temporal Graph Mixer](../temporal_graph_mixer/README.md).
 
-Similarity Graph включён как необходимая основа Directed Bytes GNN. Оригинальный
+Из Similarity Graph включён только необходимый inference замороженной основы Directed Bytes GNN. Оригинальный
 multiday_codebook загружается из локального checkpoint с проверкой SHA; код его
 загрузки и получения архивных модулей описан в Codebook Directed GNN.
 
