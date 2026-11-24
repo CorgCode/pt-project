@@ -17,7 +17,7 @@ import sys
 import time
 
 from .download import atomic_json
-from .models import ROOT, WORK
+from .models import ROOT, WORK, AVAILABLE
 from .prepare import load_protocol
 
 
@@ -78,9 +78,14 @@ def run(data_root=ROOT / "data/late_benchmark", work=WORK, *, wait=False, publis
             "--behavior", work / "models/behavioral/embeddings.csv")
     ready = [name for name, item in statuses.items() if item["status"] == "trained"]
     for name in ready:
+        if name not in AVAILABLE:
+            continue  # original GNN/block builders are handled by recovery below
         command("infer_" + name, "experiments.late_benchmark.models", "infer", "--method", name,
                 "--processed", data_root / "processed", "--work", work)
         command("evaluate_" + name, "experiments.late_benchmark.evaluate", "--method", name, "--data", data_root, "--work", work)
+    command("recover_pr_models", "experiments.late_benchmark.recover", "--data", data_root, "--work", work)
+    statuses = json.loads(training_path.read_text())
+    ready = [name for name, item in statuses.items() if item["status"] == "trained"]
     if publish:
         command("publish", "experiments.late_benchmark.publish", "--data", data_root, "--work", work)
         return state("complete", methods=ready, table=str(ROOT / "scoreboard/README.md"))

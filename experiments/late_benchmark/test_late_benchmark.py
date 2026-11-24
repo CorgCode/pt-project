@@ -356,3 +356,40 @@ def test_reused_validation_does_not_require_missing_appledouble_sidecars(tmp_pat
     (target/'edges.csv').write_text('modified classifier candidates')
     with pytest.raises(ValueError,match='metric CSV changed'):
         copy_validation(source,target)
+
+
+def test_recovered_pr_recipes_preserve_published_block_dimensions():
+    from experiments.late_benchmark.recover import recipe, RECOVERED, gnn_settings
+    from experiments.late_benchmark.models import ROOT, parameters
+    fourth_dims = {'gnn_big':192, 'gnn_new':192, 'xb_s':256, 'xb_m':512}
+    for name in RECOVERED[4:]:
+        fourth, reference_behavior, center = recipe(name)
+        p = parameters(name)
+        dim = (57 if reference_behavior else 66) + p['k_peers'] + p['k_services'] + fourth_dims[fourth]
+        if name == 'multi_xd':
+            dim += 128
+        historical = json.loads((ROOT/'scoreboard/history/days14-16/results'/f'{name}.json').read_text())
+        assert dim == historical['dim'], name
+        assert center is True  # original builder default; no new test-based tuning
+    assert gnn_settings('gnn_big') == gnn_settings('gnn_new')
+    assert gnn_settings('gnn_v1p1_tuned')['dim'] == 32
+
+
+def test_publication_waits_for_recoverable_models(tmp_path):
+    spec,data,work,board,processed,statuses,results=publication_fixture(tmp_path)
+    statuses['gnn_v2']={'status':'pending_recovery'}
+    with pytest.raises(ValueError,match='recovery/preparation'):
+        validate(results,processed,data/'reference',statuses,spec)
+
+
+def test_pr_audit_does_not_reclassify_recoverable_methods_as_unavailable(tmp_path):
+    from experiments.late_benchmark.recover import write_audit, RECOVERED
+    (tmp_path/'recovery').mkdir()
+    (tmp_path/'model_status.json').write_text(json.dumps({'gnn_v2':{'status':'trained'}}))
+    write_audit(tmp_path)
+    status=json.loads((tmp_path/'model_status.json').read_text())
+    assert status['gnn_v2']['status']=='trained'
+    assert all(status[n]['status']=='pending_recovery' for n in RECOVERED if n!='gnn_v2')
+    assert {n for n,v in status.items() if v['status']=='unavailable'}=={'multi_xd2','multiday_codebook_plus'}
+    audit=json.loads((tmp_path/'recovery/audit.json').read_text())
+    assert len(audit['recoverable_from_original_code'])==15

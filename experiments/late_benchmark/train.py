@@ -8,6 +8,7 @@ import sys
 
 from .download import atomic_json
 from .models import AVAILABLE, ROOT, SOURCE, WORK
+from .recover import RECOVERED
 
 
 def run(base=SOURCE, work=WORK):
@@ -15,8 +16,15 @@ def run(base=SOURCE, work=WORK):
     work.mkdir(parents=True, exist_ok=True)
     status_path = work / "model_status.json"
     statuses = json.loads(status_path.read_text()) if status_path.exists() else {}
-    for result in sorted((ROOT / "scoreboard/results").glob("*.json")):
-        if result.stem not in AVAILABLE:
+    historical = ROOT / "scoreboard/history/days14-16/results"
+    results = list((ROOT / "scoreboard/results").glob("*.json")) + list(historical.glob("*.json"))
+    for result in sorted(results):
+        if result.stem in RECOVERED:
+            if statuses.get(result.stem, {}).get("status") != "trained":
+                statuses[result.stem] = {"status": "pending_recovery", "reason": "Original PR implementation available; recovery stage required."}
+        elif result.stem not in AVAILABLE:
+            if result.stem in statuses:
+                continue  # retain the audited, method-specific limitation
             statuses[result.stem] = {"status": "unavailable", "reason":
                 "Original Plus head and inference assembly are unavailable; the base is evaluated separately."
                 if result.stem == "multiday_codebook_plus" else

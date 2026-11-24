@@ -23,7 +23,7 @@ SOURCE = ROOT / "PT_PROJECT_ML/late_test/processed"
 FROZEN_CODE_COMMIT = "86d709d"
 AVAILABLE = ("behavioral", "random", "temporal_stable_hybrid", "multiday_codebook", "hybrid_tfidf",
              "temporal_cca_tuned", "temporal_encoder", "temporal_encoder_tuned", "temporal_dae",
-             "future_profile_predictor", "relation_graph_hybrid")
+             "future_profile_predictor", "relation_graph_hybrid", "behavioral_dae", "behavioral_dae_consistency")
 
 
 class LegacyUnpickler(pickle.Unpickler):
@@ -75,6 +75,10 @@ def parameters(name):
 def instantiate(name):
     sys.path.insert(0, str(ROOT / "scoreboard"))
     params = parameters(name)
+    if name in ("behavioral_dae", "behavioral_dae_consistency"):
+        from methods.baselines.autoencoder import BehavioralDAE, BehavioralDAEConsistency
+        cls = BehavioralDAE if name == "behavioral_dae" else BehavioralDAEConsistency
+        return cls(dim=16, hidden_dim=64, epochs=30, batch_size=256, seed=17)
     if name in ("behavioral", "random"):
         from methods.baselines.temporal import BehavioralBaseline, RandomBaseline
         return BehavioralBaseline() if name == "behavioral" else RandomBaseline(dim=16, seed=0)

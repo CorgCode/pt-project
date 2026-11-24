@@ -44,72 +44,608 @@
   },
   "model_status": {
     "behavioral_dae": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "behavioral_dae",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 16,
+        "source_sha256": "90e589404f267d09f9d70583e623767ebedd0466a37a62d962428972519b05e9",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      },
+      "recovered_from_pr": 150
     },
     "behavioral_dae_consistency": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "behavioral_dae_consistency",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 16,
+        "source_sha256": "3956b04146a0b9c703763702c026bcdbf932c88253109c28f5aac092330b9401",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      },
+      "recovered_from_pr": 150
     },
     "gnn_big": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_big",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 192,
+        "source_sha256": "8b5b7d528d31782352c909644710b88af5d62e8f6cec78d54ab170739ddfe1c1",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 151,
+          "settings": {
+            "dim": 128,
+            "hidden": 256,
+            "concat_k": 64,
+            "beta": 2.04,
+            "lam": 0.229
+          },
+          "parameter_precision": "published submission card; absent original tuned parameter file",
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_v1.py": "138095f67e2517d5da8d35e8d13d7e909d1eed1b326a93aeb21ee70fd631fbeb",
+          "scoreboard/build_features.py": "d8dd44cc5ce6bf3e3d52653d9b9e110f208c2614e796119a2c93c690441d7806"
+        }
+      },
+      "recovered_from_pr": 151
     },
     "gnn_new": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_new",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 192,
+        "source_sha256": "af4e9b502f83c8d6eec25e6d958aab1de4074d84d44ee981a10158491c59a461",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "settings": {
+            "dim": 128,
+            "hidden": 256,
+            "concat_k": 64,
+            "beta": 2.04,
+            "lam": 0.229
+          },
+          "parameter_precision": "published submission card; absent original tuned parameter file",
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_v1.py": "138095f67e2517d5da8d35e8d13d7e909d1eed1b326a93aeb21ee70fd631fbeb",
+          "scoreboard/build_features.py": "d8dd44cc5ce6bf3e3d52653d9b9e110f208c2614e796119a2c93c690441d7806"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "gnn_tfidf_new": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_tfidf_new",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 2.122090149558929,
+            "w_services": 1.8094705783274292,
+            "w_gnn": 1.2641174612284134,
+            "k_peers": 256,
+            "k_services": 128,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 46.26236803534806,
+              "nognn": 45.78310716153933,
+              "notfidf": 38.090184940457604,
+              "behav": 37.449477826933695
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 642,
+        "source_sha256": "7097ad221940bb799790fee4adc1a7a0ed0bd078bfe35f64d3d6f6d081e4c392",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "gnn_new",
+          "reference_behavior": false,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "gnn_tfidf_ref": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_tfidf_ref",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.5773059932492969,
+            "w_services": 0.5408420068103655,
+            "w_gnn": 0.37693445485699784,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 51.29453725427058,
+              "nognn": 50.93774220583955,
+              "notfidf": 44.91622968689905,
+              "behav": 43.73116608933283
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 441,
+        "source_sha256": "42fb9e39fb8cf5e628889e676c69016372cf4e181d950fa9c543643d12e3ed8c",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 151,
+          "fourth_block": "gnn_big",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 151
     },
     "gnn_v1p1_tuned": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_v1p1_tuned",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 64,
+        "source_sha256": "dec1fe556e5235738d36dd5b915c60f1be674644ec7494882d1e42f07a23d426",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 151,
+          "settings": {
+            "dim": 32,
+            "hidden": 64,
+            "concat_k": 32,
+            "beta": 2.04,
+            "lam": 0.229
+          },
+          "parameter_precision": "published submission card; absent original tuned parameter file",
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_v1.py": "138095f67e2517d5da8d35e8d13d7e909d1eed1b326a93aeb21ee70fd631fbeb",
+          "scoreboard/build_features.py": "d8dd44cc5ce6bf3e3d52653d9b9e110f208c2614e796119a2c93c690441d7806"
+        }
+      },
+      "recovered_from_pr": 151
     },
     "gnn_v2": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "gnn_v2",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 32,
+        "source_sha256": "feca35e2985f58a409d342b22d9841ef015cc6096d237abf3ee8f3481590c17a",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 151,
+          "settings": {},
+          "parameter_precision": "published submission card; absent original tuned parameter file",
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_v2.py": "5eb8c0ac1b27415ed71e87b82183360fff729e53c29b8213eb6873f6d1d1ad8c",
+          "scoreboard/build_features.py": "d8dd44cc5ce6bf3e3d52653d9b9e110f208c2614e796119a2c93c690441d7806"
+        }
+      },
+      "recovered_from_pr": 151
     },
     "multi_x": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "multi_x",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.25,
+            "w_services": 0.04,
+            "w_gnn": 0.48,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 52.42862568040554,
+              "nognn": 48.90239401532656,
+              "notfidf": 51.96191464364621,
+              "behav": 43.91356656628929
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 505,
+        "source_sha256": "0ec1af17505a12dc199a730129361bdc7dcd30da493e1f844e7a70742d9cf1b1",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "xb_s",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train",
+            "day03",
+            "day04"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "multi_xd": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "multi_xd",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.022853932592410295,
+            "w_services": 0.1463654901354571,
+            "w_gnn": 0.5423582271832044,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_extra": 0.7612388509943075,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 56.4882333007157,
+              "nognn": 55.15008245892728,
+              "notfidf": 56.485033450608675,
+              "behav": 55.07580602357947,
+              "noextra": 52.18811906882796
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 633,
+        "source_sha256": "aaf639c7759171a76a1478e17e7360fa6116d165fce0bbedb6848bc0d51f3de3",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fit_windows": [
+            "day02_train",
+            "day02_12:30",
+            "day03",
+            "day04"
+          ],
+          "cross_day_parameters": "cross_day.py published defaults, holdout=none, no retuning",
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/cross_day.py": "a2ecc78687fca507ef4e73c3e83d1c63c92600824714416401f376d20e5c00b6",
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "multi_xd2": {
       "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "code_available": true,
+      "reviewed_pr": 166,
+      "reason_ru": "Код cross_day.py найден в PR #166. Для multi_xd и multi_xd2 сохранены одинаковые веса склейки, но разные исходные векторы; точная конфигурация второго encoder (окна/исключения/параметры) не зафиксирована. Нельзя выдать повтор первого варианта за восстановление второго."
     },
     "multiday_codebook_plus": {
       "status": "unavailable",
-      "reason": "Original Plus head and inference assembly are unavailable; the base is evaluated separately."
+      "code_available": false,
+      "reviewed_pr": 153,
+      "reason_ru": "PR #153 добавляет карточку, параметры и результаты, но не код обучения/сборки Plus. Оригинальная partner-head с опубликованным SHA отсутствует; описание позволяет отдельную реконструкцию, но не подтверждение оригинальных весов."
     },
     "ref_g": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "ref_g",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.6038911928843788,
+            "w_services": 0.14129215205037116,
+            "w_gnn": 0.18298544530686645,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 50.15573197081023,
+              "nognn": 49.644855443473325,
+              "notfidf": 45.005320235178544,
+              "behav": 43.73116608933283
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 441,
+        "source_sha256": "3d9144f46d372b6afa494b7eda42630ccd91caec54a1cc2c3b8f207c97dbcfb1",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "gnn_new",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "ref_g_fff": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "ref_g_fff",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.5063350484022046,
+            "w_services": 0.3655311789865371,
+            "w_gnn": 0.3166404680888939,
+            "k_peers": 256,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 51.954249102899254,
+              "nognn": 51.80122513586896,
+              "notfidf": 45.522842170652346,
+              "behav": 43.91356656628929
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 569,
+        "source_sha256": "247053e9ac3305a3509030d142a79f5197969f9e2694b5911422bec868aead3d",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "gnn_new",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "ref_x": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "ref_x",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.23256909499381773,
+            "w_services": 0.5096328367639147,
+            "w_gnn": 0.5156490338329178,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 51.823683748132936,
+              "nognn": 49.550352219793716,
+              "notfidf": 51.84968394022443,
+              "behav": 43.73116608933283
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 505,
+        "source_sha256": "bf3da1a43a03e746077557299e59655cc289a075caf1824cd2d4586ab9dbe6a5",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "xb_s",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "ref_x_f": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "ref_x_f",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.25330305931937946,
+            "w_services": 0.04164245162702129,
+            "w_gnn": 0.4776081331814036,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 52.6409352284207,
+              "nognn": 48.96222230609194,
+              "notfidf": 51.97991696876084,
+              "behav": 43.91356656628929
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 505,
+        "source_sha256": "89041e1628015477a89dbb32139c6220ea24c137426097fbd264567a9460d6b6",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "xb_s",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "ref_xm": {
-      "status": "unavailable",
-      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "ref_xm",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "w_peers": 0.23256909499381773,
+            "w_services": 0.5096328367639147,
+            "w_gnn": 0.5156490338329178,
+            "k_peers": 128,
+            "k_services": 64,
+            "w_behav": 1.0,
+            "ablation_validation": {
+              "full": 52.01347766436193,
+              "nognn": 49.550352219793716,
+              "notfidf": 52.54321238603101,
+              "behav": 43.73116608933283
+            }
+          }
+        },
+        "mode": "refit_original_pr_implementation_fixed_published_recipe",
+        "n_hosts": 6453,
+        "dim": 761,
+        "source_sha256": "9a89eb2c9f925f3db4ad99b6ce4e6b0c0195180281ee798c931a65290a0971c5",
+        "new_test_used_in_fit_or_selection": false,
+        "recovery": {
+          "pr": 166,
+          "fourth_block": "xb_m",
+          "reference_behavior": true,
+          "center_by_train": true,
+          "fit_windows": [
+            "day02_train"
+          ],
+          "exact_historical_weights": false
+        },
+        "implementation_sha256": {
+          "scoreboard/gnn_combine_v3.py": "144ba9e3b1c6dc3606d23934348b723323b05133b41324b644acb0b621ce05aa",
+          "scoreboard/build_blocks.py": "8757962962a08679f7979889071dde4dc675ff5cbe90876feef8c70bb41b33a8",
+          "scoreboard/build_xblock.py": "412e3e607aded2b68a4448b70d1f1ae3245e9fc876b14d9ad326ab0b357d9672",
+          "scoreboard/build_behavioral.py": "a75fbb25197bf1ecfd5b95d706e1fa3b222b310ebaa4807a3a0cd2999ae7a1dc"
+        }
+      },
+      "recovered_from_pr": 166
     },
     "behavioral": {
       "status": "trained",
@@ -601,5 +1137,58 @@
     "test": "a75f26d054df4cb0ef2647288b1dd299ce866e63adb13a8bbb563eae7c0fa908",
     "test_day89": "75ffa253027f8d668db5794bc7f2e38534b45c0a78f5c2515bb10e2acd88ed58",
     "test_day90": "76567769ec4002bdc32442e71058596f753f17fd16012237831928458d8762a1"
+  },
+  "recovery_audit": {
+    "reviewed_prs": [
+      {
+        "number": 150,
+        "url": "https://github.com/CorgCode/pt-project/pull/150"
+      },
+      {
+        "number": 151,
+        "url": "https://github.com/CorgCode/pt-project/pull/151"
+      },
+      {
+        "number": 153,
+        "url": "https://github.com/CorgCode/pt-project/pull/153"
+      },
+      {
+        "number": 166,
+        "url": "https://github.com/CorgCode/pt-project/pull/166"
+      }
+    ],
+    "previous_blanket_unavailable_classification_was_incorrect": true,
+    "recoverable_from_original_code": [
+      "behavioral_dae",
+      "behavioral_dae_consistency",
+      "gnn_v1p1_tuned",
+      "gnn_big",
+      "gnn_new",
+      "gnn_v2",
+      "gnn_tfidf_ref",
+      "gnn_tfidf_new",
+      "ref_g",
+      "ref_g_fff",
+      "ref_x",
+      "ref_x_f",
+      "ref_xm",
+      "multi_x",
+      "multi_xd"
+    ],
+    "recovery_policy": "Refit original implementations with published recipes; no late-test training or retuning. This does not claim bit-identical missing historical checkpoints.",
+    "remaining_details": {
+      "multiday_codebook_plus": {
+        "status": "unavailable",
+        "code_available": false,
+        "reviewed_pr": 153,
+        "reason_ru": "PR #153 добавляет карточку, параметры и результаты, но не код обучения/сборки Plus. Оригинальная partner-head с опубликованным SHA отсутствует; описание позволяет отдельную реконструкцию, но не подтверждение оригинальных весов."
+      },
+      "multi_xd2": {
+        "status": "unavailable",
+        "code_available": true,
+        "reviewed_pr": 166,
+        "reason_ru": "Код cross_day.py найден в PR #166. Для multi_xd и multi_xd2 сохранены одинаковые веса склейки, но разные исходные векторы; точная конфигурация второго encoder (окна/исключения/параметры) не зафиксирована. Нельзя выдать повтор первого варианта за восстановление второго."
+      }
+    }
   }
 }

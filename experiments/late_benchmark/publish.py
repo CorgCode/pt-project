@@ -34,6 +34,8 @@ def validate(results, processed, reference, statuses, spec):
         raise ValueError("not all reproducible models have completed evaluation")
     if any(item["status"] == "failed" for item in statuses.values()):
         raise ValueError("a reproducible model failed; resolve it before replacing the scoreboard")
+    if any(item["status"] not in ("trained", "unavailable") for item in statuses.values()):
+        raise ValueError("model recovery/preparation is still incomplete")
     if not {"behavioral", "random"} <= complete_methods:
         raise ValueError("required calibration/random baselines missing")
     for result in results:
@@ -83,12 +85,17 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
         "Для Neighbors идеал — уровень сохранения соседей `behavioral` между исходным train и конкретным поздним окном. "
         "Калибровка записана в манифесте каждого окна; значение выше этого уровня получает 100.")
     details = [f"**Бенчмарк `{spec['benchmark_id']}`.** Обучение и параметры зафиксированы до поздних test-дней. "
-               "Сохранённые checkpoints применяются без обучения; остальные доступные методы переобучены только на исходном train с прежними параметрами.",
+               "Сохранённые checkpoints применяются без обучения; остальные методы переобучены по опубликованным конфигурациям на исходных обучающих окнах. "
+               "Для многодневных методов использованы только исторические дни до test; окна обучения и происхождение кода записаны в benchmark.json и результатах.",
                "", "Когорта источника фиксирована на дне 02. Покрытие поздних дней не используется для отбора обучающих хостов.",
                "", "| Окно | Активных хостов | Покрытие исходной когорты |", "|---|---:|---:|"]
     for window, day in spec["test_days"].items():
         n = processed["cohort"]["evaluable"][window]
         details.append(f"| День {day} | {n} | {n / processed['cohort']['n_hosts']:.1%} |")
+    if any(item.get("recovered_from_pr") in (151, 166) for item in statuses.values()):
+        details += ["", "Восстановленные из PR модели обучены заново, без нового подбора. Для GNN параметры beta и lam "
+                    "взяты из опубликованных округлённых карточек: исходный файл точных tuned-параметров не сохранён. "
+                    "Это повторная реализация опубликованной конфигурации, а не заявление о побитовом совпадении исторических весов."]
     details += ["", "Нормировка Neighbors заново зафиксирована по behavioral persistence для каждого позднего окна. "
                 "В таблице показаны и исходные метрики; scores нового протокола нельзя напрямую сравнивать с историческими 70,0.",
                 "", "[Историческая таблица дней 14–16](history/days14-16/README.md).", "", "## Методы без переоценки", "",
@@ -96,7 +103,7 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
                 "", "| Метод | Причина |", "|---|---|"]
     for name, item in sorted(statuses.items()):
         if item["status"] == "unavailable":
-            reason = ("Нет оригинальной Plus-головы и сборки новых векторов; основа оценена отдельно."
+            reason = item.get("reason_ru") or ("Нет оригинальной Plus-головы и сборки новых векторов; основа оценена отдельно."
                       if name == "multiday_codebook_plus" else "Нет полного воспроизводимого адаптера inference / checkpoint для нового окна.")
             details.append(f"| `{name}` | {reason} |")
     content = content.replace("# Таблица результатов\n", "# Таблица результатов\n\n" + "\n".join(details) + "\n", 1)
@@ -104,6 +111,9 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
     metadata = {"benchmark_id": spec["benchmark_id"], "protocol": spec, "model_status": statuses,
                 "processed_manifest_sha256": _sha256(data_root / "processed/manifest.json"),
                 "reference_manifests_sha256": {w: _sha256(data_root / "reference" / w / "manifest.json") for w in spec["test_days"]}}
+    audit_path = work / "recovery/audit.json"
+    if audit_path.exists():
+        metadata["recovery_audit"] = json.loads(audit_path.read_text())
     (stage / "benchmark.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
     archive = board / "history/days14-16"
     current = board / "benchmark.json"
