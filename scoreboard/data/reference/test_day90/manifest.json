@@ -1,0 +1,196 @@
+{
+  "chance_consistency_at_k": {
+    "10": 0.00475963826749167,
+    "20": 0.00951927653498334,
+    "5": 0.002379819133745835
+  },
+  "cohort_policy": "train_only",
+  "cohort_selection": {
+    "coverage": {
+      "test": 0.6787540678754068,
+      "test_day89": 0.48628544862854484,
+      "test_day90": 0.3257399659073299,
+      "validation": 0.4278630094529676
+    },
+    "n_cohort": 6453,
+    "n_evaluable": {
+      "test": 4380,
+      "test_day89": 3138,
+      "test_day90": 2102,
+      "validation": 2761
+    },
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
+    "policy": "train_only"
+  },
+  "cohort_sha256": "bdcdb8575195e9146f0acfb58bed4ca01d01b422739fd89645381fdd11000a83",
+  "coverage": 0.3257399659073299,
+  "data_kind": "lanl_declared",
+  "files_sha256": {
+    "edges.csv": "ba9d79bd350e7873b4fd0829eb0b9da14bad2e5f57f64f5ebd6107f319d682b2",
+    "eval_hosts.csv": "4826b95379c5d53782e574bd26b5fb68b0de34952452709fef962be5d9b18723",
+    "features.csv": "9235f5cd4fc94acc3bcfd5221771f17a58e02631a2ba796c9216040e0174142c",
+    "neighbors.csv": "f7fa185626f598ca247c18238c39017fcefb8795dea8cead28e2f64a4af78cf5",
+    "pairs.csv": "180c016cd52efea391416d83b6172f86a3413ec9fb911ac2e1bce3c113bdc18e",
+    "partners.csv": "31dcaa2eb0dcf8cc31b79f74082e18fdeab8df905e9a5c7770ad99578cca1c71",
+    "triplets.csv": "38eaa93041457dc0289db760803635a39460b79209690f6fb50f5136f6916c76"
+  },
+  "ground_truth": false,
+  "judgments": {
+    "n_anchors_without_judgments": 60,
+    "n_hosts": 2102,
+    "n_negative_pairs": 1144065,
+    "n_pairs": 12494,
+    "n_positive_pairs": 35866,
+    "n_possible_pairs": 2208151,
+    "n_triplets": 5362,
+    "n_unjudged_pairs": 1028220,
+    "pairs_per_anchor": 10,
+    "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
+    "rule_version": 1,
+    "seed": 0,
+    "tau_pos": 1.0,
+    "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
+  },
+  "kind": "heldout_temporal_behavior_proxy",
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "labels": null,
+  "labels_source": null,
+  "n_cohort": 6453,
+  "n_evaluable": 2102,
+  "n_hosts": 2102,
+  "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
+  "pipeline_manifest_sha256": "de11b74fa16fd60bc6ba34c6c8ee909ae73c3ce22964743a11fba641d7f702a4",
+  "provenance": {
+    "kind": "lanl_declared",
+    "source_note": "LANL download form; user-provided access link; train/validation reused unchanged, test days 88–90",
+    "verified": false
+  },
+  "provenance_verified": false,
+  "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
+  "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "real_lanl_declared": true,
+  "reference_dimensions": 57,
+  "reference_neighbor_stability": {
+    "consistency@10": 0.18087535680304473,
+    "consistency@20": 0.22433396764985725,
+    "consistency@5": 0.14567078972407232,
+    "jaccard@10": 0.12373490509638303,
+    "jaccard@20": 0.15569837946882278,
+    "jaccard@5": 0.10063356138522646,
+    "ndcg@10": 0.19481184786283356,
+    "ndcg@20": 0.24173791732568048,
+    "ndcg@5": 0.1560846228990753
+  },
+  "reference_views": {
+    "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
+    "labels.csv": "external labels, only if supplied",
+    "neighbors.csv": "behavioural-profile proxy (target window)",
+    "pairs.csv / triplets.csv": "structural proxy: shared communication peers",
+    "partners.csv": "partners of each evaluable host in train (source) and target window"
+  },
+  "seed": 0,
+  "source_window": "train",
+  "split": "test",
+  "synthetic": false,
+  "target_window": "test_day90",
+  "test_events": 5408896,
+  "test_start_utc": "1970-03-31T12:30:00Z",
+  "train_end_utc": "1970-01-02T11:59:59Z",
+  "train_events": 9368480,
+  "windows": {
+    "test": {
+      "end": 7565400,
+      "flows_sha256": "56b85b3fc02486e2953a474b92265ce015b8dd8d79380890f96665cc4bb25f4e",
+      "graph_edges": 66402,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7565399.0,
+      "min_time": 7561800.0,
+      "n_flows": 9517831,
+      "n_hosts_in_window": 32791,
+      "n_hosts_outside_source_cohort": 27224,
+      "raw_rows": 237740986,
+      "raw_sha256": "671b62f472e365dbc0d730ff7902bd0ab4204120cf9aec9a911f905688d4caea",
+      "self_flows": 16733,
+      "start": 7561800,
+      "straddling_dropped": 367012
+    },
+    "test_day89": {
+      "end": 7651800,
+      "flows_sha256": "b39361459eff23e42020cfffac3744cb30e0fb012f936493005a2dd51b450c95",
+      "graph_edges": 49201,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7651799.0,
+      "min_time": 7648200.0,
+      "n_flows": 7531069,
+      "n_hosts_in_window": 32025,
+      "n_hosts_outside_source_cohort": 27124,
+      "raw_rows": 167072320,
+      "raw_sha256": "405d59eb6dcfb5d48af88f7eca952ae5c922a180c6197f2a4538a64a28749ca6",
+      "self_flows": 24053,
+      "start": 7648200,
+      "straddling_dropped": 255190
+    },
+    "test_day90": {
+      "end": 7738200,
+      "flows_sha256": "2153e2a465a8daa2067d977d822207fd40d223c6217386b8b5682c4d7ee8300d",
+      "graph_edges": 36091,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7738199.0,
+      "min_time": 7734600.0,
+      "n_flows": 5408896,
+      "n_hosts_in_window": 41653,
+      "n_hosts_outside_source_cohort": 37255,
+      "raw_rows": 135710585,
+      "raw_sha256": "a354b5bf11a16fa8c0e2bab0d4f429e6bd873351eda6e8c58fa0b912044615e9",
+      "self_flows": 18660,
+      "start": 7734600,
+      "straddling_dropped": 253028
+    },
+    "train": {
+      "end": 129600.0,
+      "graph_edges": 94243,
+      "max_time": 129599.0,
+      "min_time": 126000.0,
+      "n_flows": 9368480,
+      "start": 126000.0
+    },
+    "validation": {
+      "end": 131400.0,
+      "graph_edges": 70129,
+      "max_time": 131399.0,
+      "min_time": 129600.0,
+      "n_flows": 4526585,
+      "start": 129600.0
+    }
+  },
+  "benchmark_id": "lanl-source02-test88-90-v1",
+  "score_calibration": {
+    "neighbors_ideal": 0.18330161750713606,
+    "method": "behavioral_source_persistence",
+    "source_embeddings_sha256": "8209f63dad75eb650299b852662cf6fcd2e097df62289b507f5dc37c1a0ed935",
+    "n_evaluable": 2102
+  },
+  "protocol_sha256": "99441f84eadbb15c346ba8cc49ce6b1372236cdff62301fe660aa2c30139ea43"
+}

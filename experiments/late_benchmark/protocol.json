@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "lanl-source02-test88-90-v1",
+  "source": "LANL Unified Host and Network Dataset 2017, NetFlow",
+  "windows": {
+    "train": [126000, 129600],
+    "validation": [129600, 131400],
+    "test": [7561800, 7565400],
+    "test_day89": [7648200, 7651800],
+    "test_day90": [7734600, 7738200]
+  },
+  "test_days": {"test": 88, "test_day89": 89, "test_day90": 90},
+  "min_events_per_window": 300,
+  "min_cohort_size": 25,
+  "drop_straddling": true,
+  "cohort_policy": "train_only",
+  "seed": 0,
+  "bootstrap": 200,
+  "pairs_per_anchor": 10,
+  "model_selection_cutoff_day": 13,
+  "neighbor_score_calibration": "behavioral persistence on each new reference; raw metrics always reported",
+  "unavailable_methods": "explicit status, no copied historical metric and no substitute model",
+  "publication_gate": "all three test windows including day 90 must have complete references and required metrics"
+}

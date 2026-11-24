@@ -1,0 +1,605 @@
+{
+  "benchmark_id": "lanl-source02-test88-90-v1",
+  "protocol": {
+    "benchmark_id": "lanl-source02-test88-90-v1",
+    "source": "LANL Unified Host and Network Dataset 2017, NetFlow",
+    "windows": {
+      "train": [
+        126000,
+        129600
+      ],
+      "validation": [
+        129600,
+        131400
+      ],
+      "test": [
+        7561800,
+        7565400
+      ],
+      "test_day89": [
+        7648200,
+        7651800
+      ],
+      "test_day90": [
+        7734600,
+        7738200
+      ]
+    },
+    "test_days": {
+      "test": 88,
+      "test_day89": 89,
+      "test_day90": 90
+    },
+    "min_events_per_window": 300,
+    "min_cohort_size": 25,
+    "drop_straddling": true,
+    "cohort_policy": "train_only",
+    "seed": 0,
+    "bootstrap": 200,
+    "pairs_per_anchor": 10,
+    "model_selection_cutoff_day": 13,
+    "neighbor_score_calibration": "behavioral persistence on each new reference; raw metrics always reported",
+    "unavailable_methods": "explicit status, no copied historical metric and no substitute model",
+    "publication_gate": "all three test windows including day 90 must have complete references and required metrics"
+  },
+  "model_status": {
+    "behavioral_dae": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "behavioral_dae_consistency": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_big": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_new": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_tfidf_new": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_tfidf_ref": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_v1p1_tuned": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "gnn_v2": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "multi_x": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "multi_xd": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "multi_xd2": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "multiday_codebook_plus": {
+      "status": "unavailable",
+      "reason": "Original Plus head and inference assembly are unavailable; the base is evaluated separately."
+    },
+    "ref_g": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "ref_g_fff": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "ref_x": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "ref_x_f": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "ref_xm": {
+      "status": "unavailable",
+      "reason": "No complete reproducible inference adapter/checkpoint for a new window; historical test vectors are insufficient."
+    },
+    "behavioral": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "behavioral",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 57,
+        "source_sha256": "8209f63dad75eb650299b852662cf6fcd2e097df62289b507f5dc37c1a0ed935",
+        "published_source_max_abs_difference": 2.0961010704922955e-13,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "random": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "random",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {}
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 16,
+        "source_sha256": "94e84325e297ed00cbaf40cb406272ee473ebe1c82f499b8d15a09df7043b2b6",
+        "published_source_max_abs_difference": 4.440892098500626e-16,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "temporal_stable_hybrid": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "temporal_stable_hybrid",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "splits": 4,
+            "dim": 128,
+            "stable_dim": 128,
+            "regularization": 0.1,
+            "min_flows": 5,
+            "behavioral_weight": 2.0,
+            "stable_weight": 2.0,
+            "tuned_on": "validation",
+            "tuning": [
+              {
+                "behavioral_weight": 2.0,
+                "stable_weight": 0.0,
+                "score": 48.50141750478734,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.34113055399186,
+                  "Shared partners": 66.64666604346377,
+                  "Identity": 42.929659173314
+                }
+              },
+              {
+                "behavioral_weight": 2.0,
+                "stable_weight": 0.5,
+                "score": 49.05673053253935,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.696229864065877,
+                  "Shared partners": 67.02243307479876,
+                  "Identity": 43.872371283538804
+                }
+              },
+              {
+                "behavioral_weight": 2.0,
+                "stable_weight": 1.0,
+                "score": 49.364736212991836,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.824646243332648,
+                  "Shared partners": 67.60594568036215,
+                  "Identity": 44.30746918056563
+                }
+              },
+              {
+                "behavioral_weight": 2.0,
+                "stable_weight": 2.0,
+                "score": 49.39678036980365,
+                "tasks": {
+                  "Behavior": 97.13819817328168,
+                  "Future links": 19.668090443102674,
+                  "Shared partners": 68.9792632267893,
+                  "Identity": 45.17766497461928
+                }
+              },
+              {
+                "behavioral_weight": 3.0,
+                "stable_weight": 0.0,
+                "score": 46.8719497453114,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 18.85617873716831,
+                  "Shared partners": 63.83186390599935,
+                  "Identity": 40.101522842639596
+                }
+              },
+              {
+                "behavioral_weight": 3.0,
+                "stable_weight": 0.5,
+                "score": 47.42249471608747,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.263140299950894,
+                  "Shared partners": 63.96734632961526,
+                  "Identity": 41.04423495286439
+                }
+              },
+              {
+                "behavioral_weight": 3.0,
+                "stable_weight": 1.0,
+                "score": 47.76731823463748,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.24497036959684,
+                  "Shared partners": 64.0984419994432,
+                  "Identity": 42.2044960116026
+                }
+              },
+              {
+                "behavioral_weight": 3.0,
+                "stable_weight": 2.0,
+                "score": 48.25473205891555,
+                "tasks": {
+                  "Behavior": 100.00000000000004,
+                  "Future links": 19.6611350359991,
+                  "Shared partners": 64.4559928497941,
+                  "Identity": 42.784626540971715
+                }
+              }
+            ]
+          }
+        },
+        "mode": "original_checkpoint",
+        "n_hosts": 6453,
+        "dim": 441,
+        "source_sha256": "b815d3100a4c92ae99715de054d3b2a6426827d2d0539000f5af9e3c14d02103",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "multiday_codebook": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "multiday_codebook",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "winner": "codebook1_e400",
+            "neighbor_weight": 1,
+            "epochs": 400,
+            "adapter_blend": 0.5,
+            "training_end_day": 12,
+            "selected_on": "day 13",
+            "checkpoint_sha256": "a1c4bfa15ed0c227aefd981f59b87769aece146efb232da90617e4f561b10211"
+          }
+        },
+        "mode": "original_checkpoint",
+        "n_hosts": 6453,
+        "dim": 896,
+        "source_sha256": "1bdf0316aa88005caf80efb821c74db698918a4c5bad2f86e22df49c55fddc36",
+        "published_source_max_abs_difference": 4.999771124891694e-09,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "hybrid_tfidf": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "hybrid_tfidf",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "dim": 256,
+            "weights": {
+              "behavioral": 2.0,
+              "peers": 1.0,
+              "services": 1.0
+            },
+            "tuned_on": "validation"
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 569,
+        "source_sha256": "7b00405e8514ae0b1037c5b5b1e6810ef89b941777d3bbe92f63c53df99a954f",
+        "published_source_max_abs_difference": 0.00040681590685665014,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "temporal_cca_tuned": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "temporal_cca_tuned",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "recipe": {
+              "behavioral": 4.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "diffusion": 0.0,
+              "neural": 2.0
+            },
+            "encoder": "cca",
+            "splits": 2,
+            "epochs": 20,
+            "pca_dim": 384,
+            "tuned_on": "validation этого прогона"
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "896c9baaa6dab67ae7e1281b9d58135906d6efaaf67d72d0b28f63e6f5d28950",
+        "published_source_max_abs_difference": 0.0004651883951236613,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "temporal_encoder": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "temporal_encoder",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "recipe": {
+              "behavioral": 2.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "diffusion": 0.5,
+              "neural": 1.0
+            },
+            "epochs": 20,
+            "pca_dim": 384,
+            "tuned_on": "validation, день 02"
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "7a60962be89739f60f290da65a775463fafca8498b87496573011aeebaf41ddf",
+        "published_source_max_abs_difference": 0.00037938958490094446,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "temporal_encoder_tuned": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "temporal_encoder_tuned",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "recipe": {
+              "behavioral": 3.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "diffusion": 0.0,
+              "neural": 2.0
+            },
+            "encoder": "mlp",
+            "splits": 4,
+            "epochs": 20,
+            "pca_dim": 384,
+            "tuned_on": "validation этого прогона"
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "f1a48b9dada238b79ad4a06ce61f8f830bde21b4b1cce806f9ba161b34fcfd90",
+        "published_source_max_abs_difference": 0.0003656882595794997,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "temporal_dae": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "temporal_dae",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "reconstruction_weight": 0.03,
+            "splits": 4,
+            "recipe": {
+              "behavioral": 4.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "diffusion": 0.0,
+              "neural": 2.0
+            },
+            "pca_dim": 384,
+            "tuned_on": "validation only"
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "8ef888c299234dc2283dbb147be896dd8c1d6c4d9090bd2bace5a61ffb01fe55",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "future_profile_predictor": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "future_profile_predictor",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "recipe": {
+              "behavioral": 2.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "neural": 2.0
+            },
+            "epochs": 20,
+            "splits": 4,
+            "pca_dim": 384,
+            "seed": 17,
+            "tuned_on": "validation",
+            "tuning": [
+              {
+                "weight": 0.0,
+                "score": 44.84734409469606,
+                "tasks": {
+                  "Behavior": 73.34979158902786,
+                  "Future links": 19.34113055399186,
+                  "Shared partners": 66.64666604346377,
+                  "Identity": 42.784626540971715
+                }
+              },
+              {
+                "weight": 0.5,
+                "score": 47.373210145465265,
+                "tasks": {
+                  "Behavior": 73.95291486987901,
+                  "Future links": 21.80721508515314,
+                  "Shared partners": 66.97751785304021,
+                  "Identity": 46.62799129804206
+                }
+              },
+              {
+                "weight": 1.0,
+                "score": 50.16486945176206,
+                "tasks": {
+                  "Behavior": 73.27883590892768,
+                  "Future links": 24.353804971542527,
+                  "Shared partners": 67.96497004739386,
+                  "Identity": 52.21174764321973
+                }
+              },
+              {
+                "weight": 2.0,
+                "score": 51.97897456710212,
+                "tasks": {
+                  "Behavior": 70.29869734472173,
+                  "Future links": 25.65230192077667,
+                  "Shared partners": 71.38298800658814,
+                  "Identity": 56.70775924583034
+                }
+              }
+            ],
+            "loss_history": [
+              0.7196366460355994,
+              0.6233801686600463,
+              0.5896911951777053,
+              0.5685179866340062,
+              0.5485975726010048,
+              0.5339764091250014,
+              0.5186743981217685,
+              0.5094463555780175,
+              0.4985733044474092,
+              0.4910478706229223,
+              0.4811146912509448,
+              0.4737453472940889,
+              0.4662360924563996,
+              0.461239317100342,
+              0.4558314811693479,
+              0.44938844891443647,
+              0.4451925901517476,
+              0.4399028967504632,
+              0.4359273673736886,
+              0.43035272702778854
+            ]
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "5dffe50a2a64fd00ff0053a59b1cb5ec9aa2044791c127cec362d2845b595202",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      }
+    },
+    "relation_graph_hybrid": {
+      "status": "trained",
+      "training": {
+        "inputs": {
+          "method": "relation_graph_hybrid",
+          "source_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+          "source_cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+          "parameters": {
+            "recipe": {
+              "behavioral": 2.0,
+              "peers": 1.0,
+              "services": 1.0,
+              "relation": 2.0
+            },
+            "relations": [
+              "17/53",
+              "6/443",
+              "6/80",
+              "17/514"
+            ],
+            "pca_dim": 384,
+            "tuned_on": "validation",
+            "tuning": [
+              {
+                "weight": 0.0,
+                "score": 44.84734409469606,
+                "tasks": {
+                  "Behavior": 73.34979158902786,
+                  "Future links": 19.34113055399186,
+                  "Shared partners": 66.64666604346377,
+                  "Identity": 42.784626540971715
+                }
+              },
+              {
+                "weight": 0.5,
+                "score": 45.634130531002626,
+                "tasks": {
+                  "Behavior": 73.45622510917806,
+                  "Future links": 19.56486402196733,
+                  "Shared partners": 68.21629251171665,
+                  "Identity": 44.23495286439448
+                }
+              },
+              {
+                "weight": 1.0,
+                "score": 46.44202530500219,
+                "tasks": {
+                  "Behavior": 72.01937258715019,
+                  "Future links": 19.83907523530182,
+                  "Shared partners": 72.30136741672045,
+                  "Identity": 45.032632342277005
+                }
+              },
+              {
+                "weight": 2.0,
+                "score": 47.166071693821024,
+                "tasks": {
+                  "Behavior": 67.22986418039059,
+                  "Future links": 20.00551957476333,
+                  "Shared partners": 82.77716527699847,
+                  "Identity": 44.452501812907904
+                }
+              }
+            ]
+          }
+        },
+        "mode": "source_only_refit_fixed_published_parameters",
+        "n_hosts": 6453,
+        "dim": 384,
+        "source_sha256": "0b77fa7cee6e5dc252cc2071d18ec36cd941682e7cfca45096fc64ffbc124d97",
+        "published_source_max_abs_difference": null,
+        "new_test_used_in_fit_or_selection": false
+      }
+    }
+  },
+  "processed_manifest_sha256": "de11b74fa16fd60bc6ba34c6c8ee909ae73c3ce22964743a11fba641d7f702a4",
+  "reference_manifests_sha256": {
+    "test": "a75f26d054df4cb0ef2647288b1dd299ce866e63adb13a8bbb563eae7c0fa908",
+    "test_day89": "75ffa253027f8d668db5794bc7f2e38534b45c0a78f5c2515bb10e2acd88ed58",
+    "test_day90": "76567769ec4002bdc32442e71058596f753f17fd16012237831928458d8762a1"
+  }
+}

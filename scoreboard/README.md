@@ -1,7 +1,45 @@
 # Таблица результатов
 
+**Бенчмарк `lanl-source02-test88-90-v1`.** Обучение и параметры зафиксированы до поздних test-дней. Сохранённые checkpoints применяются без обучения; остальные доступные методы переобучены только на исходном train с прежними параметрами.
+
+Когорта источника фиксирована на дне 02. Покрытие поздних дней не используется для отбора обучающих хостов.
+
+| Окно | Активных хостов | Покрытие исходной когорты |
+|---|---:|---:|
+| День 88 | 4380 | 67.9% |
+| День 89 | 3138 | 48.6% |
+| День 90 | 2102 | 32.6% |
+
+Нормировка Neighbors заново зафиксирована по behavioral persistence для каждого позднего окна. В таблице показаны и исходные метрики; scores нового протокола нельзя напрямую сравнивать с историческими 70,0.
+
+[Историческая таблица дней 14–16](history/days14-16/README.md).
+
+## Методы без переоценки
+
+Старые test-векторы не позволяют вычислить узнаваемость на новом дне. Исторические scores в новый рейтинг не перенесены.
+
+| Метод | Причина |
+|---|---|
+| `behavioral_dae` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `behavioral_dae_consistency` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_big` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_new` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_tfidf_new` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_tfidf_ref` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_v1p1_tuned` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `gnn_v2` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `multi_x` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `multi_xd` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `multi_xd2` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `multiday_codebook_plus` | Нет оригинальной Plus-головы и сборки новых векторов; основа оценена отдельно. |
+| `ref_g` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `ref_g_fff` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `ref_x` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `ref_x_f` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+| `ref_xm` | Нет полного воспроизводимого адаптера inference / checkpoint для нового окна. |
+
 Каждый метод описывает компьютер в сети набором чисел — вектором. Таблица показывает, насколько эти векторы полезны.
-Данные — LANL, корпоративная сеть, компьютеров: 1581. Вектор строится по 1 ч трафика (день 02, 11:00–12:00) и проверяется на 3 отрезках: день 14, 12:30–13:30; день 15, 12:30–13:30; день 16, 12:30–13:30. Итог — среднее по ним.
+Данные — LANL, корпоративная сеть, компьютеров: 4380. Вектор строится по 1 ч трафика (день 02, 11:00–12:00) и проверяется на 3 отрезках: день 88, 12:30–13:30; день 89, 12:30–13:30; день 90, 12:30–13:30. Итог — среднее по ним.
 
 **Score** — итог от 0 до 100: 0 — как у случайных векторов, 100 — идеал. Места — по нему. В скобках — 95% интервал.
 Если нет хотя бы одной из четырёх задач, вместо score — incomplete и места нет.
@@ -9,35 +47,18 @@
 
 | # | method | submitted by | **score** | dim | Neighbors@10 | Links, AUC | New partners, MRR | Pairs, AUC | Identity, Top-1 | Tikhon LP, MRR* | Tikhon transfer, MRR* | Tikhon soft transfer, MRR* |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | [`multiday_codebook_plus`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multiday_codebook_plus/README.md) | @physcorgi | **70.0** [65.6–73.4] | 1024 | 0.208 [0.10–0.27] | 0.974 [0.97–0.99] | **0.318 [0.25–0.44]** | **0.992 [0.98–1.00]** | **0.596 [0.52–0.66]** | 0.023 [0.01–0.03] | 0.871 [0.84–0.93] | 0.845 [0.81–0.90] |
-| 2 | [`multiday_codebook`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multiday_codebook/README.md) | @physcorgi | 64.9 [59.8–68.5] | 896 | 0.222 [0.11–0.29] | 0.949 [0.94–0.97] | 0.250 [0.17–0.40] | 0.980 [0.95–1.00] | 0.594 [0.55–0.64] | **0.030 [0.02–0.04]** | 0.865 [0.83–0.92] | 0.845 [0.81–0.89] |
-| 3 | [`multi_xd2`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multi_xd2/README.md) | — | 57.9 [54.0–61.2] | 633 | 0.213 [0.12–0.28] | 0.977 [0.97–0.99] | 0.205 [0.13–0.35] | 0.982 [0.97–0.99] | 0.414 [0.33–0.49] | 0.020 [0.01–0.03] | 0.864 [0.83–0.91] | 0.817 [0.77–0.87] |
-| 4 | [`multi_x`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multi_x/README.md) | @Tikhon2783 | 57.6 [53.9–60.4] | 505 | 0.223 [0.12–0.29] | 0.975 [0.97–0.99] | 0.210 [0.14–0.34] | 0.984 [0.98–0.99] | 0.366 [0.26–0.43] | 0.020 [0.01–0.03] | 0.859 [0.83–0.90] | 0.799 [0.76–0.85] |
-| 5 | [`ref_x_f`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/ref_x_f/README.md) | @Tikhon2783 | 57.5 [53.9–60.2] | 505 | 0.223 [0.12–0.29] | 0.976 [0.97–0.99] | 0.209 [0.14–0.34] | 0.984 [0.98–0.99] | 0.364 [0.26–0.43] | 0.020 [0.01–0.03] | 0.857 [0.83–0.90] | 0.799 [0.76–0.85] |
-| 6 | [`multi_xd`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multi_xd/README.md) | — | 57.3 [53.3–60.6] | 633 | 0.214 [0.12–0.28] | 0.976 [0.97–0.99] | 0.199 [0.12–0.34] | 0.982 [0.97–0.99] | 0.413 [0.33–0.48] | 0.020 [0.01–0.03] | 0.863 [0.83–0.90] | 0.817 [0.77–0.87] |
-| 7 | [`ref_x`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/ref_x/README.md) | @Tikhon2783 | 56.8 [53.3–60.0] | 505 | 0.214 [0.12–0.28] | 0.976 [0.97–0.99] | 0.205 [0.13–0.34] | 0.986 [0.98–0.99] | 0.371 [0.26–0.44] | 0.019 [0.01–0.03] | 0.859 [0.83–0.90] | 0.811 [0.77–0.87] |
-| 8 | [`temporal_encoder`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder/README.md) | @physcorgi | 56.5 [52.8–59.7] | 384 | 0.219 [0.12–0.28] | 0.970 [0.96–0.98] | 0.200 [0.13–0.33] | 0.981 [0.97–0.99] | 0.373 [0.28–0.44] | 0.021 [0.01–0.03] | 0.865 [0.84–0.91] | 0.773 [0.71–0.86] |
-| 9 | [`ref_xm`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/ref_xm/README.md) | @Tikhon2783 | 56.0 [52.4–59.2] | 761 | 0.216 [0.12–0.28] | 0.973 [0.97–0.98] | 0.203 [0.13–0.33] | 0.986 [0.98–0.99] | 0.359 [0.26–0.43] | 0.019 [0.01–0.02] | 0.859 [0.83–0.90] | 0.813 [0.77–0.87] |
-| 10 | [`temporal_encoder_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder_tuned/README.md) | @physcorgi | 55.9 [52.2–59.0] | 384 | 0.223 [0.12–0.29] | 0.968 [0.96–0.98] | 0.196 [0.12–0.33] | 0.978 [0.96–0.99] | 0.378 [0.27–0.45] | 0.020 [0.01–0.03] | 0.865 [0.84–0.91] | 0.813 [0.77–0.87] |
-| 11 | [`hybrid_tfidf`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/hybrid_tfidf/README.md) | @physcorgi | 55.4 [51.2–58.6] | 569 | 0.218 [0.12–0.28] | 0.955 [0.94–0.98] | 0.206 [0.13–0.34] | 0.983 [0.97–0.99] | 0.356 [0.26–0.43] | 0.020 [0.01–0.03] | 0.861 [0.83–0.90] | 0.730 [0.67–0.85] |
-| 12 | [`ref_g_fff`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/ref_g_fff/README.md) | @Tikhon2783 | 55.4 [51.8–58.3] | 569 | 0.220 [0.12–0.28] | 0.974 [0.97–0.99] | 0.200 [0.13–0.33] | 0.982 [0.97–0.99] | 0.340 [0.25–0.40] | 0.018 [0.01–0.02] | 0.863 [0.83–0.91] | 0.795 [0.76–0.85] |
-| 13 | [`temporal_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_dae/README.md) | @kalivixZ | 55.1 [51.4–58.1] | 384 | **0.229 [0.13–0.30]** | 0.961 [0.95–0.98] | 0.192 [0.11–0.33] | 0.979 [0.97–0.99] | 0.365 [0.26–0.43] | 0.020 [0.01–0.03] | 0.858 [0.83–0.90] | 0.789 [0.74–0.85] |
-| 14 | [`gnn_tfidf_ref`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_tfidf_ref/README.md) | @Tikhon2783 | 55.0 [51.4–58.1] | 441 | 0.218 [0.12–0.28] | 0.967 [0.95–0.98] | 0.200 [0.13–0.33] | 0.983 [0.97–0.99] | 0.339 [0.25–0.39] | 0.019 [0.01–0.03] | 0.863 [0.84–0.90] | 0.766 [0.72–0.86] |
-| 15 | [`temporal_cca_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_cca_tuned/README.md) | @physcorgi | 54.9 [51.3–57.8] | 384 | 0.226 [0.12–0.29] | 0.963 [0.95–0.98] | 0.194 [0.12–0.33] | 0.979 [0.97–0.99] | 0.351 [0.26–0.41] | 0.020 [0.01–0.03] | 0.856 [0.83–0.90] | 0.724 [0.66–0.85] |
-| 16 | [`ref_g`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/ref_g/README.md) | @Tikhon2783 | 53.6 [50.0–56.6] | 441 | 0.218 [0.12–0.28] | **0.978 [0.97–0.99]** | 0.192 [0.12–0.32] | 0.982 [0.97–0.99] | 0.310 [0.23–0.37] | 0.019 [0.01–0.02] | 0.862 [0.84–0.90] | 0.709 [0.65–0.82] |
-| 17 | [`temporal_stable_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_stable_hybrid/README.md) | @DrMogger | 53.0 [49.4–56.4] | 441 | 0.186 [0.10–0.24] | 0.961 [0.95–0.98] | 0.215 [0.14–0.35] | 0.952 [0.89–0.99] | 0.353 [0.25–0.42] | 0.021 [0.01–0.03] | 0.875 [0.85–0.91] | 0.832 [0.80–0.87] |
-| 18 | [`gnn_tfidf_new`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_tfidf_new/README.md) | @Tikhon2783 | 52.5 [48.9–55.8] | 642 | 0.175 [0.09–0.22] | 0.973 [0.97–0.98] | 0.196 [0.12–0.33] | 0.981 [0.96–0.99] | 0.366 [0.28–0.43] | 0.022 [0.01–0.03] | **0.881 [0.86–0.92]** | **0.849 [0.82–0.89]** |
-| 19 | [`future_profile_predictor`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/future_profile_predictor/README.md) | @DrMogger | 52.0 [47.3–56.2] | 384 | 0.197 [0.10–0.26] | 0.929 [0.90–0.97] | 0.197 [0.12–0.33] | 0.950 [0.88–0.99] | 0.381 [0.28–0.45] | 0.024 [0.01–0.03] | 0.874 [0.85–0.91] | 0.838 [0.81–0.87] |
-| 20 | [`relation_graph_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/relation_graph_hybrid/README.md) | @DrMogger | 51.2 [46.8–55.0] | 384 | 0.183 [0.09–0.24] | 0.934 [0.91–0.97] | 0.209 [0.14–0.34] | 0.973 [0.94–0.99] | 0.326 [0.24–0.38] | 0.020 [0.01–0.03] | 0.872 [0.84–0.91] | 0.828 [0.79–0.88] |
-| 21 | [`gnn_new`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_new/README.md) | @Tikhon2783 | 48.7 [44.8–52.1] | 192 | 0.179 [0.09–0.23] | 0.952 [0.94–0.97] | 0.181 [0.12–0.30] | 0.981 [0.96–1.00] | 0.295 [0.18–0.38] | 0.018 [0.01–0.02] | 0.858 [0.83–0.90] | 0.809 [0.77–0.86] |
-| 22 | [`gnn_big`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_big/README.md) | @Tikhon2783 | 48.6 [44.5–52.0] | 192 | 0.179 [0.09–0.23] | 0.949 [0.93–0.97] | 0.182 [0.12–0.29] | 0.982 [0.96–1.00] | 0.291 [0.18–0.37] | 0.019 [0.01–0.03] | 0.859 [0.83–0.90] | 0.810 [0.77–0.86] |
-| 23 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 48.2 [44.6–50.8] | 57 | 0.223 [0.13–0.29] | 0.956 [0.94–0.98] | 0.177 [0.12–0.29] | 0.981 [0.98–0.99] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.841 [0.81–0.89] | 0.674 [0.61–0.79] |
-| 24 | [`gnn_v1p1_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_v1p1_tuned/README.md) | @Tikhon2783 | 45.9 [41.6–49.6] | 64 | 0.181 [0.09–0.23] | 0.852 [0.81–0.92] | 0.180 [0.11–0.30] | 0.980 [0.96–0.99] | 0.288 [0.18–0.36] | 0.019 [0.01–0.03] | 0.852 [0.82–0.90] | 0.803 [0.76–0.86] |
-| 25 | [`gnn_v2`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/gnn_v2/README.md) | @Tikhon2783 | 41.6 [37.8–45.1] | 32 | 0.149 [0.07–0.19] | 0.913 [0.88–0.96] | 0.172 [0.11–0.28] | 0.974 [0.96–0.98] | 0.218 [0.14–0.28] | 0.017 [0.01–0.02] | 0.865 [0.83–0.91] | 0.796 [0.75–0.87] |
-| 26 | [`behavioral_dae_consistency`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae_consistency/README.md) | @kalivixZ | 38.4 [35.0–41.6] | 16 | 0.210 [0.12–0.28] | 0.955 [0.94–0.98] | 0.174 [0.12–0.28] | 0.978 [0.97–0.98] | 0.096 [0.06–0.12] | 0.016 [0.01–0.02] | 0.843 [0.81–0.90] | 0.683 [0.61–0.82] |
-| 27 | [`behavioral_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral_dae/README.md) | @kalivixZ | 38.0 [34.5–41.2] | 16 | 0.211 [0.12–0.28] | 0.954 [0.94–0.98] | 0.173 [0.12–0.28] | 0.974 [0.96–0.99] | 0.092 [0.06–0.12] | 0.017 [0.01–0.02] | 0.837 [0.80–0.89] | 0.688 [0.62–0.83] |
-| — | *[`random`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/random/README.md)* | — | 1.0 | 16 | 0.004 [0.00–0.01] | 0.571 [0.55–0.60] | 0.067 [0.04–0.12] | 0.500 [0.50–0.50] | 0.001 [0.00–0.00] | 0.033 [0.02–0.04] | 0.462 [0.37–0.64] | 0.311 [0.24–0.44] |
-| | *chance level* | | 0 | | 0.005 | 0.59–0.85 | 0.082 | 0.500 | 0.001 | 0.030 | 0.030 | 0.030 |
+| 1 | [`multiday_codebook`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/multiday_codebook/README.md) | @physcorgi | **66.4** [61.9–69.7] | 896 | 0.141 [0.10–0.20] | 0.958 [0.94–0.97] | **0.401 [0.34–0.48]** | 0.972 [0.95–0.99] | **0.456 [0.44–0.47]** | **0.023 [0.02–0.03]** | 0.902 [0.88–0.92] | **0.851 [0.78–0.90]** |
+| 2 | [`temporal_encoder`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder/README.md) | @physcorgi | 57.8 [54.6–60.2] | 384 | 0.147 [0.10–0.20] | 0.970 [0.96–0.98] | 0.329 [0.23–0.42] | 0.978 [0.97–0.99] | 0.260 [0.23–0.28] | 0.017 [0.01–0.02] | 0.895 [0.87–0.91] | 0.739 [0.68–0.80] |
+| 3 | [`hybrid_tfidf`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/hybrid_tfidf/README.md) | @physcorgi | 57.6 [54.4–60.0] | 569 | 0.146 [0.10–0.19] | 0.962 [0.94–0.98] | 0.379 [0.28–0.47] | 0.981 [0.97–0.99] | 0.241 [0.22–0.26] | 0.016 [0.01–0.02] | 0.893 [0.87–0.91] | 0.793 [0.74–0.82] |
+| 4 | [`temporal_encoder_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_encoder_tuned/README.md) | @physcorgi | 56.4 [53.4–58.6] | 384 | 0.148 [0.10–0.20] | **0.972 [0.96–0.98]** | 0.289 [0.19–0.37] | 0.973 [0.96–0.98] | 0.259 [0.24–0.28] | 0.017 [0.01–0.02] | 0.895 [0.87–0.91] | 0.742 [0.67–0.82] |
+| 5 | [`temporal_cca_tuned`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_cca_tuned/README.md) | @physcorgi | 56.3 [53.1–58.6] | 384 | 0.150 [0.10–0.20] | 0.967 [0.95–0.98] | 0.305 [0.20–0.39] | 0.976 [0.96–0.98] | 0.252 [0.22–0.28] | 0.016 [0.01–0.02] | 0.888 [0.87–0.91] | 0.797 [0.76–0.82] |
+| 6 | [`temporal_dae`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_dae/README.md) | @kalivixZ | 55.7 [52.6–58.1] | 384 | **0.150 [0.11–0.20]** | 0.965 [0.95–0.98] | 0.289 [0.20–0.37] | 0.976 [0.97–0.98] | 0.250 [0.22–0.27] | 0.016 [0.01–0.02] | 0.889 [0.87–0.91] | 0.792 [0.76–0.82] |
+| 7 | [`temporal_stable_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/temporal_stable_hybrid/README.md) | @DrMogger | 54.0 [49.6–57.7] | 441 | 0.127 [0.09–0.17] | 0.955 [0.93–0.97] | 0.361 [0.26–0.46] | 0.946 [0.91–0.98] | 0.238 [0.21–0.26] | 0.016 [0.01–0.02] | **0.903 [0.89–0.92]** | 0.752 [0.67–0.83] |
+| 8 | [`relation_graph_hybrid`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/relation_graph_hybrid/README.md) | @DrMogger | 53.7 [50.1–57.1] | 384 | 0.123 [0.09–0.17] | 0.953 [0.93–0.97] | 0.384 [0.29–0.47] | 0.967 [0.95–0.98] | 0.219 [0.20–0.23] | 0.015 [0.01–0.02] | 0.898 [0.88–0.92] | 0.737 [0.67–0.81] |
+| 9 | [`future_profile_predictor`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/future_profile_predictor/README.md) | @DrMogger | 52.3 [48.1–56.0] | 384 | 0.131 [0.09–0.18] | 0.949 [0.92–0.97] | 0.282 [0.19–0.36] | 0.937 [0.89–0.97] | 0.257 [0.23–0.29] | 0.019 [0.01–0.02] | 0.901 [0.88–0.92] | 0.750 [0.71–0.80] |
+| 10 | [`behavioral`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/behavioral/README.md) | @physcorgi | 50.7 [47.7–52.9] | 57 | 0.143 [0.10–0.18] | 0.958 [0.93–0.98] | 0.377 [0.31–0.44] | **0.984 [0.98–0.99]** | 0.132 [0.12–0.15] | 0.014 [0.01–0.02] | 0.877 [0.86–0.90] | 0.769 [0.74–0.79] |
+| — | *[`random`](https://github.com/CorgCode/pt-project/blob/main/scoreboard/submissions/random/README.md)* | — | 1.1 | 16 | 0.003 [0.00–0.01] | 0.562 [0.55–0.57] | 0.108 [0.06–0.15] | 0.501 [0.50–0.50] | 0.001 [0.00–0.00] | 0.030 [0.02–0.04] | 0.570 [0.45–0.67] | 0.411 [0.32–0.50] |
+| | *chance level* | | 0 | | 0.003 | 0.67–0.87 | 0.094 | 0.500 | 0.001 | 0.026 | 0.026 | 0.026 |
 
 | колонка | что проверяет (больше — лучше) |
 |---|---|
@@ -51,7 +72,7 @@
 | Tikhon soft transfer, MRR* | то же, но угадываются компьютеры, похожие на собеседников похожих (идея 3, мягкий вариант) |
 
 \* Метрики Тихона (#40, PR #65, [`evaluation/tikhon.py`](../evaluation/tikhon.py)): показаны для сравнения, в score не входят.
-Chance level для них — случайный порядок кандидатов. Без эмбеддинга «с кем общался раньше» даёт 0.964 — у Тихона это бейзлайн history.
+Chance level для них — случайный порядок кандидатов. Без эмбеддинга «с кем общался раньше» даёт 0.961 — у Тихона это бейзлайн history.
 
 Жирным — лучшее в колонке. В скобках — от худшего до лучшего значения по test-окнам (дням).
 dim — длина вектора. Chance level — значение при случайном угадывании.
@@ -60,8 +81,7 @@ dim — длина вектора. Chance level — значение при сл
 ## Как считается score
 
 Каждая колонка переводится в шкалу 0–100 (0 — случайное угадывание, 100 — идеал).
-Для Neighbors идеал — не 1.0, а уровень `behavioral` (поведение хоста в train): поведение в test-окне
-во многом новое, и даже признаки за 30 минут до test дают лишь ~0.21. Выше этого уровня — 100.
+Для Neighbors идеал — уровень сохранения соседей `behavioral` между исходным train и конкретным поздним окном. Калибровка записана в манифесте каждого окна; значение выше этого уровня получает 100.
 Колонки объединены в четыре задачи: Behavior (Neighbors), Future links (Links и New partners),
 Shared partners (Pairs), Identity. Score — среднее геометрическое четырёх задач:
 метод, который провалил хотя бы одну задачу, не поднимется высоко за счёт остальных. Для нескольких test-окон каждая колонка — среднее по окнам.
@@ -70,33 +90,16 @@ Shared partners (Pairs), Identity. Score — среднее геометриче
 
 Score на каждом test-окне отдельно. Хороший метод держится на всех днях, а не только на соседнем с обучением.
 
-| method | день 14, 12:30–13:30 | день 15, 12:30–13:30 | день 16, 12:30–13:30 | **mean** |
+| method | день 88, 12:30–13:30 | день 89, 12:30–13:30 | день 90, 12:30–13:30 | **mean** |
 |---|---|---|---|---|
-| `multiday_codebook_plus` | 70.0 | 70.1 | 70.0 | 70.0 |
-| `multiday_codebook` | 63.3 | 63.2 | 68.3 | 64.9 |
-| `multi_xd2` | 55.3 | 56.7 | 61.6 | 57.9 |
-| `multi_x` | 56.1 | 57.6 | 59.1 | 57.6 |
-| `ref_x_f` | 55.8 | 57.6 | 59.0 | 57.5 |
-| `multi_xd` | 54.2 | 56.2 | 61.3 | 57.3 |
-| `ref_x` | 55.4 | 56.8 | 58.1 | 56.8 |
-| `temporal_encoder` | 54.4 | 56.1 | 58.9 | 56.5 |
-| `ref_xm` | 54.9 | 55.5 | 57.7 | 56.0 |
-| `temporal_encoder_tuned` | 53.2 | 55.7 | 58.6 | 55.9 |
-| `hybrid_tfidf` | 53.9 | 54.3 | 57.9 | 55.4 |
-| `ref_g_fff` | 53.5 | 54.7 | 57.9 | 55.4 |
-| `temporal_dae` | 51.8 | 54.7 | 58.6 | 55.1 |
-| `gnn_tfidf_ref` | 53.3 | 54.4 | 57.2 | 55.0 |
-| `temporal_cca_tuned` | 51.9 | 54.5 | 58.4 | 54.9 |
-| `ref_g` | 51.3 | 53.5 | 56.1 | 53.6 |
-| `temporal_stable_hybrid` | 52.2 | 54.7 | 52.1 | 53.0 |
-| `gnn_tfidf_new` | 50.2 | 52.8 | 54.4 | 52.5 |
-| `future_profile_predictor` | 50.1 | 52.8 | 52.9 | 52.0 |
-| `relation_graph_hybrid` | 49.6 | 51.4 | 52.5 | 51.2 |
-| `gnn_new` | 48.0 | 50.1 | 48.0 | 48.7 |
-| `gnn_big` | 47.7 | 50.0 | 48.0 | 48.6 |
-| `behavioral` | 48.6 | 46.8 | 49.1 | 48.2 |
-| `gnn_v1p1_tuned` | 43.7 | 46.7 | 47.2 | 45.9 |
-| `gnn_v2` | 40.6 | 42.1 | 42.2 | 41.6 |
-| `behavioral_dae_consistency` | 38.5 | 37.1 | 39.6 | 38.4 |
-| `behavioral_dae` | 38.1 | 36.7 | 39.1 | 38.0 |
-| `random` | 1.0 | 1.0 | 1.1 | 1.0 |
+| `multiday_codebook` | 67.0 | 65.8 | 66.2 | 66.4 |
+| `temporal_encoder` | 58.8 | 59.1 | 55.5 | 57.8 |
+| `hybrid_tfidf` | 58.6 | 58.5 | 55.8 | 57.6 |
+| `temporal_encoder_tuned` | 57.7 | 57.5 | 54.0 | 56.4 |
+| `temporal_cca_tuned` | 57.0 | 58.0 | 54.0 | 56.3 |
+| `temporal_dae` | 56.9 | 56.8 | 53.4 | 55.7 |
+| `temporal_stable_hybrid` | 53.5 | 54.4 | 54.2 | 54.0 |
+| `relation_graph_hybrid` | 54.1 | 54.1 | 52.9 | 53.7 |
+| `future_profile_predictor` | 52.2 | 52.9 | 52.0 | 52.3 |
+| `behavioral` | 50.5 | 51.0 | 50.5 | 50.7 |
+| `random` | 1.2 | 1.0 | 1.0 | 1.1 |

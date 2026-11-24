@@ -1,67 +1,54 @@
 {
   "chance_consistency_at_k": {
-    "10": 0.006329113924050633,
-    "20": 0.012658227848101266,
-    "5": 0.0031645569620253164
+    "10": 0.0022836263987211693,
+    "20": 0.004567252797442339,
+    "5": 0.0011418131993605847
   },
   "cohort_policy": "train_only",
   "cohort_selection": {
     "coverage": {
-      "test": 0.24500232450023246,
-      "test_day15": 0.27305129397179606,
-      "test_day16": 0.7277235394390206,
+      "test": 0.6787540678754068,
+      "test_day89": 0.48628544862854484,
+      "test_day90": 0.3257399659073299,
       "validation": 0.4278630094529676
-    },
-    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
-    "median_train_events": {
-      "active_in_every_window": 2103.0,
-      "not_active_in_every_window": 514.5
     },
     "n_cohort": 6453,
     "n_evaluable": {
-      "test": 1581,
-      "test_day15": 1762,
-      "test_day16": 4696,
+      "test": 4380,
+      "test_day89": 3138,
+      "test_day90": 2102,
       "validation": 2761
     },
-    "n_hosts_active_in_every_window": 731,
     "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
-  "cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
-  "coverage": 0.24500232450023246,
+  "cohort_sha256": "bdcdb8575195e9146f0acfb58bed4ca01d01b422739fd89645381fdd11000a83",
+  "coverage": 0.6787540678754068,
   "data_kind": "lanl_declared",
   "files_sha256": {
-    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "edges.csv": "8edd61cd9c8c426dcaa6f76754d06f1cd9fa49455842f7f47da91ab3a24e8566",
-    "eval_hosts.csv": "c4254270bae3a30aae8e58f8a5c2ff4d3a021b087befef754704851d0d5d865f",
-    "features.csv": "3699053c32bd5ca4307058b7ac721181a3ab6e49664bb7c51a3d8958395a1b0c",
-    "neighbors.csv": "4c3c7c4d351240ded36f2a03119813bf3fc8fe14303c30735b1e5487fd1e9a19",
-    "pairs.csv": "fc184f444a36acacf121725d2a78457e7a2d50f2a75ffb33eee9d647c88df613",
-    "partners.csv": "7cb79e85efbedf7b994ecbed1bfb5e8334ef127c09264a1e263b132c2ddcc97f",
-    "triplets.csv": "a91f77d82bd70c09a0b35db1d573b9fec76fbd217491c5f85f5dffe5393195b5"
+    "edges.csv": "c99332c08db1ef23f4e344ba32c350a511776ff3774e03c69c19751ab029cbfe",
+    "eval_hosts.csv": "6e81f3713f44813223651fb22ce8fabcefc8b72884b88e4e63f5298071c88501",
+    "features.csv": "e2fcaa127ea93e452b409be67e0f943408b423b257cf7f59a7db20c5cf19b751",
+    "neighbors.csv": "6d01273856df764c52c4d2bc404dfc4ecfc20e8c88263568a1035166638d5724",
+    "pairs.csv": "c80cb28a913eb21adeab70ec4a185e42bb1c79887d44877556d22f4c7b9bb2c7",
+    "partners.csv": "1f17c9bbd31d2765941c8658689dabaaba482d7fa412df585ca7f705fde92335",
+    "triplets.csv": "3b0dbf998861dea0a442738c8717678b7433be3e577aec1b5af4eb8fe58708f5"
   },
   "ground_truth": false,
   "judgments": {
-    "n_anchors_without_judgments": 65,
-    "n_hosts": 1581,
-    "n_negative_pairs": 689836,
-    "n_pairs": 8530,
-    "n_positive_pairs": 14939,
-    "n_possible_pairs": 1248990,
-    "n_triplets": 3670,
-    "n_unjudged_pairs": 544215,
+    "n_anchors_without_judgments": 442,
+    "n_hosts": 4380,
+    "n_negative_pairs": 2885429,
+    "n_pairs": 33449,
+    "n_positive_pairs": 96613,
+    "n_possible_pairs": 9590010,
+    "n_triplets": 14533,
+    "n_unjudged_pairs": 6607968,
     "pairs_per_anchor": 10,
     "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
     "rule_version": 1,
     "seed": 0,
-    "tau_pos": 1.0,
+    "tau_pos": 0.8275862068965517,
     "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
   },
   "kind": "heldout_temporal_behavior_proxy",
@@ -73,47 +60,13 @@
   "labels": null,
   "labels_source": null,
   "n_cohort": 6453,
-  "n_evaluable": 1581,
-  "n_hosts": 1581,
+  "n_evaluable": 4380,
+  "n_hosts": 4380,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+  "pipeline_manifest_sha256": "de11b74fa16fd60bc6ba34c6c8ee909ae73c3ce22964743a11fba641d7f702a4",
   "provenance": {
-    "basis": "operator_declaration",
-    "checks": {
-      "filename_pattern": true,
-      "fixture_signature": false,
-      "format_sample": {
-        "netflow_day-02.bz2": {
-          "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.984416571645762,
-          "share_ports_numeric_or_PortN": 1.0,
-          "share_protocol_numeric": 1.0
-        },
-        "netflow_day-14.bz2": {
-          "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.9745454545454545,
-          "share_ports_numeric_or_PortN": 1.0,
-          "share_protocol_numeric": 1.0
-        },
-        "netflow_day-15.bz2": {
-          "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.8372413793103448,
-          "share_ports_numeric_or_PortN": 1.0,
-          "share_protocol_numeric": 1.0
-        },
-        "netflow_day-16.bz2": {
-          "sampled_rows": 20000,
-          "share_devices_named_CompN": 0.9651678277390754,
-          "share_ports_numeric_or_PortN": 1.0,
-          "share_protocol_numeric": 1.0
-        }
-      },
-      "marker_file": false
-    },
-    "declared_kind": "lanl",
     "kind": "lanl_declared",
-    "source_note": "форма LANL, 2026-10-24, physcorgi",
-    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "source_note": "LANL download form; user-provided access link; train/validation reused unchanged, test days 88–90",
     "verified": false
   },
   "provenance_verified": false,
@@ -122,15 +75,15 @@
   "real_lanl_declared": true,
   "reference_dimensions": 57,
   "reference_neighbor_stability": {
-    "consistency@10": 0.29538266919671097,
-    "consistency@20": 0.3446236559139784,
-    "consistency@5": 0.2465528146742568,
-    "jaccard@10": 0.21260523717770471,
-    "jaccard@20": 0.24846949030812962,
-    "jaccard@5": 0.1775122235274038,
-    "ndcg@10": 0.31715818275753976,
-    "ndcg@20": 0.377618733714233,
-    "ndcg@5": 0.2653031344173672
+    "consistency@10": 0.10315068493150685,
+    "consistency@20": 0.12897260273972602,
+    "consistency@5": 0.08205479452054795,
+    "jaccard@10": 0.07119926619428293,
+    "jaccard@20": 0.09040288813209392,
+    "jaccard@5": 0.056858375009059936,
+    "ndcg@10": 0.11100489645849647,
+    "ndcg@20": 0.13728528468054907,
+    "ndcg@5": 0.08995938850098509
   },
   "reference_views": {
     "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
@@ -144,34 +97,76 @@
   "split": "test",
   "synthetic": false,
   "target_window": "test",
-  "test_events": 6991341,
-  "test_start_utc": "1970-01-14T12:30:00Z",
+  "test_events": 9517831,
+  "test_start_utc": "1970-03-29T12:30:00Z",
   "train_end_utc": "1970-01-02T11:59:59Z",
   "train_events": 9368480,
   "windows": {
     "test": {
-      "end": 1171800.0,
-      "graph_edges": 34385,
-      "max_time": 1171799.0,
-      "min_time": 1168200.0,
-      "n_flows": 6991341,
-      "start": 1168200.0
+      "end": 7565400,
+      "flows_sha256": "56b85b3fc02486e2953a474b92265ce015b8dd8d79380890f96665cc4bb25f4e",
+      "graph_edges": 66402,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7565399.0,
+      "min_time": 7561800.0,
+      "n_flows": 9517831,
+      "n_hosts_in_window": 32791,
+      "n_hosts_outside_source_cohort": 27224,
+      "raw_rows": 237740986,
+      "raw_sha256": "671b62f472e365dbc0d730ff7902bd0ab4204120cf9aec9a911f905688d4caea",
+      "self_flows": 16733,
+      "start": 7561800,
+      "straddling_dropped": 367012
     },
-    "test_day15": {
-      "end": 1258200.0,
-      "graph_edges": 34905,
-      "max_time": 1258199.0,
-      "min_time": 1254600.0,
-      "n_flows": 6248231,
-      "start": 1254600.0
+    "test_day89": {
+      "end": 7651800,
+      "flows_sha256": "b39361459eff23e42020cfffac3744cb30e0fb012f936493005a2dd51b450c95",
+      "graph_edges": 49201,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7651799.0,
+      "min_time": 7648200.0,
+      "n_flows": 7531069,
+      "n_hosts_in_window": 32025,
+      "n_hosts_outside_source_cohort": 27124,
+      "raw_rows": 167072320,
+      "raw_sha256": "405d59eb6dcfb5d48af88f7eca952ae5c922a180c6197f2a4538a64a28749ca6",
+      "self_flows": 24053,
+      "start": 7648200,
+      "straddling_dropped": 255190
     },
-    "test_day16": {
-      "end": 1344600.0,
-      "graph_edges": 72804,
-      "max_time": 1344599.0,
-      "min_time": 1341000.0,
-      "n_flows": 9988801,
-      "start": 1341000.0
+    "test_day90": {
+      "end": 7738200,
+      "flows_sha256": "2153e2a465a8daa2067d977d822207fd40d223c6217386b8b5682c4d7ee8300d",
+      "graph_edges": 36091,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "blank_protocol_or_port": 0,
+        "invalid_count": 0,
+        "invalid_duration": 0,
+        "invalid_time": 0
+      },
+      "max_time": 7738199.0,
+      "min_time": 7734600.0,
+      "n_flows": 5408896,
+      "n_hosts_in_window": 41653,
+      "n_hosts_outside_source_cohort": 37255,
+      "raw_rows": 135710585,
+      "raw_sha256": "a354b5bf11a16fa8c0e2bab0d4f429e6bd873351eda6e8c58fa0b912044615e9",
+      "self_flows": 18660,
+      "start": 7734600,
+      "straddling_dropped": 253028
     },
     "train": {
       "end": 129600.0,
@@ -189,5 +184,13 @@
       "n_flows": 4526585,
       "start": 129600.0
     }
-  }
+  },
+  "benchmark_id": "lanl-source02-test88-90-v1",
+  "score_calibration": {
+    "neighbors_ideal": 0.10308219178082192,
+    "method": "behavioral_source_persistence",
+    "source_embeddings_sha256": "8209f63dad75eb650299b852662cf6fcd2e097df62289b507f5dc37c1a0ed935",
+    "n_evaluable": 4380
+  },
+  "protocol_sha256": "99441f84eadbb15c346ba8cc49ce6b1372236cdff62301fe660aa2c30139ea43"
 }

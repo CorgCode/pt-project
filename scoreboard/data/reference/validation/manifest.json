@@ -28,17 +28,10 @@
     "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
     "policy": "train_only"
   },
-  "cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+  "cohort_sha256": "bdcdb8575195e9146f0acfb58bed4ca01d01b422739fd89645381fdd11000a83",
   "coverage": 0.4278630094529676,
   "data_kind": "lanl_declared",
   "files_sha256": {
-    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
-    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
     "edges.csv": "1ee9da99e4ccd6d32bff43c19390c55ba8e29f2486debcaef2c6a4a0fda59315",
     "eval_hosts.csv": "2520a61d2e07940128502b4aae3c3070172abcfc529f46a364a9bae9c68f9bf5",
     "features.csv": "dbfffa916f66b78ff00e4b08a1ca820fd71a9a330ac5109738fc406b904c99fb",
@@ -76,7 +69,7 @@
   "n_evaluable": 2761,
   "n_hosts": 2761,
   "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
-  "pipeline_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+  "pipeline_manifest_sha256": "de11b74fa16fd60bc6ba34c6c8ee909ae73c3ce22964743a11fba641d7f702a4",
   "provenance": {
     "basis": "operator_declaration",
     "checks": {
@@ -149,30 +142,6 @@
   "train_end_utc": "1970-01-02T11:59:59Z",
   "train_events": 9368480,
   "windows": {
-    "test": {
-      "end": 1171800.0,
-      "graph_edges": 34385,
-      "max_time": 1171799.0,
-      "min_time": 1168200.0,
-      "n_flows": 6991341,
-      "start": 1168200.0
-    },
-    "test_day15": {
-      "end": 1258200.0,
-      "graph_edges": 34905,
-      "max_time": 1258199.0,
-      "min_time": 1254600.0,
-      "n_flows": 6248231,
-      "start": 1254600.0
-    },
-    "test_day16": {
-      "end": 1344600.0,
-      "graph_edges": 72804,
-      "max_time": 1344599.0,
-      "min_time": 1341000.0,
-      "n_flows": 9988801,
-      "start": 1341000.0
-    },
     "train": {
       "end": 129600.0,
       "graph_edges": 94243,
@@ -188,6 +157,89 @@
       "min_time": 129600.0,
       "n_flows": 4526585,
       "start": 129600.0
+    },
+    "test": {
+      "start": 7561800,
+      "end": 7565400,
+      "n_flows": 9517831,
+      "min_time": 7561800.0,
+      "max_time": 7565399.0,
+      "graph_edges": 66402,
+      "raw_rows": 237740986,
+      "straddling_dropped": 367012,
+      "self_flows": 16733,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "invalid_time": 0,
+        "invalid_duration": 0,
+        "invalid_count": 0,
+        "blank_protocol_or_port": 0
+      },
+      "n_hosts_in_window": 32791,
+      "n_hosts_outside_source_cohort": 27224,
+      "raw_sha256": "671b62f472e365dbc0d730ff7902bd0ab4204120cf9aec9a911f905688d4caea",
+      "flows_sha256": "56b85b3fc02486e2953a474b92265ce015b8dd8d79380890f96665cc4bb25f4e"
+    },
+    "test_day89": {
+      "start": 7648200,
+      "end": 7651800,
+      "n_flows": 7531069,
+      "min_time": 7648200.0,
+      "max_time": 7651799.0,
+      "graph_edges": 49201,
+      "raw_rows": 167072320,
+      "straddling_dropped": 255190,
+      "self_flows": 24053,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "invalid_time": 0,
+        "invalid_duration": 0,
+        "invalid_count": 0,
+        "blank_protocol_or_port": 0
+      },
+      "n_hosts_in_window": 32025,
+      "n_hosts_outside_source_cohort": 27124,
+      "raw_sha256": "405d59eb6dcfb5d48af88f7eca952ae5c922a180c6197f2a4538a64a28749ca6",
+      "flows_sha256": "b39361459eff23e42020cfffac3744cb30e0fb012f936493005a2dd51b450c95"
+    },
+    "test_day90": {
+      "start": 7734600,
+      "end": 7738200,
+      "n_flows": 5408896,
+      "min_time": 7734600.0,
+      "max_time": 7738199.0,
+      "graph_edges": 36091,
+      "raw_rows": 135710585,
+      "straddling_dropped": 253028,
+      "self_flows": 18660,
+      "invalid_rows_in_window": {
+        "blank_device": 0,
+        "invalid_time": 0,
+        "invalid_duration": 0,
+        "invalid_count": 0,
+        "blank_protocol_or_port": 0
+      },
+      "n_hosts_in_window": 41653,
+      "n_hosts_outside_source_cohort": 37255,
+      "raw_sha256": "a354b5bf11a16fa8c0e2bab0d4f429e6bd873351eda6e8c58fa0b912044615e9",
+      "flows_sha256": "2153e2a465a8daa2067d977d822207fd40d223c6217386b8b5682c4d7ee8300d"
     }
+  },
+  "source_validation_manifest_sha256": "323eaba8e8e6bfc76b5d806b09443ebac103aa47512be602e5874e5601782a83",
+  "excluded_legacy_nonmetric_files": {
+    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25"
+  },
+  "benchmark_id": "lanl-source02-test88-90-v1",
+  "score_calibration": {
+    "neighbors_ideal": 0.20775081492212963,
+    "method": "behavioral_source_persistence",
+    "source_embeddings_sha256": "8209f63dad75eb650299b852662cf6fcd2e097df62289b507f5dc37c1a0ed935",
+    "n_evaluable": 2761
   }
 }

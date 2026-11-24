@@ -32,13 +32,17 @@ def _sha(path: Path) -> str:
 def build_reference(processed_dir: Path, output_dir: Path, *, seed: int = 0,
                     ks: tuple[int, ...] = (5, 10, 20), negatives_per_positive: int = 1,
                     tau_pos: float | None = None, pairs_per_anchor: int = 5,
-                    labels: Path | None = None, labels_source: str | None = None) -> dict:
+                    labels: Path | None = None, labels_source: str | None = None,
+                    targets: tuple[str, ...] | None = None) -> dict:
     data = ProcessedData(processed_dir)
     if labels is not None and not labels_source:
         raise ValueError("для --labels нужен --labels-source: откуда метки")
+    chosen = [w for w in data.windows if w != "train"] if targets is None else list(targets)
+    if not chosen or len(set(chosen)) != len(chosen) or any(w not in data.windows or w == "train" for w in chosen):
+        raise ValueError("targets должны содержать неповторяющиеся целевые окна датасета")
     train = load_flows(processed_dir / "flows" / "train.csv")
     summary = {}
-    for target in [w for w in data.windows if w != "train"]:
+    for target in chosen:
         split = "validation" if target == "validation" else "test"      # внутренняя метка строк эталона
         # хосты, оцениваемые в ЭТОМ окне (при all_windows — вся когорта)
         hosts = data.evaluable(target)

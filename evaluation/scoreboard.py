@@ -30,7 +30,13 @@ def load_results(results_dir: Path) -> list[dict]:
 
 def check_compatible(results: list[dict]) -> None:
     refs, fits, hosts, kinds, splits = set(), set(), set(), set(), set()
+    benchmarks, calibrations, window_refs = set(), set(), set()
     for r in results:
+        benchmarks.add(r.get("benchmark_id"))
+        calibrations.add(json.dumps(r.get("score_calibration"), sort_keys=True))
+        window_refs.add(json.dumps({name: {"files": value.get("reference_info", {}).get("files_sha256"),
+                                           "calibration": value.get("score_calibration")}
+                                   for name, value in r.get("by_window", {}).items()}, sort_keys=True))
         info = r.get("reference_info") or {}
         files = info.get("files_sha256")
         fp = tuple(sorted(files.items())) if files else (info.get("features_sha256"), info.get("neighbors_sha256"))
@@ -53,6 +59,8 @@ def check_compatible(results: list[dict]) -> None:
         raise ValueError(f"смешаны типы данных (например синтетика и реальные): {sorted(map(str, kinds))}")
     if len(splits) > 1:
         raise ValueError(f"смешаны split: {sorted(map(str, splits))}")
+    if len(benchmarks) > 1 or len(calibrations) > 1 or len(window_refs) > 1:
+        raise ValueError("методы относятся к разным версиям бенчмарка, нормировкам или эталонам test-окон")
 
 
 def full_table(results: list[dict]) -> pd.DataFrame:
@@ -107,6 +115,12 @@ def column_scores(r: dict, cols, window: str | None = None) -> dict[str, float]:
     for k in cols:
         v, c = r["metrics"].get(k), chance.get(k)
         top = NEIGHBORS_IDEAL.get(window, NEIGHBORS_IDEAL_DEFAULT) if k == NEIGHBORS else 1.0
+        if k == NEIGHBORS and r.get("score_calibration") is not None:
+            top = r["score_calibration"].get("neighbors_ideal")
+            if isinstance(top, bool) or not isinstance(top, (int, float)) or not math.isfinite(top) or not 0 < top <= 1:
+                raise ValueError("score_calibration.neighbors_ideal должен быть конечным числом в (0, 1]")
+        elif k == NEIGHBORS and r.get("benchmark_id"):
+            raise ValueError("для версионированного бенчмарка нужна явная нормировка Neighbors")
         if v is None or c is None or c >= top:
             continue
         out[k] = 100 * min(max((v - c) / (top - c), 0.0), 1.0)
@@ -139,6 +153,8 @@ def _one_score(r: dict, cols, required: bool = True, window: str | None = None) 
     """required=False — только для ориентиров (SERVICE): у reference_ceiling части задач нет по устройству."""
     if required and not complete(r, cols):
         return float("nan")             # пропуск сложной задачи не должен поднимать балл
+    if required and r.get("benchmark_id") and set(cols) - set(column_scores(r, cols, window)):
+        return float("nan")  # an undefined normalization must not silently remove a task
     ts = task_scores(r, cols, window)
     return _geo(ts.values()) if ts else float("nan")
 
@@ -151,7 +167,9 @@ def overall_score(results: list[dict], cols) -> pd.Series:
     for r in results:
         req = r["method"] not in SERVICE
         if r.get("by_window"):
-            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"]}, cols, req, name)
+            days = [_one_score({"summary": w["summary"], "metrics": w["metrics"],
+                                **{key: w.get(key, r.get(key)) for key in ("benchmark_id", "score_calibration")
+                                   if key in w or key in r}}, cols, req, name)
                     for name, w in r["by_window"].items()]
             out[r["method"]] = float(np.mean(days)) if not any(np.isnan(days)) else float("nan")
         else:

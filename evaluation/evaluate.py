@@ -308,6 +308,9 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
         "labels_source": protocol.get("labels_source"),
         "fit_reference_files_sha256": None,
     }
+    for key in ("benchmark_id", "score_calibration"):
+        if key in protocol:
+            result[key] = protocol[key]
     ctx = Context(emb, emb_full, reference_dir, protocol, split, n_boot, seed,
                   Path(fit_reference_dir) if fit_reference_dir else None, result)
     summary = []

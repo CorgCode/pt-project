@@ -1,0 +1,193 @@
+{
+  "chance_consistency_at_k": {
+    "10": 0.002129925452609159,
+    "20": 0.004259850905218318,
+    "5": 0.0010649627263045794
+  },
+  "cohort_policy": "train_only",
+  "cohort_selection": {
+    "coverage": {
+      "test": 0.24500232450023246,
+      "test_day15": 0.27305129397179606,
+      "test_day16": 0.7277235394390206,
+      "validation": 0.4278630094529676
+    },
+    "interpretation": "если медианы различаются, выживание хоста связано с его активностью в train, и ограничение «стабильными» хостами меняет оцениваемую совокупность",
+    "median_train_events": {
+      "active_in_every_window": 2103.0,
+      "not_active_in_every_window": 514.5
+    },
+    "n_cohort": 6453,
+    "n_evaluable": {
+      "test": 1581,
+      "test_day15": 1762,
+      "test_day16": 4696,
+      "validation": 2761
+    },
+    "n_hosts_active_in_every_window": 731,
+    "note": "Когорта определяется ТОЛЬКО по train-окну. Хост, неактивный в позднем окне, там не оценивается; каждый эталон строится по оцениваемым хостам, покрытие пишется в отчёт. «Выживание» хостов в поздние окна — часть измеряемого результата, а не определения когорты.",
+    "policy": "train_only"
+  },
+  "cohort_sha256": "a47e1acf719b8af0de81f7e52327f5c382c553d638ec567118ab30a4b2c84e98",
+  "coverage": 0.7277235394390206,
+  "data_kind": "lanl_declared",
+  "files_sha256": {
+    "._edges.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._eval_hosts.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._features.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._neighbors.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._pairs.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._partners.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "._triplets.csv": "65eed70be57f2bd32f12b672e23e3a1dc7d28775187fdf502aef5b3f83e8af25",
+    "edges.csv": "e6f6529c8f2e0d50163d68f0c7998b301bb7ce44b8f54dec3293c4ca6d2d0398",
+    "eval_hosts.csv": "d24cd67765d1f8222804b5d3cbe879a2db74ec416d0c5ed635f573842a00a92f",
+    "features.csv": "298b4c17ccadb6f454b3ff2c8b611896433a2fa43a7dd0df9b8c450b5c0daea3",
+    "neighbors.csv": "336a2b04a47bc14818d6066b1f471cf60ed1fe9804b485785e07d9f8ef0b5168",
+    "pairs.csv": "70667d129cb94f59deece8ae173c13ee53653fa62f6632ee69fba3118b0b0b6f",
+    "partners.csv": "892ef7616551b2545f6bd02f611149ebda4025afb97bc01fcb13fe74ccd6ba71",
+    "triplets.csv": "44134cc8db857f0f524845af4c02ae41cd805c3bc4b04c28e26a936aee43435e"
+  },
+  "ground_truth": false,
+  "judgments": {
+    "n_anchors_without_judgments": 432,
+    "n_hosts": 4696,
+    "n_negative_pairs": 3159250,
+    "n_pairs": 40614,
+    "n_positive_pairs": 110383,
+    "n_possible_pairs": 11023860,
+    "n_triplets": 17751,
+    "n_unjudged_pairs": 7754227,
+    "pairs_per_anchor": 10,
+    "relevance_definition": "positive: peer-set Jaccard >= tau_pos in the target window; negative: Jaccard == 0; otherwise unjudged (never negative)",
+    "rule_version": 1,
+    "seed": 0,
+    "tau_pos": 0.8,
+    "tau_rule": "max(0.1, 99th percentile of pairwise Jaccard)"
+  },
+  "kind": "heldout_temporal_behavior_proxy",
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "labels": null,
+  "labels_source": null,
+  "n_cohort": 6453,
+  "n_evaluable": 4696,
+  "n_hosts": 4696,
+  "note": "High consistency alone does not prove functional roles are learned. Report feature choice, baseline results and window drift.",
+  "pipeline_manifest_sha256": "70195b7f3ba41d5a5f797ac54e07cc8a73c92ba3279d3225673e61f4b6c76458",
+  "provenance": {
+    "basis": "operator_declaration",
+    "checks": {
+      "filename_pattern": true,
+      "fixture_signature": false,
+      "format_sample": {
+        "netflow_day-02.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.984416571645762,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-14.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9745454545454545,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-15.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.8372413793103448,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        },
+        "netflow_day-16.bz2": {
+          "sampled_rows": 20000,
+          "share_devices_named_CompN": 0.9651678277390754,
+          "share_ports_numeric_or_PortN": 1.0,
+          "share_protocol_numeric": 1.0
+        }
+      },
+      "marker_file": false
+    },
+    "declared_kind": "lanl",
+    "kind": "lanl_declared",
+    "source_note": "форма LANL, 2026-10-24, physcorgi",
+    "verification": "none: no published checksums are available to this pipeline; a declaration is not proof",
+    "verified": false
+  },
+  "provenance_verified": false,
+  "provenance_warning": "Nonoverlap of supplied flow files is verified, but whether the submitted embeddings were trained exclusively on the train window cannot be established automatically.",
+  "purpose": "cross-window behavioral neighbor preservation, not host role labels",
+  "real_lanl_declared": true,
+  "reference_dimensions": 57,
+  "reference_neighbor_stability": {
+    "consistency@10": 0.12568143100511076,
+    "consistency@20": 0.1489565587734242,
+    "consistency@5": 0.10268313458262351,
+    "jaccard@10": 0.09057403650308618,
+    "jaccard@20": 0.10693560392342585,
+    "jaccard@5": 0.07570695086666125,
+    "ndcg@10": 0.13282122236938332,
+    "ndcg@20": 0.15949715158634345,
+    "ndcg@5": 0.10845276901059914
+  },
+  "reference_views": {
+    "edges.csv": "future communication (source=train, target window); negatives_per_positive=1",
+    "labels.csv": "external labels, only if supplied",
+    "neighbors.csv": "behavioural-profile proxy (target window)",
+    "pairs.csv / triplets.csv": "structural proxy: shared communication peers",
+    "partners.csv": "partners of each evaluable host in train (source) and target window"
+  },
+  "seed": 0,
+  "source_window": "train",
+  "split": "test",
+  "synthetic": false,
+  "target_window": "test_day16",
+  "test_events": 9988801,
+  "test_start_utc": "1970-01-16T12:30:00Z",
+  "train_end_utc": "1970-01-02T11:59:59Z",
+  "train_events": 9368480,
+  "windows": {
+    "test": {
+      "end": 1171800.0,
+      "graph_edges": 34385,
+      "max_time": 1171799.0,
+      "min_time": 1168200.0,
+      "n_flows": 6991341,
+      "start": 1168200.0
+    },
+    "test_day15": {
+      "end": 1258200.0,
+      "graph_edges": 34905,
+      "max_time": 1258199.0,
+      "min_time": 1254600.0,
+      "n_flows": 6248231,
+      "start": 1254600.0
+    },
+    "test_day16": {
+      "end": 1344600.0,
+      "graph_edges": 72804,
+      "max_time": 1344599.0,
+      "min_time": 1341000.0,
+      "n_flows": 9988801,
+      "start": 1341000.0
+    },
+    "train": {
+      "end": 129600.0,
+      "graph_edges": 94243,
+      "max_time": 129599.0,
+      "min_time": 126000.0,
+      "n_flows": 9368480,
+      "start": 126000.0
+    },
+    "validation": {
+      "end": 131400.0,
+      "graph_edges": 70129,
+      "max_time": 131399.0,
+      "min_time": 129600.0,
+      "n_flows": 4526585,
+      "start": 129600.0
+    }
+  }
+}

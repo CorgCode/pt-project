@@ -217,7 +217,11 @@ def combine_windows(per: dict[str, dict]) -> dict:
     r["ci_kind"] = "range over test windows"
     r["test_windows"] = ws
     r["by_window"] = {w: {"metrics": per[w]["metrics"], "summary": per[w]["summary"],
-                          "metrics_ci": per[w].get("metrics_ci", {})} for w in ws}
+                          "metrics_ci": per[w].get("metrics_ci", {}),
+                          **{key: per[w][key] for key in ("benchmark_id", "score_calibration", "reference_info")
+                             if key in per[w]}} for w in ws}
+    if r.get("benchmark_id"):
+        r.pop("score_calibration", None)  # calibration is specific to each target window
     return r
 
 
