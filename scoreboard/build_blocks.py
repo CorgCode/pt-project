@@ -64,8 +64,8 @@ def row_norm(x: sp.csr_matrix) -> sp.csr_matrix:
 class TfidfSvd:
     """Словарь + IDF + SVD, обученные на train; transform() — для любого окна."""
 
-    def __init__(self, kmax: int, min_df: int = 2):
-        self.kmax, self.min_df = kmax, min_df
+    def __init__(self, kmax: int, min_df: int = 2, seed: int = 0):
+        self.kmax, self.min_df, self.seed = kmax, min_df, seed
 
     def _matrix(self, trip: pd.DataFrame, hidx: dict) -> sp.csr_matrix:
         t = trip[trip["host"].isin(hidx)]
@@ -90,7 +90,9 @@ class TfidfSvd:
         self.idf = np.log((1 + x.shape[0]) / (1 + df)) + 1.0
         xw = self._weight(x).astype(np.float64)
         k = min(self.kmax, min(xw.shape) - 1)
-        _, s, vt = svds(xw, k=k)
+        # ARPACK's implicit random start otherwise changes on every rebuild.
+        start = np.random.default_rng(self.seed).standard_normal(min(xw.shape))
+        _, s, vt = svds(xw, k=k, v0=start)
         o = np.argsort(-s)
         self.s, self.vt = s[o], vt[o]
         return self.transform(trip, hidx)

@@ -83,9 +83,16 @@ def run(data_root=ROOT / "data/late_benchmark", work=WORK, *, wait=False, publis
         command("infer_" + name, "experiments.late_benchmark.models", "infer", "--method", name,
                 "--processed", data_root / "processed", "--work", work)
         command("evaluate_" + name, "experiments.late_benchmark.evaluate", "--method", name, "--data", data_root, "--work", work)
+        # Successful evaluation verifies the canonical model record and vector
+        # hashes. Do not publish an old copy left in the preparation status.
+        statuses[name]["training"] = json.loads((work / "models" / name / "training.json").read_text())
+        atomic_json(training_path, statuses)
     command("recover_pr_models", "experiments.late_benchmark.recover", "--data", data_root, "--work", work)
     statuses = json.loads(training_path.read_text())
     ready = [name for name, item in statuses.items() if item["status"] == "trained"]
+    samples = data_root / "audit/source_samples"
+    if all((samples / f"{name}.{suffix}").exists() for name in ("ref_x", "ref_x_f", "gnn_tfidf_new") for suffix in ("csv", "json")):
+        command("audit_source_samples", "experiments.late_benchmark.quality", "--samples", samples, "--work", work)
     if publish:
         command("publish", "experiments.late_benchmark.publish", "--data", data_root, "--work", work)
         return state("complete", methods=ready, table=str(ROOT / "scoreboard/README.md"))

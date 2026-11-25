@@ -51,7 +51,6 @@ def write_audit(work):
     atomic_json(work / "model_status.json", statuses)
     atomic_json(work / "recovery/audit.json", {
         "reviewed_prs": [{"number": n, "url": f"https://github.com/CorgCode/pt-project/pull/{n}"} for n in (150, 151, 153, 166)],
-        "previous_blanket_unavailable_classification_was_incorrect": True,
         "recoverable_from_original_code": ["behavioral_dae", "behavioral_dae_consistency", *RECOVERED],
         "recovery_policy": "Refit original implementations with published recipes; no late-test training or retuning. "
                            "This does not claim bit-identical missing historical checkpoints.",
@@ -97,9 +96,14 @@ def run(data_root=ROOT / "data/late_benchmark", work=WORK):
 
     def command(label, script, arguments, outputs, dependencies=()):
         receipt = root / f"{label}.json"
+        imported = []
+        if script == "build_xblock.py":
+            imported.append(ROOT / "scoreboard/build_blocks.py")
+        if script == "gnn_v2.py":
+            imported.append(ROOT / "scoreboard/gnn_v1.py")
         fingerprint = {"script": _sha256(ROOT / "scoreboard" / script), "arguments": list(map(str, arguments)),
                        "protocol": spec["benchmark_id"], "processed": _sha256(data.root / "manifest.json"),
-                       "dependencies": {str(p): _sha256(p) for p in dependencies}}
+                       "dependencies": {str(p): _sha256(p) for p in [*dependencies, *imported]}}
         if receipt.exists():
             old = json.loads(receipt.read_text())
             if old["inputs"] == fingerprint and all(p.exists() and old["outputs"].get(str(p)) == _sha256(p) for p in outputs):

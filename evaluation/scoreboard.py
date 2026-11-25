@@ -189,8 +189,8 @@ def _at_bound(r: dict, side: int) -> dict:
 
 
 def score_interval(results: list[dict], cols) -> tuple[pd.Series, pd.Series]:
-    """95% интервал score: все метрики на нижнем / верхнем краю своих интервалов. Score растёт по каждой
-    метрике, поэтому интервал консервативный — шире совместного. У окон — бутстреп по хостам этого окна."""
+    """Границы score по поколоночным интервалам, без гарантии совместного 95% покрытия.
+    Монотонность сохраняет порядок границ; у окон — бутстреп по хостам этого окна."""
     return (overall_score([_at_bound(r, 0) for r in results], cols),
             overall_score([_at_bound(r, 1) for r in results], cols))
 

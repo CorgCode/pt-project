@@ -168,6 +168,10 @@ def train(name, base=SOURCE, work=WORK):
         previous = json.loads(record_path.read_text())
         if previous["inputs"] != inputs:
             raise ValueError("saved model belongs to different training data/settings")
+        if _sha256(folder / "embeddings.csv") != previous["source_sha256"]:
+            raise ValueError("saved training vectors changed; refusing to reuse the model")
+        if previous.get("model_sha256") and _sha256(folder / "model.pkl") != previous["model_sha256"]:
+            raise ValueError("saved model checkpoint changed")
         return previous
     data = ProcessedData(base)
     # Only the frozen source dataset is passed to fit; no late test CSV is reachable here.
@@ -195,6 +199,8 @@ def train(name, base=SOURCE, work=WORK):
     result = {"inputs": inputs, "mode": "original_checkpoint" if frozen else "source_only_refit_fixed_published_parameters",
               "n_hosts": len(source), "dim": source.shape[1], "source_sha256": _sha256(folder / "embeddings.csv"),
               "published_source_max_abs_difference": comparison, "new_test_used_in_fit_or_selection": False}
+    if not frozen:
+        result["model_sha256"] = _sha256(folder / "model.pkl")
     record_path.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps({"trained": name, "dim": source.shape[1], "mode": result["mode"]}), flush=True)
     return result
@@ -217,8 +223,10 @@ def infer(name, processed, work=WORK):
         receipt = target.with_suffix(".json")
         fingerprint = {"benchmark_id": data.manifest["benchmark_id"], "training": training["source_sha256"],
                        "processed_manifest": _sha256(data.root / "manifest.json"), "window": window}
-        if receipt.exists() and target.exists() and json.loads(receipt.read_text())["inputs"] == fingerprint:
-            continue
+        if receipt.exists() and target.exists():
+            cached = json.loads(receipt.read_text())
+            if cached["inputs"] == fingerprint and cached.get("sha256") == _sha256(target):
+                continue
         clear_window_cache(model, work)
         hosts = data.evaluable(window)
         embedding = model.embed(data, window, hosts)

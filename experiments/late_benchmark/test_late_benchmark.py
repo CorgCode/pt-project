@@ -274,12 +274,13 @@ def publication_fixture(tmp_path):
         (folder/'manifest.json').write_text(json.dumps({'benchmark_id':spec['benchmark_id'],'windows':windows,
             'files_sha256':info['files_sha256'],'score_calibration':calibration}))
         per[name]={'method':'behavioral','n_hosts':100,'split':'test','benchmark_id':spec['benchmark_id'],
-            'metrics':dict(zip(REQUIRED,values)),'metrics_ci':{},'reference_info':info,'score_calibration':calibration,
+            'metrics':{**dict(zip(REQUIRED,values)), **{k:.1 for k in scoreboard.EXTRA}},'metrics_ci':{},'reference_info':info,'score_calibration':calibration,
             'summary':[{'metric':key,'title':key,'group':group,'value':value,'chance':baseline}
                        for key,group,value,baseline in zip(REQUIRED,groups,values,chance)]}
     results=[]
     for method in ('behavioral','random'):
-        result=submit.combine_windows(copy.deepcopy(per));result.update(method=method,dim=4,
+        from experiments.late_benchmark.evaluate import adapter_sha256
+        result=submit.combine_windows(copy.deepcopy(per));result.update(method=method,dim=4,late_adapter_sha256=adapter_sha256(),
             training_provenance={'new_test_used_in_fit_or_selection':False})
         results.append(result)
         (work/'results'/f'{method}.json').write_text(json.dumps(result))
@@ -393,3 +394,90 @@ def test_pr_audit_does_not_reclassify_recoverable_methods_as_unavailable(tmp_pat
     assert {n for n,v in status.items() if v['status']=='unavailable'}=={'multi_xd2','multiday_codebook_plus'}
     audit=json.loads((tmp_path/'recovery/audit.json').read_text())
     assert len(audit['recoverable_from_original_code'])==15
+
+
+@pytest.mark.parametrize('changed', ['code', 'training', 'seed', 'bootstrap', 'validation', 'nan', 'adapter'])
+def test_score_cache_invalidates_changed_evaluator_fit_or_provenance(changed):
+    import copy
+    from experiments.late_benchmark.evaluate import cache_matches, PUBLISHED_METRICS
+    cached={'late_inputs':{'vectors':'same'},'training_provenance':{'config':'original'},
+            'code_sha256':'code','late_adapter_sha256':'adapter','seed':0,'n_bootstrap':200,
+            'by_window':{'test':{'reference_info':{'fit_reference_files_sha256':{'fit.csv':'hash'}},
+                                 'metrics':{key:.5 for key in PUBLISHED_METRICS}}}}
+    args=[cached,{'vectors':'same'},{'config':'original'},'code',0,200,{'fit.csv':'hash'},'adapter']
+    assert cache_matches(*args)
+    args=copy.deepcopy(args)
+    if changed=='code': args[3]='new evaluator'
+    elif changed=='training': args[2]['config']='changed'
+    elif changed=='seed': args[4]=1
+    elif changed=='bootstrap': args[5]=20
+    elif changed=='validation': args[6]['fit.csv']='changed'
+    elif changed=='adapter': args[7]='changed scoring glue'
+    else: args[0]['by_window']['test']['metrics']['identity_top1']=float('nan')
+    assert not cache_matches(*args)
+
+
+def test_adapter_signature_ignores_rendering_but_detects_scoring_changes():
+    from experiments.late_benchmark.evaluate import adapter_sha256
+    source=Path(submit.__file__).read_text()
+    assert adapter_sha256(source)==adapter_sha256(source+'\n# rendering-only comment\n')
+    assert adapter_sha256(source)!=adapter_sha256(source.replace('def combine_windows(per: dict[str, dict]) -> dict:',
+        'def combine_windows(per: dict[str, dict]) -> dict:\n    raise RuntimeError("changed scoring")'))
+
+
+def test_whole_publication_rolls_back_after_late_rename_failure(tmp_path,monkeypatch):
+    from experiments.late_benchmark.publish import promote
+    stage,board=tmp_path/'stage',tmp_path/'board'
+    stage.mkdir();board.mkdir()
+    for base,text in ((stage,'new'),(board,'old')):
+        (base/'results').mkdir();(base/'results/value.json').write_text(text)
+        (base/'README.md').write_text(text)
+        (base/'benchmark.json').write_text(text)
+    original=Path.rename
+    def fail_on_last(self,target):
+        if self.name=='benchmark.json.late-new':raise OSError('simulated publication failure')
+        return original(self,target)
+    monkeypatch.setattr(Path,'rename',fail_on_last)
+    with pytest.raises(OSError,match='simulated'):
+        promote([(stage/p,board/p) for p in ('results','README.md','benchmark.json')])
+    assert (board/'results/value.json').read_text()=='old'
+    assert (board/'README.md').read_text()=='old'
+    assert (board/'benchmark.json').read_text()=='old'
+    assert not list(board.glob('*.late-*'))
+
+
+def test_source_svd_is_independent_of_process_random_state():
+    import sys
+    from experiments.late_benchmark.models import ROOT
+    sys.path.insert(0,str(ROOT/'scoreboard'))
+    from build_blocks import TfidfSvd
+    rng=np.random.default_rng(17)
+    trip=pd.DataFrame([(f'h{i}',f't{j}',int(rng.integers(1,100))) for i in range(30) for j in range(12)],columns=['host','col','n'])
+    hosts={f'h{i}':i for i in range(30)}
+    a=TfidfSvd(4,seed=7).fit(trip,hosts)
+    # Drawing from the global RNG must not affect a fresh source-only refit.
+    np.random.random(1000)
+    b=TfidfSvd(4,seed=7).fit(trip,hosts)
+    np.testing.assert_allclose(a,b,rtol=0,atol=1e-10)
+
+
+def test_source_geometry_checks_alignment_and_rotation_not_just_dimensions():
+    from experiments.late_benchmark.quality import source_geometry
+    a=pd.DataFrame([[1.,2.],[3.,1.],[2.,4.]],index=['a','b','c'])
+    rotated=pd.DataFrame(a.to_numpy()@np.array([[0.,-1.],[1.,0.]]),index=a.index)
+    assert source_geometry(a,rotated,[2])[0]['relative_gram_error']==pytest.approx(0)
+    changed=rotated.copy();changed.loc['a']*=2
+    assert source_geometry(a,changed,[2])[0]['relative_gram_error']>.1
+    with pytest.raises(ValueError,match='host is missing'):
+        source_geometry(a,rotated.drop(index='b'),[2])
+
+
+def test_publication_requires_tikhon_and_matching_training_provenance(tmp_path):
+    spec,data,work,board,processed,statuses,results=publication_fixture(tmp_path)
+    del results[0]['by_window']['test']['metrics']['tikhon_transfer_direct_mrr']
+    with pytest.raises(ValueError,match='mandatory'):
+        validate(results,processed,data/'reference',statuses,spec)
+    results[0]['by_window']['test']['metrics']['tikhon_transfer_direct_mrr']=.1
+    statuses[results[0]['method']]['training']={'different':'model configuration'}
+    with pytest.raises(ValueError,match='training provenance'):
+        validate(results,processed,data/'reference',statuses,spec)

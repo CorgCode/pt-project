@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import shutil
 
@@ -12,9 +11,49 @@ import numpy as np
 from evaluation import scoreboard, submit
 from pipeline.prepare import _sha256
 
-from .evaluate import REQUIRED
+from .evaluate import REQUIRED, PUBLISHED_METRICS, adapter_sha256
 from .models import ROOT, WORK
 from .prepare import load_protocol
+
+
+def promote(pairs):
+    """Stage every artifact before publication; roll back the whole set on failure."""
+    def remove(path):
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    prepared, changed = [], []
+    try:
+        for source, target in pairs:
+            temporary = target.with_name(target.name + ".late-new")
+            previous = target.with_name(target.name + ".late-old")
+            if previous.exists():
+                raise ValueError("an unfinished previous promotion requires inspection")
+            remove(temporary)
+            prepared.append((temporary, target, previous))
+            if source.is_dir():
+                shutil.copytree(source, temporary)
+            else:
+                shutil.copy2(source, temporary)
+        try:
+            for temporary, target, previous in prepared:
+                had_original = target.exists()
+                if had_original:
+                    target.rename(previous)
+                changed.append((target, previous, had_original))
+                temporary.rename(target)
+        except BaseException:
+            for target, previous, had_original in reversed(changed):
+                remove(target)
+                if had_original:
+                    previous.rename(target)
+            raise
+        for _, previous, _ in changed:
+            remove(previous)
+    finally:
+        for temporary, _, _ in prepared:
+            remove(temporary)
 
 
 def validate(results, processed, reference, statuses, spec):
@@ -30,8 +69,11 @@ def validate(results, processed, reference, statuses, spec):
         if [actual.get("start"), actual.get("end")] != bounds:
             raise ValueError("processed time windows do not match the predeclared protocol")
     complete_methods = {r["method"] for r in results}
-    if {name for name, item in statuses.items() if item["status"] == "trained"} - complete_methods:
+    trained_methods = {name for name, item in statuses.items() if item["status"] == "trained"}
+    if trained_methods - complete_methods:
         raise ValueError("not all reproducible models have completed evaluation")
+    if complete_methods - trained_methods or len(complete_methods) != len(results):
+        raise ValueError("unexpected or duplicate methods in publication")
     if any(item["status"] == "failed" for item in statuses.values()):
         raise ValueError("a reproducible model failed; resolve it before replacing the scoreboard")
     if any(item["status"] not in ("trained", "unavailable") for item in statuses.values()):
@@ -39,6 +81,11 @@ def validate(results, processed, reference, statuses, spec):
     if not {"behavioral", "random"} <= complete_methods:
         raise ValueError("required calibration/random baselines missing")
     for result in results:
+        if result.get("late_adapter_sha256") != adapter_sha256():
+            raise ValueError("result scoring adapter differs from the current implementation")
+        expected_training = statuses[result["method"]].get("training")
+        if expected_training is not None and result.get("training_provenance") != expected_training:
+            raise ValueError("result training provenance differs from the prepared model")
         if result.get("benchmark_id") != spec["benchmark_id"] or set(result.get("by_window", {})) != windows:
             raise ValueError("a method contains old or missing test windows")
         for name, row in result["by_window"].items():
@@ -50,7 +97,7 @@ def validate(results, processed, reference, statuses, spec):
                 raise ValueError("a method was scored against a different reference")
             if row.get("score_calibration") != expected["score_calibration"]:
                 raise ValueError("score calibration differs between methods")
-            if any(row["metrics"].get(key) is None or not np.isfinite(row["metrics"][key]) for key in REQUIRED):
+            if any(row["metrics"].get(key) is None or not np.isfinite(row["metrics"][key]) for key in PUBLISHED_METRICS):
                 raise ValueError("a model is missing a mandatory late-window metric")
         if result["training_provenance"].get("new_test_used_in_fit_or_selection") is not False:
             raise ValueError("model preparation did not declare an untouched test")
@@ -79,11 +126,6 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
     submit.BOARD, submit.DATA, submit.RESULTS, submit.SUBMISSIONS = stage, stage / "data", stage / "results", board / "submissions"
     submit.render()
     content = (stage / "README.md").read_text()
-    content = content.replace(
-        "Для Neighbors идеал — не 1.0, а уровень `behavioral` (поведение хоста в train): поведение в test-окне\n"
-        "во многом новое, и даже признаки за 30 минут до test дают лишь ~0.21. Выше этого уровня — 100.",
-        "Для Neighbors идеал — уровень сохранения соседей `behavioral` между исходным train и конкретным поздним окном. "
-        "Калибровка записана в манифесте каждого окна; значение выше этого уровня получает 100.")
     details = [f"**Бенчмарк `{spec['benchmark_id']}`.** Обучение и параметры зафиксированы до поздних test-дней. "
                "Сохранённые checkpoints применяются без обучения; остальные методы переобучены по опубликованным конфигурациям на исходных обучающих окнах. "
                "Для многодневных методов использованы только исторические дни до test; окна обучения и происхождение кода записаны в benchmark.json и результатах.",
@@ -111,9 +153,28 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
     metadata = {"benchmark_id": spec["benchmark_id"], "protocol": spec, "model_status": statuses,
                 "processed_manifest_sha256": _sha256(data_root / "processed/manifest.json"),
                 "reference_manifests_sha256": {w: _sha256(data_root / "reference" / w / "manifest.json") for w in spec["test_days"]}}
+    environment_path = work / "environment.json"
+    if environment_path.exists():
+        environment = json.loads(environment_path.read_text())
+        numerical = {"numpy", "pandas", "scipy", "scikit-learn", "torch", "cloudpickle", "pyarrow"}
+        versions = {}
+        for package in environment.get("packages", []):
+            name, separator, version = package.partition("==")
+            if separator and name.lower() in numerical:
+                versions[name.lower()] = version
+        metadata["evaluation_environment"] = {"python": environment["python"], "platform": environment["platform"],
+                                              "packages": versions, "seed": spec["seed"], "bootstrap": spec["bootstrap"]}
     audit_path = work / "recovery/audit.json"
     if audit_path.exists():
         metadata["recovery_audit"] = json.loads(audit_path.read_text())
+    quality_path = work / "quality_audit.json"
+    if quality_path.exists():
+        quality = json.loads(quality_path.read_text())
+        by_method = {r["method"]: r for r in results}
+        for check in quality["source_checks"]:
+            if check["candidate_source_sha256"] != by_method[check["method"]]["training_provenance"]["source_sha256"]:
+                raise ValueError("source audit belongs to a different model build")
+        metadata["source_audit"] = quality
     (stage / "benchmark.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
     archive = board / "history/days14-16"
     current = board / "benchmark.json"
@@ -136,29 +197,8 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
             shutil.copy2(board / filename, backup / filename)
         shutil.copytree(board / "results", backup / "results")
         shutil.copytree(board / "data", backup / "data")
-    for relative in ("data/reference", "data/processed", "results"):
-        target = board / relative
-        temporary = target.with_name(target.name + ".late-new")
-        if temporary.exists():
-            shutil.rmtree(temporary)
-        shutil.copytree(stage / relative, temporary)
-        previous = target.with_name(target.name + ".late-old")
-        if previous.exists():
-            raise ValueError("an unfinished previous promotion requires inspection")
-        target.rename(previous)
-        try:
-            temporary.rename(target)
-        except BaseException:
-            previous.rename(target)
-            raise
-        shutil.rmtree(previous)
-    for filename in ("scoreboard.csv", "benchmark.json", "README.md"):
-        temporary = board / (filename + ".late-new")
-        shutil.copy2(stage / filename, temporary)
-        os.replace(temporary, board / filename)
-    marker = {"benchmark_id": spec["benchmark_id"], "published_methods": [r["method"] for r in results],
-              "table_sha256": _sha256(board / "README.md"), "publication": "local_only_no_push"}
-    (work / "published.json").write_text(json.dumps(marker, indent=2) + "\n")
+    pairs = [(stage / relative, board / relative) for relative in
+             ("data/reference", "data/processed", "results", "scoreboard.csv", "benchmark.json", "README.md")]
     if board.resolve() == (ROOT / "scoreboard").resolve():
         readme = ROOT / "README.md"
         text = readme.read_text()
@@ -172,7 +212,13 @@ def publish(data_root=ROOT / "data/late_benchmark", work=WORK, board=ROOT / "sco
             f"`{winner}`, средний score **{scores[winner]:.1f}**.\n\n"
             "Результат `multiday_codebook_plus` 70,0 относится к [историческому бенчмарку дней 14–16](scoreboard/history/days14-16/README.md). "
             "Он не является оценкой на дне 90. Состав переоценённых методов, покрытие и ограничения приведены в активной таблице.\n")
-        readme.write_text(text[:start] + replacement + text[end:])
+        staged_readme = stage / "project_README.md"
+        staged_readme.write_text(text[:start] + replacement + text[end:])
+        pairs.append((staged_readme, readme))
+    promote(pairs)
+    marker = {"benchmark_id": spec["benchmark_id"], "published_methods": [r["method"] for r in results],
+              "table_sha256": _sha256(board / "README.md"), "publication": "local_only_no_push"}
+    (work / "published.json").write_text(json.dumps(marker, indent=2) + "\n")
     return marker
 
 
