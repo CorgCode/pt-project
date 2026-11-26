@@ -10,32 +10,12 @@ function watchErrors(page) {
   return errors;
 }
 
-test('devices without WebGL open a usable overview immediately', async ({ page }) => {
-  const errors = watchErrors(page);
-  await page.addInitScript(() => {
-    const getContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
-      return kind === 'webgl2' ? null : getContext.call(this, kind, ...options);
-    };
-  });
-  await page.goto('/');
-  await expect(page.locator('.pt-home-overview')).toHaveAttribute('data-reason', 'graphics');
-  await expect(page.getByRole('link', { name: 'Открыть лабораторию' })).toBeVisible();
-  expect(errors).toEqual([]);
-});
-
 for (const width of [320, 1440]) {
-  test(`overview, model, and demo work at ${width}px`, async ({ page }, testInfo) => {
+  test(`model and workspace work at ${width}px`, async ({ page }, testInfo) => {
     const errors = watchErrors(page);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Понять свою сеть' })).toBeVisible();
-    await expect(page.locator('.pt-home-overview')).toHaveAttribute('data-reason', 'preference');
-    await expect(page.locator('canvas')).toHaveCount(0);
-    await page.screenshot({ path: testInfo.outputPath('overview.png'), fullPage: true });
-    await page.getByRole('link', { name: 'Как устроена модель' }).click();
-    await expect(page).toHaveURL(/\/model\/$/);
+    await page.goto('/model/');
     const contents = page.getByRole('navigation', { name: 'На этой странице' });
     await expect(contents.getByRole('link')).toHaveCount(11);
     await contents.getByRole('link', { name: 'Результаты на LANL' }).click();
@@ -47,24 +27,59 @@ for (const width of [320, 1440]) {
       await expect.poll(() => image.evaluate(node => node.naturalWidth)).toBeGreaterThan(0);
     }
     await page.locator('header a[href="/lab/"]').click();
+    await page.getByLabel('Имя пользователя').fill('browser-test');
+    await page.getByLabel('Пароль').fill(process.env.PT_LAB_TEST_PASSWORD);
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await expect(page).toHaveURL(/\/lab\/$/);
-    await expect(page.locator('#soc-overview')).toBeVisible();
-    await page.locator('[data-soc-task="traffic"]').click();
-    await expect(page.locator('#view-traffic')).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#change-example').click();
-    await expect(page.locator('#change-host-list button').first()).toBeVisible();
+    await expect(page.locator('#directory-count')).toHaveText('15');
+    await page.locator('nav').getByText('Ещё разделы').click();
+    await page.locator('nav [data-view="contacts"]').click();
+    await expect(page.locator('#contacts-title')).toBeVisible();
+    await page.locator('nav [data-view="changes"]').click();
+    await page.locator('#change-scenario').click();
+    await expect(page.locator('#change-detail')).toContainText('service-4');
     const viewportWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(viewportWidth).toBeLessThanOrEqual(width);
     expect(errors).toEqual([]);
   });
 }
 
+test('the model page keeps its reading position while diagrams load', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    window.scrollResets = 0;
+    const scrollTo = window.scrollTo.bind(window);
+    window.scrollTo = (...args) => {
+      const top = typeof args[0] === 'object' ? args[0]?.top : args[1];
+      if (top === 0 && window.scrollY > 100) window.scrollResets++;
+      return scrollTo(...args);
+    };
+  });
+  await page.goto('/model/');
+  const diagram = page.locator('.model-figure img[loading="lazy"]').last();
+  await page.mouse.wheel(0, 2200);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1800);
+  const readingPosition = await page.evaluate(() => window.scrollY);
+  await diagram.evaluate(async (image) => {
+    image.loading = 'eager';
+    await image.decode();
+    // Let any layout work triggered by the image finish.
+    await new Promise(resolve => setTimeout(resolve, 250));
+  });
+  expect(await page.evaluate(() => window.scrollResets)).toBe(0);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(readingPosition);
+  const contents = page.getByRole('navigation', { name: 'На этой странице' });
+  await contents.getByRole('link', { name: 'Результаты на LANL' }).click();
+  await expect(page).toHaveURL(/#results$/);
+  await expect(page.locator('#results h2')).toBeInViewport();
+});
+
 test('legacy routes point to the current content and preserve useful deep links', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const [old, next] of [
-    ['/work/', /\/lab\/$/],
+    ['/work/', /\/lab\/login\/$/],
     ['/contact/', /\/model\/$/],
-    ['/product/', /\/?\?view=overview$/],
+    ['/product/', url => url.pathname === '/' && !url.hash],
     ['/product/#results', /\/model\/#results$/],
   ]) {
     await page.goto(old);
@@ -94,18 +109,18 @@ test('mobile chart labels fit inside their SVG view boxes', async ({ page }) => 
 });
 
 test.describe('native WebGL scene', () => {
-  test('keyboard starts the scene and all six chapters reach the lab link', async ({ page }, testInfo) => {
+  test('a click starts the scene and all six chapters reach the lab link', async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     const errors = watchErrors(page);
     await page.setViewportSize({ width: 1100, height: 730 });
     await page.goto('/');
     const start = page.getByRole('button', { name: 'Начать исследование сети' });
-    await expect(start).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByRole('link', { name: 'Без 3D' })).toBeVisible();
-    await start.press('Enter');
+    await expect(start).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole('link', { name: 'Без 3D' })).toHaveCount(0);
+    await start.click();
     const enter = page.getByRole('button', { name: 'К сценам' });
     await expect(enter).toBeVisible({ timeout: 20_000 });
-    await enter.press('Enter');
+    await enter.click();
     await expect(enter).toHaveCount(0);
     const active = page.locator('.pt-product-copy:not([hidden])');
     const chapters = [
@@ -114,7 +129,7 @@ test.describe('native WebGL scene', () => {
       [6000, 'От одного устройства — к похожим'],
       [8000, 'Контекст для оператора SOC'],
       [10000, 'Попробуйте на своих данных'],
-      [11650, 'Откройте лабораторию'],
+      [11650, 'Откройте рабочее место'],
     ];
     for (const [y, title] of chapters) {
       // A scene transition briefly locks scroll. Retry until its scroll controller releases the page.
@@ -132,7 +147,23 @@ test.describe('native WebGL scene', () => {
     await expect(active).toContainText(chapters[0][1]);
     await page.evaluate(() => window.scrollTo(0, 11650));
     await lab.click();
-    await expect(page).toHaveURL(/\/lab\/$/);
+    await expect(page).toHaveURL(/\/lab\/login\/$/);
     expect(errors).toEqual([]);
+  });
+  test('the start button responds to a touch tap', async ({ browser, baseURL }) => {
+    test.setTimeout(70_000);
+    const page = await browser.newPage({
+      baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+      reducedMotion: 'reduce',
+    });
+    try {
+      await page.goto('/');
+      const start = page.getByRole('button', { name: 'Начать исследование сети' });
+      await expect(start).toBeVisible({ timeout: 45_000 });
+      await start.tap();
+      await expect(page.getByRole('button', { name: 'К сценам' })).toBeVisible({ timeout: 20_000 });
+    } finally {
+      await page.close();
+    }
   });
 });

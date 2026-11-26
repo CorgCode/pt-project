@@ -1,0 +1,6 @@
+[Unit]
+Description=Encrypted offsite backup for PT Network %i
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/pt-network/%i-backup.env
+ExecStart=%h/.local/share/pt-network/deploy/backup.sh %i backup

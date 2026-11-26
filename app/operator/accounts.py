@@ -41,8 +41,8 @@ class Accounts:
         name = name.strip().lower()
         if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{2,63}", name):
             raise ValueError("Имя: 3–64 латинских символа, цифры, точка, дефис или подчёркивание.")
-        if not 12 <= len(password) <= 256:
-            raise ValueError("Пароль должен содержать от 12 до 256 символов.")
+        if not 8 <= len(password) <= 256:
+            raise ValueError("Пароль должен содержать от 8 до 256 символов.")
         salt = secrets.token_bytes(16)
         with closing(self.connect()) as db, db:
             try:

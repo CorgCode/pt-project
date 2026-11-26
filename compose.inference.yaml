@@ -1,0 +1,23 @@
+services:
+  site:
+    environment:
+      PT_INFERENCE_URL: http://inference:8001/v1/predict
+    networks: [default, model]
+  inference:
+    image: ${PT_INFERENCE_IMAGE:?Set PT_INFERENCE_IMAGE to the reviewed model runtime image}
+    environment:
+      PT_MODEL_DIR: /model
+    volumes:
+      - type: bind
+        source: ${PT_MODEL_DIR:?Set PT_MODEL_DIR to the full Plus model package}
+        target: /model
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [model]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+networks:
+  model:
+    internal: true

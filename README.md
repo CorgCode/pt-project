@@ -17,6 +17,7 @@
 Интерактивная лаборатория, разбор модели и инструкции по запуску описаны в
 [noomo-ui/README.md](noomo-ui/README.md). Отдельный локальный режим для оператора
 описан в [app/operator/README.md](app/operator/README.md).
+Сборка Docker, HTTPS и подключение инференса описаны в [deploy/README.md](deploy/README.md).
 
 ## Запуск с нуля
 

@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily PostgreSQL backup for PT Network %i
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=20m
+Persistent=true
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,179 @@
+name: PT Network release
+
+on:
+  pull_request:
+    paths: ['app/operator/**', 'deploy/**', 'hostquery/**', 'noomo-ui/**', '.github/workflows/pt-release.yml']
+  push:
+    branches: [main]
+    paths: ['app/operator/**', 'deploy/**', 'hostquery/**', 'noomo-ui/**', '.github/workflows/pt-release.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: pt_test
+        ports: [5432:5432]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r deploy/requirements.txt -r deploy/inference/requirements.txt -c deploy/requirements.lock pytest httpx pip-audit
+      - run: python -m pytest -q --confcutdir=app/operator app/operator
+        env:
+          PT_TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-only-password@127.0.0.1:5432/pt_test
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: noomo-ui
+      - run: npx playwright test inference.spec.cjs
+        working-directory: noomo-ui
+        env:
+          PT_TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-only-password@127.0.0.1:5432/pt_test
+      - run: pip-audit -r deploy/requirements.lock --no-deps
+      - run: |
+          docker build -f deploy/Dockerfile -t pt-api:test .
+          docker build -f deploy/inference/Containerfile -t pt-inference:test .
+      - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: pt-api:test
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: pt-inference:test
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - if: github.event_name == 'push'
+        run: docker save pt-api:test pt-inference:test | gzip > pt-images.tar.gz
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pt-scanned-images
+          path: pt-images.tar.gz
+          retention-days: 2
+
+  publish:
+    if: github.event_name == 'push'
+    needs: test-and-scan
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.api }}
+      inference_image: ${{ steps.publish.outputs.inference }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pt-scanned-images
+      - id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        shell: bash
+        run: |
+          docker load -i pt-images.tar.gz
+          base="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          for component in api inference; do
+            tag="$base/$component:$GITHUB_SHA"
+            docker tag "pt-$component:test" "$tag"
+            output=$(docker push "$tag")
+            printf '%s\n' "$output"
+            digest=$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' <<<"$output")
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            printf '%s=%s/%s@%s\n' "$component" "$base" "$component" "$digest" >> "$GITHUB_OUTPUT"
+          done
+
+  staging:
+    if: vars.PT_ENABLE_STAGING_DEPLOY == '1'
+    needs: publish
+    runs-on: ubuntu-24.04
+    environment: staging
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: pt-staging-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: bash deploy/ci-ssh.sh staging "$PT_IMAGE" "$PT_INFERENCE_IMAGE"
+        env:
+          PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_INFERENCE_IMAGE: ${{ needs.publish.outputs.inference_image }}
+          PT_REGISTRY_TOKEN: ${{ github.token }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
+          PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
+          PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
+          PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}
+
+  production:
+    if: vars.PT_ENABLE_PRODUCTION_DEPLOY == '1'
+    needs: [publish, staging]
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: pt-production-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: bash deploy/ci-ssh.sh production "$PT_IMAGE" "$PT_INFERENCE_IMAGE"
+        env:
+          PT_IMAGE: ${{ needs.publish.outputs.image }}
+          PT_INFERENCE_IMAGE: ${{ needs.publish.outputs.inference_image }}
+          PT_REGISTRY_TOKEN: ${{ github.token }}
+          PT_SMOKE_ORIGIN: ${{ vars.PT_SMOKE_ORIGIN }}
+          PT_SSH_TARGET: ${{ vars.PT_SSH_TARGET }}
+          PT_SSH_KEY: ${{ secrets.PT_SSH_KEY }}
+          PT_SSH_KNOWN_HOSTS: ${{ secrets.PT_SSH_KNOWN_HOSTS }}
+
+  telegram-approval:
+    if: vars.PT_ENABLE_PRODUCTION_DEPLOY == '1' && needs.staging.result == 'success'
+    needs: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 deploy/monitoring/telegram.py notify 'PT Network staging passed. Review the production deployment in GitHub.'
+        env:
+          PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
+          PT_TELEGRAM_CHAT_ID: ${{ secrets.PT_TELEGRAM_CHAT_ID }}
+
+  telegram-production-result:
+    if: ${{ always() && (needs.production.result == 'success' || needs.production.result == 'failure' || needs.production.result == 'cancelled') }}
+    needs: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: |
+          python3 deploy/monitoring/telegram.py notify "PT Network production deployment: $PT_DEPLOY_RESULT"
+        env:
+          PT_DEPLOY_RESULT: ${{ needs.production.result }}
+          PT_TELEGRAM_BOT_TOKEN: ${{ secrets.PT_TELEGRAM_BOT_TOKEN }}
+          PT_TELEGRAM_CHAT_ID: ${{ secrets.PT_TELEGRAM_CHAT_ID }}
