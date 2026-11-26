@@ -20,10 +20,12 @@ from typing import Callable
 
 import pandas as pd
 
+from evaluation.clustering import (CLUSTERING_CONFIG, DEFAULT_METRIC, RANDOM_DRAWS,
+                                   cluster_embeddings, compare_with_random, random_baseline)
 from evaluation.frozen_neighbors import evaluate_frozen_neighbors
 from evaluation.future_links import (load_candidate_edges, persistence_baseline, score_embeddings,
                                       score_learned)
-from evaluation.io import load_embeddings
+from evaluation.io import ReferenceError, load_embeddings
 from evaluation.knn_consistency import evaluate_embedding
 from evaluation.linear_probe import linear_probe, load_labels
 from evaluation.partners import load_partners, partner_ranking
@@ -208,6 +210,45 @@ def _triplets(c: Context) -> None:
     c.result["metric_details"]["triplet_accuracy"] = {k: t[k] for k in ("n_triplets", "n_ties", "chance", "split")}
 
 
+def _clustering(c: Context) -> None:
+    """Качество разбиения HDBSCAN + случайный бейзлайн; в общий балл не входит."""
+    try:
+        details, assignments = cluster_embeddings(
+            c.emb, metric=DEFAULT_METRIC,
+            min_cluster_size=CLUSTERING_CONFIG["min_cluster_size"],
+            min_samples=CLUSTERING_CONFIG["min_samples"],
+        )
+    except ValueError as exc:
+        raise _Unavailable(str(exc)) from exc
+
+    # Внешние метки используются только если у них заявлен источник (как и в зонде).
+    expected = None
+    labels_file = c.ref / "labels.csv"
+    if labels_file.exists() and c.protocol.get("labels_source"):
+        try:
+            lab = load_labels(labels_file)
+            lab = lab[lab["split"] == c.split]
+            if not lab.empty and lab["target"].nunique() >= 2:
+                expected = lab.set_index("host_id")["target"].reindex(assignments.index.astype(str))
+        except (ReferenceError, ValueError, OSError):
+            expected = None
+
+    baseline = random_baseline(c.emb, assignments, metric=DEFAULT_METRIC, expected=expected,
+                               seed=c.seed, n_draws=RANDOM_DRAWS)
+    report = compare_with_random(details, baseline)
+    m = c.result["metrics"]
+    for key in ("n_clusters", "noise_fraction", "silhouette", "davies_bouldin", "ari", "nmi"):
+        m[f"clustering_{key}"] = report[key]
+    for key in ("silhouette", "davies_bouldin", "ari", "nmi"):
+        m[f"clustering_{key}_random"] = baseline[key]
+        m[f"clustering_{key}_gain"] = report[f"delta_{key}_vs_random"]
+    c.result["metric_details"]["embedding_clustering"] = {
+        **report,
+        "labels_source": c.protocol.get("labels_source"),
+        "assignments": {str(host): int(cluster) for host, cluster in assignments["cluster"].items()},
+    }
+
+
 def _probe(c: Context) -> None:
     source = c.protocol.get("labels_source")
     if not source:
@@ -249,6 +290,9 @@ METRICS: list[Metric] = [
            _tikhon, "tikhon_lp_direct_mrr", lambda r: r["metrics"].get("tikhon_random_mrr"), show=False),
     Metric("linear_probe", "Внешние метки", "Зонд, accuracy", ("labels.csv",),
            _probe, "probe_accuracy", lambda r: r["metrics"].get("probe_majority_baseline_accuracy")),
+    # Внутренняя оценка геометрии: в общий балл НЕ входит (show=False), но есть в CSV и JSON.
+    Metric("embedding_clustering", "Структура кластеров", "Кластеризация", (),
+           _clustering, "clustering_silhouette", lambda r: None, show=False),
 ]
 REQUIRED = tuple(k for m in METRICS for k in (m.key, *m.also))
 UNAVAILABLE_REASON = {
@@ -314,7 +358,8 @@ def run(embeddings_path: Path, reference_dir: Path, method: str, split: str | No
     for m in METRICS:
         keys = (m.key, *m.also)
         reason = None
-        if not any((reference_dir / f).exists() for f in m.needs):
+        # Пустой needs означает, что метрике не нужны файлы эталона (например, кластеризация).
+        if m.needs and not any((reference_dir / f).exists() for f in m.needs):
             reason = UNAVAILABLE_REASON.get(m.key, f"нет {' / '.join(m.needs)}")
         else:
             try:

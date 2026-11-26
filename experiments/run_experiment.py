@@ -8,7 +8,7 @@
 узнаваемости во времени). Ожидавшиеся, но не полученные методы перечисляются в отчёте, а не симулируются.
 
 Выход: results/<окно>/<метод>.json, identity/<окно>/<метод>.json, scoreboard_<окно>.md/.csv,
-audit.json, report.md, figures/, manifest.json.
+clustering_<окно>.md/.csv, clustering_consistency.md/.csv, audit.json, report.md, figures/, manifest.json.
 """
 from __future__ import annotations
 
@@ -26,12 +26,14 @@ import sklearn
 
 from methods import graph as graph_methods
 from methods.baselines.temporal import Baseline, default_baselines
+from evaluation.clustering import CLUSTERING_CONFIG
 from evaluation.evaluate import run
 from evaluation.identity import identity_retrieval
 from evaluation import scoreboard
 from evaluation.io import load_embeddings
 from experiments import audit as A
 from experiments import report as R
+from experiments.clustering_consistency import clustering_consistency
 from pipeline.data import ProcessedData
 from pipeline.provenance import BADGE
 
@@ -84,6 +86,33 @@ def _write(path: Path, df: pd.DataFrame) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path)
     return path
+
+
+def _clustering_summary(results: dict[str, dict]) -> pd.DataFrame:
+    """Сводка качества кластеров из detail'ов оценки (без самих назначений хостов)."""
+    rows = {}
+    for name, result in results.items():
+        d = (result.get("metric_details") or {}).get("embedding_clustering")
+        if not d:
+            continue
+        base = d.get("random_baseline") or {}
+        rows[name] = {
+            "clusters": d.get("n_clusters"),
+            "noise": d.get("noise_fraction"),
+            "silhouette": d.get("silhouette"),
+            "silhouette_random": base.get("silhouette"),
+            "silhouette_gain": d.get("delta_silhouette_vs_random"),
+            "davies_bouldin": d.get("davies_bouldin"),
+            "davies_bouldin_random": base.get("davies_bouldin"),
+            "davies_bouldin_gain": d.get("delta_davies_bouldin_vs_random"),
+            "ari": d.get("ari"),
+            "ari_random": base.get("ari"),
+            "ari_gain": d.get("delta_ari_vs_random"),
+            "nmi": d.get("nmi"),
+        }
+    df = pd.DataFrame(rows).T
+    df.index.name = "method"
+    return df
 
 
 def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, dim: int = 16, seed: int = 0,
@@ -190,6 +219,18 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                     json.dumps(ident, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             _log(f"оценка на {t} {j}/{len(per_target)}: {name}", t0)
         scoreboard.build(out_dir / "results" / t, out_dir / f"scoreboard_{t}")
+        clusters_t = _clustering_summary(results[t])
+        _write(out_dir / f"clustering_{t}.csv", clusters_t)
+        (out_dir / f"clustering_{t}.md").write_text(R.md_table(clusters_t), encoding="utf-8")
+
+    # ---- устойчивость кластеров между окнами (сравнение с random внутри функции)
+    consistency = clustering_consistency(
+        emb,
+        min_cluster_size=CLUSTERING_CONFIG["min_cluster_size"],
+        min_samples=CLUSTERING_CONFIG["min_samples"],
+    )
+    _write(out_dir / "clustering_consistency.csv", consistency)
+    (out_dir / "clustering_consistency.md").write_text(R.md_table(consistency), encoding="utf-8")
 
     # ---- аудит
     audit = None
@@ -230,7 +271,8 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
                    "selection": data.manifest["cohort"].get("selection")},
         "external_provenance": external_provenance,
         "reference_files_sha256": {t: results[t]["random"]["reference_info"]["files_sha256"] for t in targets},
-        "config": {"dim": dim, "seed": seed, "bootstrap": n_boot, "targets": targets},
+        "config": {"dim": dim, "seed": seed, "bootstrap": n_boot, "targets": targets,
+                   "clustering": CLUSTERING_CONFIG},
         "methods": sorted(results["test"]), "external_methods": external, "missing_expected_methods": missing,
         "graph_methods": {m: meta[m] for m in implemented},
         "environment": {"python": platform.python_version(), "pandas": pd.__version__,
@@ -246,11 +288,13 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} — узнаваемость хоста (train -> test)")
     if audit:
         R.weights_plot(audit["weight_sensitivity"], fig_dir / "weight_sensitivity.png")
-    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit), encoding="utf-8")
+    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit, consistency),
+                                       encoding="utf-8")
     return manifest
 
 
-def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None) -> str:
+def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None,
+                 consistency: pd.DataFrame | None = None) -> str:
     kind = manifest["data_kind"]
     L = ["# Отчёт о прогоне\n", f"> **{BADGE_RU[kind]}.**\n>\n> " + SCOPE[kind] + "\n"]
     prov = manifest.get("provenance") or {}
@@ -312,6 +356,24 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         L.append(R.md_table(pd.DataFrame(rows).T))
         L.append("\n![identity](figures/identity_test.png)\n")
         L.append("Сырые координаты осмысленны только для методов, заявивших общую систему координат.")
+    clusters_t = _clustering_summary(results["test"])
+    if not clusters_t.empty:
+        L.append("\n## Качество кластеризации (test)\n")
+        L.append(R.md_table(clusters_t))
+        cfg = manifest["config"]["clustering"]
+        L.append(f"\n{cfg['algorithm']}, {cfg['metric']}, min_cluster_size={cfg['min_cluster_size']}, "
+                 f"min_samples={cfg['min_samples']}. Шум HDBSCAN — отдельная метка `-1` "
+                 "(доля в колонке `noise`). `*_gain` — разница со случайным разбиением той же формы "
+                 "(для Davies–Bouldin вычитание обратное: меньше — лучше).")
+        L.append("Метрики описывают геометрию эмбеддинга, а не реальные роли хостов; "
+                 "в общий балл scoreboard они не входят.")
+    if consistency is not None and not consistency.empty:
+        cols = [c for c in ("status", "n_common_hosts", "ari_train_test", "delta_ari_vs_random",
+                            "pair_jaccard", "delta_jaccard_vs_random") if c in consistency.columns]
+        L.append("\n## Устойчивость кластеров train → test\n")
+        L.append(R.md_table(consistency[cols]))
+        L.append("\nARI и Jaccard сравнивают разбиения train и test на общих хостах; `delta_*_vs_random` — "
+                 "разница с тем же расчётом для случайного эмбеддинга `random`.")
     if audit:
         w, s = audit["weight_sensitivity"], audit["reference_stability"]
         L.append("\n## Аудит валидности\n")

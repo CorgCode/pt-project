@@ -13,7 +13,7 @@ from pipeline.data import ProcessedData
 from pipeline.reference import build_reference
 
 ALL_METRICS = ["knn_consistency", "future_link_prediction", "pairwise_roc_auc", "pairwise_pr_auc",
-               "precision_at_k", "recall_at_k", "triplet_accuracy"]
+               "precision_at_k", "recall_at_k", "triplet_accuracy", "embedding_clustering"]
 
 
 def write_emb(path, df):
