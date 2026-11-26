@@ -1,13 +1,19 @@
 """Раннер scoreboard: выбор эпизодов по времени окна, а не по имени."""
 from __future__ import annotations
 
+import importlib.util
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import pytest
 
 from methods.mdtgr.train import OFFICIAL_TEST_START
-from scoreboard.mdtgr import plan_windows, total_weights
+
+RUNNER_PATH = Path(__file__).resolve().parents[2] / "scoreboard" / "mdtgr.py"
+spec = importlib.util.spec_from_file_location("mdtgr_runner", RUNNER_PATH)
+runner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runner)
 
 
 @dataclass
@@ -31,7 +37,7 @@ def test_plan_splits_days_dev_and_official_test():
                             test=OFFICIAL_TEST_START,
                             test_day15=OFFICIAL_TEST_START + 86400,
                             test_day16=OFFICIAL_TEST_START + 2 * 86400)})
-    episodes, dev, late = plan_windows(shards)
+    episodes, dev, late = runner.plan_windows(shards)
     assert episodes == ["test_day02", "test_day03"]
     assert dev == "test_day04"
     assert late == ["test", "test_day15", "test_day16"]
@@ -45,25 +51,25 @@ def test_plan_never_learns_on_official_test_even_if_named_like_a_day():
                             test_day12=OFFICIAL_TEST_START - 2 * 86400,
                             test_day13=OFFICIAL_TEST_START - 86400,
                             test=OFFICIAL_TEST_START)})
-    episodes, dev, late = plan_windows(shards)
+    episodes, dev, late = runner.plan_windows(shards)
     assert episodes == ["test_day12"]
     assert dev == "test_day13"
     assert late == ["test"]
 
     with pytest.raises(ValueError, match="хотя бы два дня"):
-        plan_windows(FakeShards(windows=["train", "validation", "test"],
+        runner.plan_windows(FakeShards(windows=["train", "validation", "test"],
                                 manifest={"window_times": _times(
                                     train=126000, validation=129600, test=OFFICIAL_TEST_START)}))
 
 
 def test_plan_requires_window_times():
     with pytest.raises(ValueError, match="window_times"):
-        plan_windows(FakeShards(windows=["train", "test"], manifest={}))
+        runner.plan_windows(FakeShards(windows=["train", "test"], manifest={}))
 
 
 def test_total_weights_reads_tuned_values(tmp_path):
-    assert total_weights(tmp_path / "missing.json") == (1.0, 1.0, 1.0)
+    assert runner.total_weights(tmp_path / "missing.json") == (1.0, 1.0, 1.0)
     path = tmp_path / "weights.json"
     path.write_text(json.dumps({"best": {"weights": [0.5, 2.0, 1.5], "score": 42.0}}),
                     encoding="utf-8")
-    assert total_weights(path) == (0.5, 2.0, 1.5)
+    assert runner.total_weights(path) == (0.5, 2.0, 1.5)
