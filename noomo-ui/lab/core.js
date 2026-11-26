@@ -101,10 +101,14 @@ function parseCSV(text) {
     porti = columns.indexOf("dst_port"),
     proti = columns.indexOf("proto");
   const map = new Map(),links=new Map();
+  const serviceColumns = [["ports", porti], ["protocols", proti]].filter(([, i]) => i >= 0);
   const get = (id) => {
     if (!id) throw Error("src и dst не должны быть пустыми.");
     if (!map.has(id))
-      map.set(id, { id, v: new Array(20).fill(0), peers: new Set() });
+      map.set(id, { id, v: new Array(20).fill(0), peers: new Set(), traffic: {
+        outgoing: Object.fromEntries(serviceColumns.map(([key]) => [key, new Set()])),
+        incoming: Object.fromEntries(serviceColumns.map(([key]) => [key, new Set()])),
+      } });
     if (map.size > 500) throw Error("В примере поддерживается до 500 хостов.");
     return map.get(id);
   };
@@ -129,6 +133,12 @@ function parseCSV(text) {
     b.v[5] += packets;
     a.peers.add(b.id);
     b.peers.add(a.id);
+    for (const [key, i] of serviceColumns) {
+      if (!row[i]) continue;
+      const value = key === "protocols" ? row[i].toUpperCase() : row[i];
+      a.traffic.outgoing[key].add(value);
+      b.traffic.incoming[key].add(value);
+    }
     const service =
       (proti >= 0 ? row[proti] : "") + ":" + (porti >= 0 ? row[porti] : "");
     let hash = 0;
@@ -143,10 +153,16 @@ function parseCSV(text) {
   if(!Number.isFinite(totalBytes)||[...map.values()].some(h=>h.v.some(x=>!Number.isFinite(x))))throw Error("Суммарные объёмы слишком велики для расчёта.");
   const dataset = [...map.values()].map((h) => {
     const activity={outgoing:h.v[0],incoming:h.v[1],sentBytes:h.v[2],receivedBytes:h.v[3],contacts:h.peers.size};
+    for (const [direction, offset] of [["outgoing", 0], ["incoming", 1]]) {
+      const observed = h.traffic[direction];
+      observed.flows = h.v[offset];
+      if (bi >= 0) observed.bytes = h.v[2 + offset];
+      if (pi >= 0) observed.packets = h.v[4 + offset];
+    }
     h.v[6] = h.peers.size;
     h.v[7] = h.v[0] + h.v[1];
     h.v = h.v.map(Math.log1p);
-    return { id: h.id, v: h.v,logValues:[...h.v],activity };
+    return { id: h.id, v: h.v,logValues:[...h.v],activity,traffic:h.traffic };
   });
   if (dataset.length < 2) throw Error("Для сравнения нужны хотя бы два хоста.");
   const scales = dataset[0].v.map((_, i) =>
@@ -167,6 +183,24 @@ function parseCSV(text) {
     kind: "flows",
     connections:[...links.values()],
   };
+}
+function trafficComparisonRows(a, b) {
+  if (!a.traffic || !b.traffic) return [];
+  const format = new Intl.NumberFormat("ru-RU");
+  return [["outgoing", "Исходящие"], ["incoming", "Входящие"]].map(([direction, label]) => {
+    const first = a.traffic[direction], second = b.traffic[direction];
+    const parts = [];
+    for (const [key, unit] of [["flows", "записей"], ["bytes", "байт"], ["packets", "пакетов"]]) {
+      if (first[key] !== undefined && second[key] !== undefined)
+        parts.push(`${format.format(first[key])} / ${format.format(second[key])} ${unit}`);
+    }
+    for (const [key, name] of [["ports", "общие порты назначения"], ["protocols", "общие протоколы"]]) {
+      if (!first[key]?.size || !second[key]?.size) continue;
+      const shared = [...first[key]].filter(value => second[key].has(value)).sort();
+      parts.push(`${name} — ${shared.join(", ") || "нет"}`);
+    }
+    return `${label}: ${parts.join(" · ")}.`;
+  });
 }
 function project(dataset) {
   const n = dataset.length,
@@ -242,5 +276,5 @@ function compareWindows(before,after,k=3){
  const oldIds=new Set(old.map(h=>h.id)),newIds=new Set(fresh.map(h=>h.id));
  return {changes,newHosts:[...newIds].filter(id=>!oldIds.has(id)),missingHosts:[...oldIds].filter(id=>!newIds.has(id)),kind:before.kind};
 }
-window.PTLab={parseCSV,project,cosine,group,compareWindows};
+window.PTLab={parseCSV,project,cosine,group,compareWindows,trafficComparisonRows};
 })();

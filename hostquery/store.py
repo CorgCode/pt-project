@@ -51,6 +51,7 @@ class Dataset:
     connections: list[dict] | None = None
     log_values: np.ndarray | None = None
     provenance: dict = field(default_factory=dict)
+    traffic: dict[str, dict] | None = None
 
     def __post_init__(self) -> None:
         self.vectors = np.asarray(self.vectors, dtype=float)
@@ -215,6 +216,9 @@ def _flow_dataset(columns: list[str], rows: list[list[str]]) -> Dataset:
     values: dict[str, np.ndarray] = {}
     peers: dict[str, set[str]] = {}
     links: dict[tuple[str, str], dict] = {}
+    traffic: dict[str, dict] = {}
+    service_columns = [(key, col) for key, col in (("ports", port_col), ("protocols", proto_col))
+                       if col >= 0]
 
     def host(name: str, where: str) -> str:
         if not name:
@@ -225,6 +229,8 @@ def _flow_dataset(columns: list[str], rows: list[list[str]]) -> Dataset:
             order.append(name)
             values[name] = np.zeros(features.N_FEATURES, dtype=float)
             peers[name] = set()
+            traffic[name] = {direction: {key: set() for key, _ in service_columns}
+                             for direction in ("outgoing", "incoming")}
         return name
 
     total_bytes = 0.0
@@ -242,6 +248,11 @@ def _flow_dataset(columns: list[str], rows: list[list[str]]) -> Dataset:
         values[b][5] += packets
         peers[a].add(b)
         peers[b].add(a)
+        for key, col in service_columns:
+            if row[col]:
+                value = row[col].upper() if key == "protocols" else row[col]
+                traffic[a]["outgoing"][key].add(value)
+                traffic[b]["incoming"][key].add(value)
         bucket = features.service_bucket(row[proto_col] if proto_col >= 0 else "",
                                          row[port_col] if port_col >= 0 else "")
         values[a][features.N_BASE + bucket] += 1
@@ -256,6 +267,13 @@ def _flow_dataset(columns: list[str], rows: list[list[str]]) -> Dataset:
 
     activity: dict[str, dict] = {}
     for name in order:
+        for direction, offset in (("outgoing", 0), ("incoming", 1)):
+            observed = traffic[name][direction]
+            observed["flows"] = int(values[name][offset])
+            if bytes_col >= 0:
+                observed["bytes"] = float(values[name][2 + offset])
+            if packets_col >= 0:
+                observed["packets"] = float(values[name][4 + offset])
         activity[name] = {
             "outgoing": values[name][0], "incoming": values[name][1],
             "sentBytes": values[name][2], "receivedBytes": values[name][3],
@@ -276,6 +294,7 @@ def _flow_dataset(columns: list[str], rows: list[list[str]]) -> Dataset:
         activity=activity,
         connections=[{**edge, "bytes": float(edge["bytes"])} for edge in links.values()],
         log_values=logged,
+        traffic=traffic,
     )
 
 

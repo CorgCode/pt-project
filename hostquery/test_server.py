@@ -33,6 +33,20 @@ def client_for(app) -> TestClient:
     return TestClient(app, base_url=BASE, raise_server_exceptions=False)
 
 
+def test_pair_endpoint_includes_observed_traffic(tmp_path):
+    path = tmp_path / "flows.csv"
+    path.write_text("src,dst,bytes,dst_port,proto\na,c,100,443,TCP\nb,c,200,443,TCP\n")
+    with client_for(create_app(RunStore(embeddings=path))) as client:
+        response = client.get("/api/lab/pair", params={"a": "a", "b": "b"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["shared_contacts"] == ["c"]
+    assert body["traffic_comparison"]["outgoing"] == {
+        "flows": {"a": 1, "b": 1}, "bytes": {"a": 100, "b": 200},
+        "shared_ports": ["443"], "shared_protocols": ["TCP"],
+    }
+
+
 @pytest.fixture(scope="module")
 def running(demo, demo_path):
     client = client_for(create_app(RunStore(bundle=demo_path, method="behavioral"),

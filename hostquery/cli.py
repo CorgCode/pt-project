@@ -273,6 +273,16 @@ def render(args, result: dict) -> str:
         if result.get("shared_contacts") is not None:
             shared = ", ".join(result["shared_contacts"]) or "нет"
             lines += ["", f"общие собеседники: {shared}"]
+        for direction, traffic in result.get("traffic_comparison", {}).items():
+            lines.append("Исходящие записи" if direction == "outgoing" else "Входящие записи")
+            for key, label in (("flows", "записи"), ("bytes", "байты"), ("packets", "пакеты")):
+                if key in traffic:
+                    count = traffic[key]
+                    lines.append(f"  {label}: {count['a']:g} / {count['b']:g}")
+            for key, label in (("shared_ports", "общие порты назначения"),
+                               ("shared_protocols", "общие протоколы")):
+                if key in traffic:
+                    lines.append(f"  {label}: {', '.join(traffic[key]) or 'нет'}")
         return "\n".join(lines)
     if kind == "changes":
         rows = [[item["id"], f"{item['similarity']:.4f}",
