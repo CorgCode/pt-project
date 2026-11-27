@@ -8,7 +8,8 @@
 узнаваемости во времени). Ожидавшиеся, но не полученные методы перечисляются в отчёте, а не симулируются.
 
 Выход: results/<окно>/<метод>.json, identity/<окно>/<метод>.json, scoreboard_<окно>.md/.csv,
-clustering_<окно>.md/.csv, clustering_consistency.md/.csv, audit.json, report.md, figures/, manifest.json.
+clustering_<окно>.md/.csv, clustering_consistency.md/.csv, temporal_anomaly.md/.csv,
+audit.json, report.md, figures/, manifest.json.
 """
 from __future__ import annotations
 
@@ -34,6 +35,7 @@ from evaluation.io import load_embeddings
 from experiments import audit as A
 from experiments import report as R
 from experiments.clustering_consistency import clustering_consistency
+from evaluation.temporal_anomaly import temporal_anomaly_report
 from pipeline.data import ProcessedData
 from pipeline.provenance import BADGE
 
@@ -232,6 +234,15 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     _write(out_dir / "clustering_consistency.csv", consistency)
     (out_dir / "clustering_consistency.md").write_text(R.md_table(consistency), encoding="utf-8")
 
+    # ---- аномалии/переходы кластеров между окнами
+    transitions = temporal_anomaly_report(
+        emb,
+        min_cluster_size=CLUSTERING_CONFIG["min_cluster_size"],
+        min_samples=CLUSTERING_CONFIG["min_samples"],
+    )
+    _write(out_dir / "temporal_anomaly.csv", transitions)
+    (out_dir / "temporal_anomaly.md").write_text(R.md_table(transitions), encoding="utf-8")
+
     # ---- аудит
     audit = None
     if do_audit:
@@ -288,13 +299,15 @@ def run_experiment(processed_dir: Path, reference_dir: Path, out_dir: Path, *, d
     R.identity_plot(identity["test"], fig_dir / "identity_test.png", f"{tag} — узнаваемость хоста (train -> test)")
     if audit:
         R.weights_plot(audit["weight_sensitivity"], fig_dir / "weight_sensitivity.png")
-    (out_dir / "report.md").write_text(build_report(manifest, results, identity, audit, consistency),
-                                       encoding="utf-8")
+    (out_dir / "report.md").write_text(
+        build_report(manifest, results, identity, audit, consistency, transitions),
+        encoding="utf-8")
     return manifest
 
 
 def build_report(manifest: dict, results: dict, identity: dict, audit: dict | None,
-                 consistency: pd.DataFrame | None = None) -> str:
+                 consistency: pd.DataFrame | None = None,
+                 transitions: pd.DataFrame | None = None) -> str:
     kind = manifest["data_kind"]
     L = ["# Отчёт о прогоне\n", f"> **{BADGE_RU[kind]}.**\n>\n> " + SCOPE[kind] + "\n"]
     prov = manifest.get("provenance") or {}
@@ -374,6 +387,16 @@ def build_report(manifest: dict, results: dict, identity: dict, audit: dict | No
         L.append(R.md_table(consistency[cols]))
         L.append("\nARI и Jaccard сравнивают разбиения train и test на общих хостах; `delta_*_vs_random` — "
                  "разница с тем же расчётом для случайного эмбеддинга `random`.")
+    if transitions is not None and not transitions.empty:
+        cols = [c for c in ("status", "n_common_hosts", "n_anomalous_transitions", "transition_rate",
+                            "n_changed", "n_to_noise", "n_from_noise", "delta_transition_rate_vs_random")
+                if c in transitions.columns]
+        L.append("\n## Аномальные переходы кластеров train → test\n")
+        L.append(R.md_table(transitions[cols]))
+        L.append("\nПереход = смена сопоставленного кластера, уход в шум или выход из шума между окнами. "
+                 "Кластеры окон сопоставляются по максимальному пересечению общих хостов. "
+                 "`delta_transition_rate_vs_random` — разница с random; это эвристика подозрительного изменения, "
+                 "а не доказательство атаки.")
     if audit:
         w, s = audit["weight_sensitivity"], audit["reference_stability"]
         L.append("\n## Аудит валидности\n")
