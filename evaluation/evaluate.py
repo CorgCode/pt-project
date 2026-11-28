@@ -212,15 +212,6 @@ def _triplets(c: Context) -> None:
 
 def _clustering(c: Context) -> None:
     """Качество разбиения HDBSCAN + случайный бейзлайн; в общий балл не входит."""
-    try:
-        details, assignments = cluster_embeddings(
-            c.emb, metric=DEFAULT_METRIC,
-            min_cluster_size=CLUSTERING_CONFIG["min_cluster_size"],
-            min_samples=CLUSTERING_CONFIG["min_samples"],
-        )
-    except ValueError as exc:
-        raise _Unavailable(str(exc)) from exc
-
     # Внешние метки используются только если у них заявлен источник (как и в зонде).
     expected = None
     labels_file = c.ref / "labels.csv"
@@ -229,9 +220,20 @@ def _clustering(c: Context) -> None:
             lab = load_labels(labels_file)
             lab = lab[lab["split"] == c.split]
             if not lab.empty and lab["target"].nunique() >= 2:
-                expected = lab.set_index("host_id")["target"].reindex(assignments.index.astype(str))
+                expected = lab.set_index("host_id")["target"].reindex(c.emb.index.astype(str))
         except (ReferenceError, ValueError, OSError):
             expected = None
+
+    try:
+        details, assignments = cluster_embeddings(
+            c.emb, metric=DEFAULT_METRIC,
+            min_cluster_size=CLUSTERING_CONFIG["min_cluster_size"],
+            min_samples=CLUSTERING_CONFIG["min_samples"],
+            expected=expected,
+            seed=c.seed,
+        )
+    except ValueError as exc:
+        raise _Unavailable(str(exc)) from exc
 
     baseline = random_baseline(c.emb, assignments, metric=DEFAULT_METRIC, expected=expected,
                                seed=c.seed, n_draws=RANDOM_DRAWS)

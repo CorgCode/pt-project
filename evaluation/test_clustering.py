@@ -121,3 +121,18 @@ def test_evaluate_adds_clustering_metric(reference, processed, tmp_path):
     assert detail["algorithm"] == "HDBSCAN"
     assert len(detail["assignments"]) == len(cohort)
     assert all(str(h) in detail["assignments"] for h in cohort)
+
+
+def test_cluster_embeddings_reports_external_labels_for_model():
+    rng = np.random.default_rng(5)
+    emb = _blob_emb(rng, [[5.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 5.0]], n_per_cluster=40)
+    truth = pd.Series({idx: idx.split("_")[0] for idx in emb.index}, name="target")
+
+    details, assignments = cluster_embeddings(emb, min_cluster_size=10, min_samples=5, expected=truth)
+    baseline = random_baseline(emb, assignments, seed=0, n_draws=2, expected=truth)
+    report = compare_with_random(details, baseline)
+
+    assert details["ari"] is not None and details["ari"] > 0.5
+    assert details["nmi"] is not None and 0.0 <= details["nmi"] <= 1.0
+    assert report["delta_ari_vs_random"] is not None
+    assert report["delta_nmi_vs_random"] is not None

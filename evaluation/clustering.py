@@ -80,7 +80,11 @@ def _external(labels: np.ndarray, expected: pd.Series | None) -> dict:
     return out
 
 
-def _quality(X: np.ndarray, labels: np.ndarray, expected: pd.Series | None = None) -> dict:
+SILHOUETTE_SAMPLE = 2000
+
+
+def _quality(X: np.ndarray, labels: np.ndarray, expected: pd.Series | None = None, *,
+             seed: int = 0) -> dict:
     """Метрики одного разбиения. X уже подготовлен: для косинуса — нормированный."""
     clustered = labels != NOISE
     n_clusters = int(len(np.unique(labels[clustered])))
@@ -95,7 +99,9 @@ def _quality(X: np.ndarray, labels: np.ndarray, expected: pd.Series | None = Non
     }
     if n_clusters >= 2 and int(clustered.sum()) > n_clusters:
         y = labels[clustered]
-        out["silhouette"] = _finite(silhouette_score(X[clustered], y, metric="euclidean"))
+        sample = SILHOUETTE_SAMPLE if int(clustered.sum()) > SILHOUETTE_SAMPLE else None
+        out["silhouette"] = _finite(silhouette_score(X[clustered], y, metric="euclidean",
+                                                     sample_size=sample, random_state=seed))
         out["davies_bouldin"] = _finite(davies_bouldin_score(X[clustered], y))
     return out
 
@@ -106,22 +112,26 @@ def cluster_embeddings(
     min_cluster_size: int = DEFAULT_MIN_CLUSTER_SIZE,
     min_samples: int | None = DEFAULT_MIN_SAMPLES,
     metric: str = DEFAULT_METRIC,
+    expected: pd.Series | None = None,
+    seed: int = 0,
 ) -> tuple[dict, pd.DataFrame]:
     """Сгруппировать хосты; вернуть метрики разбиения и назначения ``host_id -> cluster``.
 
     Шум HDBSCAN обозначается меткой ``-1``. Silhouette и Davies–Bouldin считаются
-    только по не-шумовым хостам и только если кластеров хотя бы два.
+    только по не-шумовым хостам и только если кластеров хотя бы два. Если переданы
+    внешние метки ``expected`` (host_id -> label), считаются ARI/NMI по хостам без шума.
     """
     X = _prepare(emb, metric=metric, min_cluster_size=min_cluster_size)
     labels = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples,
                      metric="euclidean").fit_predict(X).astype(int)
+    aligned = None if expected is None else expected.reindex(emb.index.astype(str))
     details = {
         "algorithm": "HDBSCAN",
         "metric": metric,
         "min_cluster_size": int(min_cluster_size),
         "min_samples": min_samples,
         "n_hosts": int(len(labels)),
-        **_quality(X, labels),
+        **_quality(X, labels, aligned, seed=seed),
     }
     assignments = pd.DataFrame({"cluster": labels}, index=emb.index.astype(str))
     assignments.index.name = "host_id"
@@ -175,7 +185,7 @@ def random_baseline(
         raise ValueError("assignments и emb должны содержать одних хостов в том же порядке")
     labels = assignments["cluster"].to_numpy(dtype=int)
     rng = np.random.default_rng(seed)
-    draws = [_quality(X, rng.permutation(labels), expected) for _ in range(n_draws)]
+    draws = [_quality(X, rng.permutation(labels), expected, seed=int(seed) + i) for i in range(n_draws)]
     out = {"seed": int(seed), "n_draws": int(n_draws)}
     for key in ("silhouette", "davies_bouldin", "ari", "nmi"):
         values = [d[key] for d in draws if d[key] is not None]
